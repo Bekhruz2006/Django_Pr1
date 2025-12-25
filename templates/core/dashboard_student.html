@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Главная{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <h2>Добро пожаловать, {{ user.get_full_name }}!</h2>
+        <p class="text-muted">Студент {{ profile.course }} курса, группа {{ profile.group|default:"не назначена" }}</p>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-journal-check" style="font-size: 3rem; color: var(--accent-green);"></i>
+                <h5 class="mt-2">Средний балл</h5>
+                <h3>{{ profile.get_average_grade|default:"—" }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-trophy" style="font-size: 3rem; color: var(--accent-amber);"></i>
+                <h5 class="mt-2">Рейтинг в группе</h5>
+                <h3>{{ profile.get_group_rank|default:"—" }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar2-week" style="font-size: 3rem; color: var(--primary-blue);"></i>
+                <h5 class="mt-2">Посещаемость</h5>
+                <h3>—%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

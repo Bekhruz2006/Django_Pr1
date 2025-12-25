@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Главная{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <h2>Добро пожаловать, {{ profile.get_degree_display }} {{ user.get_full_name }}!</h2>
+        <p class="text-muted">{{ profile.get_title_display }}</p>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-collection"></i> Мои группы</div>
+            <div class="card-body text-center text-muted">
+                <p>Заглушка для интеграции с модулем предметов</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-calendar-day"></i> Расписание на сегодня</div>
+            <div class="card-body text-center text-muted">
+                <p>Заглушка для интеграции с модулем расписания</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Профиль преподавателя{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if user.photo %}
+                    <img src="{{ user.photo.url }}" alt="Фото" class="profile-img mb-3">
+                {% else %}
+                    <div class="profile-img mb-3 bg-light d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person-circle" style="font-size: 5rem; color: #cbd5e1;"></i>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ profile.get_degree_display }}</h4>
+                <h5>{{ user.get_full_name }}</h5>
+                <p class="text-muted">{{ profile.get_title_display }}</p>
+                
+                <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-pencil"></i> Редактировать профиль
+                </a>
+                <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-key"></i> Сменить пароль
+                </a>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-envelope"></i> Контакты
+            </div>
+            <div class="card-body">
+                {% if profile.contact_email %}
+                <p><strong>Email:</strong><br>{{ profile.contact_email }}</p>
+                {% endif %}
+                
+                {% if profile.telegram %}
+                <p><strong>Telegram:</strong><br>{{ profile.telegram }}</p>
+                {% endif %}
+                
+                {% if profile.consultation_hours %}
+                <p><strong>Часы консультаций:</strong><br>{{ profile.consultation_hours }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-journal-text"></i> О преподавателе
+            </div>
+            <div class="card-body">
+                {% if profile.biography %}
+                <h6>Биография</h6>
+                <p>{{ profile.biography|linebreaks }}</p>
+                {% endif %}
+                
+                {% if profile.research_interests %}
+                <h6 class="mt-3">Научные интересы</h6>
+                <p>{{ profile.research_interests|linebreaks }}</p>
+                {% endif %}
+                
+                {% if not profile.biography and not profile.research_interests %}
+                <p class="text-muted">Информация не заполнена</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-collection"></i> Сводка по группам
+                    </div>
+                    <div class="card-body text-center text-muted">
+                        <p>Заглушка для будущей интеграции</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-calendar-day"></i> Сегодня
+                    </div>
+                    <div class="card-body text-center text-muted">
+                        <p>Заглушка для будущей интеграции</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

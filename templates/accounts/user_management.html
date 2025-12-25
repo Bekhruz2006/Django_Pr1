@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people"></i> Управление пользователями</span>
+                <a href="{% url 'accounts:add_user' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Добавить пользователя
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" name="search" placeholder="Поиск..." value="{{ search }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="role">
+                            <option value="">Все роли</option>
+                            <option value="STUDENT" {% if role_filter == 'STUDENT' %}selected{% endif %}>Студенты</option>
+                            <option value="TEACHER" {% if role_filter == 'TEACHER' %}selected{% endif %}>Преподаватели</option>
+                            <option value="DEAN" {% if role_filter == 'DEAN' %}selected{% endif %}>Деканы</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Найти
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Логин</th>
+                                <th>ФИО</th>
+                                <th>Роль</th>
+                                <th>Телефон</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user_obj in users %}
+                            <tr>
+                                <td>{{ user_obj.username }}</td>
+                                <td>{{ user_obj.get_full_name }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if user_obj.role == 'STUDENT' %}bg-primary
+                                        {% elif user_obj.role == 'TEACHER' %}bg-info
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ user_obj.get_role_display }}
+                                    </span>
+                                </td>
+                                <td>{{ user_obj.phone|default:"—" }}</td>
+                                <td>
+                                    {% if user_obj.is_active %}
+                                        <span class="badge bg-success">Активен</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Заблокирован</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'accounts:edit_user' user_obj.id %}" class="btn btn-outline-primary" title="Редактировать">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'accounts:reset_password' user_obj.id %}" class="btn btn-outline-warning" title="Сбросить пароль">
+                                            <i class="bi bi-key"></i>
+                                        </a>
+                                        <a href="{% url 'accounts:toggle_user_active' user_obj.id %}" class="btn btn-outline-danger" title="{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %}">
+                                            <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
+                                        </a>
+                                        {% if user_obj.role == 'STUDENT' %}
+                                        <a href="{% url 'accounts:transfer_student' user_obj.student_profile.id %}" class="btn btn-outline-info" title="Перевести в другую группу">
+                                            <i class="bi bi-arrow-left-right"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Пользователи не найдены</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
