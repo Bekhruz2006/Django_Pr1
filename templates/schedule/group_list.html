@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Список групп{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        {% for item in groups_with_students %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-collection"></i> Группа {{ item.group.name }} - {{ item.group.specialty }}
+                <span class="badge bg-primary ms-2">{{ item.group.course }} курс</span>
+                <span class="badge bg-info ms-2">{{ item.students|length }} студентов</span>
+            </div>
+            <div class="card-body">
+                {% if item.students %}
+                <div class="table-responsive">
+                    <table class="table table-hover sortable-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(this, 0)" class="sortable">№</th>
+                                <th onclick="sortTable(this, 1)" class="sortable">ФИО студента</th>
+                                <th onclick="sortTable(this, 2)" class="sortable">День рождения</th>
+                                <th onclick="sortTable(this, 3)" class="sortable">Последний вход</th>
+                                <th onclick="sortTable(this, 4)" class="sortable">Средний балл</th>
+                                <th onclick="sortTable(this, 5)" class="sortable">Рейтинг</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in item.students %}
+                            <tr onclick="window.location='{% url 'accounts:profile' %}?user_id={{ student.user.id }}'" style="cursor: pointer;">
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'accounts:profile' %}?user_id={{ student.user.id }}">
+                                        {{ student.user.get_full_name }}
+                                    </a>
+                                </td>
+                                <td>{{ student.birth_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if student.user.last_login %}
+                                        {{ student.user.last_login|date:"d.m.Y H:i" }}
+                                    {% else %}
+                                        <span class="text-muted">Никогда</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ student.get_average_grade|default:"—" }}</strong>
+                                </td>
+                                <td>
+                                    {% if student.get_group_rank > 0 %}
+                                        <span class="badge bg-warning">{{ student.get_group_rank }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> В этой группе пока нет студентов
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center text-muted">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mt-2">Нет доступных групп</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+    
+    .sortable:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .sortable::after {
+        content: ' ⇅';
+        color: #ccc;
+        font-size: 0.8em;
+    }
+    
+    tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+
+<script>
+function sortTable(header, columnIndex) {
+    const table = header.closest('table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Определяем направление сортировки
+    const isAscending = header.classList.contains('asc');
+    
+    // Удаляем классы сортировки со всех заголовков
+    table.querySelectorAll('th').forEach(th => {
+        th.classList.remove('asc', 'desc');
+    });
+    
+    // Добавляем класс к текущему заголовку
+    header.classList.add(isAscending ? 'desc' : 'asc');
+    
+    // Сортируем строки
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+        
+        // Попытка преобразовать в число
+        const aNum = parseFloat(aValue.replace(/[^0-9.-]/g, ''));
+        const bNum = parseFloat(bValue.replace(/[^0-9.-]/g, ''));
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return isAscending ? bNum - aNum : aNum - bNum;
+        }
+        
+        // Сортировка как строки
+        return isAscending ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
+    });
+    
+    // Обновляем таблицу
+    rows.forEach(row => tbody.appendChild(row));
+}
+</script>
+{% endblock %}

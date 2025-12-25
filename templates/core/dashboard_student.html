@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Главная{% endblock %}
 {% block content %}
 <div class="row mt-4">
@@ -7,6 +8,7 @@
         <p class="text-muted">Студент {{ profile.course }} курса, группа {{ profile.group|default:"не назначена" }}</p>
     </div>
 </div>
+
 <div class="row mt-3">
     <div class="col-md-4">
         <div class="card">
@@ -32,6 +34,38 @@
                 <i class="bi bi-calendar2-week" style="font-size: 3rem; color: var(--primary-blue);"></i>
                 <h5 class="mt-2">Посещаемость</h5>
                 <h3>—%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <!-- Виджет "Сегодня" -->
+    <div class="col-lg-6">
+        {% include 'schedule/today_widget.html' %}
+    </div>
+    
+    <!-- Быстрый доступ -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-link-45deg"></i> Быстрый доступ
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-week"></i> Мое расписание
+                    </a>
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-person"></i> Мой профиль
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary disabled">
+                        <i class="bi bi-journal"></i> Мои оценки
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary disabled">
+                        <i class="bi bi-calendar-check"></i> Посещаемость
+                    </a>
+                </div>
             </div>
         </div>
     </div>

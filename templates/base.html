@@ -109,10 +109,27 @@
                         </a>
                     </li>
                     
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'schedule:view' %}">
+                            <i class="bi bi-calendar-week"></i> Расписание
+                        </a>
+                    </li>
+                    
                     {% if user.role == 'DEAN' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'accounts:user_management' %}">
                             <i class="bi bi-people"></i> Управление людьми
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'schedule:constructor' %}">
+                            <i class="bi bi-calendar3"></i> Конструктор расписания
+                        </a>
+                    </li>
+                    {% elif user.role == 'TEACHER' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'schedule:group_list' %}">
+                            <i class="bi bi-list-ul"></i> Мои группы
                         </a>
                     </li>
                     {% endif %}

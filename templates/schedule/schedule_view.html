@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Расписание{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-calendar-week"></i> 
+                    {% if group %}
+                        Расписание группы {{ group.name }}
+                    {% else %}
+                        Мое расписание
+                    {% endif %}
+                </span>
+                <a href="{% url 'schedule:export' %}{% if group %}?group={{ group.id }}{% endif %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-download"></i> Экспорт в DOCX
+                </a>
+            </div>
+            <div class="card-body">
+                {% if not schedule_slots %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> Расписание пока не составлено
+                    </div>
+                {% else %}
+                    <!-- Десктоп версия - таблица -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr class="table-primary">
+                                        <th style="width: 100px;">Время</th>
+                                        <th>Понедельник</th>
+                                        <th>Вторник</th>
+                                        <th>Среда</th>
+                                        <th>Четверг</th>
+                                        <th>Пятница</th>
+                                        <th>Суббота</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for time_slot in schedule_slots|dictsort:"start_time"|regroup:"start_time" %}
+                                        <tr>
+                                            <td class="align-middle text-center">
+                                                <strong>{{ time_slot.grouper|time:"H:i" }}</strong><br>
+                                                <small class="text-muted">{{ time_slot.list.0.end_time|time:"H:i" }}</small>
+                                            </td>
+                                            {% for day_num in "012345" %}
+                                                <td class="align-middle">
+                                                    {% for slot in time_slot.list %}
+                                                        {% if slot.day_of_week|stringformat:"s" == day_num %}
+                                                            <div class="schedule-cell bg-{{ slot.get_color_class }} bg-opacity-10 p-2 rounded">
+                                                                <strong>{{ slot.subject.name }}</strong><br>
+                                                                <small class="text-muted">
+                                                                    {% if user.role == 'TEACHER' %}
+                                                                        {{ slot.group.name }}
+                                                                    {% else %}
+                                                                        {{ slot.teacher.user.get_full_name }}
+                                                                    {% endif %}
+                                                                </small><br>
+                                                                <small><i class="bi bi-geo-alt"></i> {{ slot.classroom }}</small>
+                                                                <span class="badge bg-{{ slot.get_color_class }} float-end">
+                                                                    {{ slot.subject.get_type_display }}
+                                                                </span>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Мобильная версия - вертикальный список -->
+                    <div class="d-md-none">
+                        {% for day, slots in schedule_by_day.items %}
+                            <h5 class="mt-3 mb-3">{{ day }}</h5>
+                            {% for slot in slots %}
+                                <div class="card mb-2 border-{{ slot.get_color_class }}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="mb-0">{{ slot.subject.name }}</h6>
+                                            <span class="badge bg-{{ slot.get_color_class }}">
+                                                {{ slot.subject.get_type_display }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-1">
+                                            <i class="bi bi-clock"></i> {{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="bi bi-person"></i> 
+                                            {% if user.role == 'TEACHER' %}
+                                                {{ slot.group.name }}
+                                            {% else %}
+                                                {{ slot.teacher.user.get_full_name }}
+                                            {% endif %}
+                                        </p>
+                                        <p class="mb-0">
+                                            <i class="bi bi-geo-alt"></i> {{ slot.classroom }}
+                                        </p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Легенда -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6>Обозначения:</h6>
+                <span class="badge bg-primary me-2">Лекция</span>
+                <span class="badge bg-success me-2">Практика</span>
+                <span class="badge bg-warning me-2">СРСП</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .schedule-cell {
+        min-height: 80px;
+    }
+    
+    .table-bordered th, .table-bordered td {
+        vertical-align: top;
+    }
+</style>
+{% endblock %}

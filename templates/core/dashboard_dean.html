@@ -7,6 +7,7 @@
         <p class="text-muted">Панель декана</p>
     </div>
 </div>
+
 <div class="row mt-3">
     <div class="col-md-3">
         <div class="card">
@@ -45,17 +46,57 @@
         </div>
     </div>
 </div>
+
 <div class="row mt-3">
     <div class="col-12">
         <div class="card">
             <div class="card-header"><i class="bi bi-speedometer2"></i> Быстрые действия</div>
             <div class="card-body">
-                <a href="{% url 'accounts:user_management' %}" class="btn btn-primary me-2">
-                    <i class="bi bi-people"></i> Управление пользователями
-                </a>
-                <a href="{% url 'accounts:add_user' %}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Добавить пользователя
-                </a>
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'accounts:user_management' %}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-people"></i><br>Управление пользователями
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'schedule:constructor' %}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-calendar3"></i><br>Конструктор расписания
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-calendar-week"></i><br>Просмотр расписания
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'schedule:group_list' %}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-list-ul"></i><br>Список групп
+                        </a>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'accounts:add_user' %}" class="btn btn-success w-100 mb-2">
+                            <i class="bi bi-plus-circle"></i><br>Добавить пользователя
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-info w-100 mb-2">
+                            <i class="bi bi-calendar-range"></i><br>Учебные недели
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="#" class="btn btn-outline-secondary w-100 mb-2 disabled">
+                            <i class="bi bi-bar-chart"></i><br>Статистика
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="#" class="btn btn-outline-secondary w-100 mb-2 disabled">
+                            <i class="bi bi-file-earmark-text"></i><br>Отчеты
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
