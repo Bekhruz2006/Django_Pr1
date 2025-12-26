@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои оценки{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-person-badge"></i> Моя успеваемость
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Общий средний балл (GPA)</h6>
+                            <h2 class="text-primary">{{ stats.overall_gpa|floatformat:2 }}</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Рейтинг в группе</h6>
+                            <h2 class="text-warning">{{ stats.group_rank }}</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Посещаемость</h6>
+                            <h2 class="text-success">{{ stats.attendance_percentage|floatformat:0 }}%</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6 class="text-muted">Всего занятий</h6>
+                            <h2>{{ stats.total_lessons }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Таблица по предметам -->
+        {% for subject_data in subjects_data %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-book"></i> {{ subject_data.subject.name }}
+                    <span class="badge bg-{{ subject_data.subject.get_color_class }}">
+                        {{ subject_data.subject.get_type_display }}
+                    </span>
+                </span>
+                <div>
+                    <span class="badge bg-primary me-2">
+                        Ср. балл: {{ subject_data.avg_grade|floatformat:1 }}
+                    </span>
+                    <span class="badge bg-success">
+                        Посещ: {{ subject_data.attendance_pct|floatformat:0 }}%
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата</th>
+                                <th>Время</th>
+                                <th>Тип</th>
+                                <th>Балл</th>
+                                <th>Посещение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in subject_data.entries %}
+                            <tr>
+                                <td>{{ entry.lesson_date|date:"d.m.Y" }}</td>
+                                <td>{{ entry.lesson_time|time:"H:i" }}</td>
+                                <td>{{ entry.get_lesson_type_display }}</td>
+                                <td class="text-center">
+                                    {% if entry.grade %}
+                                        <span class="badge bg-success">{{ entry.grade }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if entry.attendance_status == 'PRESENT' %}
+                                        <span class="badge bg-success">✓</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ entry.get_attendance_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-info">
+                            <tr>
+                                <td colspan="3"><strong>Итого</strong></td>
+                                <td class="text-center">
+                                    <strong>{{ subject_data.avg_grade|floatformat:1 }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ subject_data.attended }}/{{ subject_data.total_lessons }}</strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> Записей в журнале пока нет
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

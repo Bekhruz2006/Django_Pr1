@@ -1,3 +1,6 @@
+{# templates/schedule/today_widget.html #}
+{# Ожидается: view передаёт в контекст 'today', 'current_time' (time) и 'classes' (iterable) #}
+
 <div class="card">
     <div class="card-header">
         <i class="bi bi-calendar-day"></i> Сегодня - {{ today|date:"d.m.Y" }} ({{ today|date:"l" }})
@@ -9,38 +12,54 @@
                 <p class="mt-2">Сегодня занятий нет</p>
             </div>
         {% else %}
-            {% for class in classes %}
-                {% with is_current=class.start_time <= current_time and class.end_time >= current_time %}
+            {% for lesson in classes %}
+                {# Обрабатываем два варианта: обычное занятие (end_time >= start_time) и занятие, переходящее через полночь (end_time < start_time) #}
+                {% if lesson.start_time <= lesson.end_time %}
+                    {% if lesson.start_time <= current_time and lesson.end_time >= current_time %}
+                        {% with is_current=True %}
+                    {% else %}
+                        {% with is_current=False %}
+                    {% endif %}
+                {% else %}
+                    {# Занятие переходит через полночь: считается текущим, если время >= start_time ИЛИ <= end_time #}
+                    {% if current_time >= lesson.start_time or current_time <= lesson.end_time %}
+                        {% with is_current=True %}
+                    {% else %}
+                        {% with is_current=False %}
+                    {% endif %}
+                {% endif %}
+
                 <div class="class-item mb-3 p-3 rounded {% if is_current %}border border-success border-2 bg-success bg-opacity-10{% else %}border{% endif %}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h6 class="mb-0">
                             {% if is_current %}
                                 <span class="badge bg-success me-2">СЕЙЧАС</span>
                             {% endif %}
-                            {{ class.subject.name }}
+                            {{ lesson.subject.name }}
                         </h6>
-                        <span class="badge bg-{{ class.get_color_class }}">
-                            {{ class.subject.get_type_display }}
+                        <span class="badge bg-{{ lesson.get_color_class }}">
+                            {{ lesson.subject.get_type_display }}
                         </span>
                     </div>
-                    
+
                     <p class="mb-1">
-                        <i class="bi bi-clock"></i> 
-                        <strong>{{ class.start_time|time:"H:i" }} - {{ class.end_time|time:"H:i" }}</strong>
+                        <i class="bi bi-clock"></i>
+                        <strong>{{ lesson.start_time|time:"H:i" }} - {{ lesson.end_time|time:"H:i" }}</strong>
                     </p>
-                    
+
                     <p class="mb-1">
                         {% if user.role == 'STUDENT' %}
-                            <i class="bi bi-person"></i> {{ class.teacher.user.get_full_name }}
+                            <i class="bi bi-person"></i> {{ lesson.teacher.user.get_full_name }}
                         {% else %}
-                            <i class="bi bi-people"></i> {{ class.group.name }}
+                            <i class="bi bi-people"></i> {{ lesson.group.name }}
                         {% endif %}
                     </p>
-                    
+
                     <p class="mb-0">
-                        <i class="bi bi-geo-alt"></i> Аудитория {{ class.classroom }}
+                        <i class="bi bi-geo-alt"></i> Аудитория {{ lesson.classroom }}
                     </p>
                 </div>
+
                 {% endwith %}
             {% endfor %}
         {% endif %}
@@ -51,7 +70,7 @@
     .class-item {
         transition: all 0.3s ease;
     }
-    
+
     .class-item:hover {
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }

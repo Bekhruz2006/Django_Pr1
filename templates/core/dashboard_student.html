@@ -44,7 +44,7 @@
     <div class="col-lg-6">
         {% include 'schedule/today_widget.html' %}
     </div>
-    
+
     <!-- Быстрый доступ -->
     <div class="col-lg-6">
         <div class="card">
@@ -59,7 +59,7 @@
                     <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary">
                         <i class="bi bi-person"></i> Мой профиль
                     </a>
-                    <a href="#" class="btn btn-outline-secondary disabled">
+                    <a href="{% url 'journal:student_view' %}" class="btn btn-outline-primary">
                         <i class="bi bi-journal"></i> Мои оценки
                     </a>
                     <a href="#" class="btn btn-outline-secondary disabled">

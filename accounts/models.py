@@ -98,14 +98,20 @@ class Student(models.Model):
         return f"{self.user.get_full_name()} ({self.student_id})"
     
     def get_average_grade(self):
-        """Вычисляемое поле - средний балл"""
-        # Заглушка для будущей интеграции с модулем оценок
-        return 0.0
+        try:
+            from journal.models import StudentStatistics
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            return stats.overall_gpa
+        except Exception:
+            return 0.0
     
     def get_group_rank(self):
-        """Рейтинг в группе"""
-        # Заглушка для будущей интеграции
-        return 0
+        try:
+            from journal.models import StudentStatistics
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            return stats.group_rank
+        except Exception:
+            return 0
 
 class Teacher(models.Model):
     DEGREE_CHOICES = [

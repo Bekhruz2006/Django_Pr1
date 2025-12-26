@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}История изменений{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-clock-history"></i> 
+                    История изменений: {{ group.name }} - {{ subject.name }}
+                </span>
+                <a href="{% url 'journal:journal_view' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> К журналу
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Фильтры -->
+                <form method="get" class="mb-4">
+                    <input type="hidden" name="group" value="{{ group.id }}">
+                    <input type="hidden" name="subject" value="{{ subject.id }}">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            {{ filter_form.date_from }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ filter_form.date_to }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ filter_form.student }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ filter_form.teacher }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm mt-2">
+                        <i class="bi bi-funnel"></i> Применить фильтры
+                    </button>
+                    <a href="{% url 'journal:change_log' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-outline-secondary btn-sm mt-2">
+                        <i class="bi bi-x-circle"></i> Сбросить
+                    </a>
+                </form>
+                
+                <!-- Таблица изменений -->
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата и время</th>
+                                <th>Преподаватель</th>
+                                <th>Студент</th>
+                                <th>Дата занятия</th>
+                                <th>Изменение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>
+                                    <small>{{ log.changed_at|date:"d.m.Y H:i:s" }}</small>
+                                </td>
+                                <td>
+                                    {{ log.changed_by.user.get_full_name|default:"Система" }}
+                                </td>
+                                <td>
+                                    {{ log.entry.student.user.get_full_name }}
+                                </td>
+                                <td>
+                                    <small>{{ log.entry.lesson_date|date:"d.m.Y" }} {{ log.entry.lesson_time|time:"H:i" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ log.get_change_description }}</span>
+                                    {% if log.comment %}
+                                        <br><small class="text-muted">{{ log.comment }}</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 
+                    Показано последние 100 записей. Используйте фильтры для уточнения поиска.
+                </div>
+                {% else %}
+                <div class="alert alert-warning text-center">
+                    <i class="bi bi-inbox"></i> Изменений не найдено
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

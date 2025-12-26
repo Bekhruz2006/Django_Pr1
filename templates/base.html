@@ -13,70 +13,70 @@
             --accent-green: #10b981;
             --accent-amber: #f59e0b;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8fafc;
         }
-        
+
         .navbar {
             background: linear-gradient(135deg, var(--primary-blue) 0%, var(--light-blue) 100%);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .navbar-brand, .nav-link {
             color: white !important;
         }
-        
+
         .nav-link:hover {
             color: var(--accent-amber) !important;
         }
-        
+
         .btn-primary {
             background-color: var(--primary-blue);
             border-color: var(--primary-blue);
         }
-        
+
         .btn-primary:hover {
             background-color: var(--light-blue);
             border-color: var(--light-blue);
         }
-        
+
         .btn-success {
             background-color: var(--accent-green);
             border-color: var(--accent-green);
         }
-        
+
         .card {
             border: none;
             box-shadow: 0 1px 3px rgba(0,0,0,0.12);
             border-radius: 8px;
         }
-        
+
         .card-header {
             background-color: var(--primary-blue);
             color: white;
             border-radius: 8px 8px 0 0 !important;
         }
-        
+
         .sidebar {
             min-height: calc(100vh - 56px);
             background-color: white;
             box-shadow: 2px 0 4px rgba(0,0,0,0.05);
         }
-        
+
         .sidebar .nav-link {
             color: #4b5563;
             padding: 0.75rem 1rem;
             border-left: 3px solid transparent;
         }
-        
+
         .sidebar .nav-link:hover, .sidebar .nav-link.active {
             background-color: #eff6ff;
             border-left-color: var(--primary-blue);
             color: var(--primary-blue);
         }
-        
+
         .profile-img {
             width: 150px;
             height: 150px;
@@ -84,7 +84,7 @@
             border-radius: 50%;
             border: 4px solid var(--primary-blue);
         }
-        
+
         .alert {
             border-radius: 8px;
         }
@@ -108,13 +108,33 @@
                             <i class="bi bi-house-door"></i> Главная
                         </a>
                     </li>
-                    
+
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'schedule:view' %}">
                             <i class="bi bi-calendar-week"></i> Расписание
                         </a>
                     </li>
-                    
+
+                    {% if user.role == 'TEACHER' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'journal:journal_view' %}">
+                            <i class="bi bi-journal-text"></i> Журнал
+                        </a>
+                    </li>
+                    {% elif user.role == 'STUDENT' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'journal:student_view' %}">
+                            <i class="bi bi-journal-check"></i> Мои оценки
+                        </a>
+                    </li>
+                    {% elif user.role == 'DEAN' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'journal:dean_view' %}">
+                            <i class="bi bi-graph-up"></i> Аналитика
+                        </a>
+                    </li>
+                    {% endif %}
+
                     {% if user.role == 'DEAN' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'accounts:user_management' %}">
@@ -134,7 +154,7 @@
                     </li>
                     {% endif %}
                 </ul>
-                
+
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
@@ -172,7 +192,7 @@
                 </div>
             </div>
         {% endif %}
-        
+
         {% block content %}{% endblock %}
     </div>
 

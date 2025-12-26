@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Аналитика успеваемости{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> Аналитика успеваемости
+            </div>
+            <div class="card-body">
+                <!-- Выбор группы и режима -->
+                <form method="get" class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Группа</label>
+                            <select name="group" class="form-select" onchange="this.form.submit()">
+                                <option value="">-- Выберите группу --</option>
+                                {% for group in groups %}
+                                    <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                                        {{ group.name }} ({{ group.course }} курс)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Режим просмотра</label>
+                            <select name="view" class="form-select" onchange="this.form.submit()">
+                                <option value="summary" {% if view_type == 'summary' %}selected{% endif %}>Общая статистика</option>
+                                <option value="at_risk" {% if view_type == 'at_risk' %}selected{% endif %}>Студенты под угрозой</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+                
+                {% if not selected_group %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> Выберите группу для просмотра аналитики
+                    </div>
+                {% else %}
+                    {% if view_type == 'summary' %}
+                        <!-- Общая статистика -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-primary bg-opacity-10">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">Средний балл группы</h6>
+                                        <h2 class="text-primary">{{ group_stats.avg_gpa|floatformat:2 }}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-success bg-opacity-10">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">Средняя посещаемость</h6>
+                                        <h2 class="text-success">{{ group_stats.avg_attendance|floatformat:0 }}%</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-info bg-opacity-10">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">Всего студентов</h6>
+                                        <h2 class="text-info">{{ group_stats.total_students }}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Статистика по предметам -->
+                        <h5 class="mb-3">Статистика по предметам</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Предмет</th>
+                                        <th>Средний балл</th>
+                                        <th>Посещаемость</th>
+                                        <th>Диаграмма</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for subject in group_stats.subjects %}
+                                    <tr>
+                                        <td><strong>{{ subject.name }}</strong></td>
+                                        <td>
+                                            <span class="badge {% if subject.avg_grade >= 7 %}bg-success{% elif subject.avg_grade >= 4 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ subject.avg_grade }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if subject.attendance_pct >= 80 %}bg-success{% elif subject.attendance_pct >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ subject.attendance_pct|floatformat:0 }}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar bg-primary" style="width: {% widthratio subject.avg_grade 1 8.33 %}%">
+                                                    {{ subject.avg_grade }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                    {% elif view_type == 'at_risk' %}
+                        <!-- Студенты под угрозой -->
+                        <h5 class="mb-3">
+                            <i class="bi bi-exclamation-triangle text-danger"></i> 
+                            Студенты под угрозой (балл < 4 или посещаемость < 60%)
+                        </h5>
+                        
+                        {% if at_risk_students %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-danger">
+                                    <tr>
+                                        <th>Студент</th>
+                                        <th>Средний балл</th>
+                                        <th>Посещаемость</th>
+                                        <th>Рейтинг в группе</th>
+                                        <th>Причины</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in at_risk_students %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'accounts:profile' %}?user_id={{ item.student.user.id }}">
+                                                <strong>{{ item.student.user.get_full_name }}</strong>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if item.stats.overall_gpa < 4 %}bg-danger{% else %}bg-warning{% endif %}">
+                                                {{ item.stats.overall_gpa|floatformat:2 }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if item.stats.attendance_percentage < 60 %}bg-danger{% else %}bg-warning{% endif %}">
+                                                {{ item.stats.attendance_percentage|floatformat:0 }}%
+                                            </span>
+                                        </td>
+                                        <td>{{ item.stats.group_rank }}</td>
+                                        <td>
+                                            {% for reason in item.reason %}
+                                                <div class="text-danger"><small>• {{ reason }}</small></div>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success text-center">
+                            <i class="bi bi-check-circle"></i> 
+                            <strong>Отлично!</strong> В группе нет студентов под угрозой
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-body h2 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
