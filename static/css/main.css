@@ -1,4 +1,3 @@
-/* Основные стили и анимации */
 :root {
     --primary-blue: #2563eb;
     --light-blue: #60a5fa;
@@ -12,10 +11,91 @@
     --card-dark: #334155;
 }
 
-/* Темная тема */
+body {
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    opacity: 0.03;
+    z-index: -2;
+    pointer-events: none;
+}
+
+.animated-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+    animation: float 20s infinite ease-in-out;
+}
+
+.shape-1 {
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+    top: 10%;
+    left: 5%;
+    animation-delay: 0s;
+}
+
+.shape-2 {
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-amber));
+    top: 60%;
+    right: 10%;
+    animation-delay: 5s;
+}
+
+.shape-3 {
+    width: 150px;
+    height: 150px;
+    background: linear-gradient(135deg, var(--accent-amber), #f97316);
+    bottom: 10%;
+    left: 20%;
+    animation-delay: 10s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-30px) translateX(20px) rotate(90deg);
+    }
+    50% {
+        transform: translateY(-60px) translateX(-20px) rotate(180deg);
+    }
+    75% {
+        transform: translateY(-30px) translateX(-40px) rotate(270deg);
+    }
+}
+
 body.dark-mode {
     background-color: var(--bg-dark);
     color: var(--text-dark);
+}
+
+body.dark-mode::before {
+    opacity: 0.08;
 }
 
 body.dark-mode .card {
@@ -35,45 +115,117 @@ body.dark-mode .table-light {
     background-color: #475569;
 }
 
-/* Анимации */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { 
+        opacity: 0; 
+        transform: translateY(30px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0);
+    }
 }
 
 @keyframes slideIn {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(0); }
+    from { 
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to { 
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    0%, 100% { 
+        transform: scale(1);
+    }
+    50% { 
+        transform: scale(1.05);
+    }
+}
+
+@keyframes scaleUp {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .fade-in {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.6s ease-out;
 }
 
 .slide-in {
     animation: slideIn 0.5s ease-out;
 }
 
+.scale-up {
+    animation: scaleUp 0.4s ease-out;
+}
+
 .card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+}
+
+.card:hover::before {
+    left: 100%;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
 .btn {
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.btn:hover::after {
+    width: 300px;
+    height: 300px;
 }
 
 .btn:hover {
-    transform: scale(1.05);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.btn:active {
+    transform: translateY(-1px);
 }
 
 .nav-link {
@@ -87,23 +239,23 @@ body.dark-mode .table-light {
     bottom: 0;
     left: 50%;
     width: 0;
-    height: 2px;
+    height: 3px;
     background: var(--accent-amber);
     transition: all 0.3s ease;
     transform: translateX(-50%);
+    border-radius: 2px;
 }
 
 .nav-link:hover::after {
     width: 80%;
 }
 
-/* Loader */
 .loader {
     border: 4px solid #f3f3f3;
     border-top: 4px solid var(--primary-blue);
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     animation: spin 1s linear infinite;
 }
 
@@ -112,64 +264,83 @@ body.dark-mode .table-light {
     100% { transform: rotate(360deg); }
 }
 
-/* Переключатель темы */
 .theme-toggle {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 30px;
+    right: 30px;
     z-index: 1000;
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
     border: none;
     color: white;
     font-size: 1.5rem;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .theme-toggle:hover {
-    transform: scale(1.1) rotate(15deg);
+    transform: scale(1.15) rotate(15deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-/* Плавное появление страницы */
+.theme-toggle:active {
+    transform: scale(0.95) rotate(15deg);
+}
+
 .page-content {
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.8s ease-out;
 }
 
-/* Статистические карточки */
 .stat-card {
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    position: relative;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(96, 165, 250, 0.1));
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: inherit;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
 }
 
 .stat-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
 }
 
-/* Таблицы */
 .table tbody tr {
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .table tbody tr:hover {
-    background-color: rgba(37, 99, 235, 0.05);
+    background-color: rgba(37, 99, 235, 0.08);
+    transform: scale(1.01);
 }
 
-/* Формы */
 .form-control, .form-select {
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary-blue);
-    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+    box-shadow: 0 0 0 0.3rem rgba(37, 99, 235, 0.25);
+    transform: scale(1.02);
 }
 
-/* Скелетон загрузка */
 .skeleton {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 200% 100%;
@@ -181,22 +352,134 @@ body.dark-mode .table-light {
     100% { background-position: -200% 0; }
 }
 
-/* Уведомления */
 .alert {
     animation: slideIn 0.5s ease-out;
+    border-left: 4px solid;
 }
 
-/* Модальные окна */
+.alert-success {
+    border-left-color: var(--accent-green);
+}
+
+.alert-danger {
+    border-left-color: #ef4444;
+}
+
+.alert-warning {
+    border-left-color: var(--accent-amber);
+}
+
+.alert-info {
+    border-left-color: var(--light-blue);
+}
+
 .modal.show .modal-dialog {
+    animation: scaleUp 0.4s ease-out;
+}
+
+.dropdown-menu {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Мобильная адаптивность */
+.badge {
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: scale(1.1);
+}
+
 @media (max-width: 768px) {
     .theme-toggle {
-        bottom: 10px;
-        right: 10px;
-        width: 45px;
-        height: 45px;
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
     }
+    
+    .floating-shape {
+        opacity: 0.05;
+    }
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+    animation: progressShine 2s infinite;
+}
+
+@keyframes progressShine {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.list-group-item {
+    transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+    transform: translateX(5px);
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+.navbar {
+    transition: all 0.3s ease;
+}
+
+.navbar:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+a {
+    transition: color 0.3s ease;
+}
+
+.container-fluid {
+    animation: fadeIn 0.6s ease-out;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+}
+
+.profile-img {
+    transition: all 0.4s ease;
+}
+
+.profile-img:hover {
+    transform: scale(1.05) rotate(3deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.card-header {
+    transition: all 0.3s ease;
+}
+
+.card:hover .card-header {
+    transform: translateY(-2px);
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(37, 99, 235, 0.8);
+    }
+}
+
+.btn-primary:hover {
+    animation: glow 2s infinite;
 }

@@ -11,7 +11,6 @@ def is_dean(user):
 
 @login_required
 def news_list(request):
-    """Список всех новостей"""
     category = request.GET.get('category', '')
     
     news_queryset = News.objects.filter(is_published=True)
@@ -19,7 +18,6 @@ def news_list(request):
     if category:
         news_queryset = news_queryset.filter(category=category)
     
-    # Пагинация
     paginator = Paginator(news_queryset, 10)
     page_number = request.GET.get('page')
     news_page = paginator.get_page(page_number)
@@ -35,8 +33,11 @@ def news_list(request):
 
 @login_required
 def news_detail(request, news_id):
-    """Детальный просмотр новости"""
-    news = get_object_or_404(News, id=news_id, is_published=True)
+    if request.user.role == 'DEAN':
+        news = get_object_or_404(News, id=news_id)
+    else:
+        news = get_object_or_404(News, id=news_id, is_published=True)
+    
     news.increment_views()
     
     comments = news.comments.select_related('author').order_by('-created_at')
@@ -62,7 +63,6 @@ def news_detail(request, news_id):
 
 @user_passes_test(is_dean)
 def news_create(request):
-    """Создание новости (только декан)"""
     if request.method == 'POST':
         form = NewsForm(request.POST, request.FILES)
         if form.is_valid():
@@ -82,7 +82,6 @@ def news_create(request):
 
 @user_passes_test(is_dean)
 def news_edit(request, news_id):
-    """Редактирование новости (только декан)"""
     news = get_object_or_404(News, id=news_id)
     
     if request.method == 'POST':
@@ -103,7 +102,6 @@ def news_edit(request, news_id):
 
 @user_passes_test(is_dean)
 def news_delete(request, news_id):
-    """Удаление новости (только декан)"""
     news = get_object_or_404(News, id=news_id)
     news.delete()
     messages.success(request, 'Новость удалена')
@@ -112,19 +110,17 @@ def news_delete(request, news_id):
 
 @user_passes_test(is_dean)
 def news_toggle_publish(request, news_id):
-    """Публикация/снятие с публикации"""
     news = get_object_or_404(News, id=news_id)
     news.is_published = not news.is_published
     news.save()
     
     status = "опубликована" if news.is_published else "снята с публикации"
     messages.success(request, f'Новость {status}')
-    return redirect('news:detail', news_id=news_id)
+    return redirect('news:list')
 
 
 @user_passes_test(is_dean)
 def news_toggle_pin(request, news_id):
-    """Закрепление/открепление новости"""
     news = get_object_or_404(News, id=news_id)
     news.is_pinned = not news.is_pinned
     news.save()
