@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Чат: {{ room }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-chat-left-text"></i>
+                    <strong>{{ room }}</strong>
+                </span>
+                <div>
+                    <small class="text-muted">
+                        Участники: 
+                        {% for participant in room.participants.all %}
+                            {{ participant.get_full_name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Область сообщений -->
+            <div class="card-body" style="height: 500px; overflow-y: auto;" id="messagesContainer">
+                {% for message in messages %}
+                    <div class="mb-3 {% if message.sender == user %}text-end{% endif %}">
+                        <div class="d-inline-block {% if message.sender == user %}bg-primary text-white{% else %}bg-light{% endif %} p-3 rounded" style="max-width: 70%;">
+                            {% if message.sender != user %}
+                                <small class="d-block mb-1">
+                                    <strong>{{ message.sender.get_full_name }}</strong>
+                                </small>
+                            {% endif %}
+                            <div>{{ message.content|linebreaks }}</div>
+                            <small class="d-block mt-2 {% if message.sender == user %}text-white-50{% else %}text-muted{% endif %}">
+                                {{ message.created_at|date:"d.m.Y H:i" }}
+                                {% if message.sender == user %}
+                                    <a href="{% url 'chat:delete_message' message.id %}" 
+                                       class="text-white-50 ms-2" 
+                                       onclick="return confirm('Удалить сообщение?')"
+                                       title="Удалить">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Форма отправки -->
+            <div class="card-footer">
+                <form method="post" id="messageForm">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        {{ form.content }}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Отправить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'chat:list' %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Назад к чатам
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Автоскролл вниз при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('messagesContainer');
+    container.scrollTop = container.scrollHeight;
+});
+
+// Отправка формы с прокруткой вниз
+document.getElementById('messageForm').addEventListener('submit', function() {
+    setTimeout(function() {
+        const container = document.getElementById('messagesContainer');
+        container.scrollTop = container.scrollHeight;
+    }, 100);
+});
+
+// Авто-обновление сообщений каждые 3 секунды
+let lastMessageId = {% if messages %}{{ messages|last.id }}{% else %}0{% endif %};
+
+setInterval(function() {
+    fetch('{% url "chat:new_messages" room.id %}?last_id=' + lastMessageId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.messages.length > 0) {
+                const container = document.getElementById('messagesContainer');
+                
+                data.messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'mb-3 ' + (msg.is_mine ? 'text-end' : '');
+                    div.innerHTML = `
+                        <div class="d-inline-block ${msg.is_mine ? 'bg-primary text-white' : 'bg-light'} p-3 rounded" style="max-width: 70%;">
+                            ${!msg.is_mine ? '<small class="d-block mb-1"><strong>' + msg.sender_name + '</strong></small>' : ''}
+                            <div>${msg.content}</div>
+                            <small class="d-block mt-2 ${msg.is_mine ? 'text-white-50' : 'text-muted'}">
+                                ${msg.created_at}
+                            </small>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                    lastMessageId = msg.id;
+                });
+                
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+}, 3000);
+</script>
+{% endblock %}

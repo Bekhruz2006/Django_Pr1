@@ -1,16 +1,77 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django.http import HttpResponse
-from django.db.models import Q
-from datetime import datetime, timedelta
-from docx import Document
-from docx.shared import Inches, Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+# Это для core/views.py
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from datetime import datetime
 
-from .models import Subject, ScheduleSlot, ScheduleException, AcademicWeek
-from .forms import SubjectForm, ScheduleSlotForm, ScheduleExceptionForm, AcademicWeekForm
-from accounts.models import Group, Student, Teacher
+@login_required
+def dashboard(request):
+    user = request.user
+    
+    template_map = {
+        'STUDENT': 'core/dashboard_student.html',
+        'TEACHER': 'core/dashboard_teacher.html',
+        'DEAN': 'core/dashboard_dean.html',
+    }
+    
+    template = template_map.get(user.role, 'core/dashboard.html')
+    
+    context = {
+        'user': user
+    }
+    
+    if user.role == 'STUDENT':
+        context['profile'] = user.student_profile
+    elif user.role == 'TEACHER':
+        context['profile'] = user.teacher_profile
+    elif user.role == 'DEAN':
+        context['profile'] = user.dean_profile
+    
+    # Добавляем данные для виджета "Сегодня"
+    from schedule.models import ScheduleSlot
+    from accounts.models import Student, Teacher
+    
+    today = datetime.now()
+    day_of_week = today.weekday()
+    current_time = today.time()
+    
+    classes = []
+    
+    if user.role == 'STUDENT':
+        try:
+            student = user.student_profile
+            if student.group:
+                classes = ScheduleSlot.objects.filter(
+                    group=student.group,
+                    day_of_week=day_of_week,
+                    is_active=True
+                ).select_related('subject', 'teacher').order_by('start_time')
+        except Student.DoesNotExist:
+            pass
+    
+    elif user.role == 'TEACHER':
+        try:
+            teacher = user.teacher_profile
+            classes = ScheduleSlot.objects.filter(
+                teacher=teacher,
+                day_of_week=day_of_week,
+                is_active=True
+            ).select_related('subject', 'group').order_by('start_time')
+        except Teacher.DoesNotExist:
+            pass
+    
+    context['classes'] = classes
+    context['current_time'] = current_time
+    context['today'] = today
+    
+    # Добавляем новости
+    try:
+        from news.models import News
+        news_list = News.objects.filter(is_published=True)[:5]
+        context['news_list'] = news_list
+    except:
+        context['news_list'] = []
+    
+    return render(request, template, context)
 
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
@@ -30,7 +91,6 @@ def schedule_view(request):
     schedule_slots = []
     
     if user.role == 'STUDENT':
-        # Студент видит только свою группу
         try:
             student = user.student_profile
             group = student.group
@@ -43,7 +103,6 @@ def schedule_view(request):
             pass
     
     elif user.role == 'TEACHER':
-        # Преподаватель видит все свои занятия
         try:
             teacher = user.teacher_profile
             schedule_slots = ScheduleSlot.objects.filter(
@@ -54,7 +113,6 @@ def schedule_view(request):
             pass
     
     elif user.role == 'DEAN':
-        # Декан выбирает группу
         group_id = request.GET.get('group')
         groups = Group.objects.all()
         
@@ -188,7 +246,8 @@ def add_schedule_slot(request):
         if form.is_valid():
             slot = form.save()
             messages.success(request, 'Занятие успешно добавлено')
-            return redirect('schedule:constructor') + f'?group={slot.group.id}'
+            # ИСПРАВЛЕНО: правильный способ передачи параметров
+            return redirect(f"{reverse('schedule:constructor')}?group={slot.group.id}")
     else:
         form = ScheduleSlotForm()
         
@@ -210,7 +269,7 @@ def edit_schedule_slot(request, slot_id):
         if form.is_valid():
             form.save()
             messages.success(request, 'Занятие успешно обновлено')
-            return redirect('schedule:constructor') + f'?group={slot.group.id}'
+            return redirect(f"{reverse('schedule:constructor')}?group={slot.group.id}")
     else:
         form = ScheduleSlotForm(instance=slot)
     
@@ -224,7 +283,7 @@ def delete_schedule_slot(request, slot_id):
     group_id = slot.group.id
     slot.delete()
     messages.success(request, 'Занятие удалено')
-    return redirect('schedule:constructor') + f'?group={group_id}'
+    return redirect(f"{reverse('schedule:constructor')}?group={group_id}")
 
 
 @user_passes_test(is_dean)
@@ -298,7 +357,6 @@ def export_schedule(request):
     group = None
     schedule_slots = []
     
-    # Определение группы в зависимости от роли
     if user.role == 'STUDENT':
         try:
             student = user.student_profile
@@ -339,7 +397,6 @@ def export_schedule(request):
     # Создание документа DOCX
     doc = Document()
     
-    # Заголовок
     if group:
         heading = doc.add_heading(f'Расписание группы {group.name}', 0)
     else:
@@ -351,7 +408,6 @@ def export_schedule(request):
     table = doc.add_table(rows=1, cols=7)
     table.style = 'Light Grid Accent 1'
     
-    # Заголовки столбцов
     header_cells = table.rows[0].cells
     header_cells[0].text = 'Время'
     for i, day in enumerate(days):
@@ -379,7 +435,7 @@ def export_schedule(request):
                     cell_text = f"{slot.subject.name}\n{slot.teacher.user.get_full_name()}\n{slot.classroom}"
                 row_cells[day_num + 1].text = cell_text
     
-    # Сохранение в response
+    # Сохранение
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     filename = f'schedule_{group.name if group else user.username}_{datetime.now().strftime("%Y%m%d")}.docx'
     response['Content-Disposition'] = f'attachment; filename={filename}'
@@ -394,7 +450,6 @@ def group_list(request):
     user = request.user
     
     if user.role == 'TEACHER':
-        # Преподаватель видит только свои группы
         try:
             teacher = user.teacher_profile
             group_ids = ScheduleSlot.objects.filter(
@@ -406,11 +461,9 @@ def group_list(request):
             groups = Group.objects.none()
     
     elif user.role == 'DEAN':
-        # Декан видит все группы
         groups = Group.objects.all()
     
     else:
-        # Студенты не имеют доступа
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
     

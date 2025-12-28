@@ -19,6 +19,8 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'journal.apps.JournalConfig',
     'schedule.apps.ScheduleConfig',
+    'news.apps.NewsConfig',  # ДОБАВЛЕНО
+    'chat.apps.ChatConfig',  # ДОБАВЛЕНО
     'core.apps.CoreConfig',
 ]
 
@@ -96,3 +98,7 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
+
+# Настройки для файлов
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB для видео
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB

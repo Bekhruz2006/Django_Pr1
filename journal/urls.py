@@ -15,4 +15,6 @@ urlpatterns = [
     
     # Декан
     path('dean/', views.dean_journal_view, name='dean_view'),
+    path('report/', views.department_report, name='department_report'),  # ДОБАВЛЕНО
+    path('report/group/<int:group_id>/', views.group_detailed_report, name='group_detail'),  # ДОБАВЛЕНО
 ]

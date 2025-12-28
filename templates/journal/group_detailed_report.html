@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Детальный отчет - {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-collection"></i> Детальный отчет - {{ group.name }}
+                    <span class="badge bg-primary ms-2">{{ group.course }} курс</span>
+                </span>
+                <a href="{% url 'journal:department_report' %}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> К отчету по кафедре
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th rowspan="2" class="align-middle">Студент</th>
+                                <th rowspan="2" class="align-middle text-center">GPA</th>
+                                <th rowspan="2" class="align-middle text-center">Посещ.</th>
+                                <th rowspan="2" class="align-middle text-center">Рейтинг</th>
+                                {% for subject in subjects %}
+                                    <th class="text-center">{{ subject.name }}</th>
+                                {% endfor %}
+                                <th rowspan="2" class="align-middle text-center">Статус</th>
+                            </tr>
+                            <tr>
+                                {% for subject in subjects %}
+                                    <th class="text-center"><small>Балл / Посещ.</small></th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in students_data %}
+                                <tr {% if item.is_at_risk %}class="table-danger"{% endif %}>
+                                    <td>
+                                        <a href="{% url 'accounts:profile' %}?user_id={{ item.student.user.id }}">
+                                            <strong>{{ item.student.user.get_full_name }}</strong>
+                                        </a><br>
+                                        <small class="text-muted">{{ item.student.student_id }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <strong class="{% if item.stats.overall_gpa >= 7 %}text-success{% elif item.stats.overall_gpa >= 4 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ item.stats.overall_gpa|floatformat:2 }}
+                                        </strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <strong class="{% if item.stats.attendance_percentage >= 80 %}text-success{% elif item.stats.attendance_percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ item.stats.attendance_percentage|floatformat:0 }}%
+                                        </strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning">{{ item.stats.group_rank }}</span>
+                                    </td>
+                                    
+                                    {% for subject in subjects %}
+                                        <td class="text-center">
+                                            {% for subj_perf in item.subjects %}
+                                                {% if subj_perf.subject == subject %}
+                                                    <div>
+                                                        <span class="badge {% if subj_perf.avg_grade >= 7 %}bg-success{% elif subj_perf.avg_grade >= 4 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                            {{ subj_perf.avg_grade|floatformat:1 }}
+                                                        </span>
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        {{ subj_perf.attendance|floatformat:0 }}%
+                                                    </small>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% endfor %}
+                                    
+                                    <td class="text-center">
+                                        {% if item.is_at_risk %}
+                                            <span class="badge bg-danger">Под угрозой</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Норма</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <h6><i class="bi bi-info-circle"></i> Легенда:</h6>
+                    <ul class="mb-0">
+                        <li><strong>Зеленый</strong> — отличная успеваемость (балл ≥ 7, посещаемость ≥ 80%)</li>
+                        <li><strong>Желтый</strong> — удовлетворительная (балл 4-7, посещаемость 60-80%)</li>
+                        <li><strong>Красный</strong> — критическая (балл < 4, посещаемость < 60%)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

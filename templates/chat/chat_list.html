@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Чаты{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-chat-dots"></i> Мои чаты</span>
+                <a href="{% url 'chat:start' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Новый чат
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for room in rooms %}
+                        <a href="{% url 'chat:room' room.id %}" class="list-group-item list-group-item-action {% if room.unread > 0 %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-chat-left-text me-2"></i>
+                                        <strong>{{ room }}</strong>
+                                        {% if room.unread > 0 %}
+                                            <span class="badge bg-danger ms-2">{{ room.unread }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if room.last_msg %}
+                                        <small class="text-muted d-block mt-1">
+                                            <strong>{{ room.last_msg.sender.get_full_name }}:</strong>
+                                            {{ room.last_msg.content|truncatewords:10 }}
+                                        </small>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if room.last_msg %}
+                                    <small class="text-muted">
+                                        {{ room.last_msg.created_at|date:"d.m H:i" }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% empty %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-3">У вас пока нет чатов</p>
+                            <a href="{% url 'chat:start' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Начать новый чат
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

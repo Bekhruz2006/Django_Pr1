@@ -469,3 +469,143 @@ def dean_journal_view(request):
     }
     
     return render(request, 'journal/dean_view.html', context)
+
+
+
+# ДОБАВИТЬ В КОНЕЦ journal/views.py:
+
+@login_required
+@user_passes_test(is_dean)
+def department_report(request):
+    """Детальный отчет по всей кафедре"""
+    
+    sort_by = request.GET.get('sort', 'group')  # group, gpa, attendance
+    
+    groups = Group.objects.all()
+    
+    # Собираем статистику по всем группам
+    groups_data = []
+    
+    for group in groups:
+        students = Student.objects.filter(group=group)
+        
+        if not students.exists():
+            continue
+        
+        # Статистика группы
+        group_stats = []
+        total_gpa = 0
+        total_attendance = 0
+        count = 0
+        
+        for student in students:
+            stats, _ = StudentStatistics.objects.get_or_create(student=student)
+            stats.recalculate()
+            
+            group_stats.append({
+                'student': student,
+                'stats': stats,
+                'is_at_risk': stats.overall_gpa < 4.0 or stats.attendance_percentage < 60
+            })
+            
+            total_gpa += stats.overall_gpa
+            total_attendance += stats.attendance_percentage
+            count += 1
+        
+        # Вычисляем средние по группе
+        avg_gpa = total_gpa / count if count > 0 else 0
+        avg_attendance = total_attendance / count if count > 0 else 0
+        
+        groups_data.append({
+            'group': group,
+            'students_count': count,
+            'avg_gpa': avg_gpa,
+            'avg_attendance': avg_attendance,
+            'students': sorted(group_stats, key=lambda x: x['stats'].overall_gpa, reverse=True),
+            'at_risk_count': sum(1 for s in group_stats if s['is_at_risk'])
+        })
+    
+    # Сортировка групп
+    if sort_by == 'gpa':
+        groups_data.sort(key=lambda x: x['avg_gpa'], reverse=True)
+    elif sort_by == 'attendance':
+        groups_data.sort(key=lambda x: x['avg_attendance'], reverse=True)
+    else:
+        groups_data.sort(key=lambda x: x['group'].name)
+    
+    # Общая статистика по кафедре
+    total_students = sum(g['students_count'] for g in groups_data)
+    total_at_risk = sum(g['at_risk_count'] for g in groups_data)
+    overall_gpa = sum(g['avg_gpa'] * g['students_count'] for g in groups_data) / total_students if total_students > 0 else 0
+    overall_attendance = sum(g['avg_attendance'] * g['students_count'] for g in groups_data) / total_students if total_students > 0 else 0
+    
+    context = {
+        'groups_data': groups_data,
+        'total_students': total_students,
+        'total_at_risk': total_at_risk,
+        'overall_gpa': overall_gpa,
+        'overall_attendance': overall_attendance,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'journal/department_report.html', context)
+
+
+@login_required
+@user_passes_test(is_dean)
+def group_detailed_report(request, group_id):
+    """Детальный отчет по конкретной группе"""
+    group = get_object_or_404(Group, id=group_id)
+    students = Student.objects.filter(group=group).select_related('user')
+    
+    # Получаем все предметы группы
+    subjects = Subject.objects.filter(
+        journal_entries__student__group=group
+    ).distinct()
+    
+    # Собираем данные по каждому студенту
+    students_data = []
+    for student in students:
+        stats, _ = StudentStatistics.objects.get_or_create(student=student)
+        stats.recalculate()
+        
+        # Статистика по предметам
+        subjects_performance = []
+        for subject in subjects:
+            entries = JournalEntry.objects.filter(
+                student=student,
+                subject=subject
+            )
+            
+            if entries.exists():
+                grades = entries.filter(grade__isnull=False).values_list('grade', flat=True)
+                avg_grade = sum(grades) / len(grades) if grades else 0
+                
+                total_lessons = entries.count()
+                attended = entries.filter(attendance_status='PRESENT').count()
+                attendance_pct = (attended / total_lessons * 100) if total_lessons > 0 else 0
+                
+                subjects_performance.append({
+                    'subject': subject,
+                    'avg_grade': avg_grade,
+                    'attendance': attendance_pct,
+                    'total_lessons': total_lessons,
+                })
+        
+        students_data.append({
+            'student': student,
+            'stats': stats,
+            'subjects': subjects_performance,
+            'is_at_risk': stats.overall_gpa < 4.0 or stats.attendance_percentage < 60
+        })
+    
+    # Сортировка по среднему баллу
+    students_data.sort(key=lambda x: x['stats'].overall_gpa, reverse=True)
+    
+    context = {
+        'group': group,
+        'students_data': students_data,
+        'subjects': subjects,
+    }
+    
+    return render(request, 'journal/group_detailed_report.html', context)

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ news.title }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <!-- Заголовок и мета-информация -->
+                <h2 class="card-title">
+                    {% if news.is_pinned %}
+                        <i class="bi bi-pin-angle-fill text-warning"></i>
+                    {% endif %}
+                    {{ news.title }}
+                </h2>
+                
+                <div class="mb-3">
+                    <span class="badge bg-primary">{{ news.get_category_display }}</span>
+                    <small class="text-muted ms-2">
+                        <i class="bi bi-calendar"></i> {{ news.created_at|date:"d.m.Y H:i" }}
+                    </small>
+                    <small class="text-muted ms-2">
+                        <i class="bi bi-person"></i> {{ news.author.get_full_name }}
+                    </small>
+                    <small class="text-muted ms-2">
+                        <i class="bi bi-eye"></i> {{ news.views_count }}
+                    </small>
+                </div>
+                
+                <hr>
+                
+                <!-- Изображение -->
+                {% if news.image %}
+                    <div class="text-center mb-4">
+                        <img src="{{ news.image.url }}" class="img-fluid rounded" alt="{{ news.title }}">
+                    </div>
+                {% endif %}
+                
+                <!-- Содержание -->
+                <div class="news-content">
+                    {{ news.content|linebreaks }}
+                </div>
+                
+                <!-- Видео -->
+                {% if news.video_url %}
+                    <div class="mt-4">
+                        <h5>Видео</h5>
+                        <div class="ratio ratio-16x9">
+                            {% if 'youtube.com' in news.video_url or 'youtu.be' in news.video_url %}
+                                <iframe src="{{ news.video_url|replace:'watch?v='|replace:'embed/' }}" allowfullscreen></iframe>
+                            {% else %}
+                                <iframe src="{{ news.video_url }}" allowfullscreen></iframe>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if news.video_file %}
+                    <div class="mt-4">
+                        <h5>Видео</h5>
+                        <video controls class="w-100">
+                            <source src="{{ news.video_file.url }}" type="video/mp4">
+                            Ваш браузер не поддерживает воспроизведение видео.
+                        </video>
+                    </div>
+                {% endif %}
+                
+                <hr class="mt-4">
+                
+                <!-- Кнопки управления (только декан) -->
+                {% if user.role == 'DEAN' %}
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="{% url 'news:edit' news.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-pencil"></i> Редактировать
+                        </a>
+                        <a href="{% url 'news:toggle_pin' news.id %}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-pin"></i> {% if news.is_pinned %}Открепить{% else %}Закрепить{% endif %}
+                        </a>
+                        <a href="{% url 'news:toggle_publish' news.id %}" class="btn btn-info btn-sm">
+                            <i class="bi bi-{% if news.is_published %}eye-slash{% else %}eye{% endif %}"></i>
+                            {% if news.is_published %}Снять с публикации{% else %}Опубликовать{% endif %}
+                        </a>
+                        <a href="{% url 'news:delete' news.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Удалить эту новость?')">
+                            <i class="bi bi-trash"></i> Удалить
+                        </a>
+                    </div>
+                {% endif %}
+                
+                <a href="{% url 'news:list' %}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Назад к новостям
+                </a>
+            </div>
+        </div>
+        
+        <!-- Комментарии -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-chat-left-text"></i> Комментарии ({{ comments.count }})
+            </div>
+            <div class="card-body">
+                <!-- Форма добавления комментария -->
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.content }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-send"></i> Отправить
+                    </button>
+                </form>
+                
+                <hr>
+                
+                <!-- Список комментариев -->
+                {% for comment in comments %}
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong>{{ comment.author.get_full_name }}</strong>
+                            <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0 mt-2">{{ comment.content|linebreaks }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-center">Комментариев пока нет</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

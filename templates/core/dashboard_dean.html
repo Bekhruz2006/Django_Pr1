@@ -14,7 +14,7 @@
             <div class="card-body text-center">
                 <i class="bi bi-people-fill" style="font-size: 3rem; color: var(--primary-blue);"></i>
                 <h5 class="mt-2">Всего студентов</h5>
-                <h3>{{ total_students }}</h3>
+                <h3>—</h3>
             </div>
         </div>
     </div>
@@ -23,7 +23,7 @@
             <div class="card-body text-center">
                 <i class="bi bi-person-badge" style="font-size: 3rem; color: var(--accent-green);"></i>
                 <h5 class="mt-2">Преподавателей</h5>
-                <h3>{{ total_teachers }}</h3>
+                <h3>—</h3>
             </div>
         </div>
     </div>
@@ -32,69 +32,21 @@
             <div class="card-body text-center">
                 <i class="bi bi-collection" style="font-size: 3rem; color: var(--accent-amber);"></i>
                 <h5 class="mt-2">Групп</h5>
-                <h3>{{ total_groups }}</h3>
+                <h3>—</h3>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card">
             <div class="card-body text-center">
-                <i class="bi bi-graph-up" style="font-size: 3rem; color: #10b981;"></i>
-                <h5 class="mt-2">Средний балл</h5>
-                <h3>{{ avg_gpa|floatformat:2|default:"—" }}</h3>
+                <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: #ef4444;"></i>
+                <h5 class="mt-2">Задолженности</h5>
+                <h3>—</h3>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Статистика по курсам -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-bar-chart"></i> Статистика по курсам</div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Курс</th>
-                                <th>Групп</th>
-                                <th>Студентов</th>
-                                <th>Средний балл</th>
-                                <th>Посещаемость</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for stat in course_stats %}
-                            <tr>
-                                <td><strong>{{ stat.course }} курс</strong></td>
-                                <td>{{ stat.groups_count }}</td>
-                                <td>{{ stat.students_count }}</td>
-                                <td>
-                                    <span class="badge {% if stat.avg_gpa >= 7 %}bg-success{% elif stat.avg_gpa >= 4 %}bg-warning{% else %}bg-danger{% endif %}">
-                                        {{ stat.avg_gpa|floatformat:2 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge {% if stat.avg_attendance >= 80 %}bg-success{% elif stat.avg_attendance >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
-                                        {{ stat.avg_attendance|floatformat:0 }}%
-                                    </span>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">Нет данных</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Быстрые действия -->
 <div class="row mt-3">
     <div class="col-12">
         <div class="card">
@@ -107,41 +59,41 @@
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'accounts:group_management' %}" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-collection"></i><br>Управление группами
-                        </a>
-                    </div>
-                    <div class="col-md-3">
                         <a href="{% url 'schedule:constructor' %}" class="btn btn-primary w-100 mb-2">
                             <i class="bi bi-calendar3"></i><br>Конструктор расписания
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'journal:dean_view' %}" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-graph-up"></i><br>Аналитика успеваемости
+                        <a href="{% url 'journal:department_report' %}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-bar-chart"></i><br>Отчет по кафедре
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'news:create' %}" class="btn btn-success w-100 mb-2">
+                            <i class="bi bi-newspaper"></i><br>Создать новость
                         </a>
                     </div>
                 </div>
                 <hr>
                 <div class="row">
                     <div class="col-md-3">
-                        <a href="{% url 'accounts:add_user' %}" class="btn btn-success w-100 mb-2">
+                        <a href="{% url 'accounts:add_user' %}" class="btn btn-outline-primary w-100 mb-2">
                             <i class="bi bi-plus-circle"></i><br>Добавить пользователя
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'accounts:add_group' %}" class="btn btn-success w-100 mb-2">
-                            <i class="bi bi-plus-circle"></i><br>Добавить группу
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-info w-100 mb-2">
+                        <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-outline-primary w-100 mb-2">
                             <i class="bi bi-calendar-range"></i><br>Учебные недели
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary w-100 mb-2">
-                            <i class="bi bi-calendar-week"></i><br>Просмотр расписания
+                        <a href="{% url 'journal:dean_view' %}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-graph-up"></i><br>Аналитика успеваемости
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'chat:list' %}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-chat-dots"></i><br>Чаты
                         </a>
                     </div>
                 </div>
@@ -149,4 +101,39 @@
         </div>
     </div>
 </div>
+
+<!-- Новости -->
+{% if news_list %}
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-newspaper"></i> Последние новости</span>
+                <div>
+                    <a href="{% url 'news:create' %}" class="btn btn-sm btn-success me-2">
+                        <i class="bi bi-plus-circle"></i> Добавить
+                    </a>
+                    <a href="{% url 'news:list' %}" class="btn btn-sm btn-primary">Все новости</a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% for news in news_list %}
+                    <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                        <h6 class="mb-1">
+                            {% if news.is_pinned %}<i class="bi bi-pin-angle-fill text-warning"></i>{% endif %}
+                            <a href="{% url 'news:detail' news.id %}">{{ news.title }}</a>
+                        </h6>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar"></i> {{ news.created_at|date:"d.m.Y H:i" }}
+                            | <span class="badge bg-primary">{{ news.get_category_display }}</span>
+                            | <i class="bi bi-eye"></i> {{ news.views_count }}
+                        </small>
+                        <p class="mb-0 mt-1 text-muted">{{ news.content|truncatewords:20 }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

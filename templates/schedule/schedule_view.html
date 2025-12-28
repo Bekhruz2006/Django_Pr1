@@ -41,15 +41,17 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for time_slot in schedule_slots|dictsort:"start_time"|regroup:"start_time" %}
+                                    <!-- ИСПРАВЛЕНО: правильное использование regroup -->
+                                    {% regroup schedule_slots by start_time as time_groups %}
+                                    {% for time_group in time_groups %}
                                         <tr>
                                             <td class="align-middle text-center">
-                                                <strong>{{ time_slot.grouper|time:"H:i" }}</strong><br>
-                                                <small class="text-muted">{{ time_slot.list.0.end_time|time:"H:i" }}</small>
+                                                <strong>{{ time_group.grouper|time:"H:i" }}</strong><br>
+                                                <small class="text-muted">{{ time_group.list.0.end_time|time:"H:i" }}</small>
                                             </td>
                                             {% for day_num in "012345" %}
                                                 <td class="align-middle">
-                                                    {% for slot in time_slot.list %}
+                                                    {% for slot in time_group.list %}
                                                         {% if slot.day_of_week|stringformat:"s" == day_num %}
                                                             <div class="schedule-cell bg-{{ slot.get_color_class }} bg-opacity-10 p-2 rounded">
                                                                 <strong>{{ slot.subject.name }}</strong><br>

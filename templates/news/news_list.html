@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Новости кафедры{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-newspaper"></i> Новости кафедры</span>
+                {% if user.role == 'DEAN' %}
+                    <a href="{% url 'news:create' %}" class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Добавить новость
+                    </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <!-- Фильтр по категориям -->
+                <div class="mb-4">
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'news:list' %}" class="btn btn-sm {% if not selected_category %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Все
+                        </a>
+                        {% for value, label in categories %}
+                            <a href="{% url 'news:list' %}?category={{ value }}" 
+                               class="btn btn-sm {% if selected_category == value %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                {{ label }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Список новостей -->
+                {% for news in news_page %}
+                    <div class="card mb-3 {% if news.is_pinned %}border-warning{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title">
+                                        {% if news.is_pinned %}
+                                            <i class="bi bi-pin-angle-fill text-warning"></i>
+                                        {% endif %}
+                                        <a href="{% url 'news:detail' news.id %}" class="text-decoration-none">
+                                            {{ news.title }}
+                                        </a>
+                                    </h5>
+                                    
+                                    <div class="mb-2">
+                                        <span class="badge bg-primary">{{ news.get_category_display }}</span>
+                                        <small class="text-muted ms-2">
+                                            <i class="bi bi-calendar"></i> {{ news.created_at|date:"d.m.Y H:i" }}
+                                        </small>
+                                        <small class="text-muted ms-2">
+                                            <i class="bi bi-person"></i> {{ news.author.get_full_name }}
+                                        </small>
+                                        <small class="text-muted ms-2">
+                                            <i class="bi bi-eye"></i> {{ news.views_count }}
+                                        </small>
+                                        <small class="text-muted ms-2">
+                                            <i class="bi bi-chat"></i> {{ news.comments.count }}
+                                        </small>
+                                    </div>
+                                    
+                                    <p class="card-text text-muted">
+                                        {{ news.content|truncatewords:50 }}
+                                    </p>
+                                    
+                                    {% if news.image %}
+                                        <img src="{{ news.image.url }}" class="img-fluid rounded mt-2" style="max-height: 200px;" alt="{{ news.title }}">
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'news:detail' news.id %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-arrow-right"></i> Читать далее
+                                </a>
+                                
+                                {% if user.role == 'DEAN' %}
+                                    <a href="{% url 'news:edit' news.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i> Редактировать
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> Новостей пока нет
+                    </div>
+                {% endfor %}
+                
+                <!-- Пагинация -->
+                {% if news_page.has_other_pages %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if news_page.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ news_page.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                                        Предыдущая
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in news_page.paginator.page_range %}
+                                <li class="page-item {% if news_page.number == num %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ num }}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                            
+                            {% if news_page.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ news_page.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                                        Следующая
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
