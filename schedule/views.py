@@ -1,77 +1,22 @@
-# Это для core/views.py
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from datetime import datetime
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.http import HttpResponse
+from django.db.models import Q
+from django.urls import reverse
+from datetime import datetime, timedelta
 
-@login_required
-def dashboard(request):
-    user = request.user
-    
-    template_map = {
-        'STUDENT': 'core/dashboard_student.html',
-        'TEACHER': 'core/dashboard_teacher.html',
-        'DEAN': 'core/dashboard_dean.html',
-    }
-    
-    template = template_map.get(user.role, 'core/dashboard.html')
-    
-    context = {
-        'user': user
-    }
-    
-    if user.role == 'STUDENT':
-        context['profile'] = user.student_profile
-    elif user.role == 'TEACHER':
-        context['profile'] = user.teacher_profile
-    elif user.role == 'DEAN':
-        context['profile'] = user.dean_profile
-    
-    # Добавляем данные для виджета "Сегодня"
-    from schedule.models import ScheduleSlot
-    from accounts.models import Student, Teacher
-    
-    today = datetime.now()
-    day_of_week = today.weekday()
-    current_time = today.time()
-    
-    classes = []
-    
-    if user.role == 'STUDENT':
-        try:
-            student = user.student_profile
-            if student.group:
-                classes = ScheduleSlot.objects.filter(
-                    group=student.group,
-                    day_of_week=day_of_week,
-                    is_active=True
-                ).select_related('subject', 'teacher').order_by('start_time')
-        except Student.DoesNotExist:
-            pass
-    
-    elif user.role == 'TEACHER':
-        try:
-            teacher = user.teacher_profile
-            classes = ScheduleSlot.objects.filter(
-                teacher=teacher,
-                day_of_week=day_of_week,
-                is_active=True
-            ).select_related('subject', 'group').order_by('start_time')
-        except Teacher.DoesNotExist:
-            pass
-    
-    context['classes'] = classes
-    context['current_time'] = current_time
-    context['today'] = today
-    
-    # Добавляем новости
-    try:
-        from news.models import News
-        news_list = News.objects.filter(is_published=True)[:5]
-        context['news_list'] = news_list
-    except:
-        context['news_list'] = []
-    
-    return render(request, template, context)
+try:
+    from docx import Document
+    from docx.shared import Inches, Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
+from .models import Subject, ScheduleSlot, ScheduleException, AcademicWeek
+from .forms import SubjectForm, ScheduleSlotForm, ScheduleExceptionForm, AcademicWeekForm
+from accounts.models import Group, Student, Teacher
 
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
@@ -246,7 +191,6 @@ def add_schedule_slot(request):
         if form.is_valid():
             slot = form.save()
             messages.success(request, 'Занятие успешно добавлено')
-            # ИСПРАВЛЕНО: правильный способ передачи параметров
             return redirect(f"{reverse('schedule:constructor')}?group={slot.group.id}")
     else:
         form = ScheduleSlotForm()
@@ -353,6 +297,11 @@ def manage_academic_week(request):
 @login_required
 def export_schedule(request):
     """Экспорт расписания в DOCX"""
+    
+    if not DOCX_AVAILABLE:
+        messages.error(request, 'Библиотека python-docx не установлена. Установите: pip install python-docx')
+        return redirect('schedule:view')
+    
     user = request.user
     group = None
     schedule_slots = []

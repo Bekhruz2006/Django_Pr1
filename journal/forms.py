@@ -133,9 +133,18 @@ class JournalFilterForm(forms.Form):
         teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
         
-        # Ограничение предметов для преподавателя
+        # ИСПРАВЛЕНО: Ограничение предметов и групп для преподавателя
         if teacher:
+            # Только предметы, которые ведет этот преподаватель
             self.fields['subject'].queryset = Subject.objects.filter(teacher=teacher)
+            
+            # Только группы, у которых есть занятия у этого преподавателя
+            from schedule.models import ScheduleSlot
+            group_ids = ScheduleSlot.objects.filter(
+                teacher=teacher,
+                is_active=True
+            ).values_list('group_id', flat=True).distinct()
+            self.fields['group'].queryset = Group.objects.filter(id__in=group_ids)
 
 
 class ChangeLogFilterForm(forms.Form):
