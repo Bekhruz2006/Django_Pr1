@@ -21,7 +21,6 @@
                 </div>
             </div>
             
-            <!-- Область сообщений -->
             <div class="card-body" style="height: 500px; overflow-y: auto;" id="messagesContainer">
                 {% for message in messages %}
                     <div class="mb-3 {% if message.sender == user %}text-end{% endif %}">
@@ -37,7 +36,7 @@
                                 {% if message.sender == user %}
                                     <a href="{% url 'chat:delete_message' message.id %}" 
                                        class="text-white-50 ms-2" 
-                                       onclick="return confirm('Удалить сообщение?')"
+                                       onclick="return confirm('Удалить?')"
                                        title="Удалить">
                                         <i class="bi bi-trash"></i>
                                     </a>
@@ -48,7 +47,6 @@
                 {% endfor %}
             </div>
             
-            <!-- Форма отправки -->
             <div class="card-footer">
                 <form method="post" id="messageForm">
                     {% csrf_token %}
@@ -64,20 +62,18 @@
         
         <div class="mt-3">
             <a href="{% url 'chat:list' %}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Назад к чатам
+                <i class="bi bi-arrow-left"></i> К чатам
             </a>
         </div>
     </div>
 </div>
 
 <script>
-// Автоскролл вниз при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('messagesContainer');
     container.scrollTop = container.scrollHeight;
 });
 
-// Отправка формы с прокруткой вниз
 document.getElementById('messageForm').addEventListener('submit', function() {
     setTimeout(function() {
         const container = document.getElementById('messagesContainer');
@@ -85,8 +81,8 @@ document.getElementById('messageForm').addEventListener('submit', function() {
     }, 100);
 });
 
-// Авто-обновление сообщений каждые 3 секунды
-let lastMessageId = {% if messages %}{{ messages|last.id }}{% else %}0{% endif %};
+// ИСПРАВЛЕНО: правильный синтаксис для получения ID последнего сообщения
+let lastMessageId = {% if messages %}{{ messages.last.id }}{% else %}0{% endif %};
 
 setInterval(function() {
     fetch('{% url "chat:new_messages" room.id %}?last_id=' + lastMessageId)

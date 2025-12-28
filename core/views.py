@@ -19,6 +19,10 @@ def dashboard(request):
         'user': user
     }
     
+    # ДОБАВЛЕНО: Загрузка новостей для всех ролей
+    from news.models import News
+    context['news_list'] = News.objects.filter(is_published=True).order_by('-is_pinned', '-created_at')[:5]
+    
     if user.role == 'STUDENT':
         context['profile'] = user.student_profile
     elif user.role == 'TEACHER':
@@ -26,23 +30,20 @@ def dashboard(request):
     elif user.role == 'DEAN':
         context['profile'] = user.dean_profile
         
-        # Статистика для декана
+        # ИСПРАВЛЕНО: Статистика для декана
         from accounts.models import Student, Teacher, Group
         from journal.models import StudentStatistics
         
-        # Общие счетчики
         context['total_students'] = Student.objects.count()
         context['total_teachers'] = Teacher.objects.count()
         context['total_groups'] = Group.objects.count()
         
-        # Средний балл по всем студентам
         all_stats = StudentStatistics.objects.all()
         if all_stats.exists():
-            context['avg_gpa'] = all_stats.aggregate(Avg('overall_gpa'))['overall_gpa__avg']
+            context['avg_gpa'] = all_stats.aggregate(Avg('overall_gpa'))['overall_gpa__avg'] or 0
         else:
             context['avg_gpa'] = 0
         
-        # Статистика по курсам
         course_stats = []
         for course_num in range(1, 6):
             groups = Group.objects.filter(course=course_num)
@@ -60,7 +61,7 @@ def dashboard(request):
         
         context['course_stats'] = course_stats
     
-    # Добавляем данные для виджета "Сегодня"
+    # Расписание на сегодня
     try:
         from schedule.models import ScheduleSlot
         from accounts.models import Student, Teacher
@@ -99,7 +100,6 @@ def dashboard(request):
         context['today'] = today
         
     except Exception as e:
-        # Если schedule еще не мигрирован - просто пропускаем
         context['classes'] = []
         context['current_time'] = datetime.now().time()
         context['today'] = datetime.now()

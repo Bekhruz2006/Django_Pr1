@@ -268,8 +268,33 @@ def transfer_student(request, student_id):
         'student': student
     })
 
-
-# Добавить в конец accounts/views.py
+# ДОБАВЛЕНО: Просмотр профиля пользователя для декана
+@login_required
+def view_user_profile(request, user_id):
+    """Просмотр профиля любого пользователя (для декана)"""
+    if request.user.role != 'DEAN':
+        messages.error(request, 'Доступ запрещен')
+        return redirect('core:dashboard')
+    
+    user_obj = get_object_or_404(User, id=user_id)
+    profile = None
+    template = 'accounts/profile_student.html'
+    
+    if user_obj.role == 'STUDENT':
+        profile = get_object_or_404(Student, user=user_obj)
+        template = 'accounts/profile_student.html'
+    elif user_obj.role == 'TEACHER':
+        profile = get_object_or_404(Teacher, user=user_obj)
+        template = 'accounts/profile_teacher.html'
+    elif user_obj.role == 'DEAN':
+        profile = get_object_or_404(Dean, user=user_obj)
+        template = 'accounts/profile_dean.html'
+    
+    return render(request, template, {
+        'user': user_obj,
+        'profile': profile,
+        'viewing_as_dean': True
+    })
 
 @user_passes_test(is_dean)
 def group_management(request):
@@ -294,7 +319,6 @@ def group_management(request):
         'course_filter': course_filter,
     })
 
-
 @user_passes_test(is_dean)
 def add_group(request):
     """Добавление новой группы"""
@@ -308,7 +332,6 @@ def add_group(request):
         form = GroupForm()
     
     return render(request, 'accounts/add_group.html', {'form': form})
-
 
 @user_passes_test(is_dean)
 def edit_group(request, group_id):
@@ -329,13 +352,11 @@ def edit_group(request, group_id):
         'group': group
     })
 
-
 @user_passes_test(is_dean)
 def delete_group(request, group_id):
     """Удаление группы"""
     group = get_object_or_404(Group, id=group_id)
     
-    # Проверка на наличие студентов в группе
     students_count = Student.objects.filter(group=group).count()
     
     if request.method == 'POST':
