@@ -49,34 +49,25 @@ function createThemeChangeEffect() {
     const effect = document.createElement('div');
     effect.style.cssText = `
         position: fixed;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.1) 100%);
         pointer-events: none;
         z-index: 9999;
-        transform: translate(-50%, -50%);
-        animation: expandRipple 0.8s ease-out;
+        animation: themeChange 0.5s ease-out;
     `;
     document.body.appendChild(effect);
     
-    setTimeout(() => effect.remove(), 800);
+    setTimeout(() => effect.remove(), 500);
     
     const style = document.createElement('style');
     style.textContent = `
-        @keyframes expandRipple {
-            0% {
-                width: 0;
-                height: 0;
-                opacity: 1;
-            }
-            100% {
-                width: 200vw;
-                height: 200vw;
-                opacity: 0;
-            }
+        @keyframes themeChange {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: scale(2); }
         }
     `;
     document.head.appendChild(style);
@@ -193,11 +184,8 @@ function createFloatingShapes() {
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
-            const href = this.getAttribute('href');
-            if (href === '#') return;
-            
             e.preventDefault();
-            const target = document.querySelector(href);
+            const target = document.querySelector(this.getAttribute('href'));
             if (target) {
                 target.scrollIntoView({ 
                     behavior: 'smooth',
@@ -218,7 +206,7 @@ function initParallax() {
                 const shapes = document.querySelectorAll('.floating-shape');
                 
                 shapes.forEach((shape, index) => {
-                    const speed = 0.3 + (index * 0.15);
+                    const speed = 0.5 + (index * 0.2);
                     shape.style.transform = `translateY(${scrolled * speed}px)`;
                 });
                 
@@ -246,6 +234,20 @@ document.querySelectorAll('[data-confirm]').forEach(element => {
         if (!confirm(this.dataset.confirm)) {
             e.preventDefault();
         }
+    });
+});
+
+document.addEventListener('mousemove', function(e) {
+    const shapes = document.querySelectorAll('.floating-shape');
+    const mouseX = e.clientX / window.innerWidth;
+    const mouseY = e.clientY / window.innerHeight;
+    
+    shapes.forEach((shape, index) => {
+        const speed = (index + 1) * 10;
+        const x = (mouseX - 0.5) * speed;
+        const y = (mouseY - 0.5) * speed;
+        
+        shape.style.transform = `translate(${x}px, ${y}px)`;
     });
 });
 
