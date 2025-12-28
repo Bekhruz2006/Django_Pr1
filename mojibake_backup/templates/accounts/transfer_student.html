@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}РџРµСЂРµРІРѕРґ СЃС‚СѓРґРµРЅС‚Р°{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-arrow-left-right"></i> РџРµСЂРµРІРѕРґ СЃС‚СѓРґРµРЅС‚Р°</div>
+            <div class="card-body">
+                <p><strong>РЎС‚СѓРґРµРЅС‚:</strong> {{ student.user.get_full_name }}</p>
+                <p><strong>РўРµРєСѓС‰Р°СЏ РіСЂСѓРїРїР°:</strong> {{ student.group|default:"РЅРµ РЅР°Р·РЅР°С‡РµРЅР°" }}</p>
+                <hr>
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">РџРµСЂРµРІРµСЃС‚Рё</button>
+                    <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">РћС‚РјРµРЅР°</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -267,3 +267,87 @@ def transfer_student(request, student_id):
         'form': form,
         'student': student
     })
+
+
+# Добавить в конец accounts/views.py
+
+@user_passes_test(is_dean)
+def group_management(request):
+    """Управление группами"""
+    groups = Group.objects.all().order_by('course', 'name')
+    
+    search = request.GET.get('search', '')
+    course_filter = request.GET.get('course', '')
+    
+    if search:
+        groups = groups.filter(
+            models.Q(name__icontains=search) |
+            models.Q(specialty__icontains=search)
+        )
+    
+    if course_filter:
+        groups = groups.filter(course=course_filter)
+    
+    return render(request, 'accounts/group_management.html', {
+        'groups': groups,
+        'search': search,
+        'course_filter': course_filter,
+    })
+
+
+@user_passes_test(is_dean)
+def add_group(request):
+    """Добавление новой группы"""
+    if request.method == 'POST':
+        form = GroupForm(request.POST)
+        if form.is_valid():
+            group = form.save()
+            messages.success(request, f'Группа {group.name} успешно создана')
+            return redirect('accounts:group_management')
+    else:
+        form = GroupForm()
+    
+    return render(request, 'accounts/add_group.html', {'form': form})
+
+
+@user_passes_test(is_dean)
+def edit_group(request, group_id):
+    """Редактирование группы"""
+    group = get_object_or_404(Group, id=group_id)
+    
+    if request.method == 'POST':
+        form = GroupForm(request.POST, instance=group)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Группа {group.name} успешно обновлена')
+            return redirect('accounts:group_management')
+    else:
+        form = GroupForm(instance=group)
+    
+    return render(request, 'accounts/edit_group.html', {
+        'form': form,
+        'group': group
+    })
+
+
+@user_passes_test(is_dean)
+def delete_group(request, group_id):
+    """Удаление группы"""
+    group = get_object_or_404(Group, id=group_id)
+    
+    # Проверка на наличие студентов в группе
+    students_count = Student.objects.filter(group=group).count()
+    
+    if request.method == 'POST':
+        if students_count > 0:
+            messages.error(request, f'Невозможно удалить группу {group.name}. В ней есть {students_count} студентов.')
+        else:
+            group_name = group.name
+            group.delete()
+            messages.success(request, f'Группа {group_name} успешно удалена')
+        return redirect('accounts:group_management')
+    
+    return render(request, 'accounts/delete_group.html', {
+        'group': group,
+        'students_count': students_count
+    })

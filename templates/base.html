@@ -136,15 +136,25 @@
                     {% endif %}
 
                     {% if user.role == 'DEAN' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'accounts:user_management' %}">
-                            <i class="bi bi-people"></i> Управление людьми
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> Управление
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'schedule:constructor' %}">
-                            <i class="bi bi-calendar3"></i> Конструктор расписания
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'accounts:user_management' %}">
+                                <i class="bi bi-people"></i> Пользователи
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:group_management' %}">
+                                <i class="bi bi-collection"></i> Группы
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:constructor' %}">
+                                <i class="bi bi-calendar3"></i> Конструктор расписания
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:manage_academic_week' %}">
+                                <i class="bi bi-calendar-range"></i> Учебные недели
+                            </a></li>
+                        </ul>
                     </li>
                     {% elif user.role == 'TEACHER' %}
                     <li class="nav-item">

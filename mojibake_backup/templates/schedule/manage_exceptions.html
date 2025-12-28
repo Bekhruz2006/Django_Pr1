@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}аЃаПбаАаВаЛаЕаНаИаЕ аИбаКаЛббаЕаНаИбаМаИ{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-exclamation-triangle"></i>
+                    абаКаЛббаЕаНаИб аДаЛб аЗаАаНббаИб
+                </span>
+                <a href="{% url 'schedule:constructor' %}?group={{ slot.group.id }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> ааАаЗаАаД
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>ааАаНббаИаЕ:</strong> {{ slot.subject.name }}<br>
+                    <strong>аббаПаПаА:</strong> {{ slot.group.name }}<br>
+                    <strong>ааЕаНб:</strong> {{ slot.get_day_of_week_display }}<br>
+                    <strong>абаЕаМб:</strong> {{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}
+                </div>
+
+                <!-- аЄаОбаМаА аДаОаБаАаВаЛаЕаНаИб аИбаКаЛббаЕаНаИб -->
+                <h5>ааОаБаАаВаИбб аИбаКаЛббаЕаНаИаЕ</h5>
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">аЂаИаП аИбаКаЛббаЕаНаИб *</label>
+                            {{ form.exception_type }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ааАбаА *</label>
+                            {{ form.exception_date }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">абаИбаИаНаА *</label>
+                        {{ form.reason }}
+                    </div>
+
+                    <div id="reschedule-fields" style="display: none;">
+                        <h6>ааОаВбаЕ аПаАбаАаМаЕббб (аДаЛб аПаЕбаЕаНаОбаА)</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ааОаВаАб аДаАбаА</label>
+                                {{ form.new_date }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ааОаВаАб аАбаДаИбаОбаИб</label>
+                                {{ form.new_classroom }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ааОаВаОаЕ аВбаЕаМб аНаАбаАаЛаА</label>
+                                {{ form.new_start_time }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ааОаВаОаЕ аВбаЕаМб аОаКаОаНбаАаНаИб</label>
+                                {{ form.new_end_time }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> ааОаБаАаВаИбб аИбаКаЛббаЕаНаИаЕ
+                    </button>
+                </form>
+
+                <!-- аЁаПаИбаОаК бббаЕббаВбббаИб аИбаКаЛббаЕаНаИаЙ -->
+                <hr>
+                <h5>аЁббаЕббаВбббаИаЕ аИбаКаЛббаЕаНаИб</h5>
+                {% if exceptions %}
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>ааАбаА</th>
+                                <th>аЂаИаП</th>
+                                <th>абаИбаИаНаА</th>
+                                <th>ааЕаЙббаВаИб</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exception in exceptions %}
+                            <tr>
+                                <td>{{ exception.exception_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    <span class="badge {% if exception.exception_type == 'CANCEL' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ exception.get_exception_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ exception.reason }}
+                                    {% if exception.exception_type == 'RESCHEDULE' %}
+                                    <br><small class="text-muted">
+                                        ааЕбаЕаНаЕбаЕаНаО аНаА: {{ exception.new_date|date:"d.m.Y" }}
+                                        {{ exception.new_start_time|time:"H:i" }}-{{ exception.new_end_time|time:"H:i" }}
+                                        ({{ exception.new_classroom }})
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'schedule:delete_exception' exception.id %}"
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('аЃаДаАаЛаИбб ббаО аИбаКаЛббаЕаНаИаЕ?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-secondary">
+                    абаКаЛббаЕаНаИаЙ аНаЕб
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ааОаКаАаЗаАбб/баКбббб аПаОаЛб аДаЛб аПаЕбаЕаНаОбаА
+    document.addEventListener('DOMContentLoaded', function () {
+        const exceptionTypeSelect = document.querySelector('[name="exception_type"]');
+        const rescheduleFields = document.getElementById('reschedule-fields');
+
+        if (exceptionTypeSelect) {
+            exceptionTypeSelect.addEventListener('change', function () {
+                if (this.value === 'RESCHEDULE') {
+                    rescheduleFields.style.display = 'block';
+                } else {
+                    rescheduleFields.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

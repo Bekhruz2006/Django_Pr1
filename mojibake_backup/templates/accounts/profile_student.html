@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}РџСЂРѕС„РёР»СЊ СЃС‚СѓРґРµРЅС‚Р°{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if user.photo %}
+                    <img src="{{ user.photo.url }}" alt="Р¤РѕС‚Рѕ" class="profile-img mb-3">
+                {% else %}
+                    <div class="profile-img mb-3 bg-light d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person-circle" style="font-size: 5rem; color: #cbd5e1;"></i>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ user.get_full_name }}</h4>
+                <p class="text-muted">РЎС‚СѓРґРµРЅС‚</p>
+                
+                <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-pencil"></i> Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ
+                </a>
+                <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-key"></i> РЎРјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ
+                </a>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> РђРєР°РґРµРјРёС‡РµСЃРєР°СЏ СЃС‚Р°С‚РёСЃС‚РёРєР°
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</small>
+                    <h3 class="mb-0">{{ profile.get_average_grade|default:"вЂ”" }}</h3>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Р РµР№С‚РёРЅРі РІ РіСЂСѓРїРїРµ</small>
+                    <h4 class="mb-0">{{ profile.get_group_rank|default:"вЂ”" }}</h4>
+                </div>
+                <div>
+                    <small class="text-muted">РџСЂРѕРіСЂРµСЃСЃ РїРѕ РєСЂРµРґРёС‚Р°Рј</small>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Р›РёС‡РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>РќРѕРјРµСЂ Р·Р°С‡РµС‚РєРё:</strong> {{ profile.student_id }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Р“СЂСѓРїРїР°:</strong> {{ profile.group|default:"РќРµ РЅР°Р·РЅР°С‡РµРЅР°" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>РљСѓСЂСЃ:</strong> {{ profile.course }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>РЎРїРµС†РёР°Р»СЊРЅРѕСЃС‚СЊ:</strong> {{ profile.specialty }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Р“РѕРґ РїРѕСЃС‚СѓРїР»РµРЅРёСЏ:</strong> {{ profile.admission_year }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Р¤РёРЅР°РЅСЃРёСЂРѕРІР°РЅРёРµ:</strong> {{ profile.get_financing_type_display }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>РЎС‚Р°С‚СѓСЃ:</strong> 
+                        <span class="badge bg-success">{{ profile.get_status_display }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Р’РёРґ РѕР±СѓС‡РµРЅРёСЏ:</strong> {{ profile.get_education_type_display }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-person-badge"></i> РџРµСЂСЃРѕРЅР°Р»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ:</strong> {{ profile.birth_date }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>РџРѕР»:</strong> {{ profile.get_gender_display }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>РќР°С†РёРѕРЅР°Р»СЊРЅРѕСЃС‚СЊ:</strong> {{ profile.nationality }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>РЇР·С‹Рє РѕР±СѓС‡РµРЅРёСЏ:</strong> {{ profile.get_education_language_display }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>РџР°СЃРїРѕСЂС‚:</strong> {{ profile.passport_series }} {{ profile.passport_number }}
+                        <br><small class="text-muted">Р’С‹РґР°РЅ: {{ profile.passport_issued_by }}, {{ profile.passport_issue_date }}</small>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>РђРґСЂРµСЃ СЂРµРіРёСЃС‚СЂР°С†РёРё:</strong><br>
+                        {{ profile.registration_address }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <strong>РђРґСЂРµСЃ РїСЂРѕР¶РёРІР°РЅРёСЏ:</strong><br>
+                        {{ profile.residence_address }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-calendar-check"></i> РљР°Р»РµРЅРґР°СЂСЊ РїРѕСЃРµС‰РµРЅРёР№
+            </div>
+            <div class="card-body text-center text-muted">
+                <p>Р—Р°РіР»СѓС€РєР° РґР»СЏ Р±СѓРґСѓС‰РµР№ РёРЅС‚РµРіСЂР°С†РёРё</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

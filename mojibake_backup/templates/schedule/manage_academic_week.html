@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}РЈРїСЂР°РІР»РµРЅРёРµ СѓС‡РµР±РЅС‹РјРё РЅРµРґРµР»СЏРјРё{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-calendar-range"></i> РЈРїСЂР°РІР»РµРЅРёРµ СѓС‡РµР±РЅС‹РјРё РЅРµРґРµР»СЏРјРё
+            </div>
+            <div class="card-body">
+                {% if current_week %}
+                <div class="alert alert-info">
+                    <h5><i class="bi bi-info-circle"></i> РўРµРєСѓС‰Р°СЏ СѓС‡РµР±РЅР°СЏ РЅРµРґРµР»СЏ</h5>
+                    <p class="mb-0"><strong>РќРµРґРµР»СЏ {{ current_week.current_week }}</strong> (РЅР°С‡Р°Р»Рѕ СЃРµРјРµСЃС‚СЂР°: {{ current_week.semester_start_date|date:"d.m.Y" }})</p>
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Р”Р°С‚Р° РЅР°С‡Р°Р»Р° СЃРµРјРµСЃС‚СЂР° *</label>
+                        {{ form.semester_start_date }}
+                        <small class="form-text text-muted">
+                            РЎРёСЃС‚РµРјР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЂР°СЃСЃС‡РёС‚Р°РµС‚ С‚РµРєСѓС‰СѓСЋ РЅРµРґРµР»СЋ РЅР° РѕСЃРЅРѕРІРµ СЌС‚РѕР№ РґР°С‚С‹
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">РќРѕРјРµСЂ С‚РµРєСѓС‰РµР№ РЅРµРґРµР»Рё *</label>
+                        {{ form.current_week }}
+                        <small class="form-text text-muted">
+                            РњРѕР¶РЅРѕ РєРѕСЂСЂРµРєС‚РёСЂРѕРІР°С‚СЊ РІСЂСѓС‡РЅСѓСЋ (РѕС‚ 1 РґРѕ 20)
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Р’РЅРёРјР°РЅРёРµ:</strong> РџСЂРё СЃРѕР·РґР°РЅРёРё РЅРѕРІРѕРіРѕ СЃРµРјРµСЃС‚СЂР° РїСЂРµРґС‹РґСѓС‰РёР№ Р±СѓРґРµС‚ РґРµР°РєС‚РёРІРёСЂРѕРІР°РЅ
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> РЎРѕС…СЂР°РЅРёС‚СЊ
+                        </button>
+                        <a href="{% url 'schedule:constructor' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> РќР°Р·Р°Рґ Рє РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂСѓ
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if current_week %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-calculator"></i> РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ СЂР°СЃС‡РµС‚
+            </div>
+            <div class="card-body">
+                <p>
+                    РќР° РѕСЃРЅРѕРІРµ РґР°С‚С‹ РЅР°С‡Р°Р»Р° СЃРµРјРµСЃС‚СЂР° ({{ current_week.semester_start_date|date:"d.m.Y" }}) 
+                    СЃРёСЃС‚РµРјР° СЂР°СЃСЃС‡РёС‚С‹РІР°РµС‚ С‚РµРєСѓС‰СѓСЋ РЅРµРґРµР»СЋ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.
+                </p>
+                <p class="mb-0">
+                    <strong>Р Р°СЃСЃС‡РёС‚Р°РЅРЅР°СЏ РЅРµРґРµР»СЏ:</strong> 
+                    <span class="badge bg-primary">{{ current_week.calculate_current_week }}</span>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

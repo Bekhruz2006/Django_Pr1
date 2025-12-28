@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pencil"></i> Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <h5>РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h5>
+                    {% for field in user_form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                    {% if profile_form %}
+                    <hr><h5>РџСЂРѕС„РёР»СЊРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h5>
+                    {% for field in profile_form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">РћС‚РјРµРЅР°</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    input, select, textarea { width: 100%; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 0.375rem; }
+</style>
+{% endblock %}

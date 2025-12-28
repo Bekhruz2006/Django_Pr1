@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Р’С‹Р±РѕСЂ Р¶СѓСЂРЅР°Р»Р°{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-journal-text"></i> Р’С‹Р±РѕСЂ Р¶СѓСЂРЅР°Р»Р°
+            </div>
+            <div class="card-body">
+                <form method="get">
+                    <div class="mb-3">
+                        <label class="form-label">Р“СЂСѓРїРїР° *</label>
+                        {{ form.group }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">РџСЂРµРґРјРµС‚ *</label>
+                        {{ form.subject }}
+                        <small class="form-text text-muted">РџРѕРєР°Р·Р°РЅС‹ С‚РѕР»СЊРєРѕ РІР°С€Рё РїСЂРµРґРјРµС‚С‹</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">РЈС‡РµР±РЅР°СЏ РЅРµРґРµР»СЏ (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)</label>
+                        {{ form.week }}
+                        <small class="form-text text-muted">Р•СЃР»Рё РЅРµ СѓРєР°Р·Р°РЅРѕ - С‚РµРєСѓС‰Р°СЏ РЅРµРґРµР»СЏ</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-right"></i> РћС‚РєСЂС‹С‚СЊ Р¶СѓСЂРЅР°Р»
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

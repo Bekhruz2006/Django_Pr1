@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Р“Р»Р°РІРЅР°СЏ{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <h2>Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ, {{ user.get_full_name }}!</h2>
+        <p class="text-muted">РЎС‚СѓРґРµРЅС‚ {{ profile.course }} РєСѓСЂСЃР°, РіСЂСѓРїРїР° {{ profile.group|default:"РЅРµ РЅР°Р·РЅР°С‡РµРЅР°" }}</p>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-journal-check" style="font-size: 3rem; color: var(--accent-green);"></i>
+                <h5 class="mt-2">РЎСЂРµРґРЅРёР№ Р±Р°Р»Р»</h5>
+                <h3>{{ profile.get_average_grade|default:"вЂ”" }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-trophy" style="font-size: 3rem; color: var(--accent-amber);"></i>
+                <h5 class="mt-2">Р РµР№С‚РёРЅРі РІ РіСЂСѓРїРїРµ</h5>
+                <h3>{{ profile.get_group_rank|default:"вЂ”" }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar2-week" style="font-size: 3rem; color: var(--primary-blue);"></i>
+                <h5 class="mt-2">РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ</h5>
+                <h3>вЂ”%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <!-- Р’РёРґР¶РµС‚ "РЎРµРіРѕРґРЅСЏ" -->
+    <div class="col-lg-6">
+        {% include 'schedule/today_widget.html' %}
+    </div>
+
+    <!-- Р‘С‹СЃС‚СЂС‹Р№ РґРѕСЃС‚СѓРї -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-link-45deg"></i> Р‘С‹СЃС‚СЂС‹Р№ РґРѕСЃС‚СѓРї
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-week"></i> РњРѕРµ СЂР°СЃРїРёСЃР°РЅРёРµ
+                    </a>
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-person"></i> РњРѕР№ РїСЂРѕС„РёР»СЊ
+                    </a>
+                    <a href="{% url 'journal:student_view' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-journal"></i> РњРѕРё РѕС†РµРЅРєРё
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary disabled">
+                        <i class="bi bi-calendar-check"></i> РџРѕСЃРµС‰Р°РµРјРѕСЃС‚СЊ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

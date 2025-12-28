@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}ааОаНббббаКбаОб баАбаПаИбаАаНаИб{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar3"></i> ааОаНббббаКбаОб баАбаПаИбаАаНаИб</span>
+                <div>
+                    <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-info btn-sm me-2">
+                        <i class="bi bi-calendar-range"></i> аЃбаЕаБаНбаЕ аНаЕаДаЕаЛаИ
+                    </a>
+                    {% if selected_group %}
+                        <a href="{% url 'schedule:export' %}?group={{ selected_group.id }}" class="btn btn-success btn-sm">
+                            <i class="bi bi-download"></i> а­аКбаПаОбб
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- абаБаОб аГббаПаПб -->
+                <form method="get" class="mb-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">абаБаЕбаИбаЕ аГббаПаПб</label>
+                            <select name="group" class="form-select" onchange="this.form.submit()">
+                                <option value="">-- абаБаЕбаИбаЕ аГббаПаПб --</option>
+                                {% for group in groups %}
+                                    <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                                        {{ group.name }} ({{ group.course }} аКббб)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if selected_group %}
+                        <div class="col-md-6">
+                            <a href="{% url 'schedule:add_slot' %}?group={{ selected_group.id }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> ааОаБаАаВаИбб аЗаАаНббаИаЕ
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </form>
+                
+                {% if not selected_group %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> абаБаЕбаИбаЕ аГббаПаПб аДаЛб аНаАбаАаЛаА баАаБаОбб
+                    </div>
+                {% else %}
+                    <!-- аЁаЕбаКаА баАбаПаИбаАаНаИб -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered schedule-table">
+                            <thead>
+                                <tr class="table-primary">
+                                    <th style="width: 100px;">абаЕаМб</th>
+                                    {% for day in days %}
+                                        <th>{{ day }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for start, end in time_slots %}
+                                    <tr>
+                                        <td class="text-center align-middle">
+                                            <strong>{{ start }}</strong><br>
+                                            <small class="text-muted">{{ end }}</small>
+                                        </td>
+                                        {% for day_num in "012345" %}
+                                            <td class="schedule-cell">
+                                                {% for day_index, slots_by_time in schedule_grid.items %}
+                                                    {% if day_index|stringformat:"s" == day_num %}
+                                                        {% for time_tuple, slot in slots_by_time.items %}
+                                                            {% if time_tuple.0 == start and time_tuple.1 == end and slot %}
+                                                                <div class="slot-card bg-{{ slot.get_color_class }} bg-opacity-10 p-2 rounded position-relative">
+                                                                    <div class="slot-actions position-absolute top-0 end-0 p-1">
+                                                                        <a href="{% url 'schedule:edit_slot' slot.id %}" class="btn btn-sm btn-outline-primary" title="а аЕаДаАаКбаИбаОаВаАбб">
+                                                                            <i class="bi bi-pencil"></i>
+                                                                        </a>
+                                                                        <a href="{% url 'schedule:manage_exceptions' slot.id %}" class="btn btn-sm btn-outline-warning" title="абаКаЛббаЕаНаИб">
+                                                                            <i class="bi bi-exclamation-triangle"></i>
+                                                                        </a>
+                                                                        <a href="{% url 'schedule:delete_slot' slot.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('аЃаДаАаЛаИбб ббаО аЗаАаНббаИаЕ?')" title="аЃаДаАаЛаИбб">
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </a>
+                                                                    </div>
+                                                                    <strong>{{ slot.subject.name }}</strong><br>
+                                                                    <small class="text-muted">{{ slot.teacher.user.get_full_name }}</small><br>
+                                                                    <small><i class="bi bi-geo-alt"></i> {{ slot.classroom }}</small>
+                                                                    <div class="mt-1">
+                                                                        <span class="badge bg-{{ slot.get_color_class }}">{{ slot.subject.get_type_display }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-success mt-3">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>ааОаДбаКаАаЗаКаА:</strong> абаЕ аИаЗаМаЕаНаЕаНаИб аПбаБаЛаИаКббббб аМаОаМаЕаНбаАаЛбаНаО аИ ббаАаЗб аВаИаДаНб бббаДаЕаНбаАаМ аИ аПбаЕаПаОаДаАаВаАбаЕаЛбаМ
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .schedule-table {
+        font-size: 0.9rem;
+    }
+    
+    .schedule-cell {
+        min-height: 100px;
+        vertical-align: top;
+        position: relative;
+    }
+    
+    .slot-card {
+        min-height: 80px;
+        padding-right: 100px !important;
+    }
+    
+    .slot-actions {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .slot-card:hover .slot-actions {
+        opacity: 1;
+    }
+    
+    .schedule-cell:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
