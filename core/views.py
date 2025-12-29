@@ -13,7 +13,7 @@ def dashboard(request):
         'DEAN': 'core/dashboard_dean.html',
     }
     
-    template = template_map.get(user.role, 'core/dashboard.html')
+    template = template_map.get(user.role, 'core/dashboard_dean.html')
     
     context = {
         'user': user
