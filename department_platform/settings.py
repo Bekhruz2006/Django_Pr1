@@ -19,8 +19,8 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'journal.apps.JournalConfig',
     'schedule.apps.ScheduleConfig',
-    'news.apps.NewsConfig',  # ДОБАВЛЕНО
-    'chat.apps.ChatConfig',  # ДОБАВЛЕНО
+    'news.apps.NewsConfig',  
+    'chat.apps.ChatConfig',  
     'core.apps.CoreConfig',
 ]
 
@@ -84,7 +84,8 @@ TIME_ZONE = 'Asia/Dushanbe'
 USE_I18N = True
 
 USE_TZ = True
-
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -100,6 +101,5 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
-# Настройки для файлов
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB для видео
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  

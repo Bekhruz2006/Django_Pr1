@@ -8,7 +8,6 @@ from .forms import NewsForm, NewsCommentForm
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
 
-
 @login_required
 def news_list(request):
     category = request.GET.get('category', '')
@@ -29,7 +28,6 @@ def news_list(request):
         'categories': categories,
         'selected_category': category,
     })
-
 
 @login_required
 def news_detail(request, news_id):
@@ -60,7 +58,6 @@ def news_detail(request, news_id):
         'form': form,
     })
 
-
 @user_passes_test(is_dean)
 def news_create(request):
     if request.method == 'POST':
@@ -78,7 +75,6 @@ def news_create(request):
         'form': form,
         'title': 'Создать новость'
     })
-
 
 @user_passes_test(is_dean)
 def news_edit(request, news_id):
@@ -99,14 +95,12 @@ def news_edit(request, news_id):
         'news': news
     })
 
-
 @user_passes_test(is_dean)
 def news_delete(request, news_id):
     news = get_object_or_404(News, id=news_id)
     news.delete()
     messages.success(request, 'Новость удалена')
     return redirect('news:list')
-
 
 @user_passes_test(is_dean)
 def news_toggle_publish(request, news_id):
@@ -117,7 +111,6 @@ def news_toggle_publish(request, news_id):
     status = "опубликована" if news.is_published else "снята с публикации"
     messages.success(request, f'Новость {status}')
     return redirect('news:list')
-
 
 @user_passes_test(is_dean)
 def news_toggle_pin(request, news_id):

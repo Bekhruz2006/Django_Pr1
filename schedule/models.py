@@ -4,8 +4,7 @@ from accounts.models import User, Group, Teacher
 from datetime import datetime, timedelta
 
 class Subject(models.Model):
-    """Предмет/дисциплина"""
-    
+
     TYPE_CHOICES = [
         ('LECTURE', 'Лекция'),
         ('PRACTICE', 'Практика'),
@@ -37,10 +36,8 @@ class Subject(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_type_display()})"
 
-
 class AcademicWeek(models.Model):
-    """Управление учебными неделями"""
-    
+
     semester_start_date = models.DateField(verbose_name="Дата начала семестра")
     current_week = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(20)],
@@ -57,27 +54,25 @@ class AcademicWeek(models.Model):
         return f"Неделя {self.current_week} (с {self.semester_start_date})"
     
     def calculate_current_week(self):
-        """Автоматический расчет текущей недели"""
+        
         today = datetime.now().date()
         delta = today - self.semester_start_date
         week = (delta.days // 7) + 1
         return max(1, min(week, 20))
     
     def save(self, *args, **kwargs):
-        # Деактивировать другие активные семестры
+        
         if self.is_active:
             AcademicWeek.objects.filter(is_active=True).update(is_active=False)
         super().save(*args, **kwargs)
     
     @classmethod
     def get_current(cls):
-        """Получить текущий активный семестр"""
+        
         return cls.objects.filter(is_active=True).first()
 
-
 class ScheduleSlot(models.Model):
-    """Слот расписания (повторяющееся занятие)"""
-    
+
     DAY_CHOICES = [
         (0, 'Понедельник'),
         (1, 'Вторник'),
@@ -126,7 +121,7 @@ class ScheduleSlot(models.Model):
         return f"{self.get_day_of_week_display()} {self.start_time}-{self.end_time}: {self.subject.name} ({self.group.name})"
     
     def get_color_class(self):
-        """Цвет для типа занятия"""
+        
         colors = {
             'LECTURE': 'primary',
             'PRACTICE': 'success',
@@ -134,10 +129,8 @@ class ScheduleSlot(models.Model):
         }
         return colors.get(self.subject.type, 'secondary')
 
-
 class ScheduleException(models.Model):
-    """Исключение в расписании (отмена/перенос)"""
-    
+
     TYPE_CHOICES = [
         ('CANCEL', 'Отмена'),
         ('RESCHEDULE', 'Перенос'),
@@ -157,8 +150,7 @@ class ScheduleException(models.Model):
         verbose_name="Тип исключения"
     )
     reason = models.TextField(verbose_name="Причина")
-    
-    # Поля для переноса
+
     new_date = models.DateField(null=True, blank=True, verbose_name="Новая дата")
     new_start_time = models.TimeField(null=True, blank=True, verbose_name="Новое время начала")
     new_end_time = models.TimeField(null=True, blank=True, verbose_name="Новое время окончания")

@@ -25,7 +25,6 @@ class NewsAdmin(admin.ModelAdmin):
         }),
     )
 
-
 @admin.register(NewsComment)
 class NewsCommentAdmin(admin.ModelAdmin):
     list_display = ['author', 'news', 'content_preview', 'created_at']

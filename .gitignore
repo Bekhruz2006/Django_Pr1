@@ -1,4 +1,4 @@
-# Python
+
 *.py[cod]
 *$py.class
 *.so
@@ -8,13 +8,11 @@ __pycache__/
 dist/
 build/
 
-# Virtual Environment
 venv/
 env/
 ENV/
 .venv
 
-# Django
 *.log
 db.sqlite3
 db.sqlite3-journal
@@ -22,7 +20,6 @@ db.sqlite3-journal
 /staticfiles
 /static_root
 
-# IDE
 .vscode/
 .idea/
 *.swp
@@ -30,10 +27,8 @@ db.sqlite3-journal
 *~
 .DS_Store
 
-# Environment variables
 .env
 .env.local
 
-# Migrations (опционально, раскомментируйте если не хотите коммитить)
 /migrations/*.py
 /migrations/__init__.py

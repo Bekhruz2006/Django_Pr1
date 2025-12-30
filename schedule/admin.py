@@ -14,8 +14,8 @@ class AcademicWeekAdmin(admin.ModelAdmin):
     list_filter = ['is_active']
     
     def save_model(self, request, obj, form, change):
-        # Автоматически рассчитать неделю при сохранении
-        if not change:  # Только при создании
+        
+        if not change:  
             obj.current_week = obj.calculate_current_week()
         super().save_model(request, obj, form, change)
 

@@ -22,7 +22,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <!-- Навигация по неделям -->
+                
                 <div class="mb-3 d-flex justify-content-between align-items-center">
                     <div>
                         <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" 
@@ -40,8 +40,7 @@
                         <i class="bi bi-check-all"></i> Массовое заполнение
                     </button>
                 </div>
-                
-                <!-- Таблица журнала -->
+
                 <div class="table-responsive">
                     <table class="table table-bordered journal-table">
                         <thead>
@@ -81,7 +80,7 @@
                                                 </div>
                                             {% else %}
                                                 <div class="editable-cell">
-                                                    <!-- Балл -->
+                                                    
                                                     <input type="number" 
                                                            name="{{ entry_data.form.grade.name }}" 
                                                            value="{{ entry_data.entry.grade|default:'' }}"
@@ -89,8 +88,7 @@
                                                            class="form-control form-control-sm mb-1 grade-input"
                                                            placeholder="1-12"
                                                            onchange="this.form.submit()">
-                                                    
-                                                    <!-- Статус -->
+
                                                     <select name="{{ entry_data.form.attendance_status.name }}"
                                                             class="form-select form-select-sm status-select"
                                                             onchange="this.form.submit()">
@@ -109,8 +107,7 @@
                             </tr>
                             {% endfor %}
                         </tbody>
-                        
-                        <!-- Сводная строка -->
+
                         <tfoot>
                             <tr class="table-info">
                                 <td><strong>Итого</strong></td>
@@ -126,8 +123,7 @@
                         </tfoot>
                     </table>
                 </div>
-                
-                <!-- Легенда -->
+
                 <div class="alert alert-info mt-3">
                     <h6><i class="bi bi-info-circle"></i> Правила работы с журналом:</h6>
                     <ul class="mb-0">
@@ -143,7 +139,6 @@
     </div>
 </div>
 
-<!-- Модальное окно массового заполнения -->
 <div class="modal fade" id="bulkUpdateModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

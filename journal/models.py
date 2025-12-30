@@ -6,8 +6,7 @@ from accounts.models import Student, Teacher, User
 from schedule.models import Subject, ScheduleSlot
 
 class JournalEntry(models.Model):
-    """Запись в журнале - оценка или посещаемость"""
-    
+
     ATTENDANCE_CHOICES = [
         ('PRESENT', 'Присутствовал'),
         ('ABSENT_ILLNESS', 'НБ-Болезнь'),
@@ -36,8 +35,7 @@ class JournalEntry(models.Model):
         choices=Subject.TYPE_CHOICES,
         verbose_name="Тип занятия"
     )
-    
-    # Оценка или посещаемость (взаимоисключающие)
+
     grade = models.IntegerField(
         null=True,
         blank=True,
@@ -51,15 +49,13 @@ class JournalEntry(models.Model):
         default='PRESENT',
         verbose_name="Статус посещения"
     )
-    
-    # Блокировка через 24 часа
+
     locked_at = models.DateTimeField(
         null=True,
         blank=True,
         verbose_name="Время блокировки"
     )
-    
-    # Метаданные
+
     created_by = models.ForeignKey(
         Teacher,
         on_delete=models.SET_NULL,
@@ -89,43 +85,40 @@ class JournalEntry(models.Model):
         return f"{self.student.user.get_full_name()} - {self.subject.name} ({self.lesson_date})"
     
     def save(self, *args, **kwargs):
-        # Автоматическое вычисление времени блокировки
+        
         if not self.locked_at and self.lesson_date and self.lesson_time:
             lesson_datetime = timezone.make_aware(
                 timezone.datetime.combine(self.lesson_date, self.lesson_time)
             )
             self.locked_at = lesson_datetime + timedelta(hours=24)
-        
-        # Валидация: балл и НБ взаимоисключающие
+
         if self.grade is not None and self.grade > 0:
-            # Если стоит балл - статус автоматически "Присутствовал"
+            
             self.attendance_status = 'PRESENT'
         elif self.attendance_status != 'PRESENT':
-            # Если статус НБ - поле балла очищается
+            
             self.grade = None
         
         super().save(*args, **kwargs)
     
     def is_locked(self):
-        """КРИТИЧНО! Проверка блокировки через 24 часа"""
+        
         if not self.locked_at:
             return False
         return timezone.now() >= self.locked_at
     
     def can_edit(self, user):
-        """Проверка возможности редактирования"""
-        # Правило 24 часов НЕ ОТМЕНЯЕТСЯ НИКОГДА
+
         if self.is_locked():
             return False
-        
-        # Только преподаватель может редактировать
+
         if not hasattr(user, 'teacher_profile'):
             return False
         
         return True
     
     def get_display_value(self):
-        """Отображаемое значение ячейки"""
+        
         if self.grade is not None and self.grade > 0:
             return str(self.grade)
         elif self.attendance_status == 'PRESENT':
@@ -133,10 +126,8 @@ class JournalEntry(models.Model):
         else:
             return self.get_attendance_status_display()
 
-
 class JournalChangeLog(models.Model):
-    """История изменений записей в журнале"""
-    
+
     entry = models.ForeignKey(
         JournalEntry,
         on_delete=models.CASCADE,
@@ -152,12 +143,10 @@ class JournalChangeLog(models.Model):
     )
     
     changed_at = models.DateTimeField(auto_now_add=True, verbose_name="Когда")
-    
-    # Старые значения
+
     old_grade = models.IntegerField(null=True, blank=True, verbose_name="Старый балл")
     old_attendance = models.CharField(max_length=20, blank=True, verbose_name="Старая посещаемость")
-    
-    # Новые значения
+
     new_grade = models.IntegerField(null=True, blank=True, verbose_name="Новый балл")
     new_attendance = models.CharField(max_length=20, blank=True, verbose_name="Новая посещаемость")
     
@@ -172,7 +161,7 @@ class JournalChangeLog(models.Model):
         return f"{self.changed_by.user.get_full_name() if self.changed_by else 'Система'} изменил запись {self.entry.id} в {self.changed_at}"
     
     def get_change_description(self):
-        """Человекочитаемое описание изменения"""
+        
         parts = []
         
         if self.old_grade != self.new_grade:
@@ -187,9 +176,7 @@ class JournalChangeLog(models.Model):
         
         return ", ".join(parts) if parts else "изменение"
 
-
 class StudentStatistics(models.Model):
-    """Кэш статистики студента для оптимизации"""
     
     student = models.OneToOneField(
         Student,
@@ -207,6 +194,12 @@ class StudentStatistics(models.Model):
     total_lessons = models.IntegerField(default=0, verbose_name="Всего занятий")
     attended_lessons = models.IntegerField(default=0, verbose_name="Посещено занятий")
     
+    # 🆕 ДОБАВЬТЕ ЭТИ ПОЛЯ
+    absent_illness = models.IntegerField(default=0, verbose_name="НБ-Болезнь")
+    absent_valid = models.IntegerField(default=0, verbose_name="НБ-Уважительная")
+    absent_invalid = models.IntegerField(default=0, verbose_name="НБ-Неуважительная")
+    total_absent = models.IntegerField(default=0, verbose_name="Всего прогулов")
+    
     # Статистика по предметам (JSON для гибкости)
     subjects_data = models.JSONField(default=dict, verbose_name="Данные по предметам")
     
@@ -220,14 +213,14 @@ class StudentStatistics(models.Model):
         return f"Статистика: {self.student.user.get_full_name()}"
     
     def recalculate(self):
-        """Пересчет всей статистики"""
+        
         entries = JournalEntry.objects.filter(student=self.student)
         
-        # Общий средний балл
+        
         grades = entries.filter(grade__isnull=False, grade__gt=0).values_list('grade', flat=True)
         self.overall_gpa = sum(grades) / len(grades) if grades else 0.0
         
-        # Посещаемость
+        
         self.total_lessons = entries.count()
         self.attended_lessons = entries.filter(attendance_status='PRESENT').count()
         self.attendance_percentage = (
@@ -235,22 +228,33 @@ class StudentStatistics(models.Model):
             if self.total_lessons > 0 else 0.0
         )
         
-        # Статистика по предметам
+        
+        self.absent_illness = entries.filter(attendance_status='ABSENT_ILLNESS').count()
+        self.absent_valid = entries.filter(attendance_status='ABSENT_VALID').count()
+        self.absent_invalid = entries.filter(attendance_status='ABSENT_INVALID').count()
+        self.total_absent = self.absent_illness + self.absent_valid + self.absent_invalid
+        
+       
+        from schedule.models import Subject
         subjects_stats = {}
         for subject in Subject.objects.filter(journal_entries__student=self.student).distinct():
             subject_entries = entries.filter(subject=subject)
             subject_grades = subject_entries.filter(grade__isnull=False, grade__gt=0).values_list('grade', flat=True)
+            
+            
+            subject_absent = subject_entries.exclude(attendance_status='PRESENT').count()
             
             subjects_stats[subject.id] = {
                 'name': subject.name,
                 'average_grade': sum(subject_grades) / len(subject_grades) if subject_grades else 0.0,
                 'total_lessons': subject_entries.count(),
                 'attended': subject_entries.filter(attendance_status='PRESENT').count(),
+                'absent': subject_absent,  # 🆕
             }
         
         self.subjects_data = subjects_stats
         
-        # Рейтинг в группе
+       
         if self.student.group:
             group_students = Student.objects.filter(group=self.student.group)
             ranked = []

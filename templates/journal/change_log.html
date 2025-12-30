@@ -16,7 +16,7 @@
                 </a>
             </div>
             <div class="card-body">
-                <!-- Фильтры -->
+                
                 <form method="get" class="mb-4">
                     <input type="hidden" name="group" value="{{ group.id }}">
                     <input type="hidden" name="subject" value="{{ subject.id }}">
@@ -42,8 +42,7 @@
                         <i class="bi bi-x-circle"></i> Сбросить
                     </a>
                 </form>
-                
-                <!-- Таблица изменений -->
+
                 {% if logs %}
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">

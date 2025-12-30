@@ -15,7 +15,7 @@ class UserCreateForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.username = self.generate_unique_username()
-        user.set_password('password123')  # Временный пароль
+        user.set_password('password123')  
         if commit:
             user.save()
         return user

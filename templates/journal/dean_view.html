@@ -10,7 +10,7 @@
                 <i class="bi bi-graph-up"></i> Аналитика успеваемости
             </div>
             <div class="card-body">
-                <!-- Выбор группы и режима -->
+                
                 <form method="get" class="mb-4">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -40,7 +40,7 @@
                     </div>
                 {% else %}
                     {% if view_type == 'summary' %}
-                        <!-- Общая статистика -->
+                        
                         <div class="row mb-4">
                             <div class="col-md-4">
                                 <div class="card bg-primary bg-opacity-10">
@@ -67,8 +67,7 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Статистика по предметам -->
+
                         <h5 class="mb-3">Статистика по предметам</h5>
                         <div class="table-responsive">
                             <table class="table table-bordered">
@@ -108,7 +107,7 @@
                         </div>
                         
                     {% elif view_type == 'at_risk' %}
-                        <!-- Студенты под угрозой -->
+                        
                         <h5 class="mb-3">
                             <i class="bi bi-exclamation-triangle text-danger"></i> 
                             Студенты под угрозой (балл < 4 или посещаемость < 60%)

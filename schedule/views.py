@@ -27,10 +27,9 @@ def is_teacher(user):
 def is_student(user):
     return user.is_authenticated and user.role == 'STUDENT'
 
-
 @login_required
 def schedule_view(request):
-    """Просмотр расписания для всех ролей"""
+    
     user = request.user
     group = None
     schedule_slots = []
@@ -73,8 +72,7 @@ def schedule_view(request):
             'selected_group': group,
             'schedule_slots': schedule_slots,
         })
-    
-    # Организация по дням недели
+
     schedule_by_day = {}
     for slot in schedule_slots:
         day = slot.get_day_of_week_display()
@@ -88,10 +86,9 @@ def schedule_view(request):
         'schedule_slots': schedule_slots,
     })
 
-
 @login_required
 def today_classes(request):
-    """Виджет 'Сегодня' - показывает пары на сегодня"""
+    
     user = request.user
     today = datetime.now()
     day_of_week = today.weekday()
@@ -128,10 +125,9 @@ def today_classes(request):
         'today': today,
     })
 
-
 @user_passes_test(is_dean)
 def schedule_constructor(request):
-    """Конструктор расписания для декана"""
+    
     groups = Group.objects.all()
     subjects = Subject.objects.all()
     teachers = Teacher.objects.all()
@@ -146,8 +142,7 @@ def schedule_constructor(request):
             group=selected_group,
             is_active=True
         ).select_related('subject', 'teacher').order_by('day_of_week', 'start_time')
-    
-    # Организация по дням и временным слотам
+
     time_slots = [
         ('08:30', '10:00'),
         ('10:10', '11:40'),
@@ -158,15 +153,13 @@ def schedule_constructor(request):
     ]
     
     days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
-    
-    # Создание сетки расписания
+
     schedule_grid = {}
     for i, day in enumerate(days):
         schedule_grid[i] = {}
         for slot in time_slots:
             schedule_grid[i][slot] = None
-    
-    # Заполнение сетки существующими занятиями
+
     for slot in schedule_slots:
         time_key = (slot.start_time.strftime('%H:%M'), slot.end_time.strftime('%H:%M'))
         if time_key in time_slots:
@@ -182,10 +175,9 @@ def schedule_constructor(request):
         'days': days,
     })
 
-
 @user_passes_test(is_dean)
 def add_schedule_slot(request):
-    """Добавление слота расписания"""
+    
     if request.method == 'POST':
         form = ScheduleSlotForm(request.POST)
         if form.is_valid():
@@ -194,18 +186,16 @@ def add_schedule_slot(request):
             return redirect(f"{reverse('schedule:constructor')}?group={slot.group.id}")
     else:
         form = ScheduleSlotForm()
-        
-        # Предзаполнение группы если передана
+
         group_id = request.GET.get('group')
         if group_id:
             form.fields['group'].initial = group_id
     
     return render(request, 'schedule/add_slot.html', {'form': form})
 
-
 @user_passes_test(is_dean)
 def edit_schedule_slot(request, slot_id):
-    """Редактирование слота расписания"""
+    
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
     
     if request.method == 'POST':
@@ -219,20 +209,18 @@ def edit_schedule_slot(request, slot_id):
     
     return render(request, 'schedule/edit_slot.html', {'form': form, 'slot': slot})
 
-
 @user_passes_test(is_dean)
 def delete_schedule_slot(request, slot_id):
-    """Удаление слота расписания"""
+    
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
     group_id = slot.group.id
     slot.delete()
     messages.success(request, 'Занятие удалено')
     return redirect(f"{reverse('schedule:constructor')}?group={group_id}")
 
-
 @user_passes_test(is_dean)
 def manage_exceptions(request, slot_id):
-    """Управление исключениями для слота"""
+    
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
     exceptions = ScheduleException.objects.filter(schedule_slot=slot)
     
@@ -254,20 +242,18 @@ def manage_exceptions(request, slot_id):
         'form': form,
     })
 
-
 @user_passes_test(is_dean)
 def delete_exception(request, exception_id):
-    """Удаление исключения"""
+    
     exception = get_object_or_404(ScheduleException, id=exception_id)
     slot_id = exception.schedule_slot.id
     exception.delete()
     messages.success(request, 'Исключение удалено')
     return redirect('schedule:manage_exceptions', slot_id=slot_id)
 
-
 @user_passes_test(is_dean)
 def manage_academic_week(request):
-    """Управление учебными неделями"""
+    
     current_week = AcademicWeek.get_current()
     
     if request.method == 'POST':
@@ -293,11 +279,9 @@ def manage_academic_week(request):
         'current_week': current_week,
     })
 
-
 @login_required
 def export_schedule(request):
-    """Экспорт расписания в DOCX"""
-    
+
     if not DOCX_AVAILABLE:
         messages.error(request, 'Библиотека python-docx не установлена. Установите: pip install python-docx')
         return redirect('schedule:view')
@@ -342,8 +326,7 @@ def export_schedule(request):
     if not schedule_slots:
         messages.error(request, 'Нет данных для экспорта')
         return redirect('schedule:view')
-    
-    # Создание документа DOCX
+
     doc = Document()
     
     if group:
@@ -351,8 +334,7 @@ def export_schedule(request):
     else:
         heading = doc.add_heading(f'Расписание преподавателя {user.get_full_name()}', 0)
     heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    # Создание таблицы
+
     days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
     table = doc.add_table(rows=1, cols=7)
     table.style = 'Light Grid Accent 1'
@@ -361,16 +343,14 @@ def export_schedule(request):
     header_cells[0].text = 'Время'
     for i, day in enumerate(days):
         header_cells[i + 1].text = day
-    
-    # Организация по дням и времени
+
     schedule_by_day_time = {}
     for slot in schedule_slots:
         time_key = f"{slot.start_time.strftime('%H:%M')}-{slot.end_time.strftime('%H:%M')}"
         if time_key not in schedule_by_day_time:
             schedule_by_day_time[time_key] = {i: None for i in range(6)}
         schedule_by_day_time[time_key][slot.day_of_week] = slot
-    
-    # Заполнение таблицы
+
     for time_key in sorted(schedule_by_day_time.keys()):
         row_cells = table.add_row().cells
         row_cells[0].text = time_key
@@ -383,8 +363,7 @@ def export_schedule(request):
                 else:
                     cell_text = f"{slot.subject.name}\n{slot.teacher.user.get_full_name()}\n{slot.classroom}"
                 row_cells[day_num + 1].text = cell_text
-    
-    # Сохранение
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     filename = f'schedule_{group.name if group else user.username}_{datetime.now().strftime("%Y%m%d")}.docx'
     response['Content-Disposition'] = f'attachment; filename={filename}'
@@ -392,10 +371,9 @@ def export_schedule(request):
     doc.save(response)
     return response
 
-
 @login_required
 def group_list(request):
-    """Список групп со студентами"""
+    
     user = request.user
     
     if user.role == 'TEACHER':
@@ -415,8 +393,7 @@ def group_list(request):
     else:
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
-    
-    # Получение студентов для каждой группы
+
     groups_with_students = []
     for group in groups:
         students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')

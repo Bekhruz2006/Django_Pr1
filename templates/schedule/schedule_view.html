@@ -25,7 +25,7 @@
                         <i class="bi bi-info-circle"></i> Расписание пока не составлено
                     </div>
                 {% else %}
-                    <!-- Десктоп версия - таблица -->
+                    
                     <div class="d-none d-md-block">
                         <div class="table-responsive">
                             <table class="table table-bordered">
@@ -41,7 +41,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- ИСПРАВЛЕНО: правильное использование regroup -->
+                                    
                                     {% regroup schedule_slots by start_time as time_groups %}
                                     {% for time_group in time_groups %}
                                         <tr>
@@ -77,8 +77,7 @@
                             </table>
                         </div>
                     </div>
-                    
-                    <!-- Мобильная версия - вертикальный список -->
+
                     <div class="d-md-none">
                         {% for day, slots in schedule_by_day.items %}
                             <h5 class="mt-3 mb-3">{{ day }}</h5>
@@ -113,8 +112,7 @@
                 {% endif %}
             </div>
         </div>
-        
-        <!-- Легенда -->
+
         <div class="card mt-3">
             <div class="card-body">
                 <h6>Обозначения:</h6>

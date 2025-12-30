@@ -15,7 +15,7 @@
                 {% endif %}
             </div>
             <div class="card-body">
-                <!-- Фильтр по категориям -->
+                
                 <div class="mb-4">
                     <div class="btn-group" role="group">
                         <a href="{% url 'news:list' %}" class="btn btn-sm {% if not selected_category %}btn-primary{% else %}btn-outline-primary{% endif %}">
@@ -29,8 +29,7 @@
                         {% endfor %}
                     </div>
                 </div>
-                
-                <!-- Список новостей -->
+
                 {% for news in news_page %}
                     <div class="card mb-3 {% if news.is_pinned %}border-warning{% endif %}">
                         <div class="card-body">
@@ -89,8 +88,7 @@
                         <i class="bi bi-info-circle"></i> Новостей пока нет
                     </div>
                 {% endfor %}
-                
-                <!-- Пагинация -->
+
                 {% if news_page.has_other_pages %}
                     <nav>
                         <ul class="pagination justify-content-center">

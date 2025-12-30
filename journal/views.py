@@ -21,27 +21,24 @@ def is_dean(user):
 def is_student(user):
     return user.is_authenticated and user.role == 'STUDENT'
 
-
 @login_required
 @user_passes_test(is_teacher)
 def journal_view(request):
-    """Главный интерфейс преподавателя - таблица журнала"""
-    teacher = request.user.teacher_profile
     
-    # Фильтрация
+    teacher = request.user.teacher_profile
+
     group_id = request.GET.get('group')
     subject_id = request.GET.get('subject')
     week_num = request.GET.get('week')
     
     if not group_id or not subject_id:
-        # Показать форму выбора
+        
         form = JournalFilterForm(teacher=teacher)
         return render(request, 'journal/select_journal.html', {'form': form})
     
     group = get_object_or_404(Group, id=group_id)
     subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
-    
-    # Определение недели
+
     current_week = AcademicWeek.get_current()
     if week_num:
         week_num = int(week_num)
@@ -49,8 +46,7 @@ def journal_view(request):
         week_num = current_week.current_week
     else:
         week_num = 1
-    
-    # Получение расписания для этой группы и предмета
+
     schedule_slots = ScheduleSlot.objects.filter(
         group=group,
         subject=subject,
@@ -60,17 +56,14 @@ def journal_view(request):
     if not schedule_slots.exists():
         messages.warning(request, f'Расписание для группы {group.name} по предмету {subject.name} не найдено')
         return redirect('journal:journal_view')
-    
-    # Вычисление дат занятий на выбранной неделе
+
     if current_week:
         week_start = current_week.semester_start_date + timedelta(weeks=week_num - 1)
     else:
         week_start = datetime.now().date() - timedelta(days=datetime.now().weekday())
-    
-    # Создание структуры данных для таблицы
+
     students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
-    
-    # Дни недели с занятиями
+
     days_with_lessons = []
     for slot in schedule_slots:
         lesson_date = week_start + timedelta(days=slot.day_of_week)
@@ -80,8 +73,7 @@ def journal_view(request):
             'day_name': slot.get_day_of_week_display(),
             'slot': slot
         })
-    
-    # Получение или создание записей
+
     journal_data = []
     for student in students:
         student_row = {
@@ -109,8 +101,7 @@ def journal_view(request):
             })
         
         journal_data.append(student_row)
-    
-    # Сводная статистика по дням
+
     day_stats = []
     for day_info in days_with_lessons:
         day_entries = JournalEntry.objects.filter(
@@ -135,31 +126,28 @@ def journal_view(request):
         'days_with_lessons': days_with_lessons,
         'journal_data': journal_data,
         'day_stats': day_stats,
-        'can_edit': True,  # Преподаватель может редактировать (с учетом блокировки)
+        'can_edit': True,  
     }
     
     return render(request, 'journal/journal_table.html', context)
 
-
 @login_required
 @user_passes_test(is_teacher)
 def update_entry(request, entry_id):
-    """Обновление одной ячейки журнала"""
+    
     entry = get_object_or_404(JournalEntry, id=entry_id)
     teacher = request.user.teacher_profile
-    
-    # КРИТИЧНО! Проверка блокировки
+
     if entry.is_locked():
         messages.error(request, '🔒 Эта запись заблокирована! Прошло более 24 часов с начала занятия.')
         return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
-    
-    # Проверка прав (преподаватель ведет этот предмет)
+
     if entry.subject.teacher != teacher:
         messages.error(request, 'У вас нет прав на редактирование этой записи')
         return redirect('journal:journal_view')
     
     if request.method == 'POST':
-        # Сохранение старых значений для лога
+        
         old_grade = entry.grade
         old_attendance = entry.attendance_status
         
@@ -170,8 +158,7 @@ def update_entry(request, entry_id):
                 entry = form.save(commit=False)
                 entry.modified_by = teacher
                 entry.save()
-                
-                # ОБЯЗАТЕЛЬНОЕ логирование КАЖДОГО изменения
+
                 JournalChangeLog.objects.create(
                     entry=entry,
                     changed_by=teacher,
@@ -181,8 +168,7 @@ def update_entry(request, entry_id):
                     new_attendance=entry.attendance_status,
                     comment=request.POST.get('comment', '')
                 )
-                
-                # Пересчет статистики студента
+
                 stats, _ = StudentStatistics.objects.get_or_create(student=entry.student)
                 stats.recalculate()
                 
@@ -192,11 +178,10 @@ def update_entry(request, entry_id):
     
     return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
 
-
 @login_required
 @user_passes_test(is_teacher)
 def bulk_update(request):
-    """Массовое заполнение оценок"""
+    
     if request.method != 'POST':
         return redirect('journal:journal_view')
     
@@ -232,17 +217,14 @@ def bulk_update(request):
                         lesson_date=lesson_date,
                         lesson_time=lesson_time
                     )
-                    
-                    # Проверка блокировки
+
                     if entry.is_locked():
                         locked_count += 1
                         continue
-                    
-                    # Сохранение старых значений
+
                     old_grade = entry.grade
                     old_attendance = entry.attendance_status
-                    
-                    # Обновление
+
                     if grade:
                         entry.grade = grade
                         entry.attendance_status = 'PRESENT'
@@ -252,8 +234,7 @@ def bulk_update(request):
                     
                     entry.modified_by = teacher
                     entry.save()
-                    
-                    # Логирование
+
                     JournalChangeLog.objects.create(
                         entry=entry,
                         changed_by=teacher,
@@ -268,8 +249,7 @@ def bulk_update(request):
                     
                 except JournalEntry.DoesNotExist:
                     pass
-        
-        # Пересчет статистики группы
+
         StudentStatistics.recalculate_group(group)
         
         if updated_count > 0:
@@ -281,11 +261,10 @@ def bulk_update(request):
     
     return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
 
-
 @login_required
 @user_passes_test(is_teacher)
 def change_log_view(request):
-    """История изменений"""
+    
     teacher = request.user.teacher_profile
     
     group_id = request.GET.get('group')
@@ -296,14 +275,12 @@ def change_log_view(request):
     
     group = get_object_or_404(Group, id=group_id)
     subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
-    
-    # Получение логов
+
     logs = JournalChangeLog.objects.filter(
         entry__subject=subject,
         entry__student__group=group
     ).select_related('entry__student__user', 'changed_by__user').order_by('-changed_at')
-    
-    # Фильтрация
+
     filter_form = ChangeLogFilterForm(request.GET, group=group, subject=subject)
     
     if filter_form.is_valid():
@@ -322,7 +299,7 @@ def change_log_view(request):
             logs = logs.filter(changed_by_id=teacher_id)
     
     context = {
-        'logs': logs[:100],  # Ограничение на 100 записей
+        'logs': logs[:100],  
         'group': group,
         'subject': subject,
         'filter_form': filter_form,
@@ -330,19 +307,16 @@ def change_log_view(request):
     
     return render(request, 'journal/change_log.html', context)
 
-
 @login_required
 @user_passes_test(is_student)
 def student_journal_view(request):
-    """Интерфейс студента - просмотр своих оценок"""
-    student = request.user.student_profile
     
-    # Получение всех записей студента
+    student = request.user.student_profile
+
     entries = JournalEntry.objects.filter(
         student=student
     ).select_related('subject').order_by('lesson_date')
-    
-    # Группировка по предметам
+
     subjects_data = {}
     for entry in entries:
         if entry.subject.id not in subjects_data:
@@ -364,8 +338,7 @@ def student_journal_view(request):
         
         if entry.attendance_status == 'PRESENT':
             subjects_data[entry.subject.id]['attended'] += 1
-    
-    # Вычисление средних значений
+
     for subject_id in subjects_data:
         data = subjects_data[subject_id]
         data['avg_grade'] = (
@@ -376,8 +349,7 @@ def student_journal_view(request):
             data['attended'] / data['total_lessons'] * 100 
             if data['total_lessons'] > 0 else 0
         )
-    
-    # Статистика
+
     stats, _ = StudentStatistics.objects.get_or_create(student=student)
     stats.recalculate()
     
@@ -389,14 +361,12 @@ def student_journal_view(request):
     
     return render(request, 'journal/student_view.html', context)
 
-
 @login_required
 @user_passes_test(is_dean)
 def dean_journal_view(request):
-    """Интерфейс декана - аналитика и просмотр"""
-    
+
     group_id = request.GET.get('group')
-    view_type = request.GET.get('view', 'summary')  # summary, details, at_risk
+    view_type = request.GET.get('view', 'summary')  
     
     groups = Group.objects.all()
     selected_group = None
@@ -405,8 +375,7 @@ def dean_journal_view(request):
     
     if group_id:
         selected_group = get_object_or_404(Group, id=group_id)
-        
-        # Статистика группы
+
         students = Student.objects.filter(group=selected_group)
         
         group_stats = {
@@ -415,15 +384,13 @@ def dean_journal_view(request):
             'avg_attendance': 0,
             'subjects': []
         }
-        
-        # Средние по группе
+
         all_stats = []
         for student in students:
             stats, _ = StudentStatistics.objects.get_or_create(student=student)
             stats.recalculate()
             all_stats.append(stats)
-            
-            # Студенты под угрозой
+
             if stats.overall_gpa < 4.0 or stats.attendance_percentage < 60:
                 at_risk_students.append({
                     'student': student,
@@ -438,8 +405,7 @@ def dean_journal_view(request):
         if all_stats:
             group_stats['avg_gpa'] = sum(s.overall_gpa for s in all_stats) / len(all_stats)
             group_stats['avg_attendance'] = sum(s.attendance_percentage for s in all_stats) / len(all_stats)
-        
-        # Статистика по предметам
+
         subjects = Subject.objects.filter(
             journal_entries__student__group=selected_group
         ).distinct()
@@ -470,20 +436,14 @@ def dean_journal_view(request):
     
     return render(request, 'journal/dean_view.html', context)
 
-
-
-# ДОБАВИТЬ В КОНЕЦ journal/views.py:
-
 @login_required
 @user_passes_test(is_dean)
 def department_report(request):
-    """Детальный отчет по всей кафедре"""
-    
-    sort_by = request.GET.get('sort', 'group')  # group, gpa, attendance
+
+    sort_by = request.GET.get('sort', 'group')  
     
     groups = Group.objects.all()
-    
-    # Собираем статистику по всем группам
+
     groups_data = []
     
     for group in groups:
@@ -491,8 +451,7 @@ def department_report(request):
         
         if not students.exists():
             continue
-        
-        # Статистика группы
+
         group_stats = []
         total_gpa = 0
         total_attendance = 0
@@ -511,8 +470,7 @@ def department_report(request):
             total_gpa += stats.overall_gpa
             total_attendance += stats.attendance_percentage
             count += 1
-        
-        # Вычисляем средние по группе
+
         avg_gpa = total_gpa / count if count > 0 else 0
         avg_attendance = total_attendance / count if count > 0 else 0
         
@@ -524,16 +482,14 @@ def department_report(request):
             'students': sorted(group_stats, key=lambda x: x['stats'].overall_gpa, reverse=True),
             'at_risk_count': sum(1 for s in group_stats if s['is_at_risk'])
         })
-    
-    # Сортировка групп
+
     if sort_by == 'gpa':
         groups_data.sort(key=lambda x: x['avg_gpa'], reverse=True)
     elif sort_by == 'attendance':
         groups_data.sort(key=lambda x: x['avg_attendance'], reverse=True)
     else:
         groups_data.sort(key=lambda x: x['group'].name)
-    
-    # Общая статистика по кафедре
+
     total_students = sum(g['students_count'] for g in groups_data)
     total_at_risk = sum(g['at_risk_count'] for g in groups_data)
     overall_gpa = sum(g['avg_gpa'] * g['students_count'] for g in groups_data) / total_students if total_students > 0 else 0
@@ -550,26 +506,22 @@ def department_report(request):
     
     return render(request, 'journal/department_report.html', context)
 
-
 @login_required
 @user_passes_test(is_dean)
 def group_detailed_report(request, group_id):
-    """Детальный отчет по конкретной группе"""
+    
     group = get_object_or_404(Group, id=group_id)
     students = Student.objects.filter(group=group).select_related('user')
-    
-    # Получаем все предметы группы
+
     subjects = Subject.objects.filter(
         journal_entries__student__group=group
     ).distinct()
-    
-    # Собираем данные по каждому студенту
+
     students_data = []
     for student in students:
         stats, _ = StudentStatistics.objects.get_or_create(student=student)
         stats.recalculate()
-        
-        # Статистика по предметам
+
         subjects_performance = []
         for subject in subjects:
             entries = JournalEntry.objects.filter(
@@ -598,8 +550,7 @@ def group_detailed_report(request, group_id):
             'subjects': subjects_performance,
             'is_at_risk': stats.overall_gpa < 4.0 or stats.attendance_percentage < 60
         })
-    
-    # Сортировка по среднему баллу
+
     students_data.sort(key=lambda x: x['stats'].overall_gpa, reverse=True)
     
     context = {

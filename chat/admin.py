@@ -13,7 +13,6 @@ class ChatRoomAdmin(admin.ModelAdmin):
         return obj.participants.count()
     participants_count.short_description = 'Участников'
 
-
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
     list_display = ['sender', 'room', 'content_preview', 'is_read', 'created_at']

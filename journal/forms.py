@@ -5,8 +5,7 @@ from accounts.models import Group
 from schedule.models import Subject
 
 class JournalEntryForm(forms.ModelForm):
-    """Форма для редактирования одной ячейки журнала"""
-    
+
     class Meta:
         model = JournalEntry
         fields = ['grade', 'attendance_status']
@@ -26,8 +25,7 @@ class JournalEntryForm(forms.ModelForm):
         cleaned_data = super().clean()
         grade = cleaned_data.get('grade')
         attendance_status = cleaned_data.get('attendance_status')
-        
-        # Валидация: нельзя одновременно установить балл и статус НБ
+
         if grade is not None and grade > 0 and attendance_status != 'PRESENT':
             raise ValidationError(
                 "Нельзя одновременно установить балл и статус отсутствия. "
@@ -39,20 +37,17 @@ class JournalEntryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        # Проверка блокировки
+
         if self.instance and self.instance.pk:
             if self.instance.is_locked():
-                # Заблокированные ячейки - все поля readonly
+                
                 for field in self.fields.values():
                     field.disabled = True
                     field.widget.attrs['class'] += ' bg-secondary bg-opacity-25'
                     field.widget.attrs['title'] = '🔒 Заблокировано (прошло 24 часа)'
 
-
 class BulkGradeForm(forms.Form):
-    """Форма для массового заполнения оценок"""
-    
+
     students = forms.MultipleChoiceField(
         widget=forms.CheckboxSelectMultiple,
         required=False,
@@ -100,10 +95,8 @@ class BulkGradeForm(forms.Form):
         
         return cleaned_data
 
-
 class JournalFilterForm(forms.Form):
-    """Форма фильтрации журнала"""
-    
+
     group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
         required=True,
@@ -132,13 +125,11 @@ class JournalFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
         teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
-        
-        # ИСПРАВЛЕНО: Ограничение предметов и групп для преподавателя
+
         if teacher:
-            # Только предметы, которые ведет этот преподаватель
-            self.fields['subject'].queryset = Subject.objects.filter(teacher=teacher)
             
-            # Только группы, у которых есть занятия у этого преподавателя
+            self.fields['subject'].queryset = Subject.objects.filter(teacher=teacher)
+
             from schedule.models import ScheduleSlot
             group_ids = ScheduleSlot.objects.filter(
                 teacher=teacher,
@@ -146,10 +137,8 @@ class JournalFilterForm(forms.Form):
             ).values_list('group_id', flat=True).distinct()
             self.fields['group'].queryset = Group.objects.filter(id__in=group_ids)
 
-
 class ChangeLogFilterForm(forms.Form):
-    """Форма фильтрации истории изменений"""
-    
+
     date_from = forms.DateField(
         required=False,
         label="С даты",

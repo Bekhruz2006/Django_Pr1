@@ -4,7 +4,7 @@ register = template.Library()
 
 @register.filter
 def youtube_embed(url):
-    """Конвертирует YouTube URL в embed формат"""
+    
     if not url:
         return url
     

@@ -2,8 +2,7 @@ from django.db import models
 from accounts.models import User
 
 class ChatRoom(models.Model):
-    """Комната чата (личная или групповая)"""
-    
+
     ROOM_TYPE_CHOICES = [
         ('PRIVATE', 'Личный'),
         ('GROUP', 'Групповой'),
@@ -39,22 +38,20 @@ class ChatRoom(models.Model):
     def __str__(self):
         if self.name:
             return self.name
-        # Для личных чатов показываем имена участников
+        
         names = [p.get_full_name() for p in self.participants.all()[:2]]
         return " — ".join(names)
     
     def get_last_message(self):
-        """Получить последнее сообщение"""
+        
         return self.messages.order_by('-created_at').first()
     
     def get_unread_count(self, user):
-        """Количество непрочитанных сообщений для пользователя"""
+        
         return self.messages.filter(is_read=False).exclude(sender=user).count()
 
-
 class ChatMessage(models.Model):
-    """Сообщение в чате"""
-    
+
     room = models.ForeignKey(
         ChatRoom,
         on_delete=models.CASCADE,

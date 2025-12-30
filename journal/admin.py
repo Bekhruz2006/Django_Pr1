@@ -43,12 +43,11 @@ class JournalEntryAdmin(admin.ModelAdmin):
     
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.is_locked():
-            # Если заблокировано - все поля readonly (кроме метаданных)
+            
             return ['student', 'subject', 'lesson_date', 'lesson_time', 
                     'lesson_type', 'grade', 'attendance_status', 
                     'locked_at', 'created_at', 'updated_at', 'is_locked_display']
         return self.readonly_fields
-
 
 @admin.register(JournalChangeLog)
 class JournalChangeLogAdmin(admin.ModelAdmin):
@@ -82,7 +81,6 @@ class JournalChangeLogAdmin(admin.ModelAdmin):
     def change_description_display(self, obj):
         return obj.get_change_description()
     change_description_display.short_description = 'Изменение'
-
 
 @admin.register(StudentStatistics)
 class StudentStatisticsAdmin(admin.ModelAdmin):

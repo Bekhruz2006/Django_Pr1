@@ -11,35 +11,58 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">Общий средний балл (GPA)</h6>
+                            <h6 class="text-muted">Общий GPA</h6>
                             <h2 class="text-primary">{{ stats.overall_gpa|floatformat:2 }}</h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">Рейтинг в группе</h6>
+                            <h6 class="text-muted">Рейтинг</h6>
                             <h2 class="text-warning">{{ stats.group_rank }}</h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="text-center">
                             <h6 class="text-muted">Посещаемость</h6>
                             <h2 class="text-success">{{ stats.attendance_percentage|floatformat:0 }}%</h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <!-- 🆕 ПРОГУЛЫ -->
+                    <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">Всего занятий</h6>
-                            <h2>{{ stats.total_lessons }}</h2>
+                            <h6 class="text-muted">НБ-Болезнь</h6>
+                            <h3 class="text-info">{{ stats.absent_illness }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <h6 class="text-muted">НБ-Уваж.</h6>
+                            <h3 class="text-success">{{ stats.absent_valid }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <h6 class="text-muted">НБ-Неуваж.</h6>
+                            <h3 class="text-danger">{{ stats.absent_invalid }}</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 🆕 Общий итог -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert {% if stats.total_absent > 10 %}alert-danger{% elif stats.total_absent > 5 %}alert-warning{% else %}alert-success{% endif %}">
+                            <strong>Всего прогулов:</strong> {{ stats.total_absent }} из {{ stats.total_lessons }} занятий
+                            ({{ stats.attendance_percentage|floatformat:1 }}% посещаемости)
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Таблица по предметам -->
+        <!-- Остальные таблицы по предметам без изменений -->
         {% for subject_data in subjects_data %}
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">

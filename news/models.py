@@ -2,8 +2,7 @@ from django.db import models
 from accounts.models import User
 
 class News(models.Model):
-    """Новости кафедры"""
-    
+
     CATEGORY_CHOICES = [
         ('ANNOUNCEMENT', 'Объявление'),
         ('EVENT', 'Мероприятие'),
@@ -72,14 +71,12 @@ class News(models.Model):
         return self.title
     
     def increment_views(self):
-        """Увеличить счетчик просмотров"""
+        
         self.views_count += 1
         self.save(update_fields=['views_count'])
 
-
 class NewsComment(models.Model):
-    """Комментарии к новостям"""
-    
+
     news = models.ForeignKey(
         News,
         on_delete=models.CASCADE,

@@ -29,7 +29,6 @@ class NewsForm(forms.ModelForm):
             'is_published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
-
 class NewsCommentForm(forms.ModelForm):
     class Meta:
         model = NewsComment

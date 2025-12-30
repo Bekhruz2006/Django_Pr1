@@ -18,8 +18,7 @@ def dashboard(request):
     context = {
         'user': user
     }
-    
-    # ДОБАВЛЕНО: Загрузка новостей для всех ролей
+
     from news.models import News
     context['news_list'] = News.objects.filter(is_published=True).order_by('-is_pinned', '-created_at')[:5]
     
@@ -29,8 +28,7 @@ def dashboard(request):
         context['profile'] = user.teacher_profile
     elif user.role == 'DEAN':
         context['profile'] = user.dean_profile
-        
-        # ИСПРАВЛЕНО: Статистика для декана
+
         from accounts.models import Student, Teacher, Group
         from journal.models import StudentStatistics
         
@@ -60,8 +58,7 @@ def dashboard(request):
                 })
         
         context['course_stats'] = course_stats
-    
-    # Расписание на сегодня
+
     try:
         from schedule.models import ScheduleSlot
         from accounts.models import Student, Teacher
@@ -71,11 +68,11 @@ def dashboard(request):
         current_time = today.time()
         
         classes = []
-        
         if user.role == 'STUDENT':
             try:
                 student = user.student_profile
                 if student.group:
+                    
                     classes = ScheduleSlot.objects.filter(
                         group=student.group,
                         day_of_week=day_of_week,

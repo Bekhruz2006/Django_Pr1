@@ -104,7 +104,14 @@ class Student(models.Model):
             return stats.overall_gpa
         except Exception:
             return 0.0
-    
+    def get_total_absent(self):
+        
+        try:
+            from journal.models import StudentStatistics
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            return stats.total_absent
+        except Exception:
+            return 0  
     def get_group_rank(self):
         try:
             from journal.models import StudentStatistics

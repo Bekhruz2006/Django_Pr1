@@ -268,10 +268,9 @@ def transfer_student(request, student_id):
         'student': student
     })
 
-# ДОБАВЛЕНО: Просмотр профиля пользователя для декана
 @login_required
 def view_user_profile(request, user_id):
-    """Просмотр профиля любого пользователя (для декана)"""
+    
     if request.user.role != 'DEAN':
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
@@ -298,7 +297,7 @@ def view_user_profile(request, user_id):
 
 @user_passes_test(is_dean)
 def group_management(request):
-    """Управление группами"""
+    
     groups = Group.objects.all().order_by('course', 'name')
     
     search = request.GET.get('search', '')
@@ -321,7 +320,7 @@ def group_management(request):
 
 @user_passes_test(is_dean)
 def add_group(request):
-    """Добавление новой группы"""
+    
     if request.method == 'POST':
         form = GroupForm(request.POST)
         if form.is_valid():
@@ -335,7 +334,7 @@ def add_group(request):
 
 @user_passes_test(is_dean)
 def edit_group(request, group_id):
-    """Редактирование группы"""
+    
     group = get_object_or_404(Group, id=group_id)
     
     if request.method == 'POST':
@@ -354,7 +353,7 @@ def edit_group(request, group_id):
 
 @user_passes_test(is_dean)
 def delete_group(request, group_id):
-    """Удаление группы"""
+    
     group = get_object_or_404(Group, id=group_id)
     
     students_count = Student.objects.filter(group=group).count()

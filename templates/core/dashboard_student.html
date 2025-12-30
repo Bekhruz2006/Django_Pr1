@@ -9,36 +9,76 @@
     </div>
 </div>
 
+<!-- 🆕 ОБНОВЛЕННЫЕ КАРТОЧКИ СТАТИСТИКИ -->
 <div class="row mt-3">
-    <div class="col-md-4">
-        <div class="card">
+    <!-- Средний балл -->
+    <div class="col-md-3">
+        <div class="card stat-card">
             <div class="card-body text-center">
                 <i class="bi bi-journal-check" style="font-size: 3rem; color: var(--accent-green);"></i>
                 <h5 class="mt-2">Средний балл</h5>
-                <h3>{{ profile.get_average_grade|floatformat:2|default:"—" }}</h3>
+                <h2 class="stat-number">{{ profile.get_average_grade|floatformat:2|default:"0.00" }}</h2>
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {% widthratio profile.get_average_grade 1 8.33 %}%">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+    
+    <!-- Рейтинг -->
+    <div class="col-md-3">
+        <div class="card stat-card">
             <div class="card-body text-center">
                 <i class="bi bi-trophy" style="font-size: 3rem; color: var(--accent-amber);"></i>
                 <h5 class="mt-2">Рейтинг в группе</h5>
-                <h3>{{ profile.get_group_rank|default:"—" }}</h3>
+                <h2 class="stat-number">{{ profile.get_group_rank|default:"—" }}</h2>
+                <small class="text-muted">
+                    {% if profile.get_group_rank == 1 %}🥇 Лучший в группе!
+                    {% elif profile.get_group_rank <= 3 %}🥈 В тройке лидеров!
+                    {% else %}Продолжай стараться!{% endif %}
+                </small>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+    
+    <!-- 🆕 Посещаемость -->
+    <div class="col-md-3">
+        <div class="card stat-card">
             <div class="card-body text-center">
-                <i class="bi bi-calendar2-week" style="font-size: 3rem; color: var(--primary-blue);"></i>
+                <i class="bi bi-calendar2-check" style="font-size: 3rem; color: var(--primary-blue);"></i>
                 <h5 class="mt-2">Посещаемость</h5>
-                <h3>—%</h3>
+                <h2 class="stat-number">{{ profile.get_attendance_percentage|default:"0" }}%</h2>
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar {% if profile.get_attendance_percentage >= 90 %}bg-success{% elif profile.get_attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %}" 
+                         role="progressbar" style="width: {{ profile.get_attendance_percentage }}%">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 🆕 Прогулы -->
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: {% if profile.get_total_absent > 10 %}#ef4444{% elif profile.get_total_absent > 5 %}var(--accent-amber){% else %}var(--accent-green){% endif %};"></i>
+                <h5 class="mt-2">Прогулов (НБ)</h5>
+                <h2 class="stat-number {% if profile.get_total_absent > 10 %}text-danger{% elif profile.get_total_absent > 5 %}text-warning{% else %}text-success{% endif %}">
+                    {{ profile.get_total_absent }}
+                </h2>
+                <small class="text-muted">
+                    {% if profile.get_total_absent == 0 %}✅ Отлично!
+                    {% elif profile.get_total_absent <= 5 %}⚠️ Будь внимательнее
+                    {% else %}❌ Требует внимания!{% endif %}
+                </small>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Остальной код без изменений -->
 <div class="row mt-3">
     <!-- Виджет "Сегодня" -->
     <div class="col-lg-6">

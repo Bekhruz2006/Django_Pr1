@@ -8,8 +8,8 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('schedule/', include('schedule.urls')),
     path('journal/', include('journal.urls')),
-    path('news/', include('news.urls')),  # ДОБАВЛЕНО
-    path('chat/', include('chat.urls')),  # ДОБАВЛЕНО
+    path('news/', include('news.urls')),  
+    path('chat/', include('chat.urls')),  
     path('', include('core.urls')),
 ]
 

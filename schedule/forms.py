@@ -31,7 +31,7 @@ class ScheduleSlotForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Автоподстановка преподавателя при выборе предмета
+        
         if 'subject' in self.data:
             try:
                 subject_id = int(self.data.get('subject'))
