@@ -23,7 +23,7 @@
             
             <div class="card-body" style="height: 500px; overflow-y: auto;" id="messagesContainer">
                 {% for message in messages %}
-                    <div class="mb-3 {% if message.sender == user %}text-end{% endif %}">
+                    <div class="mb-3 {% if message.sender == user %}text-end{% endif %}" data-message-id="{{ message.id }}">
                         <div class="d-inline-block {% if message.sender == user %}bg-primary text-white{% else %}bg-light{% endif %} p-3 rounded" style="max-width: 70%;">
                             {% if message.sender != user %}
                                 <small class="d-block mb-1">
@@ -36,7 +36,7 @@
                                 {% if message.sender == user %}
                                     <a href="{% url 'chat:delete_message' message.id %}" 
                                        class="text-white-50 ms-2" 
-                                       onclick="return confirm('Удалить?')"
+                                       onclick="return confirm('Удалить сообщение?')"
                                        title="Удалить">
                                         <i class="bi bi-trash"></i>
                                     </a>
@@ -52,10 +52,11 @@
                     {% csrf_token %}
                     <div class="input-group">
                         {{ form.content }}
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="sendButton">
                             <i class="bi bi-send"></i> Отправить
                         </button>
                     </div>
+                    <small class="text-muted">Нажмите Enter для отправки или Shift+Enter для новой строки</small>
                 </form>
             </div>
         </div>
@@ -71,45 +72,117 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('messagesContainer');
-    container.scrollTop = container.scrollHeight;
-});
-
-document.getElementById('messageForm').addEventListener('submit', function() {
-    setTimeout(function() {
-        const container = document.getElementById('messagesContainer');
+    const messageForm = document.getElementById('messageForm');
+    const textarea = document.querySelector('textarea[name="content"]');
+    const sendButton = document.getElementById('sendButton');
+    
+    function scrollToBottom() {
         container.scrollTop = container.scrollHeight;
-    }, 100);
-});
-
-// ИСПРАВЛЕНО: правильный синтаксис для получения ID последнего сообщения
-let lastMessageId = {% if messages %}{{ messages.last.id }}{% else %}0{% endif %};
-
-setInterval(function() {
-    fetch('{% url "chat:new_messages" room.id %}?last_id=' + lastMessageId)
-        .then(response => response.json())
-        .then(data => {
-            if (data.messages.length > 0) {
-                const container = document.getElementById('messagesContainer');
-                
-                data.messages.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = 'mb-3 ' + (msg.is_mine ? 'text-end' : '');
-                    div.innerHTML = `
-                        <div class="d-inline-block ${msg.is_mine ? 'bg-primary text-white' : 'bg-light'} p-3 rounded" style="max-width: 70%;">
-                            ${!msg.is_mine ? '<small class="d-block mb-1"><strong>' + msg.sender_name + '</strong></small>' : ''}
-                            <div>${msg.content}</div>
-                            <small class="d-block mt-2 ${msg.is_mine ? 'text-white-50' : 'text-muted'}">
-                                ${msg.created_at}
-                            </small>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                    lastMessageId = msg.id;
-                });
-                
-                container.scrollTop = container.scrollHeight;
+    }
+    scrollToBottom();
+    
+    textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (textarea.value.trim()) {
+                messageForm.submit();
             }
-        });
-}, 3000);
+        }
+    });
+    
+    messageForm.addEventListener('submit', function(e) {
+        if (!textarea.value.trim()) {
+            e.preventDefault();
+            return;
+        }
+        
+        sendButton.disabled = true;
+        sendButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    });
+    
+    let lastMessageId = {% if messages %}{{ messages.last.id }}{% else %}0{% endif %};
+    const processedMessages = new Set();
+    
+    document.querySelectorAll('[data-message-id]').forEach(el => {
+        const msgId = parseInt(el.getAttribute('data-message-id'));
+        processedMessages.add(msgId);
+    });
+    
+    function fetchNewMessages() {
+        fetch('{% url "chat:new_messages" room.id %}?last_id=' + lastMessageId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    let hasNewMessages = false;
+                    
+                    data.messages.forEach(msg => {
+                        // ИСПРАВЛЕНО: Проверяем, не добавлено ли уже это сообщение
+                        if (!processedMessages.has(msg.id)) {
+                            processedMessages.add(msg.id);
+                            
+                            const div = document.createElement('div');
+                            div.className = 'mb-3 ' + (msg.is_mine ? 'text-end' : '');
+                            div.setAttribute('data-message-id', msg.id);
+                            div.innerHTML = `
+                                <div class="d-inline-block ${msg.is_mine ? 'bg-primary text-white' : 'bg-light'} p-3 rounded" style="max-width: 70%;">
+                                    ${!msg.is_mine ? '<small class="d-block mb-1"><strong>' + escapeHtml(msg.sender_name) + '</strong></small>' : ''}
+                                    <div>${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>
+                                    <small class="d-block mt-2 ${msg.is_mine ? 'text-white-50' : 'text-muted'}">
+                                        ${msg.created_at}
+                                    </small>
+                                </div>
+                            `;
+                            container.appendChild(div);
+                            lastMessageId = Math.max(lastMessageId, msg.id);
+                            hasNewMessages = true;
+                        }
+                    });
+                    
+                    if (hasNewMessages) {
+                        scrollToBottom();
+                    }
+                }
+            })
+            .catch(error => console.error('Ошибка загрузки сообщений:', error));
+    }
+    
+    setInterval(fetchNewMessages, 3000);
+    
+    
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+});
 </script>
+
+<style>
+#messagesContainer::-webkit-scrollbar {
+    width: 8px;
+}
+
+#messagesContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#messagesContainer::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#messagesContainer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+textarea[name="content"] {
+    resize: none;
+    min-height: 60px;
+}
+</style>
 {% endblock %}

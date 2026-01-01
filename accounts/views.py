@@ -9,6 +9,9 @@ from .forms import (UserCreateForm, StudentForm, TeacherForm, DeanForm,
                    UserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
                    GroupForm, GroupTransferForm)
 
+from django.core.exceptions import ObjectDoesNotExist
+
+
 def generate_student_id():
     
     from datetime import datetime
@@ -153,8 +156,28 @@ def user_management(request):
             models.Q(last_name__icontains=search)
         )
     
+    users = users.select_related('student_profile', 'teacher_profile', 'dean_profile')
+    
+    users_with_profiles = []
+    for user_obj in users:
+        user_data = {
+            'user': user_obj,
+            'has_profile': True
+        }
+        
+        if user_obj.role == 'STUDENT':
+            try:
+                profile = user_obj.student_profile
+                user_data['profile_id'] = profile.id if profile else None
+            except ObjectDoesNotExist:
+                user_data['has_profile'] = False
+                user_data['profile_id'] = None
+        
+        users_with_profiles.append(user_data)
+    
     return render(request, 'accounts/user_management.html', {
         'users': users,
+        'users_with_profiles': users_with_profiles,  # Новая переменная
         'role_filter': role_filter,
         'search': search
     })

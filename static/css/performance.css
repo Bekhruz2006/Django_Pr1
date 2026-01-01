@@ -1,0 +1,309 @@
+/* ===========================================
+   ОПТИМИЗАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ
+   =========================================== */
+
+/* 1. Использование will-change для плавных анимаций */
+.card, .btn, .nav-link {
+    will-change: transform;
+}
+
+/* 2. Использование transform вместо top/left для анимаций */
+.smooth-move {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* 3. Отключение анимаций для prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 4. Оптимизация изображений - скелетон при загрузке */
+img[data-src] {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    min-height: 100px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 5. Оптимизация таблиц - виртуальный скроллинг */
+.table-container {
+    contain: layout style paint;
+}
+
+.table-row {
+    content-visibility: auto;
+    contain-intrinsic-size: 50px;
+}
+
+/* 6. Критические стили для быстрого рендера */
+.critical-content {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #212529;
+}
+
+/* 7. Отложенная загрузка некритического контента */
+.lazy-load {
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
+}
+
+.lazy-load.loaded {
+    opacity: 1;
+}
+
+/* 8. Оптимизация шрифтов */
+@font-face {
+    font-family: 'System';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap; /* Быстрая замена шрифта */
+}
+
+/* 9. GPU-ускоренные трансформации */
+.gpu-accelerated {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 10. Оптимизация скроллинга */
+.smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Отключение smooth scroll для быстрой навигации */
+@media (prefers-reduced-motion: reduce) {
+    .smooth-scroll {
+        scroll-behavior: auto;
+    }
+}
+
+/* 11. Содержимое вне экрана - минимальный рендеринг */
+.offscreen {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 500px;
+}
+
+/* 12. Оптимизация форм */
+input, select, textarea {
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Отключение валидации в реальном времени для производительности */
+input:not(:focus):invalid,
+select:not(:focus):invalid,
+textarea:not(:focus):invalid {
+    box-shadow: none;
+}
+
+/* 13. Кастомный скроллбар для лучшей производительности */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 14. Оптимизация модальных окон */
+.modal {
+    contain: layout style;
+}
+
+.modal-backdrop {
+    will-change: opacity;
+    backface-visibility: hidden;
+}
+
+/* 15. Отложенная загрузка видео */
+video {
+    content-visibility: auto;
+    contain-intrinsic-size: 640px 360px;
+}
+
+/* 16. Оптимизация dropdown меню */
+.dropdown-menu {
+    contain: layout style;
+    will-change: transform, opacity;
+}
+
+/* 17. Быстрый hover для кнопок */
+.btn:hover,
+.btn:focus {
+    transform: translateY(-2px);
+    will-change: transform;
+}
+
+/* 18. Оптимизация карточек */
+.card {
+    contain: layout style paint;
+    content-visibility: auto;
+}
+
+/* 19. Индикатор загрузки контента */
+.loading-skeleton {
+    background: linear-gradient(90deg, 
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.5) 50%,
+        rgba(255,255,255,0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* 20. Оптимизация для мобильных устройств */
+@media (max-width: 768px) {
+    /* Отключаем тяжелые эффекты */
+    .card::before,
+    .card::after {
+        display: none;
+    }
+    
+    /* Упрощаем анимации */
+    * {
+        animation-duration: 0.1s !important;
+        transition-duration: 0.1s !important;
+    }
+    
+    /* Уменьшаем тени */
+    .card, .btn {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    }
+}
+
+/* 21. Оптимизация для печати */
+@media print {
+    /* Удаляем ненужные элементы */
+    .navbar,
+    .sidebar,
+    .btn,
+    .modal,
+    .theme-toggle,
+    .floating-shape {
+        display: none !important;
+    }
+    
+    /* Оптимизируем для печати */
+    body {
+        font-size: 12pt;
+        line-height: 1.3;
+        background: white !important;
+    }
+    
+    .card {
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd;
+    }
+}
+
+/* 22. Предзагрузка критических ресурсов */
+/* Используйте в HTML: */
+/* <link rel="preload" href="/static/css/main.css" as="style"> */
+/* <link rel="preload" href="/static/js/main.js" as="script"> */
+/* <link rel="dns-prefetch" href="https://cdn.jsdelivr.net"> */
+
+/* 23. Оптимизация для темной темы */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+    }
+}
+
+/* 24. Contain для изоляции */
+.isolated-component {
+    contain: layout style paint;
+}
+
+/* 25. Оптимизация градиентов */
+.gradient-bg {
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    will-change: transform;
+}
+
+/* 26. Быстрые transitions */
+.fast-transition {
+    transition: all 0.15s ease-out;
+}
+
+.medium-transition {
+    transition: all 0.3s ease-out;
+}
+
+.slow-transition {
+    transition: all 0.5s ease-out;
+}
+
+/* 27. Оптимизация списков */
+ul, ol {
+    contain: layout style;
+}
+
+li {
+    content-visibility: auto;
+}
+
+/* 28. Скрытие невидимого контента */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 29. Оптимизация z-index слоев */
+.z-base { z-index: 0; }
+.z-dropdown { z-index: 1000; }
+.z-sticky { z-index: 1020; }
+.z-fixed { z-index: 1030; }
+.z-modal-backdrop { z-index: 1040; }
+.z-modal { z-index: 1050; }
+.z-popover { z-index: 1060; }
+.z-tooltip { z-index: 1070; }
+
+/* 30. Критические стили inline (вставьте в <head>) */
+/*
+<style>
+    body { margin: 0; font-family: system-ui; }
+    .loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+</style>
+*/

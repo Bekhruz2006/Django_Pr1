@@ -79,10 +79,23 @@
                                         <a href="{% url 'accounts:toggle_user_active' user_obj.id %}" class="btn btn-outline-danger" title="{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %}">
                                             <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
                                         </a>
+                                        
+                                        {# ИСПРАВЛЕНО: Проверяем существование профиля #}
                                         {% if user_obj.role == 'STUDENT' %}
-                                        <a href="{% url 'accounts:transfer_student' user_obj.student_profile.id %}" class="btn btn-outline-info" title="Перевести в другую группу">
-                                            <i class="bi bi-arrow-left-right"></i>
-                                        </a>
+                                            {% if user_obj.student_profile %}
+                                                <a href="{% url 'accounts:transfer_student' user_obj.student_profile.id %}" 
+                                                   class="btn btn-outline-info" 
+                                                   title="Перевести в другую группу">
+                                                    <i class="bi bi-arrow-left-right"></i>
+                                                </a>
+                                            {% else %}
+                                                <button type="button" 
+                                                        class="btn btn-outline-secondary" 
+                                                        title="Профиль студента не создан" 
+                                                        disabled>
+                                                    <i class="bi bi-exclamation-triangle"></i>
+                                                </button>
+                                            {% endif %}
                                         {% endif %}
                                     </div>
                                 </td>
@@ -99,4 +112,21 @@
         </div>
     </div>
 </div>
+
+{# Дополнительно: обработка ошибок профилей через JavaScript #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем все ссылки на профили студентов
+    const transferLinks = document.querySelectorAll('a[href*="transfer"]');
+    
+    transferLinks.forEach(link => {
+        if (link.href.includes('None') || link.href.endsWith('transfer//')) {
+            link.classList.add('disabled');
+            link.style.pointerEvents = 'none';
+            link.title = 'Профиль студента не найден';
+            link.innerHTML = '<i class="bi bi-exclamation-triangle"></i>';
+        }
+    });
+});
+</script>
 {% endblock %}
