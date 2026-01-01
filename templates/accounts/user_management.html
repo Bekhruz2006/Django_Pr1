@@ -80,9 +80,11 @@
                                             <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
                                         </a>
                                         {% if user_obj.role == 'STUDENT' %}
-                                        <a href="{% url 'accounts:transfer_student' user_obj.student_profile.id %}" class="btn btn-outline-info" title="Перевести в другую группу">
-                                            <i class="bi bi-arrow-left-right"></i>
-                                        </a>
+                                            {% if user_obj.student_profile and user_obj.student_profile.id %}
+                                                <a href="{% url 'accounts:transfer_student' user_obj.student_profile.id %}" class="btn btn-outline-info" title="Перевести в другую группу">
+                                                    <i class="bi bi-arrow-left-right"></i>
+                                                </a>
+                                            {% endif %}
                                         {% endif %}
                                     </div>
                                 </td>
