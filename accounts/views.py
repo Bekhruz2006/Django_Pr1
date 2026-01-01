@@ -9,6 +9,40 @@ from .forms import (UserCreateForm, StudentForm, TeacherForm, DeanForm,
                    UserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
                    GroupForm, GroupTransferForm)
 
+def generate_student_id():
+    
+    from datetime import datetime
+    
+    year = datetime.now().year
+    base_id = f"{year}S"  
+    
+    
+    last_student = Student.objects.filter(
+        student_id__startswith=base_id
+    ).order_by('-student_id').first()
+    
+    if last_student:
+        try:
+            
+            last_number = int(last_student.student_id[len(base_id):])
+            new_number = last_number + 1
+        except (ValueError, IndexError):
+            new_number = 1
+    else:
+        new_number = 1
+    
+    
+    return f"{base_id}{new_number:04d}"
+
+
+
+
+
+
+
+
+
+
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
 
@@ -137,9 +171,11 @@ def add_user(request):
                 role = user_form.cleaned_data['role']
                 
                 if role == 'STUDENT':
+                    student_id = generate_student_id()
+
                     Student.objects.create(
                         user=user,
-                        student_id='',
+                        student_id=student_id,
                         course=1,
                         specialty='',
                         admission_year=2025,
