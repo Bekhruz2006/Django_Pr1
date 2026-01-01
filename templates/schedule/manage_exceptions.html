@@ -1,57 +1,115 @@
 {% extends 'base.html' %}
 
-{% block title %}Список групп{% endblock %}
+{% block title %}Исключения в расписании{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
-    <div class="col-12">
-        {% for item in groups_with_students %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-collection"></i> Группа {{ item.group.name }} - {{ item.group.specialty }}
-                <span class="badge bg-primary ms-2">{{ item.group.course }} курс</span>
-                <span class="badge bg-info ms-2">{{ item.students|length }} студентов</span>
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Исключения для: {{ slot.subject.name }} - {{ slot.group.name }}
+                </span>
+                <a href="{% url 'schedule:constructor' %}?group={{ slot.group.id }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> К конструктору
+                </a>
             </div>
             <div class="card-body">
-                {% if item.students %}
+                <!-- Форма добавления исключения -->
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Тип исключения *</label>
+                            {{ form.exception_type }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Дата исключения *</label>
+                            {{ form.exception_date }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Причина *</label>
+                        {{ form.reason }}
+                    </div>
+                    
+                    <div id="rescheduleFields" style="display: none;">
+                        <h6 class="mt-3">Данные для переноса</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Новая дата</label>
+                                {{ form.new_date }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Новая аудитория</label>
+                                {{ form.new_classroom }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Новое время начала</label>
+                                {{ form.new_start_time }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Новое время окончания</label>
+                                {{ form.new_end_time }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Добавить исключение
+                    </button>
+                </form>
+                
+                <hr>
+                
+                <!-- Список исключений -->
+                <h5>Существующие исключения</h5>
+                
+                {% if exceptions %}
                 <div class="table-responsive">
-                    <table class="table table-hover sortable-table">
+                    <table class="table table-sm">
                         <thead>
                             <tr>
-                                <th onclick="sortTable(this, 0)" class="sortable">№</th>
-                                <th onclick="sortTable(this, 1)" class="sortable">ФИО студента</th>
-                                <th onclick="sortTable(this, 2)" class="sortable">День рождения</th>
-                                <th onclick="sortTable(this, 3)" class="sortable">Последний вход</th>
-                                <th onclick="sortTable(this, 4)" class="sortable">Средний балл</th>
-                                <th onclick="sortTable(this, 5)" class="sortable">Рейтинг</th>
+                                <th>Дата</th>
+                                <th>Тип</th>
+                                <th>Причина</th>
+                                <th>Перенос</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for student in item.students %}
-                            <tr onclick="window.location='{% url 'accounts:profile' %}?user_id={{ student.user.id }}'" style="cursor: pointer;">
-                                <td>{{ forloop.counter }}</td>
+                            {% for exception in exceptions %}
+                            <tr>
+                                <td>{{ exception.exception_date|date:"d.m.Y" }}</td>
                                 <td>
-                                    <a href="{% url 'accounts:profile' %}?user_id={{ student.user.id }}">
-                                        {{ student.user.get_full_name }}
+                                    <span class="badge {% if exception.exception_type == 'CANCEL' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ exception.get_exception_type_display }}
+                                    </span>
+                                </td>
+                                <td>{{ exception.reason|truncatewords:10 }}</td>
+                                <td>
+                                    {% if exception.exception_type == 'RESCHEDULE' %}
+                                        {{ exception.new_date|date:"d.m.Y" }} {{ exception.new_start_time|time:"H:i" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'schedule:delete_exception' exception.id %}" 
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Удалить?')">
+                                        <i class="bi bi-trash"></i>
                                     </a>
-                                </td>
-                                <td>{{ student.birth_date|date:"d.m.Y" }}</td>
-                                <td>
-                                    {% if student.user.last_login %}
-                                        {{ student.user.last_login|date:"d.m.Y H:i" }}
-                                    {% else %}
-                                        <span class="text-muted">Никогда</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <strong>{{ student.get_average_grade|default:"—" }}</strong>
-                                </td>
-                                <td>
-                                    {% if student.get_group_rank > 0 %}
-                                        <span class="badge bg-warning">{{ student.get_group_rank }}</span>
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -60,97 +118,31 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> В этой группе пока нет студентов
+                    <i class="bi bi-info-circle"></i> Исключений пока нет
                 </div>
                 {% endif %}
             </div>
         </div>
-        {% empty %}
-        <div class="card">
-            <div class="card-body text-center text-muted">
-                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                <p class="mt-2">Нет доступных групп</p>
-            </div>
-        </div>
-        {% endfor %}
     </div>
 </div>
-
-<style>
-    .sortable {
-        cursor: pointer;
-        user-select: none;
-        position: relative;
-    }
-
-    .sortable:hover {
-        background-color: #f0f0f0;
-    }
-
-    .sortable::after {
-        content: ' ⇅';
-        color: #ccc;
-        font-size: 0.8em;
-    }
-
-    tr:hover {
-        background-color: #f8f9fa;
-    }
-</style>
 
 <script>
-function sortTable(header, columnIndex) {
-    const table = header.closest('table');
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
+// Показать/скрыть поля переноса
+document.querySelector('[name="exception_type"]').addEventListener('change', function() {
+    const rescheduleFields = document.getElementById('rescheduleFields');
+    if (this.value === 'RESCHEDULE') {
+        rescheduleFields.style.display = 'block';
+    } else {
+        rescheduleFields.style.display = 'none';
+    }
+});
 
-    // Определяем направление сортировки
-    const isAscending = header.classList.contains('asc');
-
-    // Удаляем классы сортировки со всех заголовков
-    table.querySelectorAll('th').forEach(th => {
-        th.classList.remove('asc', 'desc');
-    });
-
-    // Добавляем класс к текущему заголовку
-    header.classList.add(isAscending ? 'desc' : 'asc');
-
-    // Сортируем строки
-    rows.sort((a, b) => {
-        const aValue = a.cells[columnIndex].textContent.trim();
-        const bValue = b.cells[columnIndex].textContent.trim();
-
-        // Попытка преобразовать в число
-        const aNum = parseFloat(aValue.replace(/[^0-9.-]/g, ''));
-        const bNum = parseFloat(bValue.replace(/[^0-9.-]/g, ''));
-
-        if (!isNaN(aNum) && !isNaN(bNum)) {
-            return isAscending ? bNum - aNum : aNum - bNum;
-        }
-
-        // Сортировка как строки
-        return isAscending ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
-    });
-
-    // Обновляем таблицу
-    rows.forEach(row => tbody.appendChild(row));
-}
+// Инициализация при загрузке
+window.addEventListener('DOMContentLoaded', function() {
+    const typeField = document.querySelector('[name="exception_type"]');
+    if (typeField && typeField.value === 'RESCHEDULE') {
+        document.getElementById('rescheduleFields').style.display = 'block';
+    }
+});
 </script>
-{% endblock %}
-
-{% block title %}Исключения в расписании{% endblock %}
-
-{% block content %}
-<div class="row mt-4">
-    <div class="col-lg-8 mx-auto">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-exclamation-triangle"></i> Исключения для: {{ slot.subject.name }} - {{ slot.group.name }}
-            </div>
-            <div class="card-body">
-                
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}

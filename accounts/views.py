@@ -171,34 +171,34 @@ def add_user(request):
                 role = user_form.cleaned_data['role']
                 
                 if role == 'STUDENT':
-                    student_id = generate_student_id()
-
+                    
+                    from datetime import date
                     Student.objects.create(
                         user=user,
-                        student_id=student_id,
+                        student_id=f'TEMP_{user.id}', 
                         course=1,
-                        specialty='',
-                        admission_year=2025,
+                        specialty='Не указано',
+                        admission_year=date.today().year,
                         financing_type='BUDGET',
                         education_type='FULL_TIME',
                         education_language='RU',
-                        birth_date='2000-01-01',
+                        birth_date=date(2000, 1, 1),
                         gender='M',
-                        nationality='',
+                        nationality='Не указано',
                         passport_series='',
                         passport_number='',
-                        passport_issued_by='',
-                        passport_issue_date='2000-01-01',
-                        registration_address='',
-                        residence_address=''
+                        passport_issued_by='Не указано',
+                        passport_issue_date=date(2000, 1, 1),
+                        registration_address='Не указано',
+                        residence_address='Не указано'
                     )
                 elif role == 'TEACHER':
                     Teacher.objects.create(user=user)
                 elif role == 'DEAN':
                     Dean.objects.create(user=user)
                 
-                messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123')
-                return redirect('accounts:user_management')
+                messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123. Заполните профиль через редактирование.')
+                return redirect('accounts:edit_user', user_id=user.id)  # Сразу перенаправляем на редактирование
     else:
         user_form = UserCreateForm()
     
@@ -315,15 +315,19 @@ def view_user_profile(request, user_id):
     profile = None
     template = 'accounts/profile_student.html'
     
-    if user_obj.role == 'STUDENT':
-        profile = get_object_or_404(Student, user=user_obj)
-        template = 'accounts/profile_student.html'
-    elif user_obj.role == 'TEACHER':
-        profile = get_object_or_404(Teacher, user=user_obj)
-        template = 'accounts/profile_teacher.html'
-    elif user_obj.role == 'DEAN':
-        profile = get_object_or_404(Dean, user=user_obj)
-        template = 'accounts/profile_dean.html'
+    try:
+        if user_obj.role == 'STUDENT':
+            profile = user_obj.student_profile
+            template = 'accounts/profile_student.html'
+        elif user_obj.role == 'TEACHER':
+            profile = user_obj.teacher_profile
+            template = 'accounts/profile_teacher.html'
+        elif user_obj.role == 'DEAN':
+            profile = user_obj.dean_profile
+            template = 'accounts/profile_dean.html'
+    except (Student.DoesNotExist, Teacher.DoesNotExist, Dean.DoesNotExist):
+        messages.error(request, 'Профиль пользователя не найден. Пожалуйста, завершите настройку профиля.')
+        return redirect('accounts:edit_user', user_id=user_obj.id)
     
     return render(request, template, {
         'user': user_obj,
