@@ -48,10 +48,10 @@
             </div>
             
             <div class="card-footer">
-                <form method="post" id="messageForm">
+                <form id="messageForm">
                     {% csrf_token %}
                     <div class="input-group">
-                        {{ form.content }}
+                        <textarea name="content" id="messageTextarea" class="form-control" rows="2" placeholder="Введите сообщение..." required></textarea>
                         <button type="submit" class="btn btn-primary" id="sendButton">
                             <i class="bi bi-send"></i> Отправить
                         </button>
@@ -73,7 +73,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('messagesContainer');
     const messageForm = document.getElementById('messageForm');
-    const textarea = document.querySelector('textarea[name="content"]');
+    const textarea = document.getElementById('messageTextarea');
     const sendButton = document.getElementById('sendButton');
     
     function scrollToBottom() {
@@ -81,31 +81,81 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     scrollToBottom();
     
+    // Обработка Enter для отправки
     textarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             if (textarea.value.trim()) {
-                messageForm.submit();
+                messageForm.dispatchEvent(new Event('submit'));
             }
         }
     });
     
+    // ✅ ИСПРАВЛЕНО: AJAX-отправка формы БЕЗ перезагрузки страницы
     messageForm.addEventListener('submit', function(e) {
-        if (!textarea.value.trim()) {
-            e.preventDefault();
-            return;
-        }
+        e.preventDefault(); // ❗ Отменяем стандартную отправку
         
+        const content = textarea.value.trim();
+        if (!content) return;
+        
+        // Блокируем кнопку
         sendButton.disabled = true;
         sendButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        
+        // AJAX-запрос
+        fetch('{% url "chat:room" room.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: `content=${encodeURIComponent(content)}`
+        })
+        .then(response => {
+            if (response.ok) {
+                // ✅ Очищаем поле ввода
+                textarea.value = '';
+                
+                // ✅ Сразу добавляем своё сообщение
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'mb-3 text-end';
+                msgDiv.innerHTML = `
+                    <div class="d-inline-block bg-primary text-white p-3 rounded" style="max-width: 70%;">
+                        <div>${escapeHtml(content).replace(/\n/g, '<br>')}</div>
+                        <small class="d-block mt-2 text-white-50">
+                            Только что
+                        </small>
+                    </div>
+                `;
+                container.appendChild(msgDiv);
+                scrollToBottom();
+                
+                // ✅ Обновляем lastMessageId (чтобы не дублировать при fetchNewMessages)
+                setTimeout(() => fetchNewMessages(), 500);
+            } else {
+                alert('Ошибка отправки сообщения');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Ошибка отправки сообщения');
+        })
+        .finally(() => {
+            // Разблокируем кнопку
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="bi bi-send"></i> Отправить';
+        });
     });
     
+    // ✅ ИСПРАВЛЕНО: Правильная работа с lastMessageId
     let lastMessageId = {% if messages %}{{ messages.last.id }}{% else %}0{% endif %};
     const processedMessages = new Set();
     
+    // Инициализируем Set всеми существующими сообщениями
     document.querySelectorAll('[data-message-id]').forEach(el => {
         const msgId = parseInt(el.getAttribute('data-message-id'));
         processedMessages.add(msgId);
+        lastMessageId = Math.max(lastMessageId, msgId);
     });
     
     function fetchNewMessages() {
@@ -116,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let hasNewMessages = false;
                     
                     data.messages.forEach(msg => {
-                        // ИСПРАВЛЕНО: Проверяем, не добавлено ли уже это сообщение
+                        // ✅ ИСПРАВЛЕНО: Проверяем дубликаты
                         if (!processedMessages.has(msg.id)) {
                             processedMessages.add(msg.id);
                             
@@ -147,7 +197,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     setInterval(fetchNewMessages, 3000);
-    
     
     function escapeHtml(text) {
         const map = {
@@ -180,9 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
     background: #555;
 }
 
-textarea[name="content"] {
+textarea#messageTextarea {
     resize: none;
-    min-height: 60px;
 }
 </style>
 {% endblock %}
