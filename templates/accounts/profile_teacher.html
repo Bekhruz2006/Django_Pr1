@@ -19,12 +19,18 @@
                 <h5>{{ user.get_full_name }}</h5>
                 <p class="text-muted">{{ profile.get_title_display }}</p>
                 
-                <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">
-                    <i class="bi bi-pencil"></i> Редактировать профиль
-                </a>
-                <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-key"></i> Сменить пароль
-                </a>
+                {% if not viewing_as_dean %}
+                    <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-pencil"></i> Редактировать профиль
+                    </a>
+                    <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-key"></i> Сменить пароль
+                    </a>
+                {% else %}
+                    <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary w-100">
+                        <i class="bi bi-arrow-left"></i> Назад к списку
+                    </a>
+                {% endif %}
             </div>
         </div>
         
@@ -43,6 +49,10 @@
                 
                 {% if profile.consultation_hours %}
                 <p><strong>Часы консультаций:</strong><br>{{ profile.consultation_hours }}</p>
+                {% endif %}
+                
+                {% if not profile.contact_email and not profile.telegram and not profile.consultation_hours %}
+                <p class="text-muted">Контактная информация не заполнена</p>
                 {% endif %}
             </div>
         </div>
@@ -71,24 +81,51 @@
         </div>
         
         <div class="row mt-3">
+            <!-- Сегодняшние занятия -->
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="bi bi-collection"></i> Сводка по группам
-                    </div>
-                    <div class="card-body text-center text-muted">
-                        <p>Заглушка для будущей интеграции</p>
-                    </div>
-                </div>
+                {% include 'schedule/today_widget.html' %}
             </div>
             
+            <!-- Статистика по группам -->
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <i class="bi bi-calendar-day"></i> Сегодня
+                        <i class="bi bi-collection"></i> Мои группы
                     </div>
-                    <div class="card-body text-center text-muted">
-                        <p>Заглушка для будущей интеграции</p>
+                    <div class="card-body">
+                        {% if teacher_groups %}
+                            <div class="list-group list-group-flush">
+                                {% for group_data in teacher_groups %}
+                                    <div class="list-group-item px-0">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">{{ group_data.group.name }}</h6>
+                                                <small class="text-muted">
+                                                    {{ group_data.students_count }} студентов | 
+                                                    Курс {{ group_data.group.course }}
+                                                </small>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="badge bg-primary mb-1">
+                                                    GPA: {{ group_data.avg_gpa|floatformat:1 }}
+                                                </div>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {{ group_data.avg_attendance|floatformat:0 }}% посещ.
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-3">
+                                <a href="{% url 'schedule:group_list' %}" class="btn btn-sm btn-primary w-100">
+                                    <i class="bi bi-list-ul"></i> Подробнее о группах
+                                </a>
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center">Группы не назначены</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>

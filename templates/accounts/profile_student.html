@@ -18,22 +18,27 @@
                 <h4>{{ user.get_full_name }}</h4>
                 <p class="text-muted">Студент</p>
                 
-                <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">
-                    <i class="bi bi-pencil"></i> Редактировать профиль
-                </a>
-                <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-key"></i> Сменить пароль
-                </a>
+                {# Показываем кнопки редактирования только если это свой профиль #}
+                {% if not viewing_as_dean %}
+                    <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-pencil"></i> Редактировать профиль
+                    </a>
+                    <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-key"></i> Сменить пароль
+                    </a>
+                {% else %}
+                    <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary w-100">
+                        <i class="bi bi-arrow-left"></i> Назад к списку
+                    </a>
+                {% endif %}
             </div>
         </div>
         
-        <!-- 🆕 ОБНОВЛЕННЫЙ БЛОК СТАТИСТИКИ -->
         <div class="card mt-3">
             <div class="card-header">
                 <i class="bi bi-graph-up"></i> Академическая статистика
             </div>
             <div class="card-body">
-                <!-- Средний балл -->
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-muted">Средний балл (GPA)</small>
@@ -52,7 +57,6 @@
                     </div>
                 </div>
                 
-                <!-- Рейтинг -->
                 <div class="mb-4">
                     <small class="text-muted">Рейтинг в группе</small>
                     <h3 class="mb-0 text-warning">
@@ -64,69 +68,52 @@
                     </h3>
                 </div>
                 
-                <!-- 🆕 ПОСЕЩАЕМОСТЬ -->
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-muted">Посещаемость</small>
-                        <span class="badge {% if profile.get_attendance_percentage >= 90 %}bg-success{% elif profile.get_attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %}">
-                            {{ profile.get_attendance_percentage }}%
+                        <span class="badge {% if profile.statistics.attendance_percentage >= 90 %}bg-success{% elif profile.statistics.attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ profile.statistics.attendance_percentage|floatformat:0 }}%
                         </span>
                     </div>
                     <div class="progress" style="height: 8px;">
                         <div class="progress-bar bg-success" role="progressbar" 
-                             style="width: {{ profile.get_attendance_percentage }}%" 
-                             aria-valuenow="{{ profile.get_attendance_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                             style="width: {{ profile.statistics.attendance_percentage }}%" 
+                             aria-valuenow="{{ profile.statistics.attendance_percentage }}" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
                 </div>
                 
-                <!-- 🆕 ПРОГУЛЫ -->
                 <div class="mb-3">
                     <small class="text-muted">Всего прогулов (НБ)</small>
-                    <h3 class="mb-2 {% if profile.get_total_absent > 10 %}text-danger{% elif profile.get_total_absent > 5 %}text-warning{% else %}text-success{% endif %}">
-                        {{ profile.get_total_absent }}
+                    <h3 class="mb-2 {% if profile.statistics.total_absent > 10 %}text-danger{% elif profile.statistics.total_absent > 5 %}text-warning{% else %}text-success{% endif %}">
+                        {{ profile.statistics.total_absent }}
                     </h3>
                     
-                    {% with absent=profile.get_absent_breakdown %}
                     <div class="small">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="text-muted">
                                 <i class="bi bi-heart-pulse text-info"></i> Болезнь:
                             </span>
-                            <strong class="text-info">{{ absent.illness }}</strong>
+                            <strong class="text-info">{{ profile.statistics.absent_illness }}</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-1">
                             <span class="text-muted">
                                 <i class="bi bi-check-circle text-success"></i> Уважительная:
                             </span>
-                            <strong class="text-success">{{ absent.valid }}</strong>
+                            <strong class="text-success">{{ profile.statistics.absent_valid }}</strong>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">
                                 <i class="bi bi-x-circle text-danger"></i> Неуважительная:
                             </span>
-                            <strong class="text-danger">{{ absent.invalid }}</strong>
+                            <strong class="text-danger">{{ profile.statistics.absent_invalid }}</strong>
                         </div>
                     </div>
-                    {% endwith %}
-                </div>
-                
-                <!-- Прогресс по кредитам (заглушка) -->
-                <div>
-                    <small class="text-muted">Прогресс по кредитам</small>
-                    <div class="progress mt-2" style="height: 20px;">
-                        <div class="progress-bar bg-info" role="progressbar" style="width: 0%" 
-                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                            0%
-                        </div>
-                    </div>
-                    <small class="text-muted">Функция в разработке</small>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Остальной контент без изменений -->
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header">

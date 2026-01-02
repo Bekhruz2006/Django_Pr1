@@ -9,7 +9,6 @@
     </div>
 </div>
 
-<!-- 🆕 ОБНОВЛЕННЫЕ КАРТОЧКИ СТАТИСТИКИ -->
 <div class="row mt-3">
     <!-- Средний балл -->
     <div class="col-md-3">
@@ -43,23 +42,23 @@
         </div>
     </div>
     
-    <!-- 🆕 Посещаемость -->
+    <!-- Посещаемость -->
     <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body text-center">
                 <i class="bi bi-calendar2-check" style="font-size: 3rem; color: var(--primary-blue);"></i>
                 <h5 class="mt-2">Посещаемость</h5>
-                <h2 class="stat-number">{{ profile.get_attendance_percentage|default:"0" }}%</h2>
+                <h2 class="stat-number">{{ profile.get_attendance_percentage|floatformat:0|default:"0" }}%</h2>
                 <div class="progress mt-2" style="height: 8px;">
                     <div class="progress-bar {% if profile.get_attendance_percentage >= 90 %}bg-success{% elif profile.get_attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %}" 
-                         role="progressbar" style="width: {{ profile.get_attendance_percentage }}%">
+                         role="progressbar" style="width: {{ profile.get_attendance_percentage|default:0 }}%">
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- 🆕 Прогулы -->
+    <!-- Прогулы -->
     <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body text-center">
@@ -78,14 +77,12 @@
     </div>
 </div>
 
-<!-- Остальной код без изменений -->
+<!-- Виджет расписания и быстрый доступ -->
 <div class="row mt-3">
-    <!-- Виджет "Сегодня" -->
     <div class="col-lg-6">
         {% include 'schedule/today_widget.html' %}
     </div>
 
-    <!-- Быстрый доступ -->
     <div class="col-lg-6">
         <div class="card">
             <div class="card-header">

@@ -275,3 +275,51 @@ def create_user_profile(sender, instance, created, **kwargs):
             Teacher.objects.get_or_create(user=instance)
         elif instance.role == 'DEAN':
             Dean.objects.get_or_create(user=instance)
+
+
+
+
+
+
+
+
+
+
+
+# Добавить эти методы в класс Student в accounts/models.py
+
+def get_average_grade(self):
+    """Получить средний балл"""
+    try:
+        from journal.models import StudentStatistics
+        stats, _ = StudentStatistics.objects.get_or_create(student=self)
+        return stats.overall_gpa
+    except Exception:
+        return 0.0
+
+def get_total_absent(self):
+    """Получить общее количество прогулов"""
+    try:
+        from journal.models import StudentStatistics
+        stats, _ = StudentStatistics.objects.get_or_create(student=self)
+        return stats.total_absent
+    except Exception:
+        return 0  
+
+def get_group_rank(self):
+    """Получить рейтинг в группе"""
+    try:
+        from journal.models import StudentStatistics
+        stats, _ = StudentStatistics.objects.get_or_create(student=self)
+        return stats.group_rank
+    except Exception:
+        return 0
+
+def get_attendance_percentage(self):
+    """Получить процент посещаемости"""
+    try:
+        from journal.models import StudentStatistics
+        stats, _ = StudentStatistics.objects.get_or_create(student=self)
+        return stats.attendance_percentage
+    except Exception:
+        return 0.0

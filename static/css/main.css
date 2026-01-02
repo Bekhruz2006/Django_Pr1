@@ -195,13 +195,14 @@ body.dark-mode .table-light {
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
-.btn {
+/* ИСПРАВЛЕНО: Убрана анимация для dropdown toggles */
+.btn:not(.dropdown-toggle):not([data-bs-toggle]) {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
 }
 
-.btn::after {
+.btn:not(.dropdown-toggle):not([data-bs-toggle])::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -214,23 +215,39 @@ body.dark-mode .table-light {
     transition: width 0.5s, height 0.5s;
 }
 
-.btn:hover::after {
+.btn:not(.dropdown-toggle):not([data-bs-toggle]):hover::after {
     width: 300px;
     height: 300px;
 }
 
-.btn:hover {
+.btn:not(.dropdown-toggle):not([data-bs-toggle]):hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
-.btn:active {
+.btn:not(.dropdown-toggle):not([data-bs-toggle]):active {
     transform: translateY(-1px);
+}
+
+/* Dropdown специальные стили */
+.dropdown-toggle {
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.dropdown-toggle:hover {
+    color: var(--accent-amber) !important;
+}
+
+.dropdown-menu {
+    z-index: 1050;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .nav-link {
     transition: all 0.3s ease;
     position: relative;
+    cursor: pointer;
 }
 
 .nav-link::after {
@@ -246,7 +263,8 @@ body.dark-mode .table-light {
     border-radius: 2px;
 }
 
-.nav-link:hover::after {
+/* НЕ применяем подчеркивание к dropdown toggles */
+.nav-link:not(.dropdown-toggle):hover::after {
     width: 80%;
 }
 
@@ -377,10 +395,6 @@ body.dark-mode .table-light {
     animation: scaleUp 0.4s ease-out;
 }
 
-.dropdown-menu {
-    animation: fadeIn 0.3s ease-out;
-}
-
 .badge {
     transition: all 0.3s ease;
 }
@@ -480,6 +494,6 @@ select:focus {
     }
 }
 
-.btn-primary:hover {
+.btn-primary:not(.dropdown-toggle):hover {
     animation: glow 2s infinite;
 }

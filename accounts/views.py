@@ -72,21 +72,86 @@ def logout_view(request):
     messages.success(request, 'Вы успешно вышли из системы')
     return redirect('accounts:login')
 
+
+
 @login_required
 def profile_view(request):
     user = request.user
     profile = None
+    context = {'profile': profile}
     
     if user.role == 'STUDENT':
         profile = get_object_or_404(Student, user=user)
+        # Добавляем статистику для студента
+        from journal.models import StudentStatistics
+        stats, _ = StudentStatistics.objects.get_or_create(student=profile)
+        stats.recalculate()
+        profile.statistics = stats
+        context['profile'] = profile
+        
     elif user.role == 'TEACHER':
         profile = get_object_or_404(Teacher, user=user)
+        
+        # Получаем группы преподавателя с статистикой
+        from schedule.models import ScheduleSlot
+        from journal.models import StudentStatistics
+        from django.db.models import Avg
+        
+        # Находим все группы, у которых этот преподаватель ведет занятия
+        group_ids = ScheduleSlot.objects.filter(
+            teacher=profile,
+            is_active=True
+        ).values_list('group_id', flat=True).distinct()
+        
+        groups = Group.objects.filter(id__in=group_ids)
+        
+        teacher_groups = []
+        for group in groups:
+            students = Student.objects.filter(group=group)
+            students_count = students.count()
+            
+            if students_count > 0:
+                # Рассчитываем средний GPA и посещаемость
+                stats_list = []
+                for student in students:
+                    stats, _ = StudentStatistics.objects.get_or_create(student=student)
+                    stats_list.append(stats)
+                
+                avg_gpa = sum(s.overall_gpa for s in stats_list) / len(stats_list) if stats_list else 0
+                avg_attendance = sum(s.attendance_percentage for s in stats_list) / len(stats_list) if stats_list else 0
+                
+                teacher_groups.append({
+                    'group': group,
+                    'students_count': students_count,
+                    'avg_gpa': avg_gpa,
+                    'avg_attendance': avg_attendance,
+                })
+        
+        context['profile'] = profile
+        context['teacher_groups'] = teacher_groups
+        
+        # Добавляем расписание на сегодня
+        from datetime import datetime
+        today = datetime.now()
+        day_of_week = today.weekday()
+        current_time = today.time()
+        
+        classes = ScheduleSlot.objects.filter(
+            teacher=profile,
+            day_of_week=day_of_week,
+            is_active=True
+        ).select_related('subject', 'group').order_by('start_time')
+        
+        context['classes'] = classes
+        context['current_time'] = current_time
+        context['today'] = today
+        
     elif user.role == 'DEAN':
         profile = get_object_or_404(Dean, user=user)
+        context['profile'] = profile
     
-    return render(request, f'accounts/profile_{user.role.lower()}.html', {
-        'profile': profile
-    })
+    template_name = f'accounts/profile_{user.role.lower()}.html'
+    return render(request, template_name, context)
 
 @login_required
 def edit_profile(request):
@@ -365,41 +430,97 @@ def transfer_student(request, student_id):
         'student': student
     })
 
+# В accounts/views.py заменить функцию view_user_profile на эту:
+
 @login_required
 def view_user_profile(request, user_id):
-    # Проверка прав доступа
-    if request.user.role != 'DEAN' and request.user.id != user_id:
+    """Просмотр профиля пользователя деканом"""
+    if request.user.role != 'DEAN':
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
     
     user_obj = get_object_or_404(User, id=user_id)
     profile = None
     template = 'accounts/profile_student.html'
-    
-    # ✅ Безопасное получение профиля
-    try:
-        if user_obj.role == 'STUDENT':
-            profile = user_obj.student_profile
-            template = 'accounts/profile_student.html'
-        elif user_obj.role == 'TEACHER':
-            profile = user_obj.teacher_profile
-            template = 'accounts/profile_teacher.html'
-        elif user_obj.role == 'DEAN':
-            profile = user_obj.dean_profile
-            template = 'accounts/profile_dean.html'
-        else:
-            messages.error(request, 'У пользователя не указана роль')
-            return redirect('accounts:user_management')
-            
-    except ObjectDoesNotExist:
-        messages.error(request, f'Профиль {user_obj.get_role_display()} не создан')
-        return redirect('accounts:user_management')
-    
-    return render(request, template, {
+    context = {
         'user': user_obj,
-        'profile': profile,
-        'viewing_as_dean': request.user.role == 'DEAN'
-    })
+        'viewing_as_dean': True
+    }
+    
+    if user_obj.role == 'STUDENT':
+        profile = get_object_or_404(Student, user=user_obj)
+        # Получаем или создаем статистику
+        from journal.models import StudentStatistics
+        stats, _ = StudentStatistics.objects.get_or_create(student=profile)
+        stats.recalculate()
+        profile.statistics = stats
+        context['profile'] = profile
+        template = 'accounts/profile_student.html'
+        
+    elif user_obj.role == 'TEACHER':
+        profile = get_object_or_404(Teacher, user=user_obj)
+        
+        # Получаем группы преподавателя с статистикой
+        from schedule.models import ScheduleSlot
+        from journal.models import StudentStatistics
+        
+        group_ids = ScheduleSlot.objects.filter(
+            teacher=profile,
+            is_active=True
+        ).values_list('group_id', flat=True).distinct()
+        
+        groups = Group.objects.filter(id__in=group_ids)
+        
+        teacher_groups = []
+        for group in groups:
+            students = Student.objects.filter(group=group)
+            students_count = students.count()
+            
+            if students_count > 0:
+                stats_list = []
+                for student in students:
+                    stats, _ = StudentStatistics.objects.get_or_create(student=student)
+                    stats_list.append(stats)
+                
+                avg_gpa = sum(s.overall_gpa for s in stats_list) / len(stats_list) if stats_list else 0
+                avg_attendance = sum(s.attendance_percentage for s in stats_list) / len(stats_list) if stats_list else 0
+                
+                teacher_groups.append({
+                    'group': group,
+                    'students_count': students_count,
+                    'avg_gpa': avg_gpa,
+                    'avg_attendance': avg_attendance,
+                })
+        
+        context['profile'] = profile
+        context['teacher_groups'] = teacher_groups
+        
+        # Добавляем расписание на сегодня
+        from datetime import datetime
+        today = datetime.now()
+        day_of_week = today.weekday()
+        current_time = today.time()
+        
+        classes = ScheduleSlot.objects.filter(
+            teacher=profile,
+            day_of_week=day_of_week,
+            is_active=True
+        ).select_related('subject', 'group').order_by('start_time')
+        
+        context['classes'] = classes
+        context['current_time'] = current_time
+        context['today'] = today
+        
+        template = 'accounts/profile_teacher.html'
+        
+    elif user_obj.role == 'DEAN':
+        profile = get_object_or_404(Dean, user=user_obj)
+        context['profile'] = profile
+        template = 'accounts/profile_dean.html'
+    
+    return render(request, template, context)
+
+
 @user_passes_test(is_dean)
 def group_management(request):
     

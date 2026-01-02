@@ -255,7 +255,7 @@ window.addEventListener('load', function() {
     document.body.classList.add('loaded');
     
     setTimeout(() => {
-        document.querySelectorAll('.btn').forEach((btn, index) => {
+        document.querySelectorAll('.btn:not(.dropdown-toggle):not([data-bs-toggle])').forEach((btn, index) => {
             setTimeout(() => {
                 btn.style.animation = 'fadeIn 0.5s ease-out';
             }, index * 50);
@@ -264,6 +264,13 @@ window.addEventListener('load', function() {
 });
 
 function createRipple(event) {
+    // НЕ применяем ripple к dropdown и nav-link
+    if (event.currentTarget.classList.contains('dropdown-toggle') || 
+        event.currentTarget.classList.contains('nav-link') ||
+        event.currentTarget.hasAttribute('data-bs-toggle')) {
+        return;
+    }
+    
     const button = event.currentTarget;
     const ripple = document.createElement('span');
     const diameter = Math.max(button.clientWidth, button.clientHeight);
@@ -282,7 +289,8 @@ function createRipple(event) {
     button.appendChild(ripple);
 }
 
-document.querySelectorAll('.btn').forEach(button => {
+// ИСПРАВЛЕНО: Применяем ripple только к обычным кнопкам, не к dropdown
+document.querySelectorAll('.btn:not(.dropdown-toggle):not([data-bs-toggle="dropdown"])').forEach(button => {
     button.addEventListener('click', createRipple);
 });
 
