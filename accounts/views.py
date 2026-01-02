@@ -156,28 +156,41 @@ def user_management(request):
             models.Q(last_name__icontains=search)
         )
     
+    # ✅ ИСПРАВЛЕНО: Безопасная загрузка профилей
     users = users.select_related('student_profile', 'teacher_profile', 'dean_profile')
     
     users_with_profiles = []
     for user_obj in users:
         user_data = {
             'user': user_obj,
-            'has_profile': True
+            'has_profile': True,
+            'profile_id': None
         }
         
-        if user_obj.role == 'STUDENT':
-            try:
-                profile = user_obj.student_profile
-                user_data['profile_id'] = profile.id if profile else None
-            except ObjectDoesNotExist:
-                user_data['has_profile'] = False
-                user_data['profile_id'] = None
+        # ✅ Безопасная проверка существования профилей
+        try:
+            if user_obj.role == 'STUDENT':
+                if hasattr(user_obj, 'student_profile'):
+                    user_data['profile_id'] = user_obj.student_profile.id
+                else:
+                    user_data['has_profile'] = False
+                    
+            elif user_obj.role == 'TEACHER':
+                if not hasattr(user_obj, 'teacher_profile'):
+                    user_data['has_profile'] = False
+                    
+            elif user_obj.role == 'DEAN':
+                if not hasattr(user_obj, 'dean_profile'):
+                    user_data['has_profile'] = False
+                    
+        except ObjectDoesNotExist:
+            user_data['has_profile'] = False
         
         users_with_profiles.append(user_data)
     
     return render(request, 'accounts/user_management.html', {
         'users': users,
-        'users_with_profiles': users_with_profiles,  # Новая переменная
+        'users_with_profiles': users_with_profiles,
         'role_filter': role_filter,
         'search': search
     })
@@ -288,6 +301,17 @@ def reset_password(request, user_id):
 @user_passes_test(is_dean)
 def toggle_user_active(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
+    
+    # ✅ ЗАЩИТА: Нельзя заблокировать самого себя
+    if user_obj.id == request.user.id:
+        messages.error(request, '❌ Вы не можете заблокировать сам себя!')
+        return redirect('accounts:user_management')
+    
+    # ✅ ЗАЩИТА: Нельзя заблокировать других суперпользователей (опционально)
+    if user_obj.is_superuser and not request.user.is_superuser:
+        messages.error(request, '❌ Вы не можете заблокировать суперпользователя!')
+        return redirect('accounts:user_management')
+    
     user_obj.is_active = not user_obj.is_active
     user_obj.save()
     
@@ -329,8 +353,8 @@ def transfer_student(request, student_id):
 
 @login_required
 def view_user_profile(request, user_id):
-    
-    if request.user.role != 'DEAN':
+    # Проверка прав доступа
+    if request.user.role != 'DEAN' and request.user.id != user_id:
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
     
@@ -338,22 +362,30 @@ def view_user_profile(request, user_id):
     profile = None
     template = 'accounts/profile_student.html'
     
-    if user_obj.role == 'STUDENT':
-        profile = get_object_or_404(Student, user=user_obj)
-        template = 'accounts/profile_student.html'
-    elif user_obj.role == 'TEACHER':
-        profile = get_object_or_404(Teacher, user=user_obj)
-        template = 'accounts/profile_teacher.html'
-    elif user_obj.role == 'DEAN':
-        profile = get_object_or_404(Dean, user=user_obj)
-        template = 'accounts/profile_dean.html'
+    # ✅ Безопасное получение профиля
+    try:
+        if user_obj.role == 'STUDENT':
+            profile = user_obj.student_profile
+            template = 'accounts/profile_student.html'
+        elif user_obj.role == 'TEACHER':
+            profile = user_obj.teacher_profile
+            template = 'accounts/profile_teacher.html'
+        elif user_obj.role == 'DEAN':
+            profile = user_obj.dean_profile
+            template = 'accounts/profile_dean.html'
+        else:
+            messages.error(request, 'У пользователя не указана роль')
+            return redirect('accounts:user_management')
+            
+    except ObjectDoesNotExist:
+        messages.error(request, f'Профиль {user_obj.get_role_display()} не создан')
+        return redirect('accounts:user_management')
     
     return render(request, template, {
         'user': user_obj,
         'profile': profile,
-        'viewing_as_dean': True
+        'viewing_as_dean': request.user.role == 'DEAN'
     })
-
 @user_passes_test(is_dean)
 def group_management(request):
     

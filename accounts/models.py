@@ -12,7 +12,13 @@ class User(AbstractUser):
         ('DEAN', 'Декан'),
     ]
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    
+    role = models.CharField(
+        max_length=10, 
+        choices=ROLE_CHOICES,
+        default='STUDENT',  # ✅ Добавить default
+        blank=False
+    )
     phone = models.CharField(max_length=20, blank=True)
     photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
 

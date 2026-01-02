@@ -45,17 +45,28 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user_obj in users %}
+                            {% for user_data in users_with_profiles %}
+                            {% with user_obj=user_data.user %}
                             <tr>
-                                <td>{{ user_obj.username }}</td>
+                                <td>
+                                    {{ user_obj.username }}
+                                    {% if user_obj.is_superuser %}
+                                        <span class="badge bg-danger ms-1" title="Суперпользователь">SUPER</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ user_obj.get_full_name }}</td>
                                 <td>
                                     <span class="badge
                                         {% if user_obj.role == 'STUDENT' %}bg-primary
                                         {% elif user_obj.role == 'TEACHER' %}bg-info
                                         {% else %}bg-warning{% endif %}">
-                                        {{ user_obj.get_role_display }}
+                                        {{ user_obj.get_role_display|default:"Не указана" }}
                                     </span>
+                                    
+                                    {# ✅ Предупреждение об отсутствии профиля #}
+                                    {% if not user_data.has_profile %}
+                                        <span class="badge bg-danger" title="Профиль не создан">!</span>
+                                    {% endif %}
                                 </td>
                                 <td>{{ user_obj.phone|default:"—" }}</td>
                                 <td>
@@ -67,23 +78,45 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'accounts:view_user_profile' user_obj.id %}" class="btn btn-outline-info" title="Просмотр профиля">
+                                        <a href="{% url 'accounts:view_user_profile' user_obj.id %}" 
+                                           class="btn btn-outline-info" 
+                                           title="Просмотр профиля">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a href="{% url 'accounts:edit_user' user_obj.id %}" class="btn btn-outline-primary" title="Редактировать">
+                                        
+                                        <a href="{% url 'accounts:edit_user' user_obj.id %}" 
+                                           class="btn btn-outline-primary" 
+                                           title="Редактировать">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="{% url 'accounts:reset_password' user_obj.id %}" class="btn btn-outline-warning" title="Сбросить пароль">
+                                        
+                                        <a href="{% url 'accounts:reset_password' user_obj.id %}" 
+                                           class="btn btn-outline-warning" 
+                                           title="Сбросить пароль">
                                             <i class="bi bi-key"></i>
                                         </a>
-                                        <a href="{% url 'accounts:toggle_user_active' user_obj.id %}" class="btn btn-outline-danger" title="{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %}">
-                                            <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
-                                        </a>
                                         
-                                        {# ИСПРАВЛЕНО: Проверяем существование профиля #}
+                                        {# ✅ ЗАЩИТА: Нельзя заблокировать себя #}
+                                        {% if user_obj.id == user.id %}
+                                            <button type="button" 
+                                                    class="btn btn-outline-secondary" 
+                                                    title="Нельзя заблокировать себя" 
+                                                    disabled>
+                                                <i class="bi bi-shield-lock"></i>
+                                            </button>
+                                        {% else %}
+                                            <a href="{% url 'accounts:toggle_user_active' user_obj.id %}" 
+                                               class="btn btn-outline-danger" 
+                                               onclick="return confirm('{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %} пользователя {{ user_obj.username }}?')"
+                                               title="{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %}">
+                                                <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
+                                            </a>
+                                        {% endif %}
+                                        
+                                        {# ✅ ИСПРАВЛЕНО: Безопасная проверка профиля студента #}
                                         {% if user_obj.role == 'STUDENT' %}
-                                            {% if user_obj.student_profile %}
-                                                <a href="{% url 'accounts:transfer_student' user_obj.student_profile.id %}" 
+                                            {% if user_data.has_profile and user_data.profile_id %}
+                                                <a href="{% url 'accounts:transfer_student' user_data.profile_id %}" 
                                                    class="btn btn-outline-info" 
                                                    title="Перевести в другую группу">
                                                     <i class="bi bi-arrow-left-right"></i>
@@ -100,10 +133,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">Пользователи не найдены</td>
-                            </tr>
+                            {% endwith %}
                             {% endfor %}
                         </tbody>
                     </table>
@@ -112,21 +142,4 @@
         </div>
     </div>
 </div>
-
-{# Дополнительно: обработка ошибок профилей через JavaScript #}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Проверяем все ссылки на профили студентов
-    const transferLinks = document.querySelectorAll('a[href*="transfer"]');
-    
-    transferLinks.forEach(link => {
-        if (link.href.includes('None') || link.href.endsWith('transfer//')) {
-            link.classList.add('disabled');
-            link.style.pointerEvents = 'none';
-            link.title = 'Профиль студента не найден';
-            link.innerHTML = '<i class="bi bi-exclamation-triangle"></i>';
-        }
-    });
-});
-</script>
 {% endblock %}
