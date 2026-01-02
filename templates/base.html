@@ -5,14 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Платформа деканата{% endblock %}</title>
-    <link rel="preload" href="{% static 'css/main.css' %}" as="style">
-    <link rel="preload" href="{% static 'js/main.js' %}" as="script">
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-    <link rel="stylesheet" href="{% static 'css/performance.css' %}">
+
+    <!-- Основные стили -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+    <!-- Минимальные стили для работы dropdown -->
     <style>
         :root {
             --primary-blue: #2563eb;
@@ -24,11 +23,15 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .navbar {
             background: linear-gradient(135deg, var(--primary-blue) 0%, var(--light-blue) 100%);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 1030; /* Высокий z-index для навигации */
         }
 
         .navbar-brand, .nav-link {
@@ -95,16 +98,64 @@
         .alert {
             border-radius: 8px;
         }
+
+        /* КРИТИЧНО: Отключаем все анимации фона */
+        .animated-bg, 
+        .floating-shape {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            opacity: 0 !important;
+        }
+
+        /* Гарантируем работу dropdown */
+        .dropdown-menu {
+            z-index: 1050 !important; /* Bootstrap default */
+            position: absolute !important;
+            display: none; /* По умолчанию скрыто, bootstrap покажет */
+        }
+
+        .dropdown-menu.show {
+            display: block !important;
+        }
+
+        /* Убираем любые возможные перекрытия */
+        .dropdown-toggle,
+        .navbar-toggler {
+            z-index: 1051 !important;
+            position: relative;
+        }
+
+        /* Отключаем сложные анимации для навигации */
+        .navbar,
+        .navbar .container-fluid,
+        .nav-link,
+        .dropdown-toggle {
+            animation: none !important;
+            transition: none !important;
+            transform: none !important;
+        }
+
+        /* Простые ховер-эффекты */
+        .nav-link:hover {
+            opacity: 0.9;
+        }
+
+        .dropdown-toggle:hover {
+            opacity: 0.9;
+        }
     </style>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Обычная навигация Bootstrap без лишних анимаций -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'core:dashboard' %}">
                 <i class="bi bi-mortarboard-fill"></i> Платформа деканата
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -156,9 +207,15 @@
 
                     {% if user.role == 'DEAN' %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="managementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle"
+                           href="#"
+                           id="managementDropdown"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
                             <i class="bi bi-gear"></i> Управление
                         </a>
+
                         <ul class="dropdown-menu" aria-labelledby="managementDropdown">
                             <li><a class="dropdown-item" href="{% url 'accounts:user_management' %}">
                                 <i class="bi bi-people"></i> Пользователи
@@ -186,7 +243,12 @@
 
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle"
+                           href="#"
+                           id="userDropdown"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
                             <i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -208,9 +270,9 @@
         </div>
     </nav>
 
-    <div class="container-fluid">
+    <div class="container-fluid mt-3">
         {% if messages %}
-            <div class="row mt-3">
+            <div class="row">
                 <div class="col-12">
                     {% for message in messages %}
                         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -225,9 +287,35 @@
         {% block content %}{% endblock %}
     </div>
 
+    <!-- Только базовые скрипты Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/main.js' %}"></script>
-    <script src="{% static 'js/performance.js' %}"></script>
+    
+    <!-- Минимальный JS для гарантии работы -->
+    <script>
+        // Отключаем все сложные анимации и эффекты
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Базовый скрипт загружен');
+            
+            // Удаляем анимированный фон если он был создан
+            const animatedBg = document.querySelector('.animated-bg');
+            if (animatedBg) {
+                animatedBg.remove();
+            }
+            
+            // Удаляем плавающие фигуры
+            const shapes = document.querySelectorAll('.floating-shape');
+            shapes.forEach(shape => shape.remove());
+            
+            // Простая функция переключения темы
+            const themeToggle = document.querySelector('.theme-toggle');
+            if (themeToggle) {
+                themeToggle.onclick = function() {
+                    document.body.classList.toggle('dark-mode');
+                };
+            }
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initTooltips();
     initTableSorting();
     animateNumbers();
-    createFloatingShapes();
+    //createFloatingShapes();
     initSmoothScroll();
     initParallax();
     initCardAnimations();
@@ -171,15 +171,26 @@ function animateNumbers() {
 function createFloatingShapes() {
     const bgDiv = document.createElement('div');
     bgDiv.className = 'animated-bg';
-    
+
+    // Критически важные стили для фона
+    bgDiv.style.cssText = `
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: -10; /* Отрицательный z-index чтобы быть ПОЗАДИ всего */
+    `;
+
     for (let i = 1; i <= 3; i++) {
         const shape = document.createElement('div');
         shape.className = `floating-shape shape-${i}`;
+        shape.style.pointerEvents = 'none';
         bgDiv.appendChild(shape);
     }
-    
+
+    // Вставляем фон в самое начало body
     document.body.insertBefore(bgDiv, document.body.firstChild);
 }
+
 
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
