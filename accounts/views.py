@@ -200,41 +200,55 @@ def add_user(request):
     if request.method == 'POST':
         user_form = UserCreateForm(request.POST, request.FILES)
         
+
+
+        
         if user_form.is_valid():
             with transaction.atomic():
                 user = user_form.save()
                 
                 role = user_form.cleaned_data['role']
                 
-                if role == 'STUDENT':
-                    student_id = generate_student_id()
-
-                    Student.objects.create(
-                        user=user,
-                        student_id=student_id,
-                        course=1,
-                        specialty='',
-                        admission_year=2025,
-                        financing_type='BUDGET',
-                        education_type='FULL_TIME',
-                        education_language='RU',
-                        birth_date='2000-01-01',
-                        gender='M',
-                        nationality='',
-                        passport_series='',
-                        passport_number='',
-                        passport_issued_by='',
-                        passport_issue_date='2000-01-01',
-                        registration_address='',
-                        residence_address=''
-                    )
-                elif role == 'TEACHER':
-                    Teacher.objects.create(user=user)
-                elif role == 'DEAN':
-                    Dean.objects.create(user=user)
-                
-                messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123')
-                return redirect('accounts:user_management')
+                try:
+                    if role == 'STUDENT':
+                        # Проверяем, не существует ли уже профиль студента
+                        if not hasattr(user, 'student_profile'):
+                            student_id = generate_student_id()
+                            Student.objects.create(
+                                user=user,
+                                student_id=student_id,
+                                course=1,
+                                specialty='',
+                                admission_year=2025,
+                                financing_type='BUDGET',
+                                education_type='FULL_TIME',
+                                education_language='RU',
+                                birth_date='2000-01-01',
+                                gender='M',
+                                nationality='',
+                                passport_series='',
+                                passport_number='',
+                                passport_issued_by='',
+                                passport_issue_date='2000-01-01',
+                                registration_address='',
+                                residence_address=''
+                            )
+                    elif role == 'TEACHER':
+                        # Проверяем, не существует ли уже профиль преподавателя
+                        if not hasattr(user, 'teacher_profile'):
+                            Teacher.objects.create(user=user)
+                    elif role == 'DEAN':
+                        # Проверяем, не существует ли уже профиль декана
+                        if not hasattr(user, 'dean_profile'):
+                            Dean.objects.create(user=user)
+                    
+                    messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123')
+                    return redirect('accounts:user_management')
+                    
+                except IntegrityError as e:
+                    messages.error(request, f'Ошибка при создании профиля: пользователь с таким профилем уже существует')
+                    # Откатываем транзакцию, удаляя созданного пользователя
+                    raise
     else:
         user_form = UserCreateForm()
     
