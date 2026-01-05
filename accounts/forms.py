@@ -8,6 +8,10 @@ class UserCreateForm(forms.ModelForm):
     first_name = forms.CharField(max_length=150, required=True, label="Имя")
     last_name = forms.CharField(max_length=150, required=True, label="Фамилия")
     
+    
+
+
+
     class Meta:
         model = User
         fields = ['role', 'first_name', 'last_name', 'phone', 'photo']
@@ -127,3 +131,4 @@ class GroupTransferForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         required=False
     )
+    

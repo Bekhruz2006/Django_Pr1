@@ -530,6 +530,7 @@ def group_management(request):
     course_filter = request.GET.get('course', '')
     
     if search:
+        #group_management(request=)
         groups = groups.filter(
             models.Q(name__icontains=search) |
             models.Q(specialty__icontains=search)
