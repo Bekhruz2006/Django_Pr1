@@ -140,3 +140,14 @@ class ScheduleExceptionForm(forms.ModelForm):
             'new_end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'new_classroom': forms.Select(attrs={'class': 'form-select'}),
         }
+class AcademicWeekForm(forms.Form):
+    semester_start_date = forms.DateField(
+        label="Дата начала семестра",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    current_week = forms.IntegerField(
+        label="Текущая неделя",
+        min_value=1,
+        max_value=20,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )

@@ -114,6 +114,7 @@ class Semester(models.Model):
             ]
 
 class AcademicWeek(models.Model):
+
     semester = models.ForeignKey(
         Semester,
         on_delete=models.CASCADE,
@@ -140,6 +141,15 @@ class AcademicWeek(models.Model):
     @classmethod
     def get_current(cls):
         return cls.objects.filter(is_current=True).first()
+    def calculate_current_week(self):
+        from datetime import date
+        if not self.semester:
+            return 1
+        
+        today = date.today()
+        delta = today - self.semester.start_date
+        week_num = (delta.days // 7) + 1
+        return max(1, min(week_num, 20))
 
 class ScheduleSlot(models.Model):
     DAY_CHOICES = [

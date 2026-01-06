@@ -18,6 +18,7 @@ from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroo
 from .forms import SubjectForm, ScheduleSlotForm, ScheduleExceptionForm, SemesterForm, ClassroomForm, BulkClassroomForm
 from accounts.models import Group, Student, Teacher
 
+
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
 
@@ -595,6 +596,54 @@ def delete_classroom(request, classroom_id):
     classroom.delete()
     messages.success(request, f'Кабинет {classroom.number} удален')
     return redirect('schedule:manage_classrooms')
+
+@user_passes_test(is_dean)
+def manage_academic_week(request):
+    from .forms import AcademicWeekForm
+    
+    active_semester = Semester.get_active()
+    current_week = AcademicWeek.get_current()
+    
+    if request.method == 'POST':
+        form = AcademicWeekForm(request.POST, instance=current_week)
+        if form.is_valid():
+            week = form.save(commit=False)
+            
+            if active_semester:
+                week.semester = active_semester
+                
+                AcademicWeek.objects.filter(is_current=True).update(is_current=False)
+                week.is_current = True
+                
+                semester_start = form.cleaned_data['semester_start_date']
+                week_num = form.cleaned_data['current_week']
+                
+                week.start_date = semester_start + timedelta(weeks=week_num - 1)
+                week.end_date = week.start_date + timedelta(days=6)
+                week.week_number = week_num
+                
+                week.save()
+                
+                messages.success(request, f'Учебная неделя {week_num} установлена')
+            else:
+                messages.error(request, 'Сначала создайте и активируйте семестр')
+            
+            return redirect('schedule:manage_academic_week')
+    else:
+        initial = {}
+        if current_week:
+            initial = {
+                'semester_start_date': current_week.semester.start_date if current_week.semester else None,
+                'current_week': current_week.week_number
+            }
+        form = AcademicWeekForm(initial=initial)
+    
+    return render(request, 'schedule/manage_academic_week.html', {
+        'form': form,
+        'current_week': current_week,
+        'active_semester': active_semester,
+    })
+
 
 @login_required
 def group_list(request):

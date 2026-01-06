@@ -14,9 +14,6 @@ urlpatterns = [
     path('slot/<int:slot_id>/delete/', views.delete_schedule_slot, name='delete_slot'),
     path('slot/check-conflicts/', views.check_slot_conflicts, name='check_conflicts'),
     
-    path('slot/<int:slot_id>/exceptions/', views.manage_exceptions, name='manage_exceptions'),
-    path('exception/<int:exception_id>/delete/', views.delete_exception, name='delete_exception'),
-    
     path('subjects/', views.manage_subjects, name='manage_subjects'),
     path('subjects/add/', views.add_subject, name='add_subject'),
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
@@ -26,6 +23,8 @@ urlpatterns = [
     path('semesters/add/', views.add_semester, name='add_semester'),
     path('semesters/<int:semester_id>/edit/', views.edit_semester, name='edit_semester'),
     path('semesters/<int:semester_id>/toggle/', views.toggle_semester_active, name='toggle_semester'),
+    
+    path('academic-week/', views.manage_academic_week, name='manage_academic_week'),
     
     path('classrooms/', views.manage_classrooms, name='manage_classrooms'),
     path('classrooms/add/', views.add_classroom, name='add_classroom'),

@@ -78,9 +78,7 @@
                                                                         <a href="{% url 'schedule:edit_slot' slot.id %}" class="btn btn-sm btn-outline-primary" title="Редактировать">
                                                                             <i class="bi bi-pencil"></i>
                                                                         </a>
-                                                                        <a href="{% url 'schedule:manage_exceptions' slot.id %}" class="btn btn-sm btn-outline-warning" title="Исключения">
-                                                                            <i class="bi bi-exclamation-triangle"></i>
-                                                                        </a>
+                                                     
                                                                         <a href="{% url 'schedule:delete_slot' slot.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить это занятие?')" title="Удалить">
                                                                             <i class="bi bi-trash"></i>
                                                                         </a>
