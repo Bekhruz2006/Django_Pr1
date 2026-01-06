@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Семестр не активирован{% endblock %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-lg-6 mx-auto">
+        <div class="card border-warning">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+                <h3 class="mt-4">Активный семестр не найден</h3>
+                <p class="text-muted mb-4">
+                    Для работы с расписанием необходимо создать и активировать семестр
+                </p>
+                
+                {% if user.role == 'DEAN' %}
+                <div class="alert alert-info text-start">
+                    <h6><i class="bi bi-info-circle"></i> Что нужно сделать:</h6>
+                    <ol class="mb-0">
+                        <li>Перейдите в "Управление семестрами"</li>
+                        <li>Создайте новый семестр</li>
+                        <li>Укажите:
+                            <ul>
+                                <li>Название (например: "Осенний семестр 2025-2026")</li>
+                                <li>Номер семестра (1 или 2)</li>
+                                <li>Смену (утреннее или дневное)</li>
+                                <li>Даты начала и окончания</li>
+                            </ul>
+                        </li>
+                        <li>Отметьте "Сделать активным семестром"</li>
+                    </ol>
+                </div>
+                
+                <div class="d-flex gap-2 justify-content-center mt-4">
+                    <a href="{% url 'schedule:manage_semesters' %}" class="btn btn-primary">
+                        <i class="bi bi-calendar-range"></i> Управление семестрами
+                    </a>
+                    <a href="{% url 'schedule:add_semester' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Создать семестр
+                    </a>
+                </div>
+                {% else %}
+                <p class="mb-4">
+                    Обратитесь к декану для настройки текущего семестра
+                </p>
+                <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Вернуться на главную
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if user.role == 'DEAN' %}
+        <div class="card mt-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-lightbulb"></i> Подсказка
+            </div>
+            <div class="card-body">
+                <h6>Рекомендуемый порядок настройки:</h6>
+                <ol>
+                    <li>Создайте семестр и активируйте его</li>
+                    <li>Добавьте кабинеты (можно массово)</li>
+                    <li>Создайте предметы с распределением кредитов</li>
+                    <li>Назначьте преподавателей предметам</li>
+                    <li>Используйте конструктор для создания расписания</li>
+                </ol>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

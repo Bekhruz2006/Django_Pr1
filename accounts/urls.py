@@ -17,6 +17,7 @@ urlpatterns = [
     path('management/toggle-active/<int:user_id>/', views.toggle_user_active, name='toggle_user_active'),
     path('management/transfer/<int:student_id>/', views.transfer_student, name='transfer_student'),
 
+
     path('groups/', views.group_management, name='group_management'),
     path('groups/add/', views.add_group, name='add_group'),
     path('groups/edit/<int:group_id>/', views.edit_group, name='edit_group'),

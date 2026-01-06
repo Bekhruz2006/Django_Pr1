@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}Конструктор расписания{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-3">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-book"></i> Предметы для добавления
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="subjectsList">
+                    {% for subject in subjects %}
+                        <div class="list-group-item subject-item" draggable="true" 
+                             data-subject-id="{{ subject.id }}"
+                             data-subject-name="{{ subject.name }}"
+                             data-teacher-id="{{ subject.teacher.id|default:'' }}"
+                             data-teacher-name="{{ subject.teacher.user.get_full_name|default:'Не назначен' }}"
+                             data-credits="{{ subject.credits }}">
+                            <strong>{{ subject.name }}</strong><br>
+                            <small class="text-muted">{{ subject.teacher.user.get_full_name|default:'Не назначен' }}</small><br>
+                            <small class="badge bg-info">{{ subject.credits }} кредитов</small>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-door-open"></i> Кабинеты
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <div class="row g-2">
+                    {% for classroom in classrooms %}
+                        <div class="col-6">
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100 classroom-btn" 
+                                    data-classroom-id="{{ classroom.id }}"
+                                    data-classroom-number="{{ classroom.number }}">
+                                {{ classroom.number }}
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-calendar3"></i> Расписание
+                    {% if selected_group %}
+                        - {{ selected_group.name }}
+                    {% endif %}
+                </span>
+                <div>
+                    <span class="badge bg-info">{{ active_semester.name }} - {{ active_semester.get_shift_display }}</span>
+                    {% if selected_group %}
+                        <a href="{% url 'schedule:export' %}?group={{ selected_group.id }}" class="btn btn-success btn-sm ms-2">
+                            <i class="bi bi-download"></i> Экспорт
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <form method="get" class="p-3 bg-light">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">Выберите группу</label>
+                            <select name="group" class="form-select" onchange="this.form.submit()">
+                                <option value="">-- Выберите группу --</option>
+                                {% for group in groups %}
+                                    <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                                        {{ group.name }} ({{ group.course }} курс)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </form>
+                
+                {% if not selected_group %}
+                    <div class="alert alert-info text-center m-3">
+                        <i class="bi bi-info-circle"></i> Выберите группу для создания расписания
+                    </div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0 schedule-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 100px;" class="text-center">Время</th>
+                                    {% for day in days %}
+                                        <th class="text-center">{{ day }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in schedule_data %}
+                                    <tr>
+                                        <td class="text-center align-middle">
+                                            <strong>{{ row.time_start }}</strong><br>
+                                            <small class="text-muted">{{ row.time_end }}</small>
+                                        </td>
+                                        {% for day_slot in row.day_slots %}
+                                            <td class="schedule-cell p-2" 
+                                                data-day="{{ day_slot.day }}"
+                                                data-time-start="{{ day_slot.time_start }}"
+                                                data-time-end="{{ day_slot.time_end }}">
+                                                {% if day_slot.slot %}
+                                                    <div class="slot-card bg-{{ day_slot.slot.get_color_class }} bg-opacity-10 p-2 rounded position-relative"
+                                                         data-slot-id="{{ day_slot.slot.id }}">
+                                                        <div class="slot-actions">
+                                                            <button type="button" class="btn btn-sm btn-outline-danger delete-slot-btn"
+                                                                    data-slot-id="{{ day_slot.slot.id }}"
+                                                                    title="Удалить">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="slot-content">
+                                                            <strong>{{ day_slot.slot.subject.name }}</strong><br>
+                                                            <span class="badge bg-{{ day_slot.slot.get_color_class }}">{{ day_slot.slot.get_lesson_type_display }}</span><br>
+                                                            <small class="text-muted">{{ day_slot.slot.teacher.user.get_full_name|default:'Не назначен' }}</small><br>
+                                                            <small><i class="bi bi-geo-alt"></i> Каб. {{ day_slot.slot.classroom.number|default:'Не указан' }}</small>
+                                                        </div>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="empty-slot text-center text-muted py-3">
+                                                        <i class="bi bi-plus-circle"></i>
+                                                        <small class="d-block">Перетащите предмет</small>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info m-3">
+                        <h6><i class="bi bi-info-circle"></i> Инструкция:</h6>
+                        <ol class="mb-0">
+                            <li>Перетащите предмет из списка слева в нужную ячейку расписания</li>
+                            <li>Выберите тип занятия (Лекция/Практика/СРСП)</li>
+                            <li>Выберите кабинет из списка</li>
+                            <li>Система автоматически проверит конфликты (учитель/кабинет/группа)</li>
+                        </ol>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSlotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить занятие</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modalDay">
+                <input type="hidden" id="modalTimeStart">
+                <input type="hidden" id="modalTimeEnd">
+                <input type="hidden" id="modalSubjectId">
+                <input type="hidden" id="modalTeacherId">
+                
+                <div class="mb-3">
+                    <label class="form-label">Предмет</label>
+                    <input type="text" class="form-control" id="modalSubjectName" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Преподаватель</label>
+                    <input type="text" class="form-control" id="modalTeacherName" readonly>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Тип занятия *</label>
+                    <select class="form-select" id="modalLessonType" required>
+                        <option value="">-- Выберите тип --</option>
+                        <option value="LECTURE">Лекция</option>
+                        <option value="PRACTICE">Практика</option>
+                        <option value="SRSP">СРСП</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Кабинет *</label>
+                    <select class="form-select" id="modalClassroom" required>
+                        <option value="">-- Выберите кабинет --</option>
+                        {% for classroom in classrooms %}
+                            <option value="{{ classroom.id }}">{{ classroom.number }} ({{ classroom.floor }} этаж)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="conflictWarnings" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveSlotBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.schedule-cell {
+    min-height: 120px;
+    vertical-align: top;
+    border: 2px dashed #dee2e6;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.schedule-cell.drag-over {
+    background-color: #e7f3ff;
+    border-color: #0d6efd;
+}
+
+.slot-card {
+    min-height: 100px;
+    position: relative;
+}
+
+.slot-actions {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.slot-card:hover .slot-actions {
+    opacity: 1;
+}
+
+.subject-item {
+    cursor: grab;
+    transition: all 0.3s;
+}
+
+.subject-item:hover {
+    background-color: #f0f0f0;
+    transform: scale(1.02);
+}
+
+.subject-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.empty-slot {
+    height: 100%;
+}
+
+.schedule-cell:hover .empty-slot {
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+const modalElement = document.getElementById('addSlotModal');
+const modal = new bootstrap.Modal(modalElement);
+const groupId = {{ selected_group.id|default:'null' }};
+const semesterId = {{ active_semester.id|default:'null' }};
+
+const subjectItems = document.querySelectorAll('.subject-item');
+const scheduleCells = document.querySelectorAll('.schedule-cell');
+const deleteButtons = document.querySelectorAll('.delete-slot-btn');
+
+subjectItems.forEach(item => {
+    item.addEventListener('dragstart', function(e) {
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    });
+    
+    item.addEventListener('dragend', function() {
+        this.classList.remove('dragging');
+    });
+});
+
+scheduleCells.forEach(cell => {
+    cell.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+    });
+    
+    cell.addEventListener('dragleave', function() {
+        this.classList.remove('drag-over');
+    });
+    
+    cell.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        
+        if (this.querySelector('.slot-card')) {
+            alert('В этой ячейке уже есть занятие. Сначала удалите его.');
+            return;
+        }
+        
+        const dragging = document.querySelector('.dragging');
+        if (!dragging) return;
+        
+        document.getElementById('modalDay').value = this.dataset.day;
+        document.getElementById('modalTimeStart').value = this.dataset.timeStart;
+        document.getElementById('modalTimeEnd').value = this.dataset.timeEnd;
+        document.getElementById('modalSubjectId').value = dragging.dataset.subjectId;
+        document.getElementById('modalSubjectName').value = dragging.dataset.subjectName;
+        document.getElementById('modalTeacherId').value = dragging.dataset.teacherId;
+        document.getElementById('modalTeacherName').value = dragging.dataset.teacherName;
+        
+        document.getElementById('modalLessonType').value = '';
+        document.getElementById('modalClassroom').value = '';
+        document.getElementById('conflictWarnings').classList.add('d-none');
+        
+        modal.show();
+    });
+});
+
+document.getElementById('saveSlotBtn').addEventListener('click', async function() {
+    const lessonType = document.getElementById('modalLessonType').value;
+    const classroom = document.getElementById('modalClassroom').value;
+    
+    if (!lessonType || !classroom) {
+        alert('Заполните все обязательные поля');
+        return;
+    }
+    
+    if (!groupId || !semesterId) {
+        alert('Ошибка: группа или семестр не выбраны');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('semester', semesterId);
+    formData.append('group', groupId);
+    formData.append('subject', document.getElementById('modalSubjectId').value);
+    formData.append('lesson_type', lessonType);
+    formData.append('teacher', document.getElementById('modalTeacherId').value);
+    formData.append('day_of_week', document.getElementById('modalDay').value);
+    formData.append('start_time', document.getElementById('modalTimeStart').value);
+    formData.append('end_time', document.getElementById('modalTimeEnd').value);
+    formData.append('classroom', classroom);
+    
+    try {
+        const response = await fetch('{% url "schedule:add_slot" %}', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            const text = await response.text();
+            alert('Ошибка при сохранении: ' + text);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Ошибка сети');
+    }
+});
+
+deleteButtons.forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        
+        if (!confirm('Удалить это занятие?')) return;
+        
+        const slotId = this.dataset.slotId;
+        
+        try {
+            const response = await fetch(`/schedule/slot/${slotId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Ошибка при удалении');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Ошибка сети');
+        }
+    });
+});
+</script>
+{% endblock %}

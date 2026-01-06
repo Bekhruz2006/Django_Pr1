@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
 from django.urls import reverse
 from datetime import datetime, timedelta
@@ -14,8 +14,8 @@ try:
 except ImportError:
     DOCX_AVAILABLE = False
 
-from .models import Subject, ScheduleSlot, ScheduleException, AcademicWeek
-from .forms import SubjectForm, ScheduleSlotForm, ScheduleExceptionForm, AcademicWeekForm
+from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, AcademicWeek
+from .forms import SubjectForm, ScheduleSlotForm, ScheduleExceptionForm, SemesterForm, ClassroomForm, BulkClassroomForm
 from accounts.models import Group, Student, Teacher
 
 def is_dean(user):
@@ -29,10 +29,14 @@ def is_student(user):
 
 @login_required
 def schedule_view(request):
-    
     user = request.user
     group = None
     schedule_slots = []
+    active_semester = Semester.get_active()
+    
+    if not active_semester:
+        messages.warning(request, 'Активный семестр не найден. Обратитесь к декану.')
+        return render(request, 'schedule/no_semester.html')
     
     if user.role == 'STUDENT':
         try:
@@ -41,8 +45,9 @@ def schedule_view(request):
             if group:
                 schedule_slots = ScheduleSlot.objects.filter(
                     group=group,
+                    semester=active_semester,
                     is_active=True
-                ).select_related('subject', 'teacher', 'group').order_by('day_of_week', 'start_time')
+                ).select_related('subject', 'teacher__user', 'classroom', 'group').order_by('day_of_week', 'start_time')
         except Student.DoesNotExist:
             pass
     
@@ -51,8 +56,9 @@ def schedule_view(request):
             teacher = user.teacher_profile
             schedule_slots = ScheduleSlot.objects.filter(
                 teacher=teacher,
+                semester=active_semester,
                 is_active=True
-            ).select_related('subject', 'group').order_by('day_of_week', 'start_time')
+            ).select_related('subject', 'group', 'classroom').order_by('day_of_week', 'start_time')
         except Teacher.DoesNotExist:
             pass
     
@@ -64,15 +70,17 @@ def schedule_view(request):
             group = get_object_or_404(Group, id=group_id)
             schedule_slots = ScheduleSlot.objects.filter(
                 group=group,
+                semester=active_semester,
                 is_active=True
-            ).select_related('subject', 'teacher').order_by('day_of_week', 'start_time')
+            ).select_related('subject', 'teacher__user', 'classroom').order_by('day_of_week', 'start_time')
         
         return render(request, 'schedule/schedule_dean.html', {
             'groups': groups,
             'selected_group': group,
             'schedule_slots': schedule_slots,
+            'active_semester': active_semester,
         })
-
+    
     schedule_by_day = {}
     for slot in schedule_slots:
         day = slot.get_day_of_week_display()
@@ -84,17 +92,25 @@ def schedule_view(request):
         'group': group,
         'schedule_by_day': schedule_by_day,
         'schedule_slots': schedule_slots,
+        'active_semester': active_semester,
     })
 
 @login_required
 def today_classes(request):
-    
     user = request.user
     today = datetime.now()
     day_of_week = today.weekday()
     current_time = today.time()
+    active_semester = Semester.get_active()
     
     classes = []
+    
+    if not active_semester:
+        return render(request, 'schedule/today_widget.html', {
+            'classes': classes,
+            'current_time': current_time,
+            'today': today,
+        })
     
     if user.role == 'STUDENT':
         try:
@@ -102,9 +118,10 @@ def today_classes(request):
             if student.group:
                 classes = ScheduleSlot.objects.filter(
                     group=student.group,
+                    semester=active_semester,
                     day_of_week=day_of_week,
                     is_active=True
-                ).select_related('subject', 'teacher').order_by('start_time')
+                ).select_related('subject', 'teacher__user', 'classroom').order_by('start_time')
         except Student.DoesNotExist:
             pass
     
@@ -113,9 +130,10 @@ def today_classes(request):
             teacher = user.teacher_profile
             classes = ScheduleSlot.objects.filter(
                 teacher=teacher,
+                semester=active_semester,
                 day_of_week=day_of_week,
                 is_active=True
-            ).select_related('subject', 'group').order_by('start_time')
+            ).select_related('subject', 'group', 'classroom').order_by('start_time')
         except Teacher.DoesNotExist:
             pass
     
@@ -127,97 +145,116 @@ def today_classes(request):
 
 @user_passes_test(is_dean)
 def schedule_constructor(request):
+    active_semester = Semester.get_active()
+    
+    if not active_semester:
+        messages.warning(request, 'Создайте и активируйте семестр перед созданием расписания.')
+        return redirect('schedule:manage_semesters')
     
     groups = Group.objects.all()
     subjects = Subject.objects.all()
-    teachers = Teacher.objects.all()
+    classrooms = Classroom.objects.filter(is_active=True)
     
     selected_group_id = request.GET.get('group')
     selected_group = None
-    schedule_slots = []
+    schedule_data = []
     
     if selected_group_id:
         selected_group = get_object_or_404(Group, id=selected_group_id)
-        schedule_slots = ScheduleSlot.objects.filter(
-            group=selected_group,
-            is_active=True
-        ).select_related('subject', 'teacher').order_by('day_of_week', 'start_time')
-
-    time_slots = [
-        ('08:00', '09:00'),
-        ('09:00', '09:50'),
-        ('10:00', '10:50'),
-        ('11:00', '11:50'),
-        ('12:00', '12:50'),
-        ('13:00', '13:50'),
-        ('14:00', '14:50'),
-        ('15:00', '15:50'),
-        ('16:00', '16:50'),
-        ('17:00', '17:50'),
-        ('18:00', '18:50'),
-        ('19:00', '19:50'),
-    ]
+        
+        time_slots = active_semester.get_time_slots()
+        days = list(range(6))
+        
+        for time_start, time_end in time_slots:
+            day_slots = []
+            for day in days:
+                slot = ScheduleSlot.objects.filter(
+                    group=selected_group,
+                    semester=active_semester,
+                    day_of_week=day,
+                    start_time=time_start,
+                    is_active=True
+                ).select_related('subject', 'teacher__user', 'classroom').first()
+                
+                day_slots.append({
+                    'slot': slot,
+                    'day': day,
+                    'time_start': time_start,
+                    'time_end': time_end,
+                })
+            
+            schedule_data.append({
+                'time_start': time_start,
+                'time_end': time_end,
+                'day_slots': day_slots,
+            })
     
-    days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
-
-    schedule_grid = {}
-    for i, day in enumerate(days):
-        schedule_grid[i] = {}
-        for slot in time_slots:
-            schedule_grid[i][slot] = None
-
-    for slot in schedule_slots:
-        time_key = (slot.start_time.strftime('%H:%M'), slot.end_time.strftime('%H:%M'))
-        if time_key in time_slots:
-            schedule_grid[slot.day_of_week][time_key] = slot
-    
-    return render(request, 'schedule/constructor.html', {
+    return render(request, 'schedule/constructor_new.html', {
         'groups': groups,
         'subjects': subjects,
-        'teachers': teachers,
+        'classrooms': classrooms,
         'selected_group': selected_group,
-        'schedule_grid': schedule_grid,
-        'time_slots': time_slots,
-        'days': days,
+        'schedule_data': schedule_data,
+        'active_semester': active_semester,
+        'days': ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
     })
 
 @user_passes_test(is_dean)
 def add_schedule_slot(request):
+    active_semester = Semester.get_active()
+    
+    if not active_semester:
+        messages.error(request, 'Активный семестр не найден')
+        return redirect('schedule:constructor')
     
     if request.method == 'POST':
-        form = ScheduleSlotForm(request.POST)
+        form = ScheduleSlotForm(request.POST, semester=active_semester)
         if form.is_valid():
-            slot = form.save()
+            slot = form.save(commit=False)
+            slot.semester = active_semester
+            
+            conflicts = slot.check_conflicts()
+            if conflicts:
+                for conflict in conflicts:
+                    messages.error(request, f'Конфликт: {conflict}')
+                return render(request, 'schedule/add_slot_new.html', {'form': form, 'active_semester': active_semester})
+            
+            slot.save()
             messages.success(request, 'Занятие успешно добавлено')
             return redirect(f"{reverse('schedule:constructor')}?group={slot.group.id}")
     else:
-        form = ScheduleSlotForm()
-
+        form = ScheduleSlotForm(semester=active_semester)
         group_id = request.GET.get('group')
         if group_id:
             form.fields['group'].initial = group_id
     
-    return render(request, 'schedule/add_slot.html', {'form': form})
+    return render(request, 'schedule/add_slot_new.html', {'form': form, 'active_semester': active_semester})
 
 @user_passes_test(is_dean)
 def edit_schedule_slot(request, slot_id):
-    
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
     
     if request.method == 'POST':
-        form = ScheduleSlotForm(request.POST, instance=slot)
+        form = ScheduleSlotForm(request.POST, instance=slot, semester=slot.semester)
         if form.is_valid():
-            form.save()
+            updated_slot = form.save(commit=False)
+            
+            conflicts = updated_slot.check_conflicts()
+            if conflicts:
+                for conflict in conflicts:
+                    messages.error(request, f'Конфликт: {conflict}')
+                return render(request, 'schedule/edit_slot.html', {'form': form, 'slot': slot})
+            
+            updated_slot.save()
             messages.success(request, 'Занятие успешно обновлено')
             return redirect(f"{reverse('schedule:constructor')}?group={slot.group.id}")
     else:
-        form = ScheduleSlotForm(instance=slot)
+        form = ScheduleSlotForm(instance=slot, semester=slot.semester)
     
     return render(request, 'schedule/edit_slot.html', {'form': form, 'slot': slot})
 
 @user_passes_test(is_dean)
 def delete_schedule_slot(request, slot_id):
-    
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
     group_id = slot.group.id
     slot.delete()
@@ -225,69 +262,55 @@ def delete_schedule_slot(request, slot_id):
     return redirect(f"{reverse('schedule:constructor')}?group={group_id}")
 
 @user_passes_test(is_dean)
-def manage_exceptions(request, slot_id):
-    
-    slot = get_object_or_404(ScheduleSlot, id=slot_id)
-    exceptions = ScheduleException.objects.filter(schedule_slot=slot)
-    
+def check_slot_conflicts(request):
     if request.method == 'POST':
-        form = ScheduleExceptionForm(request.POST)
-        if form.is_valid():
-            exception = form.save(commit=False)
-            exception.schedule_slot = slot
-            exception.created_by = request.user
-            exception.save()
-            messages.success(request, 'Исключение добавлено')
-            return redirect('schedule:manage_exceptions', slot_id=slot_id)
-    else:
-        form = ScheduleExceptionForm()
-    
-    return render(request, 'schedule/manage_exceptions.html', {
-        'slot': slot,
-        'exceptions': exceptions,
-        'form': form,
-    })
-
-@user_passes_test(is_dean)
-def delete_exception(request, exception_id):
-    
-    exception = get_object_or_404(ScheduleException, id=exception_id)
-    slot_id = exception.schedule_slot.id
-    exception.delete()
-    messages.success(request, 'Исключение удалено')
-    return redirect('schedule:manage_exceptions', slot_id=slot_id)
-
-@user_passes_test(is_dean)
-def manage_academic_week(request):
-    
-    current_week = AcademicWeek.get_current()
-    
-    if request.method == 'POST':
-        if current_week:
-            form = AcademicWeekForm(request.POST, instance=current_week)
-        else:
-            form = AcademicWeekForm(request.POST)
+        data = request.POST
         
-        if form.is_valid():
-            week = form.save(commit=False)
-            week.is_active = True
-            week.save()
-            messages.success(request, 'Учебная неделя обновлена')
-            return redirect('schedule:manage_academic_week')
-    else:
-        if current_week:
-            form = AcademicWeekForm(instance=current_week)
-        else:
-            form = AcademicWeekForm()
+        semester_id = data.get('semester_id')
+        day = int(data.get('day'))
+        start_time = data.get('start_time')
+        teacher_id = data.get('teacher_id')
+        classroom_id = data.get('classroom_id')
+        group_id = data.get('group_id')
+        exclude_id = data.get('exclude_id')
+        
+        conflicts = []
+        
+        query = ScheduleSlot.objects.filter(
+            semester_id=semester_id,
+            day_of_week=day,
+            start_time=start_time,
+            is_active=True
+        )
+        
+        if exclude_id:
+            query = query.exclude(id=exclude_id)
+        
+        for slot in query:
+            if slot.teacher_id and teacher_id and str(slot.teacher_id) == teacher_id:
+                conflicts.append({
+                    'type': 'teacher',
+                    'message': f'Преподаватель {slot.teacher.user.get_full_name()} занят в это время с группой {slot.group.name}'
+                })
+            
+            if slot.classroom_id and classroom_id and str(slot.classroom_id) == classroom_id:
+                conflicts.append({
+                    'type': 'classroom',
+                    'message': f'Кабинет {slot.classroom.number} занят группой {slot.group.name}'
+                })
+            
+            if str(slot.group_id) == group_id:
+                conflicts.append({
+                    'type': 'group',
+                    'message': f'У группы {slot.group.name} уже есть занятие в это время: {slot.subject.name}'
+                })
+        
+        return JsonResponse({'conflicts': conflicts})
     
-    return render(request, 'schedule/manage_academic_week.html', {
-        'form': form,
-        'current_week': current_week,
-    })
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
 def export_schedule(request):
-
     if not DOCX_AVAILABLE:
         messages.error(request, 'Библиотека python-docx не установлена. Установите: pip install python-docx')
         return redirect('schedule:view')
@@ -295,6 +318,11 @@ def export_schedule(request):
     user = request.user
     group = None
     schedule_slots = []
+    active_semester = Semester.get_active()
+    
+    if not active_semester:
+        messages.error(request, 'Активный семестр не найден')
+        return redirect('schedule:view')
     
     if user.role == 'STUDENT':
         try:
@@ -303,8 +331,9 @@ def export_schedule(request):
             if group:
                 schedule_slots = ScheduleSlot.objects.filter(
                     group=group,
+                    semester=active_semester,
                     is_active=True
-                ).select_related('subject', 'teacher').order_by('day_of_week', 'start_time')
+                ).select_related('subject', 'teacher__user', 'classroom').order_by('day_of_week', 'start_time')
         except Student.DoesNotExist:
             messages.error(request, 'Профиль студента не найден')
             return redirect('schedule:view')
@@ -314,8 +343,9 @@ def export_schedule(request):
             teacher = user.teacher_profile
             schedule_slots = ScheduleSlot.objects.filter(
                 teacher=teacher,
+                semester=active_semester,
                 is_active=True
-            ).select_related('subject', 'group').order_by('day_of_week', 'start_time')
+            ).select_related('subject', 'group', 'classroom').order_by('day_of_week', 'start_time')
         except Teacher.DoesNotExist:
             messages.error(request, 'Профиль преподавателя не найден')
             return redirect('schedule:view')
@@ -326,50 +356,66 @@ def export_schedule(request):
             group = get_object_or_404(Group, id=group_id)
             schedule_slots = ScheduleSlot.objects.filter(
                 group=group,
+                semester=active_semester,
                 is_active=True
-            ).select_related('subject', 'teacher').order_by('day_of_week', 'start_time')
+            ).select_related('subject', 'teacher__user', 'classroom').order_by('day_of_week', 'start_time')
     
     if not schedule_slots:
         messages.error(request, 'Нет данных для экспорта')
         return redirect('schedule:view')
-
+    
     doc = Document()
     
     if group:
-        heading = doc.add_heading(f'Расписание группы {group.name}', 0)
+        heading = doc.add_heading(f'РАСПИСАНИЕ ЗАНЯТИЙ', 0)
+        heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        info = doc.add_paragraph()
+        info.add_run(f'Группа: {group.name}\n').bold = True
+        info.add_run(f'Курс: {group.course}\n')
+        info.add_run(f'Семестр: {active_semester.name}\n')
+        info.add_run(f'Смена: {active_semester.get_shift_display()}\n')
+        info.alignment = WD_ALIGN_PARAGRAPH.CENTER
     else:
         heading = doc.add_heading(f'Расписание преподавателя {user.get_full_name()}', 0)
-    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-    days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
-    table = doc.add_table(rows=1, cols=7)
-    table.style = 'Light Grid Accent 1'
+        heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    header_cells = table.rows[0].cells
-    header_cells[0].text = 'Время'
-    for i, day in enumerate(days):
-        header_cells[i + 1].text = day
-
-    schedule_by_day_time = {}
+    days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+    
+    time_slots = {}
     for slot in schedule_slots:
         time_key = f"{slot.start_time.strftime('%H:%M')}-{slot.end_time.strftime('%H:%M')}"
-        if time_key not in schedule_by_day_time:
-            schedule_by_day_time[time_key] = {i: None for i in range(6)}
-        schedule_by_day_time[time_key][slot.day_of_week] = slot
-
-    for time_key in sorted(schedule_by_day_time.keys()):
-        row_cells = table.add_row().cells
-        row_cells[0].text = time_key
+        if time_key not in time_slots:
+            time_slots[time_key] = {i: None for i in range(6)}
+        time_slots[time_key][slot.day_of_week] = slot
+    
+    if time_slots:
+        table = doc.add_table(rows=1, cols=7)
+        table.style = 'Light Grid Accent 1'
         
-        for day_num in range(6):
-            slot = schedule_by_day_time[time_key][day_num]
-            if slot:
-                if user.role == 'TEACHER':
-                    cell_text = f"{slot.subject.name}\n{slot.group.name}\n{slot.classroom}"
-                else:
-                    cell_text = f"{slot.subject.name}\n{slot.teacher.user.get_full_name()}\n{slot.classroom}"
-                row_cells[day_num + 1].text = cell_text
-
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Время'
+        for i, day in enumerate(days):
+            header_cells[i + 1].text = day
+        
+        for time_key in sorted(time_slots.keys()):
+            row_cells = table.add_row().cells
+            row_cells[0].text = time_key
+            
+            for day_num in range(6):
+                slot = time_slots[time_key][day_num]
+                if slot:
+                    if user.role == 'TEACHER':
+                        cell_text = f"{slot.subject.name}\n{slot.get_lesson_type_display()}\n{slot.group.name}"
+                        if slot.classroom:
+                            cell_text += f"\nКаб. {slot.classroom.number}"
+                    else:
+                        teacher_name = slot.teacher.user.get_full_name() if slot.teacher else 'Не назначен'
+                        cell_text = f"{slot.subject.name}\n{slot.get_lesson_type_display()}\n{teacher_name}"
+                        if slot.classroom:
+                            cell_text += f"\nКаб. {slot.classroom.number}"
+                    row_cells[day_num + 1].text = cell_text
+    
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     filename = f'schedule_{group.name if group else user.username}_{datetime.now().strftime("%Y%m%d")}.docx'
     response['Content-Disposition'] = f'attachment; filename={filename}'
@@ -377,19 +423,196 @@ def export_schedule(request):
     doc.save(response)
     return response
 
+@user_passes_test(is_dean)
+def manage_subjects(request):
+    subjects = Subject.objects.all().select_related('teacher__user')
+    
+    search = request.GET.get('search', '')
+    if search:
+        subjects = subjects.filter(
+            Q(name__icontains=search) | Q(code__icontains=search)
+        )
+    
+    return render(request, 'schedule/manage_subjects.html', {
+        'subjects': subjects,
+        'search': search,
+    })
+
+@user_passes_test(is_dean)
+def add_subject(request):
+    if request.method == 'POST':
+        form = SubjectForm(request.POST)
+        if form.is_valid():
+            subject = form.save()
+            messages.success(request, f'Предмет "{subject.name}" создан. Кредиты распределены: {subject.get_credits_distribution()}')
+            return redirect('schedule:manage_subjects')
+    else:
+        form = SubjectForm()
+    
+    return render(request, 'schedule/subject_form.html', {
+        'form': form,
+        'title': 'Добавить предмет',
+    })
+
+@user_passes_test(is_dean)
+def edit_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    
+    if request.method == 'POST':
+        form = SubjectForm(request.POST, instance=subject)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Предмет обновлен')
+            return redirect('schedule:manage_subjects')
+    else:
+        form = SubjectForm(instance=subject)
+    
+    return render(request, 'schedule/subject_form.html', {
+        'form': form,
+        'subject': subject,
+        'title': 'Редактировать предмет',
+    })
+
+@user_passes_test(is_dean)
+def delete_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    subject.delete()
+    messages.success(request, 'Предмет удален')
+    return redirect('schedule:manage_subjects')
+
+@user_passes_test(is_dean)
+def manage_semesters(request):
+    semesters = Semester.objects.all()
+    active_semester = Semester.get_active()
+    
+    return render(request, 'schedule/manage_semesters.html', {
+        'semesters': semesters,
+        'active_semester': active_semester,
+    })
+
+@user_passes_test(is_dean)
+def add_semester(request):
+    if request.method == 'POST':
+        form = SemesterForm(request.POST)
+        if form.is_valid():
+            semester = form.save()
+            messages.success(request, f'Семестр "{semester.name}" создан')
+            return redirect('schedule:manage_semesters')
+    else:
+        form = SemesterForm()
+    
+    return render(request, 'schedule/semester_form.html', {
+        'form': form,
+        'title': 'Добавить семестр',
+    })
+
+@user_passes_test(is_dean)
+def edit_semester(request, semester_id):
+    semester = get_object_or_404(Semester, id=semester_id)
+    
+    if request.method == 'POST':
+        form = SemesterForm(request.POST, instance=semester)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Семестр обновлен')
+            return redirect('schedule:manage_semesters')
+    else:
+        form = SemesterForm(instance=semester)
+    
+    return render(request, 'schedule/semester_form.html', {
+        'form': form,
+        'semester': semester,
+        'title': 'Редактировать семестр',
+    })
+
+@user_passes_test(is_dean)
+def toggle_semester_active(request, semester_id):
+    semester = get_object_or_404(Semester, id=semester_id)
+    semester.is_active = not semester.is_active
+    semester.save()
+    
+    status = "активирован" if semester.is_active else "деактивирован"
+    messages.success(request, f'Семестр {status}')
+    return redirect('schedule:manage_semesters')
+
+@user_passes_test(is_dean)
+def manage_classrooms(request):
+    classrooms = Classroom.objects.all().order_by('floor', 'number')
+    
+    return render(request, 'schedule/manage_classrooms.html', {
+        'classrooms': classrooms,
+    })
+
+@user_passes_test(is_dean)
+def add_classroom(request):
+    if request.method == 'POST':
+        form = ClassroomForm(request.POST)
+        if form.is_valid():
+            classroom = form.save()
+            messages.success(request, f'Кабинет {classroom.number} добавлен')
+            return redirect('schedule:manage_classrooms')
+    else:
+        form = ClassroomForm()
+    
+    return render(request, 'schedule/classroom_form.html', {
+        'form': form,
+        'title': 'Добавить кабинет',
+    })
+
+@user_passes_test(is_dean)
+def bulk_add_classrooms(request):
+    if request.method == 'POST':
+        form = BulkClassroomForm(request.POST)
+        if form.is_valid():
+            floor = form.cleaned_data['floor']
+            start = form.cleaned_data['start_number']
+            end = form.cleaned_data['end_number']
+            capacity = form.cleaned_data['capacity']
+            
+            created = 0
+            for num in range(start, end + 1):
+                number = f"{num}"
+                if not Classroom.objects.filter(number=number).exists():
+                    Classroom.objects.create(
+                        number=number,
+                        floor=floor,
+                        capacity=capacity
+                    )
+                    created += 1
+            
+            messages.success(request, f'Создано {created} кабинетов на {floor} этаже')
+            return redirect('schedule:manage_classrooms')
+    else:
+        form = BulkClassroomForm()
+    
+    return render(request, 'schedule/bulk_classroom_form.html', {
+        'form': form,
+    })
+
+@user_passes_test(is_dean)
+def delete_classroom(request, classroom_id):
+    classroom = get_object_or_404(Classroom, id=classroom_id)
+    classroom.delete()
+    messages.success(request, f'Кабинет {classroom.number} удален')
+    return redirect('schedule:manage_classrooms')
+
 @login_required
 def group_list(request):
-    
     user = request.user
     
     if user.role == 'TEACHER':
         try:
             teacher = user.teacher_profile
-            group_ids = ScheduleSlot.objects.filter(
-                teacher=teacher,
-                is_active=True
-            ).values_list('group_id', flat=True).distinct()
-            groups = Group.objects.filter(id__in=group_ids)
+            active_semester = Semester.get_active()
+            if active_semester:
+                group_ids = ScheduleSlot.objects.filter(
+                    teacher=teacher,
+                    semester=active_semester,
+                    is_active=True
+                ).values_list('group_id', flat=True).distinct()
+                groups = Group.objects.filter(id__in=group_ids)
+            else:
+                groups = Group.objects.none()
         except Teacher.DoesNotExist:
             groups = Group.objects.none()
     
@@ -399,7 +622,7 @@ def group_list(request):
     else:
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
-
+    
     groups_with_students = []
     for group in groups:
         students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Массовое добавление кабинетов{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-square"></i> Массовое добавление кабинетов
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Этаж *</label>
+                        {{ form.floor }}
+                        {% if form.floor.errors %}
+                            <div class="text-danger">{{ form.floor.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Начальный номер *</label>
+                            {{ form.start_number }}
+                            {% if form.start_number.errors %}
+                                <div class="text-danger">{{ form.start_number.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Конечный номер *</label>
+                            {{ form.end_number }}
+                            {% if form.end_number.errors %}
+                                <div class="text-danger">{{ form.end_number.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Вместимость *</label>
+                        {{ form.capacity }}
+                        {% if form.capacity.errors %}
+                            <div class="text-danger">{{ form.capacity.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Пример:</strong> Этаж 3, с 300 по 340 создаст кабинеты: 300, 301, 302... 340
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Создать кабинеты
+                        </button>
+                        <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
