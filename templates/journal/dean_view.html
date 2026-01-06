@@ -74,6 +74,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Предмет</th>
+                                        <th>Преподаватель</th>
                                         <th>Средний балл</th>
                                         <th>Посещаемость</th>
                                         <th>Диаграмма</th>
@@ -83,6 +84,7 @@
                                     {% for subject in group_stats.subjects %}
                                     <tr>
                                         <td><strong>{{ subject.name }}</strong></td>
+                                        <td><i class="bi bi-person"></i> {{ subject.teacher_name }}</td>
                                         <td>
                                             <span class="badge {% if subject.avg_grade >= 7 %}bg-success{% elif subject.avg_grade >= 4 %}bg-warning{% else %}bg-danger{% endif %}">
                                                 {{ subject.avg_grade }}
@@ -129,7 +131,7 @@
                                     {% for item in at_risk_students %}
                                     <tr>
                                         <td>
-                                            <a href="{% url 'accounts:profile' %}?user_id={{ item.student.user.id }}">
+                                            <a href="{% url 'accounts:view_user_profile' item.student.user.id %}">
                                                 <strong>{{ item.student.user.get_full_name }}</strong>
                                             </a>
                                         </td>

@@ -23,6 +23,7 @@
                                 <th rowspan="2" class="align-middle">Студент</th>
                                 <th rowspan="2" class="align-middle text-center">GPA</th>
                                 <th rowspan="2" class="align-middle text-center">Посещ.</th>
+                                <th rowspan="2" class="align-middle text-center">НБ</th>
                                 <th rowspan="2" class="align-middle text-center">Рейтинг</th>
                                 {% for subject in subjects %}
                                     <th class="text-center">{{ subject.name }}</th>
@@ -39,7 +40,8 @@
                             {% for item in students_data %}
                                 <tr {% if item.is_at_risk %}class="table-danger"{% endif %}>
                                     <td>
-                                        <a href="{% url 'accounts:profile' %}?user_id={{ item.student.user.id }}">
+                                        {# ✅ ИСПРАВЛЕНО: Правильная ссылка на профиль студента #}
+                                        <a href="{% url 'accounts:view_user_profile' item.student.user.id %}">
                                             <strong>{{ item.student.user.get_full_name }}</strong>
                                         </a><br>
                                         <small class="text-muted">{{ item.student.student_id }}</small>
@@ -53,6 +55,18 @@
                                         <strong class="{% if item.stats.attendance_percentage >= 80 %}text-success{% elif item.stats.attendance_percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
                                             {{ item.stats.attendance_percentage|floatformat:0 }}%
                                         </strong>
+                                    </td>
+                                    <td class="text-center">
+                                        {# ✅ НОВОЕ: Показываем прогулы #}
+                                        <strong class="{% if item.stats.total_absent <= 5 %}text-success{% elif item.stats.total_absent <= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ item.stats.total_absent }}
+                                        </strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            Б:{{ item.stats.absent_illness }} 
+                                            У:{{ item.stats.absent_valid }} 
+                                            Н:{{ item.stats.absent_invalid }}
+                                        </small>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge bg-warning">{{ item.stats.group_rank }}</span>
@@ -69,6 +83,10 @@
                                                     </div>
                                                     <small class="text-muted">
                                                         {{ subj_perf.attendance|floatformat:0 }}%
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-danger">
+                                                        НБ: {{ subj_perf.absent }}
                                                     </small>
                                                 {% endif %}
                                             {% endfor %}
@@ -91,9 +109,10 @@
                 <div class="alert alert-info mt-3">
                     <h6><i class="bi bi-info-circle"></i> Легенда:</h6>
                     <ul class="mb-0">
-                        <li><strong>Зеленый</strong> — отличная успеваемость (балл ≥ 7, посещаемость ≥ 80%)</li>
-                        <li><strong>Желтый</strong> — удовлетворительная (балл 4-7, посещаемость 60-80%)</li>
-                        <li><strong>Красный</strong> — критическая (балл < 4, посещаемость < 60%)</li>
+                        <li><strong>Зеленый</strong> — отличная успеваемость (балл ≥ 7, посещаемость ≥ 80%, НБ ≤ 5)</li>
+                        <li><strong>Желтый</strong> — удовлетворительная (балл 4-7, посещаемость 60-80%, НБ 5-10)</li>
+                        <li><strong>Красный</strong> — критическая (балл < 4, посещаемость < 60%, НБ > 10)</li>
+                        <li><strong>НБ</strong> — Неявка на занятие (Б-Болезнь, У-Уважительная, Н-Неуважительная)</li>
                     </ul>
                 </div>
             </div>

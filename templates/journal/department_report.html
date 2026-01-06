@@ -20,7 +20,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card bg-success bg-opacity-10">
                             <div class="card-body text-center">
                                 <h6 class="text-muted mb-0">Средний GPA</h6>
@@ -28,11 +28,19 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card bg-info bg-opacity-10">
                             <div class="card-body text-center">
                                 <h6 class="text-muted mb-0">Посещаемость</h6>
                                 <h2 class="text-info">{{ overall_attendance|floatformat:0 }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-warning bg-opacity-10">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted mb-0">Всего НБ</h6>
+                                <h2 class="text-warning">{{ overall_absent }}</h2>
                             </div>
                         </div>
                     </div>
@@ -61,6 +69,9 @@
                     <a href="?sort=attendance" class="btn btn-sm {% if sort_by == 'attendance' %}btn-primary{% else %}btn-outline-primary{% endif %}">
                         <i class="bi bi-calendar-check"></i> По посещаемости
                     </a>
+                    <a href="?sort=absent" class="btn btn-sm {% if sort_by == 'absent' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="bi bi-exclamation-triangle"></i> По прогулам
+                    </a>
                 </div>
             </div>
             <div class="card-body">
@@ -72,6 +83,8 @@
                                 <th class="text-center">Студентов</th>
                                 <th class="text-center">Средний балл</th>
                                 <th class="text-center">Посещаемость</th>
+                                <th class="text-center">Средн. НБ</th>
+                                <th class="text-center">Всего НБ</th>
                                 <th class="text-center">Под угрозой</th>
                                 <th>Диаграмма</th>
                                 <th>Действия</th>
@@ -96,6 +109,16 @@
                                         <span class="badge {% if item.avg_attendance >= 80 %}bg-success{% elif item.avg_attendance >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
                                             {{ item.avg_attendance|floatformat:0 }}%
                                         </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge {% if item.avg_absent <= 5 %}bg-success{% elif item.avg_absent <= 10 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ item.avg_absent|floatformat:1 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <strong class="{% if item.total_absent > 50 %}text-danger{% elif item.total_absent > 20 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ item.total_absent }}
+                                        </strong>
                                     </td>
                                     <td class="text-center">
                                         {% if item.at_risk_count > 0 %}
@@ -125,4 +148,11 @@
         </div>
     </div>
 </div>
+
+<style>
+    .card-body h2 {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
 {% endblock %}
