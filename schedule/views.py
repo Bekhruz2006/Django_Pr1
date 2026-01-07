@@ -742,3 +742,213 @@ def export_schedule(request):
 
     doc.save(response)
     return response
+
+
+# В конец файла schedule/views.py добавить:
+
+@login_required
+@user_passes_test(is_dean)
+def schedule_constructor_new(request):
+    """Новый конструктор расписания в формате таблицы"""
+    group1_id = request.GET.get('group1')
+    group2_id = request.GET.get('group2')
+    
+    groups = Group.objects.all().order_by('name')
+    subjects = Subject.objects.select_related('teacher__user').all()
+    time_slots = TimeSlot.objects.all().order_by('start_time')
+    
+    group1 = Group.objects.get(id=group1_id) if group1_id else None
+    group2 = Group.objects.get(id=group2_id) if group2_id else None
+    
+    days = [
+        (0, 'ДУШАНБЕ'),
+        (1, 'СЕШАНБЕ'),
+        (2, 'ЧОРШАНБЕ'),
+        (3, 'ПАНҶШАНБЕ'),
+        (4, 'ҶУМЪА'),
+        (5, 'ШАНБЕ'),
+    ]
+    
+    active_semester = Semester.get_active()
+    schedule_data = {}
+    
+    if active_semester:
+        for group in [group1, group2]:
+            if group:
+                schedule_data[group.id] = {}
+                slots = ScheduleSlot.objects.filter(
+                    group=group,
+                    semester=active_semester,
+                    is_active=True
+                ).select_related('subject', 'teacher__user', 'time_slot')
+                
+                for slot in slots:
+                    if slot.day_of_week not in schedule_data[group.id]:
+                        schedule_data[group.id][slot.day_of_week] = {}
+                    schedule_data[group.id][slot.day_of_week][slot.time_slot.id] = slot
+    
+    colspan = 1
+    if group1:
+        colspan += 2
+    if group2:
+        colspan += 2
+    
+    context = {
+        'groups': groups,
+        'subjects': subjects,
+        'time_slots': time_slots,
+        'group1': group1,
+        'group2': group2,
+        'days': days,
+        'schedule_data': schedule_data,
+        'colspan': colspan,
+    }
+    
+    return render(request, 'schedule/constructor_new.html', context)
+
+
+@login_required
+@user_passes_test(is_dean)
+def export_schedule_new_format(request):
+    """Экспорт расписания в новом формате"""
+    if not DOCX_AVAILABLE:
+        messages.error(request, 'python-docx не установлен')
+        return redirect('schedule:constructor_new')
+    
+    group1_id = request.GET.get('group1')
+    group2_id = request.GET.get('group2')
+    
+    if not group1_id and not group2_id:
+        messages.error(request, 'Выберите хотя бы одну группу')
+        return redirect('schedule:constructor_new')
+    
+    group1 = Group.objects.get(id=group1_id) if group1_id else None
+    group2 = Group.objects.get(id=group2_id) if group2_id else None
+    
+    doc = Document()
+    
+    heading = doc.add_heading('ҶАДВАЛИ ДАРСӢ', 0)
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    active_semester = Semester.get_active()
+    if active_semester:
+        info = doc.add_paragraph()
+        info.add_run(f'Семестр: {active_semester.name}\n').bold = True
+        info.add_run(f'Смена: {active_semester.get_shift_display()}\n')
+        info.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    num_cols = 1
+    if group1:
+        num_cols += 2
+    if group2:
+        num_cols += 2
+    
+    table = doc.add_table(rows=1, cols=num_cols)
+    table.style = 'Table Grid'
+    
+    header_row = table.rows[0]
+    col_idx = 0
+    
+    cell = header_row.cells[col_idx]
+    cell.text = 'ҲАФТА\nСОАТ'
+    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    col_idx += 1
+    
+    if group1:
+        cell = header_row.cells[col_idx]
+        cell.text = f'{group1.name}\n{group1.specialty[:40]} ({group1.students.count()} нафар)'
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        col_idx += 1
+        
+        cell = header_row.cells[col_idx]
+        cell.text = 'АУД'
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        col_idx += 1
+    
+    if group2:
+        cell = header_row.cells[col_idx]
+        cell.text = f'{group2.name}\n{group2.specialty[:40]} ({group2.students.count()} нафар)'
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        col_idx += 1
+        
+        cell = header_row.cells[col_idx]
+        cell.text = 'АУД'
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    time_slots = TimeSlot.objects.all().order_by('start_time')
+    days = [
+        (0, 'ДУШАНБЕ'),
+        (1, 'СЕШАНБЕ'),
+        (2, 'ЧОРШАНБЕ'),
+        (3, 'ПАНҶШАНБЕ'),
+        (4, 'ҶУМЪА'),
+        (5, 'ШАНБЕ'),
+    ]
+    
+    schedule_dict = {}
+    for group in [group1, group2]:
+        if group and active_semester:
+            schedule_dict[group.id] = {}
+            slots = ScheduleSlot.objects.filter(
+                group=group,
+                semester=active_semester,
+                is_active=True
+            ).select_related('subject', 'teacher__user', 'time_slot')
+            
+            for slot in slots:
+                if slot.day_of_week not in schedule_dict[group.id]:
+                    schedule_dict[group.id][slot.day_of_week] = {}
+                schedule_dict[group.id][slot.day_of_week][slot.time_slot.id] = slot
+    
+    for day_num, day_name in days:
+        row = table.add_row()
+        cell = row.cells[0]
+        cell.text = day_name
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cell.paragraphs[0].runs[0].bold = True
+        
+        for i in range(1, num_cols):
+            cell.merge(row.cells[i])
+        
+        for time_slot in time_slots:
+            row = table.add_row()
+            col_idx = 0
+            
+            cell = row.cells[col_idx]
+            cell.text = f'{time_slot.start_time.strftime("%H%M")}-{time_slot.end_time.strftime("%H%M")}'
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            col_idx += 1
+            
+            if group1:
+                slot = schedule_dict.get(group1.id, {}).get(day_num, {}).get(time_slot.id)
+                cell = row.cells[col_idx]
+                if slot:
+                    cell.text = f'{slot.subject.name} ({slot.subject.get_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
+                col_idx += 1
+                
+                cell = row.cells[col_idx]
+                if slot:
+                    cell.text = slot.room or ''
+                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                col_idx += 1
+            
+            if group2:
+                slot = schedule_dict.get(group2.id, {}).get(day_num, {}).get(time_slot.id)
+                cell = row.cells[col_idx]
+                if slot:
+                    cell.text = f'{slot.subject.name} ({slot.subject.get_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
+                col_idx += 1
+                
+                cell = row.cells[col_idx]
+                if slot:
+                    cell.text = slot.room or ''
+                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    filename = f'schedule_{datetime.now().strftime("%Y%m%d")}.docx'
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    doc.save(response)
+    return response

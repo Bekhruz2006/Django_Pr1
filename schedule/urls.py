@@ -36,7 +36,9 @@ urlpatterns = [
     path('classrooms/add/', views.add_classroom, name='add_classroom'),
     path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),
     path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
-    
+    # Добавить в urlpatterns:
+    path('constructor/new/', views.schedule_constructor_new, name='constructor_new'),
+    path('export/new-format/', views.export_schedule_new_format, name='export_new_format'),
     # Список групп
     path('groups/', views.group_list, name='group_list'),
 ]
