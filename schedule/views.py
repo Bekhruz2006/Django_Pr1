@@ -29,6 +29,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
 
+# В schedule/views.py замените функцию create_schedule_slot на эту:
+
 @login_required
 @require_POST
 def create_schedule_slot(request):
@@ -53,11 +55,22 @@ def create_schedule_slot(request):
                 'error': 'Не хватает обязательных данных'
             }, status=400)
         
+        # ✅ ПОЛУЧАЕМ АКТИВНЫЙ СЕМЕСТР
+        from schedule.models import Semester
+        active_semester = Semester.get_active()
+        if not active_semester:
+            return JsonResponse({
+                'success': False,
+                'error': 'Активный семестр не найден. Создайте и активируйте семестр.'
+            }, status=400)
+        
         # Проверяем, существует ли уже занятие в этой ячейке
         existing_slot = ScheduleSlot.objects.filter(
             group_id=group_id,
             day_of_week=day_of_week,
-            time_slot_id=time_slot_id
+            time_slot_id=time_slot_id,
+            semester=active_semester,
+            is_active=True
         ).first()
         
         if existing_slot:
@@ -77,14 +90,15 @@ def create_schedule_slot(request):
                 'error': f'Объект не найден: {str(e)}'
             }, status=404)
         
-        # Создаем новое занятие
+        # ✅ СОЗДАЕМ НОВОЕ ЗАНЯТИЕ
         schedule_slot = ScheduleSlot.objects.create(
             group=group,
             subject=subject,
             day_of_week=day_of_week,
             time_slot=time_slot,
+            semester=active_semester,
             teacher=subject.teacher,  # Берем преподавателя из предмета
-            room=None  # Можно добавить выбор аудитории позже
+            room=None
         )
         
         # Формируем ответ
@@ -115,6 +129,44 @@ def create_schedule_slot(request):
         return JsonResponse({
             'success': False,
             'error': f'Ошибка сервера: {str(e)}'
+        }, status=500)
+
+
+# ✅ ДОБАВЬТЕ ТАКЖЕ ЭТУ НОВУЮ ФУНКЦИЮ для обновления кабинета:
+@login_required
+@require_POST
+def update_schedule_room(request, slot_id):
+    """
+    AJAX endpoint для обновления номера кабинета
+    """
+    try:
+        data = json.loads(request.body)
+        room = data.get('room', '').strip()
+        
+        # Находим занятие
+        schedule_slot = ScheduleSlot.objects.get(id=slot_id)
+        
+        # Обновляем кабинет
+        schedule_slot.room = room if room else None
+        schedule_slot.save()
+        
+        print(f"Updated room for slot {slot_id}: {room}")
+        
+        return JsonResponse({
+            'success': True,
+            'room': schedule_slot.room or 'Не указан'
+        })
+        
+    except ScheduleSlot.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Занятие не найдено'
+        }, status=404)
+    except Exception as e:
+        print(f"Error updating room: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Ошибка: {str(e)}'
         }, status=500)
 
 

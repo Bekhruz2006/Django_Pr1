@@ -31,7 +31,7 @@ urlpatterns = [
     path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),
     path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
     
-
+    path('constructor/update-room/<int:slot_id>/', views.update_schedule_room, name='update_room'),
     path('constructor/', views.schedule_constructor, name='constructor'),
     
     # AJAX endpoints для конструктора
