@@ -1,0 +1,590 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Конструктор расписания{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <!-- ЛЕВАЯ ЧАСТЬ: Выбор группы -->
+    <div class="col-lg-2">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-people"></i> Группа
+            </div>
+            <div class="card-body p-2">
+                <select class="form-select form-select-sm" id="groupFilter">
+                    <option value="">Выбрать...</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
+                            {{ group.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Предметы для перетаскивания -->
+        {% if selected_group %}
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-book"></i> Предметы
+            </div>
+            <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                <div class="list-group list-group-flush" id="subjectsList">
+                    {% for subject in subjects %}
+                        <div class="list-group-item subject-item p-2"
+                             draggable="true"
+                             data-subject-id="{{ subject.id }}"
+                             data-subject-name="{{ subject.name }}"
+                             data-teacher-id="{{ subject.teacher.id|default:'' }}"
+                             data-teacher-name="{{ subject.teacher.user.get_full_name|default:'Не назначен' }}"
+                             style="cursor: move; font-size: 0.85rem;">
+                            <strong>{{ subject.name }}</strong><br>
+                            <small class="text-muted">{{ subject.teacher.user.get_full_name|default:'Не назначен' }}</small>
+                        </div>
+                    {% empty %}
+                        <div class="list-group-item text-muted small">Нет предметов</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ: Вертикальное расписание -->
+    <div class="col-lg-10">
+        {% if not selected_group %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Выберите группу слева
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-calendar-week"></i> Расписание: {{ selected_group.name }}</span>
+                    <div>
+                        <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-light btn-sm">
+                            <i class="bi bi-calendar-range"></i> Недели
+                        </a>
+                        <a href="{% url 'schedule:export' %}?group={{ selected_group.id }}" class="btn btn-success btn-sm">
+                            <i class="bi bi-download"></i> Экспорт
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- ВЕРТИКАЛЬНАЯ ТАБЛИЦА -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0 schedule-table-vertical">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 80px;">Время</th>
+                                    <th>Понедельник</th>
+                                    <th>Вторник</th>
+                                    <th>Среда</th>
+                                    <th>Четверг</th>
+                                    <th>Пятница</th>
+                                    <th>Суббота</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for time_slot in time_slots %}
+                                    <tr>
+                                        <td class="text-center align-middle time-cell">
+                                            <strong>{{ time_slot.start_time|time:"H:i" }}</strong><br>
+                                            <small class="text-muted">{{ time_slot.end_time|time:"H:i" }}</small>
+                                        </td>
+
+                                        {% for day in "012345" %}
+                                            <td class="schedule-drop-zone p-2"
+                                                data-group-id="{{ selected_group.id }}"
+                                                data-day="{{ day }}"
+                                                data-time-slot="{{ time_slot.id }}"
+                                                style="min-height: 80px; vertical-align: top;">
+                                                {% for slot in schedule_slots %}
+                                                    {% if slot.day_of_week|stringformat:"s" == day and slot.time_slot.id == time_slot.id %}
+                                                        <div class="lesson-card" data-slot-id="{{ slot.id }}">
+                                                            <div class="d-flex align-items-start">
+                                                                <!-- Кабинет СЛЕВА -->
+                                                                <div class="room-left me-2">
+                                                                    <div class="room-display" style="cursor: pointer;">
+                                                                        <span class="badge bg-secondary room-badge">
+                                                                            {{ slot.room|default:'?' }}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div class="room-edit" style="display: none;">
+                                                                        <input type="text" 
+                                                                               class="form-control form-control-sm room-input" 
+                                                                               value="{{ slot.room|default:'' }}" 
+                                                                               placeholder="Каб" 
+                                                                               maxlength="10"
+                                                                               style="width: 50px;">
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Информация о предмете -->
+                                                                <div class="flex-grow-1 lesson-info">
+                                                                    <strong class="subject-name">{{ slot.subject.name }}</strong><br>
+                                                                    <small class="text-muted">{{ slot.teacher.user.get_full_name|default:'Не назначен' }}</small>
+                                                                </div>
+
+                                                                <!-- Кнопка удаления -->
+                                                                <button type="button" 
+                                                                        class="btn btn-sm btn-danger delete-slot ms-2"
+                                                                        data-slot-id="{{ slot.id }}">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Инструкция -->
+            <div class="alert alert-info mt-3">
+                <h6><i class="bi bi-info-circle"></i> Инструкция:</h6>
+                <ol class="mb-0">
+                    <li>Перетащите предмет из левой панели в нужную ячейку расписания</li>
+                    <li>Нажмите на <span class="badge bg-secondary">?</span> слева от предмета, чтобы указать кабинет</li>
+                    <li>Система автоматически проверит конфликты (преподаватель, кабинет)</li>
+                    <li>Для удаления нажмите <i class="bi bi-trash text-danger"></i></li>
+                </ol>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно для конфликтов -->
+<div class="modal fade" id="conflictModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Конфликт расписания</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="conflictMessage"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Стили -->
+<style>
+/* Вертикальная таблица */
+.schedule-table-vertical {
+    font-size: 0.9rem;
+}
+
+.time-cell {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.schedule-drop-zone {
+    background-color: #fff;
+    border: 2px dashed #dee2e6;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.schedule-drop-zone:hover {
+    background-color: #f8f9fa;
+}
+
+.schedule-drop-zone.drag-over {
+    background-color: #d1e7dd;
+    border-color: #198754;
+    border-style: solid;
+}
+
+/* Карточка занятия */
+.lesson-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lesson-card .subject-name {
+    font-size: 0.9rem;
+    display: block;
+}
+
+.lesson-card small {
+    font-size: 0.75rem;
+}
+
+/* Кабинет слева */
+.room-left {
+    min-width: 45px;
+}
+
+.room-badge {
+    font-size: 0.8rem;
+    padding: 4px 6px;
+    cursor: pointer;
+}
+
+.room-badge:hover {
+    background-color: #5c636a !important;
+}
+
+.room-input {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+    height: 28px;
+}
+
+/* Предметы для перетаскивания */
+.subject-item {
+    cursor: move;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.subject-item:hover {
+    background-color: #f0f0f0;
+    transform: translateX(3px);
+}
+
+.subject-item:active {
+    opacity: 0.5;
+}
+
+/* Кнопка удаления */
+.delete-slot {
+    opacity: 0.8;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+}
+
+.delete-slot:hover {
+    opacity: 1;
+}
+
+/* Анимации */
+@keyframes pulse-success {
+    0%, 100% { background-color: #d1e7dd; }
+    50% { background-color: #a3cfbb; }
+}
+
+.success-flash {
+    animation: pulse-success 0.5s;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Вертикальный конструктор загружен');
+
+    // CSRF токен
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    let draggedElement = null;
+    let draggedData = {};
+
+    // ============ DRAG AND DROP ============
+    const subjectItems = document.querySelectorAll('.subject-item');
+    subjectItems.forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            draggedElement = this;
+            draggedData = {
+                subjectId: this.dataset.subjectId,
+                subjectName: this.dataset.subjectName,
+                teacherId: this.dataset.teacherId,
+                teacherName: this.dataset.teacherName
+            };
+            e.dataTransfer.effectAllowed = 'copy';
+            this.style.opacity = '0.4';
+        });
+
+        item.addEventListener('dragend', function() {
+            this.style.opacity = '1';
+        });
+    });
+
+    // Drop зоны
+    const dropZones = document.querySelectorAll('.schedule-drop-zone');
+    dropZones.forEach(cell => {
+        cell.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+
+        cell.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+
+        cell.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            const groupId = this.dataset.groupId;
+            const dayOfWeek = this.dataset.day;
+            const timeSlot = this.dataset.timeSlot;
+
+            if (!draggedData.subjectId) {
+                showNotification('Ошибка: не выбран предмет', 'danger');
+                return;
+            }
+
+            createScheduleSlot(groupId, draggedData.subjectId, dayOfWeek, timeSlot, this);
+        });
+    });
+
+    // ============ СОЗДАНИЕ ЗАНЯТИЯ С ПРОВЕРКОЙ КОНФЛИКТОВ ============
+    function createScheduleSlot(groupId, subjectId, dayOfWeek, timeSlot, cellElement) {
+        const originalContent = cellElement.innerHTML;
+        cellElement.innerHTML = '<div class="spinner-border spinner-border-sm text-primary"></div>';
+
+        fetch('/schedule/constructor/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                group: groupId,
+                subject: subjectId,
+                day_of_week: dayOfWeek,
+                time_slot: timeSlot
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const slotCard = createSlotCard(data.slot);
+                cellElement.innerHTML = '';
+                cellElement.appendChild(slotCard);
+                cellElement.classList.add('success-flash');
+                showNotification('✅ Занятие добавлено! Нажмите на кабинет слева, чтобы указать номер.', 'success');
+            } else {
+                cellElement.innerHTML = originalContent;
+                showConflictModal(data.error, data.conflicts || []);
+            }
+        })
+        .catch(error => {
+            cellElement.innerHTML = originalContent;
+            showNotification('❌ Ошибка: ' + error.message, 'danger');
+        });
+    }
+
+    // ============ СОЗДАНИЕ КАРТОЧКИ ЗАНЯТИЯ ============
+    function createSlotCard(slot) {
+        const card = document.createElement('div');
+        card.className = 'lesson-card';
+        card.dataset.slotId = slot.id;
+
+        card.innerHTML = `
+            <div class="d-flex align-items-start">
+                <div class="room-left me-2">
+                    <div class="room-display" style="cursor: pointer;">
+                        <span class="badge bg-secondary room-badge">${slot.room || '?'}</span>
+                    </div>
+                    <div class="room-edit" style="display: none;">
+                        <input type="text" 
+                               class="form-control form-control-sm room-input" 
+                               value="${slot.room || ''}" 
+                               placeholder="Каб" 
+                               maxlength="10"
+                               style="width: 50px;">
+                    </div>
+                </div>
+                <div class="flex-grow-1 lesson-info">
+                    <strong class="subject-name">${slot.subject_name}</strong><br>
+                    <small class="text-muted">${slot.teacher_name}</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger delete-slot ms-2" data-slot-id="${slot.id}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+
+        attachCardEvents(card, slot.id);
+        return card;
+    }
+
+    // ============ СОБЫТИЯ КАРТОЧКИ ============
+    function attachCardEvents(card, slotId) {
+        const roomDisplay = card.querySelector('.room-display');
+        const roomEdit = card.querySelector('.room-edit');
+        const roomInput = card.querySelector('.room-input');
+        const deleteBtn = card.querySelector('.delete-slot');
+
+        // Клик на кабинет - редактирование
+        roomDisplay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            roomDisplay.style.display = 'none';
+            roomEdit.style.display = 'block';
+            roomInput.focus();
+            roomInput.select();
+        });
+
+        // Сохранение по Enter
+        roomInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                updateRoom(slotId, roomInput.value, card);
+            } else if (e.key === 'Escape') {
+                roomDisplay.style.display = 'block';
+                roomEdit.style.display = 'none';
+            }
+        });
+
+        // Сохранение при потере фокуса
+        roomInput.addEventListener('blur', function() {
+            setTimeout(() => {
+                updateRoom(slotId, roomInput.value, card);
+            }, 200);
+        });
+
+        // Удаление
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            deleteScheduleSlot(slotId, card);
+        });
+    }
+
+    // ============ ОБНОВЛЕНИЕ КАБИНЕТА ============
+    function updateRoom(slotId, room, cardElement) {
+        const roomDisplay = cardElement.querySelector('.room-display');
+        const roomEdit = cardElement.querySelector('.room-edit');
+        const roomBadge = cardElement.querySelector('.room-badge');
+
+        fetch(`/schedule/constructor/update-room/${slotId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ room: room || '' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                roomBadge.textContent = data.room || '?';
+                roomDisplay.style.display = 'block';
+                roomEdit.style.display = 'none';
+                if (room) {
+                    showNotification('✅ Кабинет обновлен: ' + data.room, 'success');
+                }
+            } else {
+                showNotification('❌ ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showNotification('❌ Ошибка: ' + error.message, 'danger');
+        });
+    }
+
+    // ============ УДАЛЕНИЕ ЗАНЯТИЯ ============
+    function deleteScheduleSlot(slotId, cardElement) {
+        if (!confirm('Удалить это занятие?')) return;
+
+        fetch(`/schedule/constructor/delete/${slotId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                cardElement.remove();
+                showNotification('🗑️ Занятие удалено', 'success');
+            } else {
+                showNotification('❌ ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showNotification('❌ Ошибка: ' + error.message, 'danger');
+        });
+    }
+
+    // ============ СОБЫТИЯ ДЛЯ СУЩЕСТВУЮЩИХ КАРТОЧЕК ============
+    document.querySelectorAll('.lesson-card').forEach(card => {
+        const slotId = card.dataset.slotId;
+        attachCardEvents(card, slotId);
+    });
+
+    // ============ ФИЛЬТР ГРУПП ============
+    const groupFilter = document.getElementById('groupFilter');
+    if (groupFilter) {
+        groupFilter.addEventListener('change', function() {
+            const groupId = this.value;
+            window.location.href = groupId ? `/schedule/constructor/?group=${groupId}` : '/schedule/constructor/';
+        });
+    }
+
+    // ============ МОДАЛЬНОЕ ОКНО КОНФЛИКТОВ ============
+    function showConflictModal(message, conflicts) {
+        const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
+        const messageEl = document.getElementById('conflictMessage');
+        
+        let html = `<div class="alert alert-danger"><strong>${message}</strong></div>`;
+        
+        if (conflicts && conflicts.length > 0) {
+            html += '<ul class="mb-0">';
+            conflicts.forEach(c => {
+                html += `<li>${c}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        messageEl.innerHTML = html;
+        modal.show();
+        
+        showNotification('❌ ' + message, 'danger');
+    }
+
+    // ============ УВЕДОМЛЕНИЯ ============
+    function showNotification(message, type) {
+        let container = document.getElementById('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;max-width:350px;';
+            document.body.appendChild(container);
+        }
+
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show shadow`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        container.appendChild(alert);
+
+        setTimeout(() => {
+            alert.classList.remove('show');
+            setTimeout(() => alert.remove(), 150);
+        }, 4000);
+    }
+
+    console.log('✅ Все обработчики подключены');
+});
+</script>
+{% endblock %}

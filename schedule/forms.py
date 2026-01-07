@@ -15,35 +15,35 @@ class SubjectForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         help_texts = {
-            'credits': 'Кредиты должны быть кратны 3 (делятся поровну между Лекцией, Практикой и СРСП)',
-            'hours_per_semester': 'Часы за семестр должны быть кратны 3 (делятся поровну между Лекцией, Практикой и СРСП)'
+            'credits': 'Кредиты должны быть кратны 3',
+            'hours_per_semester': 'Часы за семестр должны быть кратны 3'
         }
     
     def clean_credits(self):
         credits = self.cleaned_data['credits']
         if credits % 3 != 0:
-            raise forms.ValidationError('Кредиты должны быть кратны 3 (например: 3, 6, 9, 12)')
+            raise forms.ValidationError('Кредиты должны быть кратны 3')
         return credits
     
     def clean_hours_per_semester(self):
         hours = self.cleaned_data['hours_per_semester']
         if hours % 3 != 0:
-            raise forms.ValidationError('Часы за семестр должны быть кратны 3 (например: 30, 60, 90)')
+            raise forms.ValidationError('Часы должны быть кратны 3')
         return hours
 
+# ✅ ИСПРАВЛЕНО: Убрано несуществующее поле lesson_type
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
         model = ScheduleSlot
-        fields = ['group', 'subject', 'lesson_type', 'teacher', 'day_of_week', 'start_time', 'end_time', 'classroom']
+        fields = ['group', 'subject', 'teacher', 'day_of_week', 'time_slot', 'classroom', 'room']
         widgets = {
             'group': forms.Select(attrs={'class': 'form-select'}),
             'subject': forms.Select(attrs={'class': 'form-select'}),
-            'lesson_type': forms.Select(attrs={'class': 'form-select'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'day_of_week': forms.Select(attrs={'class': 'form-select'}),
-            'start_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'time_slot': forms.Select(attrs={'class': 'form-select'}),
             'classroom': forms.Select(attrs={'class': 'form-select'}),
+            'room': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Номер кабинета'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -53,23 +53,12 @@ class ScheduleSlotForm(forms.ModelForm):
         if semester:
             self.instance.semester = semester
         
-        if 'subject' in self.data:
-            try:
-                subject_id = int(self.data.get('subject'))
-                subject = Subject.objects.get(id=subject_id)
-                if subject.teacher:
-                    self.fields['teacher'].initial = subject.teacher
-            except (ValueError, Subject.DoesNotExist):
-                pass
-        
         self.fields['classroom'].queryset = Classroom.objects.filter(is_active=True)
     
     def clean(self):
         cleaned_data = super().clean()
-        
         if not self.instance.semester:
             raise forms.ValidationError("Семестр не указан")
-        
         return cleaned_data
 
 class SemesterForm(forms.ModelForm):
@@ -148,6 +137,7 @@ class ScheduleExceptionForm(forms.ModelForm):
             'new_end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'new_classroom': forms.Select(attrs={'class': 'form-select'}),
         }
+
 class AcademicWeekForm(forms.Form):
     semester_start_date = forms.DateField(
         label="Дата начала семестра",
