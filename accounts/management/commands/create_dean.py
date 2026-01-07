@@ -10,7 +10,7 @@ class Command(BaseCommand):
         last_name = input("Введите фамилию: ")
         password = input("Введите пароль: ")
         
-        # ✅ ИСПРАВЛЕНО: Проверка существующего пользователя
+        # ✅ Проверка существующего пользователя
         if User.objects.filter(username=username).exists():
             existing_user = User.objects.get(username=username)
             
@@ -26,7 +26,8 @@ class Command(BaseCommand):
             existing_user.set_password(password)
             existing_user.save()
             
-            Dean.objects.create(user=existing_user)
+            # ✅ ИСПРАВЛЕНО: Используем get_or_create вместо create
+            Dean.objects.get_or_create(user=existing_user)
             self.stdout.write(self.style.SUCCESS(
                 f'Пользователь {username} назначен деканом!'
             ))
@@ -41,8 +42,16 @@ class Command(BaseCommand):
             role='DEAN'
         )
         
-        Dean.objects.create(user=user)
-        
-        self.stdout.write(self.style.SUCCESS(
-            f'Декан {username} успешно создан!'
-        ))
+        # ✅ ИСПРАВЛЕНО: НЕ создаем профиль вручную!
+        # Профиль Dean уже создан автоматически через сигнал post_save
+        # Просто проверяем, что он создался
+        if hasattr(user, 'dean_profile'):
+            self.stdout.write(self.style.SUCCESS(
+                f'Декан {username} успешно создан! Профиль создан автоматически.'
+            ))
+        else:
+            # На случай если сигнал не сработал - создаем вручную
+            Dean.objects.get_or_create(user=user)
+            self.stdout.write(self.style.SUCCESS(
+                f'Декан {username} успешно создан! Профиль создан вручную.'
+            ))

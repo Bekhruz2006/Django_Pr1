@@ -17,10 +17,12 @@
                              data-subject-name="{{ subject.name }}"
                              data-teacher-id="{{ subject.teacher.id|default:'' }}"
                              data-teacher-name="{{ subject.teacher.user.get_full_name|default:'Не назначен' }}"
-                             data-credits="{{ subject.credits }}">
+                             data-credits="{{ subject.credits }}"
+                             data-hours="{{ subject.hours_per_semester }}">
                             <strong>{{ subject.name }}</strong><br>
                             <small class="text-muted">{{ subject.teacher.user.get_full_name|default:'Не назначен' }}</small><br>
                             <small class="badge bg-info">{{ subject.credits }} кредитов</small>
+                            <small class="badge bg-success">{{ subject.hours_per_semester }} часов/сем</small>
                         </div>
                     {% endfor %}
                 </div>
@@ -146,7 +148,7 @@
                             <li>Перетащите предмет из списка слева в нужную ячейку расписания</li>
                             <li>Выберите тип занятия (Лекция/Практика/СРСП)</li>
                             <li>Выберите кабинет из списка</li>
-                            <li>Система автоматически проверит конфликты (учитель/кабинет/группа)</li>
+                            <li>Нажмите "Сохранить" - система автоматически проверит конфликты</li>
                         </ol>
                     </div>
                 {% endif %}
@@ -155,6 +157,7 @@
     </div>
 </div>
 
+<!-- Модальное окно -->
 <div class="modal fade" id="addSlotModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -203,7 +206,12 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="saveSlotBtn">Сохранить</button>
+                <button type="button" class="btn btn-primary" id="saveSlotBtn">
+                    <span class="btn-text">Сохранить</span>
+                    <span class="btn-spinner d-none">
+                        <span class="spinner-border spinner-border-sm"></span> Сохранение...
+                    </span>
+                </button>
             </div>
         </div>
     </div>
@@ -265,6 +273,24 @@
 </style>
 
 <script>
+// ✅ КРИТИЧНО: Получаем CSRF токен
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
 const modalElement = document.getElementById('addSlotModal');
 const modal = new bootstrap.Modal(modalElement);
 const groupId = {{ selected_group.id|default:'null' }};
@@ -274,6 +300,7 @@ const subjectItems = document.querySelectorAll('.subject-item');
 const scheduleCells = document.querySelectorAll('.schedule-cell');
 const deleteButtons = document.querySelectorAll('.delete-slot-btn');
 
+// Drag and Drop для предметов
 subjectItems.forEach(item => {
     item.addEventListener('dragstart', function(e) {
         this.classList.add('dragging');
@@ -301,6 +328,7 @@ scheduleCells.forEach(cell => {
         e.preventDefault();
         this.classList.remove('drag-over');
         
+        // Проверка что ячейка пуста
         if (this.querySelector('.slot-card')) {
             alert('В этой ячейке уже есть занятие. Сначала удалите его.');
             return;
@@ -309,6 +337,7 @@ scheduleCells.forEach(cell => {
         const dragging = document.querySelector('.dragging');
         if (!dragging) return;
         
+        // Заполняем модальное окно данными
         document.getElementById('modalDay').value = this.dataset.day;
         document.getElementById('modalTimeStart').value = this.dataset.timeStart;
         document.getElementById('modalTimeEnd').value = this.dataset.timeEnd;
@@ -317,6 +346,7 @@ scheduleCells.forEach(cell => {
         document.getElementById('modalTeacherId').value = dragging.dataset.teacherId;
         document.getElementById('modalTeacherName').value = dragging.dataset.teacherName;
         
+        // Очищаем форму
         document.getElementById('modalLessonType').value = '';
         document.getElementById('modalClassroom').value = '';
         document.getElementById('conflictWarnings').classList.add('d-none');
@@ -325,6 +355,7 @@ scheduleCells.forEach(cell => {
     });
 });
 
+// Сохранение слота
 document.getElementById('saveSlotBtn').addEventListener('click', async function() {
     const lessonType = document.getElementById('modalLessonType').value;
     const classroom = document.getElementById('modalClassroom').value;
@@ -339,13 +370,19 @@ document.getElementById('saveSlotBtn').addEventListener('click', async function(
         return;
     }
     
+    // Показываем индикатор загрузки
+    const btnText = this.querySelector('.btn-text');
+    const btnSpinner = this.querySelector('.btn-spinner');
+    btnText.classList.add('d-none');
+    btnSpinner.classList.remove('d-none');
+    this.disabled = true;
+    
+    // ✅ ИСПРАВЛЕНО: Используем FormData вместо обычных данных
     const formData = new FormData();
-    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    formData.append('semester', semesterId);
     formData.append('group', groupId);
     formData.append('subject', document.getElementById('modalSubjectId').value);
     formData.append('lesson_type', lessonType);
-    formData.append('teacher', document.getElementById('modalTeacherId').value);
+    formData.append('teacher', document.getElementById('modalTeacherId').value || '');
     formData.append('day_of_week', document.getElementById('modalDay').value);
     formData.append('start_time', document.getElementById('modalTimeStart').value);
     formData.append('end_time', document.getElementById('modalTimeEnd').value);
@@ -354,21 +391,44 @@ document.getElementById('saveSlotBtn').addEventListener('click', async function(
     try {
         const response = await fetch('{% url "schedule:add_slot" %}', {
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
             body: formData,
         });
         
         if (response.ok) {
+            // Успешно сохранено - перезагружаем страницу
             location.reload();
         } else {
+            // Показываем ошибку
             const text = await response.text();
-            alert('Ошибка при сохранении: ' + text);
+            console.error('Server response:', text);
+            
+            // Пытаемся извлечь сообщение об ошибке
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = text;
+            const errorMsg = tempDiv.textContent || 'Ошибка при сохранении';
+            
+            alert('Ошибка: ' + errorMsg);
+            
+            // Возвращаем кнопку в нормальное состояние
+            btnText.classList.remove('d-none');
+            btnSpinner.classList.add('d-none');
+            this.disabled = false;
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Ошибка сети');
+        console.error('Network error:', error);
+        alert('Ошибка сети: ' + error.message);
+        
+        // Возвращаем кнопку в нормальное состояние
+        btnText.classList.remove('d-none');
+        btnSpinner.classList.add('d-none');
+        this.disabled = false;
     }
 });
 
+// Удаление слота
 deleteButtons.forEach(btn => {
     btn.addEventListener('click', async function(e) {
         e.stopPropagation();
@@ -378,10 +438,10 @@ deleteButtons.forEach(btn => {
         const slotId = this.dataset.slotId;
         
         try {
-            const response = await fetch(`/schedule/slot/${slotId}/delete/`, {
+            const response = await fetch(`{% url 'schedule:delete_slot' 0 %}`.replace('0', slotId), {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-CSRFToken': csrftoken,
                 },
             });
             
@@ -395,6 +455,13 @@ deleteButtons.forEach(btn => {
             alert('Ошибка сети');
         }
     });
+});
+
+// Закрытие модального окна при нажатии Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal._isShown) {
+        modal.hide();
+    }
 });
 </script>
 {% endblock %}

@@ -265,15 +265,14 @@ def add_user(request):
     if request.method == 'POST':
         user_form = UserCreateForm(request.POST, request.FILES)
         
-
-
-        
         if user_form.is_valid():
             with transaction.atomic():
                 user = user_form.save()
                 
                 role = user_form.cleaned_data['role']
                 
+                # ✅ ИСПРАВЛЕНО: Профили создаются автоматически через сигнал post_save
+                # Просто проверяем, что они создались
                 try:
                     if role == 'STUDENT':
                         # Проверяем, не существует ли уже профиль студента
@@ -299,20 +298,17 @@ def add_user(request):
                                 residence_address=''
                             )
                     elif role == 'TEACHER':
-                        # Проверяем, не существует ли уже профиль преподавателя
-                        if not hasattr(user, 'teacher_profile'):
-                            Teacher.objects.create(user=user)
+                        # Проверяем через get_or_create (на случай если сигнал не сработал)
+                        Teacher.objects.get_or_create(user=user)
                     elif role == 'DEAN':
-                        # Проверяем, не существует ли уже профиль декана
-                        if not hasattr(user, 'dean_profile'):
-                            Dean.objects.create(user=user)
+                        # Проверяем через get_or_create (на случай если сигнал не сработал)
+                        Dean.objects.get_or_create(user=user)
                     
                     messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123')
                     return redirect('accounts:user_management')
                     
-                except IntegrityError as e:
-                    messages.error(request, f'Ошибка при создании профиля: пользователь с таким профилем уже существует')
-                    # Откатываем транзакцию, удаляя созданного пользователя
+                except Exception as e:
+                    messages.error(request, f'Ошибка при создании профиля: {str(e)}')
                     raise
     else:
         user_form = UserCreateForm()

@@ -5,16 +5,18 @@ from accounts.models import Group, Teacher
 class SubjectForm(forms.ModelForm):
     class Meta:
         model = Subject
-        fields = ['name', 'code', 'credits', 'teacher', 'description']
+        fields = ['name', 'code', 'credits', 'hours_per_semester', 'teacher', 'description']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'code': forms.TextInput(attrs={'class': 'form-control'}),
             'credits': forms.NumberInput(attrs={'class': 'form-control', 'min': 3, 'step': 3}),
+            'hours_per_semester': forms.NumberInput(attrs={'class': 'form-control', 'min': 3, 'step': 3}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         help_texts = {
-            'credits': 'Кредиты должны быть кратны 3 (делятся поровну между Лекцией, Практикой и СРСП)'
+            'credits': 'Кредиты должны быть кратны 3 (делятся поровну между Лекцией, Практикой и СРСП)',
+            'hours_per_semester': 'Часы за семестр должны быть кратны 3 (делятся поровну между Лекцией, Практикой и СРСП)'
         }
     
     def clean_credits(self):
@@ -22,6 +24,12 @@ class SubjectForm(forms.ModelForm):
         if credits % 3 != 0:
             raise forms.ValidationError('Кредиты должны быть кратны 3 (например: 3, 6, 9, 12)')
         return credits
+    
+    def clean_hours_per_semester(self):
+        hours = self.cleaned_data['hours_per_semester']
+        if hours % 3 != 0:
+            raise forms.ValidationError('Часы за семестр должны быть кратны 3 (например: 30, 60, 90)')
+        return hours
 
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:

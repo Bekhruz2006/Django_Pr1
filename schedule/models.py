@@ -16,6 +16,13 @@ class Subject(models.Model):
         validators=[MinValueValidator(3)],
         verbose_name="Кредиты (часы в неделю)"
     )
+    # 🆕 НОВОЕ ПОЛЕ: Часы за семестр
+    hours_per_semester = models.IntegerField(
+        validators=[MinValueValidator(1)],
+        verbose_name="Часов за семестр",
+        default=0,
+        help_text="Общее количество часов за весь семестр"
+    )
     teacher = models.ForeignKey(
         Teacher,
         on_delete=models.SET_NULL,
@@ -35,11 +42,21 @@ class Subject(models.Model):
         return f"{self.name}"
     
     def get_credits_distribution(self):
+        """Распределение кредитов по типам занятий"""
         credits_per_type = self.credits // 3
         return {
             'LECTURE': credits_per_type,
             'PRACTICE': credits_per_type,
             'SRSP': credits_per_type
+        }
+    
+    def get_hours_distribution(self):
+        """Распределение часов за семестр по типам занятий"""
+        hours_per_type = self.hours_per_semester // 3
+        return {
+            'LECTURE': hours_per_type,
+            'PRACTICE': hours_per_type,
+            'SRSP': hours_per_type
         }
 
 class Classroom(models.Model):

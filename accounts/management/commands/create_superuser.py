@@ -1,4 +1,3 @@
-# accounts/management/commands/create_superuser.py
 from django.core.management.base import BaseCommand
 from accounts.models import User, Dean
 
@@ -26,9 +25,15 @@ class Command(BaseCommand):
             role='DEAN'  # ✅ Обязательно указываем роль
         )
         
-        # Создаем профиль декана
-        Dean.objects.create(user=user)
-        
-        self.stdout.write(self.style.SUCCESS(
-            f'Суперпользователь {username} (декан) успешно создан!'
-        ))
+        # ✅ ИСПРАВЛЕНО: НЕ создаем профиль вручную!
+        # Профиль Dean уже создан автоматически через сигнал post_save
+        if hasattr(user, 'dean_profile'):
+            self.stdout.write(self.style.SUCCESS(
+                f'Суперпользователь {username} (декан) успешно создан! Профиль создан автоматически.'
+            ))
+        else:
+            # На случай если сигнал не сработал - создаем вручную
+            Dean.objects.get_or_create(user=user)
+            self.stdout.write(self.style.SUCCESS(
+                f'Суперпользователь {username} (декан) успешно создан! Профиль создан вручную.'
+            ))

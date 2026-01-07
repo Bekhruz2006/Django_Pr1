@@ -32,7 +32,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Кредиты (часы в неделю) *</label>
                             {{ form.credits }}
                             <small class="form-text text-muted">Должны быть кратны 3 (например: 3, 6, 9)</small>
@@ -41,7 +41,16 @@
                             {% endif %}
                         </div>
                         
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">🆕 Часов за семестр *</label>
+                            {{ form.hours_per_semester }}
+                            <small class="form-text text-muted">Должны быть кратны 3 (например: 30, 60, 90)</small>
+                            {% if form.hours_per_semester.errors %}
+                                <div class="text-danger">{{ form.hours_per_semester.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Преподаватель</label>
                             {{ form.teacher }}
                             {% if form.teacher.errors %}
@@ -57,13 +66,21 @@
                     
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> 
-                        <strong>Распределение кредитов:</strong><br>
-                        Кредиты автоматически делятся поровну между тремя типами занятий:
+                        <strong>Распределение кредитов и часов:</strong><br>
+                        Кредиты и часы автоматически делятся поровну между тремя типами занятий:
                         <ul class="mb-0 mt-2">
-                            <li>Лекция</li>
-                            <li>Практика</li>
-                            <li>СРСП (КМРО)</li>
+                            <li><strong>Лекция</strong> (1/3 от общего)</li>
+                            <li><strong>Практика</strong> (1/3 от общего)</li>
+                            <li><strong>СРСП (КМРО)</strong> (1/3 от общего)</li>
                         </ul>
+                        <div class="mt-2">
+                            <strong>Пример:</strong> Если указать 6 кредитов и 90 часов, то:
+                            <ul class="mb-0">
+                                <li>Лекция: 2 часа в неделю, 30 часов за семестр</li>
+                                <li>Практика: 2 часа в неделю, 30 часов за семестр</li>
+                                <li>СРСП: 2 часа в неделю, 30 часов за семестр</li>
+                            </ul>
+                        </div>
                     </div>
                     
                     <div class="d-flex gap-2">
