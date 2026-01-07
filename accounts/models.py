@@ -230,6 +230,10 @@ class GroupTransferHistory(models.Model):
     def __str__(self):
         return f"{self.student}: {self.from_group} → {self.to_group}"
 
+# ===============================================
+# КОНЕЦ ФАЙЛА accounts/models.py (после сигналов)
+# ===============================================
+
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -275,13 +279,6 @@ def create_user_profile(sender, instance, created, **kwargs):
             Teacher.objects.get_or_create(user=instance)
         elif instance.role == 'DEAN':
             Dean.objects.get_or_create(user=instance)
-
-
-
-
-
-
-
 
 
 
