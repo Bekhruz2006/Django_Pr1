@@ -16,12 +16,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'accounts.apps.AccountsConfig',
-    'journal.apps.JournalConfig',
-    'schedule.apps.ScheduleConfig',
-    'news.apps.NewsConfig',  
-    'chat.apps.ChatConfig',  
-    'core.apps.CoreConfig',
+    
+    # ВАШИ ПРИЛОЖЕНИЯ - ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ!
+    'accounts.apps.AccountsConfig',      # ← ПРОВЕРЬТЕ
+    'journal.apps.JournalConfig',        # ← ПРОВЕРЬТЕ
+    'schedule.apps.ScheduleConfig',      # ← ПРОВЕРЬТЕ
+    'news.apps.NewsConfig',              # ← ПРОВЕРЬТЕ
+    'chat.apps.ChatConfig',              # ← ПРОВЕРЬТЕ
+    'core.apps.CoreConfig',              # ← ПРОВЕРЬТЕ
 ]
 
 MIDDLEWARE = [
