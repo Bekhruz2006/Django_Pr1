@@ -31,5 +31,13 @@ urlpatterns = [
     path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),
     path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
     
+
+    path('constructor/', views.schedule_constructor, name='constructor'),
+    
+    # AJAX endpoints для конструктора
+    path('constructor/create/', views.create_schedule_slot, name='create_slot'),
+    path('constructor/delete/<int:slot_id>/', views.delete_schedule_slot, name='delete_slot'),
+
+
     path('groups/', views.group_list, name='group_list'),
 ]

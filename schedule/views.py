@@ -19,6 +19,249 @@ from .forms import SubjectForm, ScheduleSlotForm, ScheduleExceptionForm, Semeste
 from accounts.models import Group, Student, Teacher
 
 
+
+
+# Добавьте эти функции в schedule/views.py
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+import json
+
+@login_required
+@require_POST
+def create_schedule_slot(request):
+    """
+    AJAX endpoint для создания нового занятия в расписании
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Получаем данные из запроса
+        group_id = data.get('group')
+        subject_id = data.get('subject')
+        day_of_week = data.get('day_of_week')
+        time_slot_id = data.get('time_slot')
+        
+        print(f"Creating slot: group={group_id}, subject={subject_id}, day={day_of_week}, time={time_slot_id}")
+        
+        # Валидация данных
+        if not all([group_id, subject_id, day_of_week is not None, time_slot_id]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Не хватает обязательных данных'
+            }, status=400)
+        
+        # Проверяем, существует ли уже занятие в этой ячейке
+        existing_slot = ScheduleSlot.objects.filter(
+            group_id=group_id,
+            day_of_week=day_of_week,
+            time_slot_id=time_slot_id
+        ).first()
+        
+        if existing_slot:
+            return JsonResponse({
+                'success': False,
+                'error': 'В этой ячейке уже есть занятие'
+            }, status=400)
+        
+        # Получаем объекты
+        try:
+            group = Group.objects.get(id=group_id)
+            subject = Subject.objects.get(id=subject_id)
+            time_slot = TimeSlot.objects.get(id=time_slot_id)
+        except (Group.DoesNotExist, Subject.DoesNotExist, TimeSlot.DoesNotExist) as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Объект не найден: {str(e)}'
+            }, status=404)
+        
+        # Создаем новое занятие
+        schedule_slot = ScheduleSlot.objects.create(
+            group=group,
+            subject=subject,
+            day_of_week=day_of_week,
+            time_slot=time_slot,
+            teacher=subject.teacher,  # Берем преподавателя из предмета
+            room=None  # Можно добавить выбор аудитории позже
+        )
+        
+        # Формируем ответ
+        response_data = {
+            'success': True,
+            'slot': {
+                'id': schedule_slot.id,
+                'subject_name': schedule_slot.subject.name,
+                'teacher_name': schedule_slot.teacher.user.get_full_name() if schedule_slot.teacher else 'Не назначен',
+                'room': schedule_slot.room if schedule_slot.room else None,
+                'day_of_week': schedule_slot.day_of_week,
+                'time_slot': schedule_slot.time_slot.id
+            }
+        }
+        
+        print(f"Slot created successfully: {schedule_slot.id}")
+        return JsonResponse(response_data)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Неверный формат JSON'
+        }, status=400)
+    except Exception as e:
+        print(f"Error creating slot: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'Ошибка сервера: {str(e)}'
+        }, status=500)
+
+
+
+
+# Добавьте эту функцию в schedule/views.py
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+import json
+
+@login_required
+@require_POST
+def update_schedule_room(request, slot_id):
+    """
+    AJAX endpoint для обновления номера кабинета
+    """
+    try:
+        data = json.loads(request.body)
+        room = data.get('room', '').strip()
+        
+        # Находим занятие
+        schedule_slot = ScheduleSlot.objects.get(id=slot_id)
+        
+        # Обновляем кабинет
+        schedule_slot.room = room if room else None
+        schedule_slot.save()
+        
+        print(f"Updated room for slot {slot_id}: {room}")
+        
+        return JsonResponse({
+            'success': True,
+            'room': schedule_slot.room or 'Не указан'
+        })
+        
+    except ScheduleSlot.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Занятие не найдено'
+        }, status=404)
+    except Exception as e:
+        print(f"Error updating room: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Ошибка: {str(e)}'
+        }, status=500)
+
+
+
+
+
+@login_required
+@require_POST
+def delete_schedule_slot(request, slot_id):
+    """
+    AJAX endpoint для удаления занятия из расписания
+    """
+    try:
+        # Находим занятие
+        schedule_slot = ScheduleSlot.objects.get(id=slot_id)
+        
+        # Проверяем права доступа (опционально)
+        # Например, только деканы и администраторы могут удалять
+        if not (request.user.is_staff or 
+                hasattr(request.user, 'dean_profile') or
+                request.user.is_superuser):
+            return JsonResponse({
+                'success': False,
+                'error': 'У вас нет прав для удаления занятий'
+            }, status=403)
+        
+        # Удаляем
+        schedule_slot.delete()
+        
+        print(f"Slot {slot_id} deleted successfully")
+        return JsonResponse({
+            'success': True,
+            'message': 'Занятие удалено'
+        })
+        
+    except ScheduleSlot.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Занятие не найдено'
+        }, status=404)
+    except Exception as e:
+        print(f"Error deleting slot: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Ошибка сервера: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def schedule_constructor(request):
+    """
+    Основной view для конструктора расписания
+    """
+    # Получаем выбранную группу
+    selected_group_id = request.GET.get('group')
+    
+    # Получаем все группы для фильтра
+    groups = Group.objects.all().order_by('name')
+    
+    # Получаем все временные слоты
+    time_slots = TimeSlot.objects.all().order_by('start_time')
+    
+    # Получаем все предметы
+    subjects = Subject.objects.select_related('teacher__user').all()
+    
+    # Дни недели
+    days = [
+        (0, 'Понедельник'),
+        (1, 'Вторник'),
+        (2, 'Среда'),
+        (3, 'Четверг'),
+        (4, 'Пятница'),
+        (5, 'Суббота'),
+    ]
+    
+    # Если группа выбрана, получаем её расписание
+    schedule_slots = []
+    selected_group = None
+    
+    if selected_group_id:
+        try:
+            selected_group = Group.objects.get(id=selected_group_id)
+            schedule_slots = ScheduleSlot.objects.filter(
+                group=selected_group
+            ).select_related('subject', 'teacher__user', 'time_slot')
+        except Group.DoesNotExist:
+            pass
+    
+    context = {
+        'groups': groups,
+        'selected_group': selected_group,
+        'time_slots': time_slots,
+        'subjects': subjects,
+        'days': days,
+        'schedule_slots': schedule_slots,
+    }
+    
+    return render(request, 'schedule/constructor_new.html', context)
+
+
+
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
 
