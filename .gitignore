@@ -1,4 +1,3 @@
-
 *.py[cod]
 *$py.class
 *.so
@@ -30,5 +29,6 @@ db.sqlite3-journal
 .env
 .env.local
 
-/migrations/*.py
-/migrations/__init__.py
+# ✅ ИСПРАВЛЕНО: Игнорируем файлы миграций, но НЕ __init__.py
+*/migrations/[0-9]*.py
+# НЕ игнорируем __init__.py в migrations!

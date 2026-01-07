@@ -4,10 +4,11 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User, Group, Teacher
 from datetime import timedelta
 
+# schedule/models.py - ИСПРАВЛЕННАЯ МОДЕЛЬ Subject
+
 class Subject(models.Model):
     """Учебный предмет"""
     
-    # ✅ ДОБАВЛЕНО: TYPE_CHOICES для типов занятий
     TYPE_CHOICES = [
         ('LECTURE', 'Лекция'),
         ('PRACTICE', 'Практика'),
@@ -17,7 +18,6 @@ class Subject(models.Model):
     name = models.CharField(max_length=200, verbose_name="Название")
     code = models.CharField(max_length=20, unique=True, verbose_name="Код")
     
-    # ✅ ИСПРАВЛЕНО: Тип занятия теперь является полем модели
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
@@ -27,7 +27,19 @@ class Subject(models.Model):
     
     credits = models.IntegerField(verbose_name="Кредиты")
     hours_per_semester = models.IntegerField(default=0, verbose_name="Часов в семестр")
-    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Преподаватель")
+    teacher = models.ForeignKey(
+        'accounts.Teacher', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Преподаватель"
+    )
+    
+    # ✅ ДОБАВЬТЕ ЭТО ПОЛЕ
+    description = models.TextField(
+        blank=True, 
+        verbose_name="Описание"
+    )
     
     class Meta:
         verbose_name = "Предмет"
@@ -62,7 +74,6 @@ class Subject(models.Model):
             'PRACTICE': 'success',
             'SRSP': 'warning'
         }.get(self.type, 'secondary')
-
 
 # ✅ ДОБАВЛЕНО: Модель TimeSlot для временных слотов
 class TimeSlot(models.Model):
