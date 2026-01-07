@@ -7,7 +7,6 @@ from datetime import timedelta
 # schedule/models.py - ИСПРАВЛЕННАЯ МОДЕЛЬ Subject
 
 class Subject(models.Model):
-    """Учебный предмет"""
     
     TYPE_CHOICES = [
         ('LECTURE', 'Лекция'),
