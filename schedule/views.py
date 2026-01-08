@@ -335,22 +335,41 @@ def update_schedule_room(request, slot_id):
     try:
         data = json.loads(request.body)
         room = data.get('room', '').strip()
-
+        
+        print(f"🔍 Попытка сохранить кабинет: '{room}' для слота {slot_id}")
+        
         schedule_slot = ScheduleSlot.objects.get(id=slot_id)
+        
+        # Валидация существования кабинета
+        if room:  # Если номер кабинета указан
+            classroom_exists = Classroom.objects.filter(number=room, is_active=True).exists()
+            print(f"📋 Кабинет {room} существует: {classroom_exists}")
+            
+            if not classroom_exists:
+                print(f"❌ Кабинет {room} НЕ найден в базе")
+                return JsonResponse({
+                    'success': False,
+                    'error': f'❌ Кабинет {room} не найден в базе данных. Добавьте его в разделе "Управление кабинетами".'
+                }, status=400)
+        
         schedule_slot.room = room if room else None
         schedule_slot.save()
-
+        
+        print(f"✅ Кабинет сохранен: {schedule_slot.room}")
+        
         return JsonResponse({
             'success': True,
             'room': schedule_slot.room or '?'
         })
 
     except ScheduleSlot.DoesNotExist:
+        print(f"❌ Слот {slot_id} не найден")
         return JsonResponse({
             'success': False,
             'error': 'Занятие не найдено'
         }, status=404)
     except Exception as e:
+        print(f"💥 Ошибка: {e}")
         return JsonResponse({
             'success': False,
             'error': f'Ошибка: {str(e)}'
