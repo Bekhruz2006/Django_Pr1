@@ -4,11 +4,16 @@ from . import views
 app_name = 'schedule'
 
 urlpatterns = [
+    # Просмотр расписания (единый формат)
     path('', views.schedule_view, name='view'),
+    
+    # Сегодняшние занятия (виджет)
     path('today/', views.today_classes, name='today'),
+    
+    # Экспорт расписания
     path('export/', views.export_schedule, name='export'),
     
-    # Конструктор расписания
+    # Конструктор расписания (ОДИН для одной группы)
     path('constructor/', views.schedule_constructor, name='constructor'),
     
     # AJAX endpoints для конструктора
@@ -36,9 +41,7 @@ urlpatterns = [
     path('classrooms/add/', views.add_classroom, name='add_classroom'),
     path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),
     path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
-    # Добавить в urlpatterns:
-    path('constructor/new/', views.schedule_constructor_new, name='constructor_new'),
-    path('export/new-format/', views.export_schedule_new_format, name='export_new_format'),
+    
     # Список групп
     path('groups/', views.group_list, name='group_list'),
 ]
