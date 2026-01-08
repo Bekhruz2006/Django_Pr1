@@ -256,29 +256,26 @@ def delete_schedule_slot(request, slot_id):
 
 @login_required
 def schedule_view(request):
+    """Просмотр расписания в новом формате"""
     user = request.user
     group = None
-    schedule_slots = []
+    schedule_data = {}
     active_semester = Semester.get_active()
 
     if not active_semester:
         messages.warning(request, 'Активный семестр не найден.')
         return render(request, 'schedule/no_semester.html')
 
+    # Определяем группу
     if user.role == 'STUDENT':
         try:
             student = user.student_profile
             group = student.group
-            if group:
-                schedule_slots = ScheduleSlot.objects.filter(
-                    group=group,
-                    semester=active_semester,
-                    is_active=True
-                ).select_related('subject', 'teacher__user', 'classroom', 'group').order_by('day_of_week', 'start_time')
         except Student.DoesNotExist:
             pass
-
+    
     elif user.role == 'TEACHER':
+        # Для преподавателя используем старый вид (список дней)
         try:
             teacher = user.teacher_profile
             schedule_slots = ScheduleSlot.objects.filter(
@@ -286,39 +283,90 @@ def schedule_view(request):
                 semester=active_semester,
                 is_active=True
             ).select_related('subject', 'group', 'classroom').order_by('day_of_week', 'start_time')
+            
+            schedule_by_day = {}
+            for slot in schedule_slots:
+                day = slot.get_day_of_week_display()
+                if day not in schedule_by_day:
+                    schedule_by_day[day] = []
+                schedule_by_day[day].append(slot)
+            
+            return render(request, 'schedule/schedule_view.html', {
+                'schedule_by_day': schedule_by_day,
+                'schedule_slots': schedule_slots,
+                'active_semester': active_semester,
+            })
         except Teacher.DoesNotExist:
             pass
 
     elif user.role == 'DEAN':
         group_id = request.GET.get('group')
         groups = Group.objects.all()
-
+        
         if group_id:
             group = get_object_or_404(Group, id=group_id)
-            schedule_slots = ScheduleSlot.objects.filter(
-                group=group,
-                semester=active_semester,
-                is_active=True
-            ).select_related('subject', 'teacher__user', 'classroom').order_by('day_of_week', 'start_time')
-
-        return render(request, 'schedule/schedule_dean.html', {
+        
+        # Возвращаем список групп для выбора
+        context = {
             'groups': groups,
-            'selected_group': group,
-            'schedule_slots': schedule_slots,
+            'group': group,
+            'active_semester': active_semester,
+        }
+        
+        if not group:
+            return render(request, 'schedule/schedule_view_new.html', context)
+
+    # Если группа определена - показываем расписание
+    if group:
+        # Получаем временные слоты в зависимости от смены группы
+        if active_semester.shift == 'MORNING':
+            # Утренняя смена: 08:00 - 13:50
+            time_slots = TimeSlot.objects.filter(
+                start_time__gte='08:00:00',
+                start_time__lte='13:00:00'
+            ).order_by('start_time')
+        else:  # DAY
+            # Дневная смена: 13:00 - 18:50
+            time_slots = TimeSlot.objects.filter(
+                start_time__gte='13:00:00',
+                start_time__lte='18:00:00'
+            ).order_by('start_time')
+        
+        # Дни недели
+        days = [
+            (0, 'ДУШАНБЕ'),
+            (1, 'СЕШАНБЕ'),
+            (2, 'ЧОРШАНБЕ'),
+            (3, 'ПАНҶШАНБЕ'),
+            (4, 'ҶУМЪА'),
+            (5, 'ШАНБЕ'),
+        ]
+        
+        # Получаем расписание для группы
+        slots = ScheduleSlot.objects.filter(
+            group=group,
+            semester=active_semester,
+            is_active=True
+        ).select_related('subject', 'teacher__user', 'time_slot')
+        
+        # Формируем словарь расписания
+        schedule_data[group.id] = {}
+        for slot in slots:
+            if slot.day_of_week not in schedule_data[group.id]:
+                schedule_data[group.id][slot.day_of_week] = {}
+            schedule_data[group.id][slot.day_of_week][slot.time_slot.id] = slot
+        
+        return render(request, 'schedule/schedule_view_new.html', {
+            'group': group,
+            'groups': Group.objects.all() if user.role == 'DEAN' else None,
+            'days': days,
+            'time_slots': time_slots,
+            'schedule_data': schedule_data,
             'active_semester': active_semester,
         })
-
-    schedule_by_day = {}
-    for slot in schedule_slots:
-        day = slot.get_day_of_week_display()
-        if day not in schedule_by_day:
-            schedule_by_day[day] = []
-        schedule_by_day[day].append(slot)
-
-    return render(request, 'schedule/schedule_view.html', {
-        'group': group,
-        'schedule_by_day': schedule_by_day,
-        'schedule_slots': schedule_slots,
+    
+    return render(request, 'schedule/schedule_view_new.html', {
+        'groups': Group.objects.all() if user.role == 'DEAN' else None,
         'active_semester': active_semester,
     })
 
@@ -748,206 +796,230 @@ def export_schedule(request):
 
 @login_required
 @user_passes_test(is_dean)
-def schedule_constructor_new(request):
-    """Новый конструктор расписания в формате таблицы"""
-    group1_id = request.GET.get('group1')
-    group2_id = request.GET.get('group2')
-    
+def schedule_constructor(request):
+    """Конструктор расписания для одной группы"""
+    selected_group_id = request.GET.get('group')
+
     groups = Group.objects.all().order_by('name')
     subjects = Subject.objects.select_related('teacher__user').all()
-    time_slots = TimeSlot.objects.all().order_by('start_time')
     
-    group1 = Group.objects.get(id=group1_id) if group1_id else None
-    group2 = Group.objects.get(id=group2_id) if group2_id else None
-    
-    days = [
-        (0, 'ДУШАНБЕ'),
-        (1, 'СЕШАНБЕ'),
-        (2, 'ЧОРШАНБЕ'),
-        (3, 'ПАНҶШАНБЕ'),
-        (4, 'ҶУМЪА'),
-        (5, 'ШАНБЕ'),
-    ]
-    
-    active_semester = Semester.get_active()
     schedule_data = {}
-    
-    if active_semester:
-        for group in [group1, group2]:
-            if group:
-                schedule_data[group.id] = {}
-                slots = ScheduleSlot.objects.filter(
-                    group=group,
-                    semester=active_semester,
-                    is_active=True
-                ).select_related('subject', 'teacher__user', 'time_slot')
-                
-                for slot in slots:
-                    if slot.day_of_week not in schedule_data[group.id]:
-                        schedule_data[group.id][slot.day_of_week] = {}
-                    schedule_data[group.id][slot.day_of_week][slot.time_slot.id] = slot
-    
-    colspan = 1
-    if group1:
-        colspan += 2
-    if group2:
-        colspan += 2
-    
-    context = {
-        'groups': groups,
-        'subjects': subjects,
-        'time_slots': time_slots,
-        'group1': group1,
-        'group2': group2,
-        'days': days,
-        'schedule_data': schedule_data,
-        'colspan': colspan,
-    }
-    
-    return render(request, 'schedule/constructor_new.html', context)
+    selected_group = None
+    time_slots = []
+    days = []
 
-
-@login_required
-@user_passes_test(is_dean)
-def export_schedule_new_format(request):
-    """Экспорт расписания в новом формате"""
-    if not DOCX_AVAILABLE:
-        messages.error(request, 'python-docx не установлен')
-        return redirect('schedule:constructor_new')
-    
-    group1_id = request.GET.get('group1')
-    group2_id = request.GET.get('group2')
-    
-    if not group1_id and not group2_id:
-        messages.error(request, 'Выберите хотя бы одну группу')
-        return redirect('schedule:constructor_new')
-    
-    group1 = Group.objects.get(id=group1_id) if group1_id else None
-    group2 = Group.objects.get(id=group2_id) if group2_id else None
-    
-    doc = Document()
-    
-    heading = doc.add_heading('ҶАДВАЛИ ДАРСӢ', 0)
-    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
     active_semester = Semester.get_active()
-    if active_semester:
-        info = doc.add_paragraph()
-        info.add_run(f'Семестр: {active_semester.name}\n').bold = True
-        info.add_run(f'Смена: {active_semester.get_shift_display()}\n')
-        info.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    num_cols = 1
-    if group1:
-        num_cols += 2
-    if group2:
-        num_cols += 2
-    
-    table = doc.add_table(rows=1, cols=num_cols)
-    table.style = 'Table Grid'
-    
-    header_row = table.rows[0]
-    col_idx = 0
-    
-    cell = header_row.cells[col_idx]
-    cell.text = 'ҲАФТА\nСОАТ'
-    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    col_idx += 1
-    
-    if group1:
-        cell = header_row.cells[col_idx]
-        cell.text = f'{group1.name}\n{group1.specialty[:40]} ({group1.students.count()} нафар)'
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        col_idx += 1
-        
-        cell = header_row.cells[col_idx]
-        cell.text = 'АУД'
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        col_idx += 1
-    
-    if group2:
-        cell = header_row.cells[col_idx]
-        cell.text = f'{group2.name}\n{group2.specialty[:40]} ({group2.students.count()} нафар)'
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        col_idx += 1
-        
-        cell = header_row.cells[col_idx]
-        cell.text = 'АУД'
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    time_slots = TimeSlot.objects.all().order_by('start_time')
-    days = [
-        (0, 'ДУШАНБЕ'),
-        (1, 'СЕШАНБЕ'),
-        (2, 'ЧОРШАНБЕ'),
-        (3, 'ПАНҶШАНБЕ'),
-        (4, 'ҶУМЪА'),
-        (5, 'ШАНБЕ'),
-    ]
-    
-    schedule_dict = {}
-    for group in [group1, group2]:
-        if group and active_semester:
-            schedule_dict[group.id] = {}
-            slots = ScheduleSlot.objects.filter(
-                group=group,
+    if not active_semester:
+        messages.error(request, 'Сначала создайте и активируйте семестр')
+        return redirect('schedule:manage_semesters')
+
+    if selected_group_id:
+        try:
+            selected_group = Group.objects.get(id=selected_group_id)
+            
+            # Фильтруем временные слоты по смене семестра
+            if active_semester.shift == 'MORNING':
+                # Утренняя смена: 08:00 - 13:50
+                time_slots = TimeSlot.objects.filter(
+                    start_time__gte='08:00:00',
+                    start_time__lte='13:00:00'
+                ).order_by('start_time')
+            else:  # DAY
+                # Дневная смена: 13:00 - 18:50
+                time_slots = TimeSlot.objects.filter(
+                    start_time__gte='13:00:00',
+                    start_time__lte='18:00:00'
+                ).order_by('start_time')
+            
+            # Дни недели
+            days = [
+                (0, 'ДУШАНБЕ'),
+                (1, 'СЕШАНБЕ'),
+                (2, 'ЧОРШАНБЕ'),
+                (3, 'ПАНҶШАНБЕ'),
+                (4, 'ҶУМЪА'),
+                (5, 'ШАНБЕ'),
+            ]
+            
+            # Получаем существующее расписание
+            schedule_slots = ScheduleSlot.objects.filter(
+                group=selected_group,
                 semester=active_semester,
                 is_active=True
             ).select_related('subject', 'teacher__user', 'time_slot')
             
-            for slot in slots:
-                if slot.day_of_week not in schedule_dict[group.id]:
-                    schedule_dict[group.id][slot.day_of_week] = {}
-                schedule_dict[group.id][slot.day_of_week][slot.time_slot.id] = slot
+            # Формируем словарь расписания
+            schedule_data[selected_group.id] = {}
+            for slot in schedule_slots:
+                if slot.day_of_week not in schedule_data[selected_group.id]:
+                    schedule_data[selected_group.id][slot.day_of_week] = {}
+                schedule_data[selected_group.id][slot.day_of_week][slot.time_slot.id] = slot
+            
+        except Group.DoesNotExist:
+            pass
+
+    context = {
+        'groups': groups,
+        'group': selected_group,
+        'time_slots': time_slots,
+        'subjects': subjects,
+        'days': days,
+        'schedule_data': schedule_data,
+    }
+
+    return render(request, 'schedule/constructor_single.html', context)
+
+
+@login_required
+def export_schedule(request):
+    """Экспорт расписания в DOCX (новый формат)"""
+    if not DOCX_AVAILABLE:
+        messages.error(request, 'Библиотека python-docx не установлена')
+        return redirect('schedule:view')
+
+    user = request.user
+    group = None
+    active_semester = Semester.get_active()
+
+    if not active_semester:
+        messages.error(request, 'Активный семестр не найден')
+        return redirect('schedule:view')
+
+    # Определяем группу
+    if user.role == 'STUDENT':
+        try:
+            student = user.student_profile
+            group = student.group
+        except Student.DoesNotExist:
+            messages.error(request, 'Профиль студента не найден')
+            return redirect('schedule:view')
+
+    elif user.role == 'DEAN':
+        group_id = request.GET.get('group')
+        if group_id:
+            group = get_object_or_404(Group, id=group_id)
+
+    if not group:
+        messages.error(request, 'Группа не определена')
+        return redirect('schedule:view')
+
+    # Создаем документ
+    doc = Document()
     
+    # Заголовок
+    heading = doc.add_heading('ҶАДВАЛИ ДАРСӢ', 0)
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Информация о группе
+    info = doc.add_paragraph()
+    info.add_run(f'Группа: {group.name}\n').bold = True
+    info.add_run(f'{group.specialty}\n')
+    info.add_run(f'Количество студентов: {group.students.count()}\n')
+    info.add_run(f'Семестр: {active_semester.name}\n')
+    info.add_run(f'Смена: {active_semester.get_shift_display()}\n')
+    info.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Фильтруем временные слоты по смене
+    if active_semester.shift == 'MORNING':
+        time_slots = TimeSlot.objects.filter(
+            start_time__gte='08:00:00',
+            start_time__lte='13:00:00'
+        ).order_by('start_time')
+    else:
+        time_slots = TimeSlot.objects.filter(
+            start_time__gte='13:00:00',
+            start_time__lte='18:00:00'
+        ).order_by('start_time')
+    
+    # Дни недели
+    days = [
+        (0, 'ДУШАНБЕ'),
+        (1, 'СЕШАНБЕ'),
+        (2, 'ЧОРШАНБЕ'),
+        (3, 'ПАНҶШАНБЕ'),
+        (4, 'ҶУМЪА'),
+        (5, 'ШАНБЕ'),
+    ]
+    
+    # Получаем расписание
+    schedule_dict = {}
+    slots = ScheduleSlot.objects.filter(
+        group=group,
+        semester=active_semester,
+        is_active=True
+    ).select_related('subject', 'teacher__user', 'time_slot')
+    
+    for slot in slots:
+        if slot.day_of_week not in schedule_dict:
+            schedule_dict[slot.day_of_week] = {}
+        schedule_dict[slot.day_of_week][slot.time_slot.id] = slot
+    
+    # Создаем таблицу
+    table = doc.add_table(rows=1, cols=3)
+    table.style = 'Table Grid'
+    
+    # Заголовки таблицы
+    header_row = table.rows[0]
+    header_row.cells[0].text = 'ҲАФТА\nСОАТ'
+    header_row.cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_row.cells[0].paragraphs[0].runs[0].bold = True
+    
+    header_row.cells[1].text = 'Дарс / Устод'
+    header_row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_row.cells[1].paragraphs[0].runs[0].bold = True
+    
+    header_row.cells[2].text = 'АУД'
+    header_row.cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_row.cells[2].paragraphs[0].runs[0].bold = True
+    
+    # Устанавливаем ширину колонок
+    for cell in header_row.cells:
+        cell.width = Inches(2)
+    header_row.cells[0].width = Inches(0.8)  # ҲАФТА/СОАТ уже
+    header_row.cells[1].width = Inches(4)    # Дарс / Устод шире
+    header_row.cells[2].width = Inches(0.6)  # АУД узкая
+    
+    # Заполняем таблицу
     for day_num, day_name in days:
+        # Заголовок дня
         row = table.add_row()
         cell = row.cells[0]
         cell.text = day_name
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         cell.paragraphs[0].runs[0].bold = True
+        # Объединяем ячейки для заголовка дня
+        cell.merge(row.cells[1]).merge(row.cells[2])
         
-        for i in range(1, num_cols):
-            cell.merge(row.cells[i])
-        
+        # Временные слоты
         for time_slot in time_slots:
             row = table.add_row()
-            col_idx = 0
             
-            cell = row.cells[col_idx]
+            # Время
+            cell = row.cells[0]
             cell.text = f'{time_slot.start_time.strftime("%H%M")}-{time_slot.end_time.strftime("%H%M")}'
             cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            col_idx += 1
             
-            if group1:
-                slot = schedule_dict.get(group1.id, {}).get(day_num, {}).get(time_slot.id)
-                cell = row.cells[col_idx]
-                if slot:
-                    cell.text = f'{slot.subject.name} ({slot.subject.get_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
-                col_idx += 1
-                
-                cell = row.cells[col_idx]
-                if slot:
-                    cell.text = slot.room or ''
-                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                col_idx += 1
+            # Предмет и преподаватель
+            slot = schedule_dict.get(day_num, {}).get(time_slot.id)
+            cell = row.cells[1]
+            if slot:
+                cell.text = f'{slot.subject.name} ({slot.subject.get_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}\n{slot.subject.credits} кр. | {slot.subject.hours_per_semester} ч.'
+                # Уменьшаем размер текста с кредитами
+                for i, para in enumerate(cell.paragraphs):
+                    if i == 2:  # Третья строка с кредитами
+                        para.runs[0].font.size = Pt(8)
             
-            if group2:
-                slot = schedule_dict.get(group2.id, {}).get(day_num, {}).get(time_slot.id)
-                cell = row.cells[col_idx]
-                if slot:
-                    cell.text = f'{slot.subject.name} ({slot.subject.get_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
-                col_idx += 1
-                
-                cell = row.cells[col_idx]
-                if slot:
-                    cell.text = slot.room or ''
-                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # Аудитория
+            cell = row.cells[2]
+            if slot:
+                cell.text = slot.room or '—'
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     
+    # Сохраняем
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     )
-    filename = f'schedule_{datetime.now().strftime("%Y%m%d")}.docx'
+    filename = f'schedule_{group.name}_{datetime.now().strftime("%Y%m%d")}.docx'
     response['Content-Disposition'] = f'attachment; filename={filename}'
     
     doc.save(response)

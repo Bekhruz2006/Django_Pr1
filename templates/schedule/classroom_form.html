@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title|default:"Добавить кабинет" }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-door-open"></i> {{ title|default:"Добавить кабинет" }}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Номер кабинета *</label>
+                        {{ form.number }}
+                        {% if form.number.errors %}
+                            <div class="text-danger">{{ form.number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Этаж *</label>
+                            {{ form.floor }}
+                            {% if form.floor.errors %}
+                                <div class="text-danger">{{ form.floor.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Вместимость *</label>
+                            {{ form.capacity }}
+                            {% if form.capacity.errors %}
+                                <div class="text-danger">{{ form.capacity.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            Активен
+                        </label>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Сохранить
+                        </button>
+                        <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

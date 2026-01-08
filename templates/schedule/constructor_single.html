@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load schedule_filters %}
+
+{% block title %}Конструктор расписания{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <!-- Выбор группы -->
+    <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-people"></i> Выбор группы для составления расписания
+            </div>
+            <div class="card-body">
+                <form method="get" id="groupSelectionForm">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Группа</label>
+                            <select class="form-select" name="group" id="groupSelect">
+                                <option value="">Выбрать...</option>
+                                {% for g in groups %}
+                                    <option value="{{ g.id }}" 
+                                            {% if group and group.id == g.id %}selected{% endif %}>
+                                        {{ g.name }} - {{ g.specialty|truncatewords:5 }} ({{ g.students.count }} чел.)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-arrow-clockwise"></i> Загрузить
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if group %}
+    <!-- ЛЕВАЯ ПАНЕЛЬ: Предметы -->
+    <div class="col-lg-2">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-book"></i> Предметы
+            </div>
+            <div class="card-body p-0" style="max-height: 700px; overflow-y: auto;">
+                <div class="list-group list-group-flush" id="subjectsList">
+                    {% for subject in subjects %}
+                        <div class="list-group-item subject-item p-2"
+                             draggable="true"
+                             data-subject-id="{{ subject.id }}"
+                             data-subject-name="{{ subject.name }}"
+                             data-subject-type="{{ subject.get_type_display }}"
+                             data-teacher-name="{{ subject.teacher.user.get_full_name|default:'Не назначен' }}"
+                             data-credits="{{ subject.credits }}"
+                             data-hours="{{ subject.hours_per_semester }}"
+                             style="cursor: move; font-size: 0.8rem;">
+                            <strong>{{ subject.name }}</strong><br>
+                            <small class="text-muted">{{ subject.teacher.user.get_full_name|default:'—' }}</small><br>
+                            <span class="badge bg-{{ subject.get_color_class }}">{{ subject.get_type_display }}</span>
+                            <br><small class="text-muted">{{ subject.credits }} кр. | {{ subject.hours_per_semester }} ч.</small>
+                        </div>
+                    {% empty %}
+                        <div class="list-group-item text-muted small">Нет предметов</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ: Расписание -->
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-week"></i> ҶАДВАЛИ ДАРСӢ - {{ group.name }}</span>
+                <div>
+                    <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-light btn-sm">
+                        <i class="bi bi-calendar-range"></i> Недели
+                    </a>
+                    <a href="{% url 'schedule:export' %}?group={{ group.id }}" 
+                       class="btn btn-success btn-sm">
+                        <i class="bi bi-download"></i> Экспорт
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 schedule-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px; vertical-align: middle; text-align: center;">
+                                    <strong>ҲАФТА<br>СОАТ</strong>
+                                </th>
+                                <th style="width: 45%;">Дарс / Устод</th>
+                                <th style="width: 60px;">АУД</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day_num, day_name in days %}
+                                <!-- Заголовок дня -->
+                                <tr class="table-secondary">
+                                    <td colspan="3" class="text-center">
+                                        <strong>{{ day_name }}</strong>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Временные слоты для этого дня -->
+                                {% for time_slot in time_slots %}
+                                    <tr>
+                                        <td class="text-center align-middle time-cell">
+                                            <strong style="font-size: 0.9rem;">{{ time_slot.start_time|time:"H" }}<sup>{{ time_slot.start_time|time:"i" }}</sup>-{{ time_slot.end_time|time:"H" }}<sup>{{ time_slot.end_time|time:"i" }}</sup></strong>
+                                        </td>
+                                        
+                                        {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                        <td class="schedule-drop-zone p-2"
+                                            data-group-id="{{ group.id }}"
+                                            data-day="{{ day_num }}"
+                                            data-time-slot="{{ time_slot.id }}">
+                                            {% if slot %}
+                                            <div class="lesson-content" data-slot-id="{{ slot.id }}">
+                                                <strong style="font-size: 0.9rem;">{{ slot.subject.name }} ({{ slot.subject.get_type_display }})</strong><br>
+                                                <small class="text-muted">{{ slot.teacher.user.get_full_name|default:'—' }}</small><br>
+                                                <small class="text-muted">{{ slot.subject.credits }} кр. | {{ slot.subject.hours_per_semester }} ч.</small>
+                                                <button class="btn btn-sm btn-danger delete-slot float-end" 
+                                                        data-slot-id="{{ slot.id }}" 
+                                                        style="font-size: 0.7rem; padding: 2px 6px;">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="aud-cell align-middle text-center" 
+                                            style="font-size: 0.85rem; cursor: pointer;"
+                                            {% if slot %}data-slot-id="{{ slot.id }}"{% endif %}>
+                                            {% if slot %}
+                                            <div class="aud-display" onclick="editAud(this)">
+                                                <strong>{{ slot.room|default:'?' }}</strong>
+                                            </div>
+                                            <input type="text" 
+                                                   class="form-control form-control-sm aud-input" 
+                                                   value="{{ slot.room|default:'' }}"
+                                                   maxlength="10"
+                                                   style="display: none; width: 100%; font-size: 0.8rem;"
+                                                   onblur="saveAud(this, {{ slot.id }})"
+                                                   onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
+                                            {% endif %}
+                                        </td>
+                                        {% endwith %}
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Инструкция -->
+        <div class="alert alert-info mt-3">
+            <h6><i class="bi bi-info-circle"></i> Инструкция:</h6>
+            <ol class="mb-0">
+                <li>Перетащите предмет из левой панели в нужную ячейку</li>
+                <li>Нажмите на номер аудитории (АУД) чтобы изменить его</li>
+                <li>Система автоматически проверит конфликты</li>
+                <li>Для удаления нажмите <i class="bi bi-trash text-danger"></i></li>
+            </ol>
+        </div>
+    </div>
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> Выберите группу для составления расписания
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно конфликтов -->
+<div class="modal fade" id="conflictModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Конфликт</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="conflictMessage"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.schedule-table {
+    font-size: 0.85rem;
+}
+
+.schedule-table th, .schedule-table td {
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    vertical-align: top;
+}
+
+.time-cell {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.schedule-drop-zone {
+    min-height: 60px;
+    background-color: #fff;
+    border: 2px dashed transparent;
+    transition: all 0.2s;
+}
+
+.schedule-drop-zone:hover {
+    background-color: #f8f9fa;
+}
+
+.schedule-drop-zone.drag-over {
+    background-color: #d1e7dd;
+    border-color: #198754;
+    border-style: solid;
+}
+
+.lesson-content {
+    position: relative;
+    padding: 4px;
+}
+
+.aud-cell {
+    background-color: #f8f9fa;
+}
+
+.aud-display:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+
+.subject-item {
+    cursor: move;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.subject-item:hover {
+    background-color: #f0f0f0;
+    transform: translateX(3px);
+}
+
+.subject-item:active {
+    opacity: 0.5;
+}
+
+.delete-slot {
+    opacity: 0.7;
+}
+
+.delete-slot:hover {
+    opacity: 1;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Конструктор загружен');
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    let draggedData = {};
+
+    // DRAG AND DROP
+    const subjectItems = document.querySelectorAll('.subject-item');
+    subjectItems.forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            draggedData = {
+                subjectId: this.dataset.subjectId,
+                subjectName: this.dataset.subjectName,
+                subjectType: this.dataset.subjectType,
+                teacherName: this.dataset.teacherName,
+                credits: this.dataset.credits,
+                hours: this.dataset.hours
+            };
+            e.dataTransfer.effectAllowed = 'copy';
+            this.style.opacity = '0.4';
+        });
+
+        item.addEventListener('dragend', function() {
+            this.style.opacity = '1';
+        });
+    });
+
+    // Drop зоны
+    const dropZones = document.querySelectorAll('.schedule-drop-zone');
+    dropZones.forEach(cell => {
+        cell.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+
+        cell.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+
+        cell.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            const groupId = this.dataset.groupId;
+            const dayOfWeek = this.dataset.day;
+            const timeSlot = this.dataset.timeSlot;
+
+            if (!draggedData.subjectId) return;
+
+            createScheduleSlot(groupId, draggedData.subjectId, dayOfWeek, timeSlot, this);
+        });
+    });
+
+    // Создание занятия
+    function createScheduleSlot(groupId, subjectId, dayOfWeek, timeSlot, cellElement) {
+        const originalContent = cellElement.innerHTML;
+        cellElement.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
+
+        fetch('/schedule/constructor/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                group: groupId,
+                subject: subjectId,
+                day_of_week: dayOfWeek,
+                time_slot: timeSlot
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                cellElement.innerHTML = originalContent;
+                showConflictModal(data.error, data.conflicts || []);
+            }
+        })
+        .catch(error => {
+            cellElement.innerHTML = originalContent;
+            showNotification('❌ Ошибка: ' + error.message, 'danger');
+        });
+    }
+
+    // Удаление занятия
+    document.querySelectorAll('.delete-slot').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (!confirm('Удалить занятие?')) return;
+
+            const slotId = this.dataset.slotId;
+            fetch(`/schedule/constructor/delete/${slotId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    showNotification('❌ ' + data.error, 'danger');
+                }
+            });
+        });
+    });
+
+    function showConflictModal(message, conflicts) {
+        const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
+        const messageEl = document.getElementById('conflictMessage');
+        
+        let html = `<div class="alert alert-danger"><strong>${message}</strong></div>`;
+        if (conflicts && conflicts.length > 0) {
+            html += '<ul>';
+            conflicts.forEach(c => html += `<li>${c}</li>`);
+            html += '</ul>';
+        }
+        
+        messageEl.innerHTML = html;
+        modal.show();
+    }
+
+    function showNotification(message, type) {
+        let container = document.getElementById('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;';
+            document.body.appendChild(container);
+        }
+
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        container.appendChild(alert);
+
+        setTimeout(() => alert.remove(), 4000);
+    }
+});
+
+// Редактирование аудитории
+function editAud(element) {
+    const display = element;
+    const input = element.nextElementSibling;
+    
+    display.style.display = 'none';
+    input.style.display = 'block';
+    input.focus();
+    input.select();
+}
+
+function saveAud(input, slotId) {
+    const display = input.previousElementSibling;
+    const value = input.value.trim();
+    
+    fetch(`/schedule/constructor/update-room/${slotId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ room: value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            display.querySelector('strong').textContent = data.room || '?';
+            display.style.display = 'block';
+            input.style.display = 'none';
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
