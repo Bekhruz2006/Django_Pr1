@@ -13,7 +13,7 @@ urlpatterns = [
     # Экспорт расписания
     path('export/', views.export_schedule, name='export'),
     
-    # Конструктор расписания (ОДИН для одной группы)
+    # ✅ ИСПРАВЛЕНО: Конструктор расписания (ОДИН URL)
     path('constructor/', views.schedule_constructor, name='constructor'),
     
     # AJAX endpoints для конструктора
