@@ -6,8 +6,9 @@ from datetime import timedelta
 
 # schedule/models.py - ИСПРАВЛЕННАЯ МОДЕЛЬ Subject
 
+# schedule/models.py - ОБНОВЛЕННАЯ МОДЕЛЬ Subject
+
 class Subject(models.Model):
-    
     TYPE_CHOICES = [
         ('LECTURE', 'Лекция'),
         ('PRACTICE', 'Практика'),
@@ -16,29 +17,42 @@ class Subject(models.Model):
     
     name = models.CharField(max_length=200, verbose_name="Название")
     code = models.CharField(max_length=20, unique=True, verbose_name="Код")
-    
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
         default='LECTURE',
-        verbose_name="Тип занятия"
+        verbose_name="Основной тип"
     )
     
-    credits = models.IntegerField(verbose_name="Кредиты")
-    hours_per_semester = models.IntegerField(default=0, verbose_name="Часов в семестр")
+    # ✅ НОВЫЕ ПОЛЯ: Распределение часов по типам (за семестр)
+    lecture_hours = models.IntegerField(default=0, verbose_name="Лекции (Л) часов за семестр")
+    practice_hours = models.IntegerField(default=0, verbose_name="Практика (А) часов за семестр")
+    control_hours = models.IntegerField(default=0, verbose_name="Контроль (КМРО) часов за семестр")
+    independent_work_hours = models.IntegerField(default=0, verbose_name="КМД часов за семестр")
+    
+    semester_weeks = models.IntegerField(default=16, verbose_name="Недель в семестре")
+    
     teacher = models.ForeignKey(
-        'accounts.Teacher', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        'accounts.Teacher',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         verbose_name="Преподаватель"
     )
     
-    # ✅ ДОБАВЬТЕ ЭТО ПОЛЕ
-    description = models.TextField(
-        blank=True, 
-        verbose_name="Описание"
+    # ✅ НОВОЕ: Связь с группами (предмет может быть назначен нескольким группам)
+    groups = models.ManyToManyField(
+        'accounts.Group',
+        related_name='assigned_subjects',
+        blank=True,
+        verbose_name="Группы"
     )
+    
+    description = models.TextField(blank=True, verbose_name="Описание")
+    
+    # СТАРЫЕ ПОЛЯ (оставляем для совместимости, но не используем)
+    credits = models.IntegerField(default=0, verbose_name="Кредиты (устарело)")
+    hours_per_semester = models.IntegerField(default=0, verbose_name="Часов (устарело)")
     
     class Meta:
         verbose_name = "Предмет"
@@ -46,28 +60,89 @@ class Subject(models.Model):
         ordering = ['name']
     
     def __str__(self):
-        return f"{self.name} ({self.get_type_display()})"
+        return f"{self.name} ({self.code})"
     
-    def get_credits_distribution(self):
-        """Распределение кредитов по типам занятий (поровну)"""
-        per_type = self.credits // 3
+    # ========== РАСЧЕТНЫЕ СВОЙСТВА ПО ФОРМУЛЕ 1 КРЕДИТ = 24 ЧАСА ==========
+    
+    @property
+    def total_auditory_hours(self):
+        """Всего аудиторных часов = Л + А + КМРО"""
+        return self.lecture_hours + self.practice_hours + self.control_hours
+    
+    @property
+    def total_hours(self):
+        """Общая трудоемкость = Аудиторные + КМД"""
+        return self.total_auditory_hours + self.independent_work_hours
+    
+    @property
+    def total_credits(self):
+        """Общие кредиты = Общие часы / 24"""
+        return round(self.total_hours / 24, 1) if self.total_hours > 0 else 0
+    
+    @property
+    def teacher_credits(self):
+        """Кредиты с преподавателем = Аудиторные часы / 24"""
+        return round(self.total_auditory_hours / 24, 1) if self.total_auditory_hours > 0 else 0
+    
+    # ========== ЧАСЫ В НЕДЕЛЮ (для конструктора расписания) ==========
+    
+    @property
+    def lecture_hours_per_week(self):
+        """Лекций часов в неделю"""
+        return round(self.lecture_hours / self.semester_weeks, 1) if self.semester_weeks > 0 else 0
+    
+    @property
+    def practice_hours_per_week(self):
+        """Практик часов в неделю"""
+        return round(self.practice_hours / self.semester_weeks, 1) if self.semester_weeks > 0 else 0
+    
+    @property
+    def control_hours_per_week(self):
+        """Контроля часов в неделю"""
+        return round(self.control_hours / self.semester_weeks, 1) if self.semester_weeks > 0 else 0
+    
+    @property
+    def total_hours_per_week(self):
+        """Всего аудиторных часов в неделю"""
+        return self.lecture_hours_per_week + self.practice_hours_per_week + self.control_hours_per_week
+    
+    # ========== ДЛЯ КОНСТРУКТОРА: Сколько раз нужно добавить в расписание ==========
+    
+    def get_weekly_slots_needed(self, slot_duration=2):
+        """
+        Сколько раз нужно добавить предмет в расписание за неделю
+        slot_duration: длительность одного занятия (по умолчанию 2 часа = 1 пара)
+        """
         return {
-            'LECTURE': per_type,
-            'PRACTICE': per_type,
-            'SRSP': per_type
+            'LECTURE': int(self.lecture_hours_per_week / slot_duration),
+            'PRACTICE': int(self.practice_hours_per_week / slot_duration),
+            'SRSP': int(self.control_hours_per_week / slot_duration),
         }
     
-    def get_hours_distribution(self):
-        """Распределение часов по типам занятий (поровну)"""
-        per_type = self.hours_per_semester // 3
-        return {
-            'LECTURE': per_type,
-            'PRACTICE': per_type,
-            'SRSP': per_type
-        }
+    def get_remaining_slots(self, group, lesson_type):
+        """
+        Сколько еще раз можно добавить предмет в расписание для группы
+        lesson_type: 'LECTURE', 'PRACTICE', или 'SRSP'
+        """
+        needed = self.get_weekly_slots_needed()
+        needed_count = needed.get(lesson_type, 0)
+        
+        # Считаем, сколько уже добавлено
+        from schedule.models import ScheduleSlot
+        existing_count = ScheduleSlot.objects.filter(
+            subject=self,
+            group=group,
+            is_active=True
+        ).count()
+        
+        return max(0, needed_count - existing_count)
+    
+    def can_add_to_schedule(self, group, lesson_type):
+        """Можно ли еще добавить предмет в расписание"""
+        return self.get_remaining_slots(group, lesson_type) > 0
     
     def get_color_class(self):
-        """Цвет для отображения в расписании"""
+        """Цвет для отображения"""
         return {
             'LECTURE': 'primary',
             'PRACTICE': 'success',

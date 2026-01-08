@@ -2,34 +2,58 @@ from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher
 
+# schedule/forms.py - ОБНОВЛЕННАЯ ФОРМА SubjectForm
+
 class SubjectForm(forms.ModelForm):
     class Meta:
         model = Subject
-        fields = ['name', 'code', 'credits', 'hours_per_semester', 'teacher', 'description']
+        fields = [
+            'name', 'code', 'teacher', 'groups',
+            'lecture_hours', 'practice_hours', 'control_hours', 
+            'independent_work_hours', 'semester_weeks',
+            'description'
+        ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'code': forms.TextInput(attrs={'class': 'form-control'}),
-            'credits': forms.NumberInput(attrs={'class': 'form-control', 'min': 3, 'step': 3}),
-            'hours_per_semester': forms.NumberInput(attrs={'class': 'form-control', 'min': 3, 'step': 3}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
+            'groups': forms.SelectMultiple(attrs={
+                'class': 'form-select',
+                'size': '5'
+            }),
+            'lecture_hours': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'placeholder': 'Часов за семестр'
+            }),
+            'practice_hours': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'placeholder': 'Часов за семестр'
+            }),
+            'control_hours': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'placeholder': 'Часов за семестр'
+            }),
+            'independent_work_hours': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'placeholder': 'КМД часов'
+            }),
+            'semester_weeks': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'value': 16
+            }),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
         help_texts = {
-            'credits': 'Кредиты должны быть кратны 3',
-            'hours_per_semester': 'Часы за семестр должны быть кратны 3'
+            'lecture_hours': 'Лекции (Л) - количество часов за семестр',
+            'practice_hours': 'Практика (А) - количество часов за семестр',
+            'control_hours': 'Контроль (КМРО) - количество часов за семестр',
+            'independent_work_hours': 'КМД - самостоятельная работа студента',
+            'semester_weeks': 'Обычно 16 недель',
         }
-    
-    def clean_credits(self):
-        credits = self.cleaned_data['credits']
-        if credits % 3 != 0:
-            raise forms.ValidationError('Кредиты должны быть кратны 3')
-        return credits
-    
-    def clean_hours_per_semester(self):
-        hours = self.cleaned_data['hours_per_semester']
-        if hours % 3 != 0:
-            raise forms.ValidationError('Часы должны быть кратны 3')
-        return hours
 
 # ✅ ИСПРАВЛЕНО: Убрано несуществующее поле lesson_type
 class ScheduleSlotForm(forms.ModelForm):

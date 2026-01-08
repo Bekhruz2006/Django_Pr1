@@ -151,24 +151,29 @@ def schedule_view(request):
 
 
 # ============ КОНСТРУКТОР РАСПИСАНИЯ (ОДНА ГРУППА) ============
+# schedule/views.py - ОБНОВЛЕННЫЙ schedule_constructor
+
 @login_required
 @user_passes_test(is_dean)
 def schedule_constructor(request):
-    """✅ Конструктор для ОДНОЙ группы с выбором семестра"""
+    """✅ Конструктор с учетом лимитов по часам в неделю"""
     selected_group_id = request.GET.get('group')
     selected_semester_id = request.GET.get('semester')
 
     groups = Group.objects.all().order_by('name')
     semesters = Semester.objects.all().order_by('-start_date')
-    subjects = Subject.objects.select_related('teacher__user').all()
     
     schedule_data = {}
     selected_group = None
     selected_semester = None
     time_slots = []
     days = []
+    
+    # Предметы по типам с лимитами
+    lecture_subjects = []
+    practice_subjects = []
+    control_subjects = []
 
-    # Если семестр не выбран - берём активный
     if not selected_semester_id:
         selected_semester = Semester.get_active()
     else:
@@ -184,8 +189,6 @@ def schedule_constructor(request):
     if selected_group_id:
         try:
             selected_group = Group.objects.get(id=selected_group_id)
-            
-            # ✅ Временные слоты по смене семестра
             time_slots = get_time_slots_for_shift(selected_semester.shift)
             
             days = [
@@ -197,6 +200,49 @@ def schedule_constructor(request):
                 (5, 'ШАНБЕ'),
             ]
             
+            # ✅ НОВОЕ: Получаем только предметы, назначенные этой группе
+            assigned_subjects = Subject.objects.filter(
+                groups=selected_group
+            ).select_related('teacher__user')
+            
+            # ✅ Разделяем по типам и считаем оставшиеся слоты
+            for subject in assigned_subjects:
+                slots_needed = subject.get_weekly_slots_needed()
+                
+                # Лекции
+                if slots_needed['LECTURE'] > 0:
+                    remaining = subject.get_remaining_slots(selected_group, 'LECTURE')
+                    if remaining > 0:  # Показываем только если еще можно добавить
+                        lecture_subjects.append({
+                            'subject': subject,
+                            'remaining': remaining,
+                            'needed': slots_needed['LECTURE'],
+                            'hours_per_week': subject.lecture_hours_per_week
+                        })
+                
+                # Практики
+                if slots_needed['PRACTICE'] > 0:
+                    remaining = subject.get_remaining_slots(selected_group, 'PRACTICE')
+                    if remaining > 0:
+                        practice_subjects.append({
+                            'subject': subject,
+                            'remaining': remaining,
+                            'needed': slots_needed['PRACTICE'],
+                            'hours_per_week': subject.practice_hours_per_week
+                        })
+                
+                # КМРО/СРСП
+                if slots_needed['SRSP'] > 0:
+                    remaining = subject.get_remaining_slots(selected_group, 'SRSP')
+                    if remaining > 0:
+                        control_subjects.append({
+                            'subject': subject,
+                            'remaining': remaining,
+                            'needed': slots_needed['SRSP'],
+                            'hours_per_week': subject.control_hours_per_week
+                        })
+            
+            # Получаем существующее расписание
             schedule_slots = ScheduleSlot.objects.filter(
                 group=selected_group,
                 semester=selected_semester,
@@ -218,12 +264,14 @@ def schedule_constructor(request):
         'group': selected_group,
         'semester': selected_semester,
         'time_slots': time_slots,
-        'subjects': subjects,
+        'lecture_subjects': lecture_subjects,
+        'practice_subjects': practice_subjects,
+        'control_subjects': control_subjects,
         'days': days,
         'schedule_data': schedule_data,
     }
 
-    return render(request, 'schedule/constructor_single.html', context)
+    return render(request, 'schedule/constructor_with_limits.html', context)
 
 
 # ============ AJAX ENDPOINTS ============
