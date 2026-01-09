@@ -141,11 +141,12 @@ class ScheduleSlotForm(forms.ModelForm):
 class SemesterForm(forms.ModelForm):
     class Meta:
         model = Semester
-        fields = ['name', 'number', 'shift', 'start_date', 'end_date', 'is_active']
+        fields = ['name', 'number', 'shift', 'course', 'start_date', 'end_date', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'number': forms.Select(attrs={'class': 'form-select'}),
             'shift': forms.Select(attrs={'class': 'form-select'}),
+            'course': forms.Select(attrs={'class': 'form-select'}),  # ✅ НОВОЕ
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -160,6 +161,7 @@ class SemesterForm(forms.ModelForm):
             raise forms.ValidationError('Дата окончания должна быть позже даты начала')
         
         return cleaned_data
+
 
 class ClassroomForm(forms.ModelForm):
     class Meta:

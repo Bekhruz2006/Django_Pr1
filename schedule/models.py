@@ -177,9 +177,26 @@ class Semester(models.Model):
         ('DAY', 'Дневная смена'),
     ]
     
+    # ✅ НОВОЕ ПОЛЕ: Курс
+    COURSE_CHOICES = [
+        (1, '1 курс'),
+        (2, '2 курс'),
+        (3, '3 курс'),
+        (4, '4 курс'),
+        (5, '5 курс'),
+    ]
+    
     name = models.CharField(max_length=200, verbose_name="Название")
     number = models.IntegerField(choices=NUMBER_CHOICES, verbose_name="Номер семестра")
     shift = models.CharField(max_length=10, choices=SHIFT_CHOICES, verbose_name="Смена")
+    
+    # ✅ НОВОЕ ПОЛЕ
+    course = models.IntegerField(
+        choices=COURSE_CHOICES,
+        verbose_name="Курс",
+        help_text="Для какого курса этот семестр"
+    )
+    
     start_date = models.DateField(verbose_name="Дата начала")
     end_date = models.DateField(verbose_name="Дата окончания")
     is_active = models.BooleanField(default=False, verbose_name="Активный")
@@ -188,39 +205,24 @@ class Semester(models.Model):
         verbose_name = "Семестр"
         verbose_name_plural = "Семестры"
         ordering = ['-start_date']
+        # ✅ НОВОЕ ОГРАНИЧЕНИЕ: Уникальность семестра по курсу+номеру+году
+        unique_together = [['course', 'number', 'start_date']]
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.course} курс)"
     
     def save(self, *args, **kwargs):
         if self.is_active:
-            Semester.objects.exclude(id=self.id).update(is_active=False)
+            # ✅ Деактивируем другие семестры ТОЛЬКО для этого курса
+            Semester.objects.filter(course=self.course).exclude(id=self.id).update(is_active=False)
         super().save(*args, **kwargs)
     
     @classmethod
-    def get_active(cls):
+    def get_active(cls, course=None):
+        """Получить активный семестр (опционально для конкретного курса)"""
+        if course:
+            return cls.objects.filter(is_active=True, course=course).first()
         return cls.objects.filter(is_active=True).first()
-    
-    def get_time_slots(self):
-        """Возвращает временные слоты для данной смены"""
-        if self.shift == 'MORNING':
-            return [
-                ('08:00:00', '08:50:00'),
-                ('09:00:00', '09:50:00'),
-                ('10:00:00', '10:50:00'),
-                ('11:00:00', '11:50:00'),
-                ('12:00:00', '12:50:00'),
-                ('13:00:00', '13:50:00'),
-            ]
-        else:  # DAY
-            return [
-                ('13:00:00', '13:50:00'),
-                ('14:00:00', '14:50:00'),
-                ('15:00:00', '15:50:00'),
-                ('16:00:00', '16:50:00'),
-                ('17:00:00', '17:50:00'),
-                ('18:00:00', '18:50:00'),
-            ]
 
 
 class Classroom(models.Model):
