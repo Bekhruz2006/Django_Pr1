@@ -108,11 +108,8 @@ class Subject(models.Model):
     
     # ========== ДЛЯ КОНСТРУКТОРА: Сколько раз нужно добавить в расписание ==========
     
-    def get_weekly_slots_needed(self, slot_duration=2):
-        """
-        Сколько раз нужно добавить предмет в расписание за неделю
-        slot_duration: длительность одного занятия (по умолчанию 2 часа = 1 пара)
-        """
+    def get_weekly_slots_needed(self, slot_duration=1):  # ✅ ИЗМЕНЕНО: 2 → 1
+
         return {
             'LECTURE': int(self.lecture_hours_per_week / slot_duration),
             'PRACTICE': int(self.practice_hours_per_week / slot_duration),

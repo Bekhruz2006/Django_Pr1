@@ -215,14 +215,14 @@ def schedule_constructor(request):
 @login_required
 @require_POST
 def create_schedule_slot(request):
-    """✅ ИСПРАВЛЕНО: Создание занятия С ТИПОМ"""
+    """✅ ИСПРАВЛЕНО: Создание занятия с заполнением start_time/end_time"""
     try:
         data = json.loads(request.body)
         group_id = data.get('group')
         subject_id = data.get('subject')
         day_of_week = data.get('day_of_week')
         time_slot_id = data.get('time_slot')
-        lesson_type = data.get('lesson_type', 'LECTURE')  # ✅ НОВЫЙ ПАРАМЕТР
+        lesson_type = data.get('lesson_type', 'LECTURE')
 
         if not all([group_id, subject_id, day_of_week is not None, time_slot_id]):
             return JsonResponse({'success': False, 'error': 'Не хватает данных'}, status=400)
@@ -261,17 +261,20 @@ def create_schedule_slot(request):
                     'error': f'❌ Преподаватель {subject.teacher.user.get_full_name()} занят (группа {existing.group.name})'
                 }, status=400)
 
-        # ✅ Создаем занятие С ТИПОМ
-        schedule_slot = ScheduleSlot.objects.create(
+        # ✅ ИСПРАВЛЕНО: Создаём объект и явно заполняем start_time/end_time
+        schedule_slot = ScheduleSlot(
             group=group, 
             subject=subject, 
             day_of_week=day_of_week,
             time_slot=time_slot, 
             semester=active_semester,
             teacher=subject.teacher, 
-            lesson_type=lesson_type,  # ✅ ДОБАВЛЕНО
+            lesson_type=lesson_type,
+            start_time=time_slot.start_time,  # ✅ ДОБАВЛЕНО
+            end_time=time_slot.end_time,      # ✅ ДОБАВЛЕНО
             room=None
         )
+        schedule_slot.save()
 
         return JsonResponse({'success': True, 'slot': {'id': schedule_slot.id}})
 
