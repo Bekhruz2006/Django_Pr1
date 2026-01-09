@@ -49,13 +49,13 @@ def get_time_slots_for_shift(shift):
 @login_required
 @user_passes_test(is_dean)
 def schedule_constructor(request):
-    """✅ ИСПРАВЛЕНО: Правильный подсчет + фильтрация семестров по курсу"""
+    """✅ ИСПРАВЛЕНО: Правильный подсчет по типам занятий + фильтрация семестров по курсу группы"""
     selected_group_id = request.GET.get('group')
     selected_semester_id = request.GET.get('semester')
 
     groups = Group.objects.all().order_by('name')
 
-    # ✅ Фильтруем семестры в зависимости от выбранной группы
+    # Фильтруем семестры в зависимости от выбранной группы
     if selected_group_id:
         try:
             group = Group.objects.get(id=selected_group_id)
@@ -75,112 +75,111 @@ def schedule_constructor(request):
     practice_subjects = []
     control_subjects = []
 
-    # ✅ Выбор семестра
+    # Выбор семестра
     if not selected_semester_id:
         if selected_group_id:
             group = Group.objects.get(id=selected_group_id)
-            selected_semester = Semester.objects.filter(
-                course=group.course, is_active=True
-            ).first()
+            selected_semester = Semester.get_active(course=group.course)
         else:
-            selected_semester = Semester.objects.filter(is_active=True).first()
+            selected_semester = Semester.get_active()
     else:
         try:
             selected_semester = Semester.objects.get(id=selected_semester_id)
-            # ✅ ПРОВЕРКА: Семестр должен соответствовать курсу группы
             if selected_group_id:
                 group = Group.objects.get(id=selected_group_id)
                 if selected_semester.course != group.course:
                     messages.error(request, f'❌ Семестр для {selected_semester.course} курса, а группа {group.name} на {group.course} курсе!')
-                    selected_semester = Semester.objects.filter(
-                        course=group.course, is_active=True
-                    ).first()
+                    selected_semester = Semester.get_active(course=group.course)
         except Semester.DoesNotExist:
-            selected_semester = None
+            selected_semester = Semester.get_active()
 
-    if selected_group_id and not selected_semester:
-        messages.error(request, f'Сначала создайте и активируйте семестр для {group.course} курса')
+    if not selected_semester:
+        messages.error(request, 'Сначала создайте и активируйте семестр для этого курса')
         return redirect('schedule:manage_semesters')
 
     if selected_group_id:
         try:
             selected_group = Group.objects.get(id=selected_group_id)
-            
-            if not selected_semester:
-                messages.error(request, f'Нет активного семестра для {selected_group.course} курса')
-                return redirect('schedule:manage_semesters')
-            
             time_slots = get_time_slots_for_shift(selected_semester.shift)
+
             days = [
                 (0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'),
                 (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ'),
             ]
 
-            # ✅ Фильтр: только предметы этой группы
+            # Фильтр: только предметы этой группы
             assigned_subjects = Subject.objects.filter(
                 groups=selected_group
             ).select_related('teacher__user')
 
-            # ✅ КРИТИЧНО: Считаем по типам ОТДЕЛЬНО
+            # ✅ ИСПРАВЛЕНО: Считаем по типам ОТДЕЛЬНО с фильтром по lesson_type
             for subject in assigned_subjects:
                 slots_needed = subject.get_weekly_slots_needed()
 
                 # ========== ЛЕКЦИИ ==========
                 if slots_needed['LECTURE'] > 0:
+                    # ✅ ИСПРАВЛЕНО: Фильтруем ТОЛЬКО лекции
                     existing_lectures = ScheduleSlot.objects.filter(
                         subject=subject,
                         group=selected_group,
                         semester=selected_semester,
+                        lesson_type='LECTURE',  # ← ДОБАВЛЕНО
                         is_active=True
                     ).count()
 
                     remaining = max(0, slots_needed['LECTURE'] - existing_lectures)
 
-                    # ✅ Всегда добавляем в список, даже если remaining=0 (для отображения)
-                    lecture_subjects.append({
-                        'subject': subject,
-                        'remaining': remaining,
-                        'needed': slots_needed['LECTURE'],
-                        'hours_per_week': subject.lecture_hours_per_week
-                    })
+                    if remaining > 0:
+                        lecture_subjects.append({
+                            'subject': subject,
+                            'remaining': remaining,
+                            'needed': slots_needed['LECTURE'],
+                            'hours_per_week': subject.lecture_hours_per_week
+                        })
 
                 # ========== ПРАКТИКИ ==========
                 if slots_needed['PRACTICE'] > 0:
+                    # ✅ ИСПРАВЛЕНО: Фильтруем ТОЛЬКО практики
                     existing_practices = ScheduleSlot.objects.filter(
                         subject=subject,
                         group=selected_group,
                         semester=selected_semester,
+                        lesson_type='PRACTICE',  # ← ДОБАВЛЕНО
                         is_active=True
                     ).count()
 
                     remaining = max(0, slots_needed['PRACTICE'] - existing_practices)
 
-                    practice_subjects.append({
-                        'subject': subject,
-                        'remaining': remaining,
-                        'needed': slots_needed['PRACTICE'],
-                        'hours_per_week': subject.practice_hours_per_week
-                    })
+                    if remaining > 0:
+                        practice_subjects.append({
+                            'subject': subject,
+                            'remaining': remaining,
+                            'needed': slots_needed['PRACTICE'],
+                            'hours_per_week': subject.practice_hours_per_week
+                        })
 
                 # ========== КМРО ==========
                 if slots_needed['SRSP'] > 0:
+                    # ✅ ИСПРАВЛЕНО: Фильтруем ТОЛЬКО КМРО
                     existing_control = ScheduleSlot.objects.filter(
                         subject=subject,
                         group=selected_group,
                         semester=selected_semester,
+                        lesson_type='SRSP',  # ← ДОБАВЛЕНО
                         is_active=True
                     ).count()
 
                     remaining = max(0, slots_needed['SRSP'] - existing_control)
 
-                    control_subjects.append({
-                        'subject': subject,
-                        'remaining': remaining,
-                        'needed': slots_needed['SRSP'],
-                        'hours_per_week': subject.control_hours_per_week
-                    })
+                    if remaining > 0:
+                        control_subjects.append({
+                            'subject': subject,
+                            'remaining': remaining,
+                            'needed': slots_needed['SRSP'],
+                            'hours_per_week': subject.control_hours_per_week
+                        })
 
-            # ✅ Получаем существующее расписание
+            # Получаем существующее расписание
             schedule_slots = ScheduleSlot.objects.filter(
                 group=selected_group,
                 semester=selected_semester,
@@ -216,16 +215,21 @@ def schedule_constructor(request):
 @login_required
 @require_POST
 def create_schedule_slot(request):
-    """Создание занятия"""
+    """✅ ИСПРАВЛЕНО: Создание занятия С ТИПОМ"""
     try:
         data = json.loads(request.body)
         group_id = data.get('group')
         subject_id = data.get('subject')
         day_of_week = data.get('day_of_week')
         time_slot_id = data.get('time_slot')
+        lesson_type = data.get('lesson_type', 'LECTURE')  # ✅ НОВЫЙ ПАРАМЕТР
 
         if not all([group_id, subject_id, day_of_week is not None, time_slot_id]):
             return JsonResponse({'success': False, 'error': 'Не хватает данных'}, status=400)
+
+        active_semester = Semester.get_active()
+        if not active_semester:
+            return JsonResponse({'success': False, 'error': 'Активный семестр не найден'}, status=400)
 
         try:
             group = Group.objects.get(id=group_id)
@@ -233,17 +237,6 @@ def create_schedule_slot(request):
             time_slot = TimeSlot.objects.get(id=time_slot_id)
         except Exception as e:
             return JsonResponse({'success': False, 'error': f'Объект не найден: {str(e)}'}, status=404)
-
-        # ✅ Получаем активный семестр для курса этой группы
-        active_semester = Semester.objects.filter(
-            course=group.course, is_active=True
-        ).first()
-        
-        if not active_semester:
-            return JsonResponse({
-                'success': False,
-                'error': f'Нет активного семестра для {group.course} курса'
-            }, status=400)
 
         # Проверка конфликтов
         if ScheduleSlot.objects.filter(
@@ -268,11 +261,16 @@ def create_schedule_slot(request):
                     'error': f'❌ Преподаватель {subject.teacher.user.get_full_name()} занят (группа {existing.group.name})'
                 }, status=400)
 
-        # ✅ Создаем занятие
+        # ✅ Создаем занятие С ТИПОМ
         schedule_slot = ScheduleSlot.objects.create(
-            group=group, subject=subject, day_of_week=day_of_week,
-            time_slot=time_slot, semester=active_semester,
-            teacher=subject.teacher, room=None
+            group=group, 
+            subject=subject, 
+            day_of_week=day_of_week,
+            time_slot=time_slot, 
+            semester=active_semester,
+            teacher=subject.teacher, 
+            lesson_type=lesson_type,  # ✅ ДОБАВЛЕНО
+            room=None
         )
 
         return JsonResponse({'success': True, 'slot': {'id': schedule_slot.id}})

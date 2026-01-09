@@ -276,13 +276,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let draggedData = {};
 
-    // DRAG
     document.querySelectorAll('.subject-item').forEach(item => {
         item.addEventListener('dragstart', function(e) {
             draggedData = {
                 subjectId: this.dataset.subjectId,
                 subjectName: this.dataset.subjectName,
-                subjectType: this.dataset.subjectType,
+                subjectType: this.dataset.subjectType,  // ✅ Передаём тип
                 teacherName: this.dataset.teacherName,
                 remaining: parseInt(this.dataset.remaining)
             };
@@ -318,7 +317,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     group: groupId,
                     subject: draggedData.subjectId,
                     day_of_week: dayOfWeek,
-                    time_slot: timeSlot
+                    time_slot: timeSlot,
+                    lesson_type: draggedData.subjectType  // ✅ ДОБАВЛЕНО
                 })
             })
             .then(r => r.json())
@@ -328,6 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
 
     // DELETE
     document.querySelectorAll('.delete-slot').forEach(btn => {

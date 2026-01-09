@@ -252,24 +252,32 @@ class ScheduleSlot(models.Model):
         (5, 'Суббота'),
     ]
     
+    # ✅ ДОБАВЬТЕ ЭТО ПОЛЕ (используем те же типы, что в Subject)
+    LESSON_TYPE_CHOICES = [
+        ('LECTURE', 'Лекция'),
+        ('PRACTICE', 'Практика'),
+        ('SRSP', 'СРСП (КМРО)'),
+    ]
+    
     group = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Предмет")
     teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Преподаватель")
     
+    # ✅ НОВОЕ ПОЛЕ
+    lesson_type = models.CharField(
+        max_length=10,
+        choices=LESSON_TYPE_CHOICES,
+        default='LECTURE',
+        verbose_name="Тип занятия"
+    )
+    
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name="Семестр")
-    
     day_of_week = models.IntegerField(choices=DAYS_OF_WEEK, verbose_name="День недели")
-    
-    # ✅ ИСПРАВЛЕНО: Используем ForeignKey к TimeSlot
     time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, verbose_name="Время")
-    
-    # Дублируем время для удобства (заполняется автоматически)
     start_time = models.TimeField(verbose_name="Начало")
     end_time = models.TimeField(verbose_name="Конец")
-    
     classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Кабинет")
     room = models.CharField(max_length=20, blank=True, null=True, verbose_name="Номер кабинета (текст)")
-    
     is_active = models.BooleanField(default=True, verbose_name="Активно")
     
     class Meta:
@@ -278,59 +286,7 @@ class ScheduleSlot(models.Model):
         ordering = ['day_of_week', 'start_time']
     
     def __str__(self):
-        return f"{self.group.name} - {self.subject.name} ({self.get_day_of_week_display()}, {self.start_time})"
-    
-    def save(self, *args, **kwargs):
-        # Автоматически заполняем start_time и end_time из time_slot
-        if self.time_slot:
-            self.start_time = self.time_slot.start_time
-            self.end_time = self.time_slot.end_time
-        super().save(*args, **kwargs)
-    
-    def get_color_class(self):
-        """Цвет для отображения"""
-        return self.subject.get_color_class()
-    
-    def check_conflicts(self):
-        """Проверка конфликтов расписания"""
-        conflicts = []
-        
-        # Конфликт: та же группа в это же время
-        group_conflict = ScheduleSlot.objects.filter(
-            group=self.group,
-            day_of_week=self.day_of_week,
-            time_slot=self.time_slot,
-            is_active=True
-        ).exclude(id=self.id)
-        
-        if group_conflict.exists():
-            conflicts.append(f"У группы {self.group.name} уже есть занятие в это время")
-        
-        # Конфликт: тот же преподаватель в это же время
-        if self.teacher:
-            teacher_conflict = ScheduleSlot.objects.filter(
-                teacher=self.teacher,
-                day_of_week=self.day_of_week,
-                time_slot=self.time_slot,
-                is_active=True
-            ).exclude(id=self.id)
-            
-            if teacher_conflict.exists():
-                conflicts.append(f"Преподаватель {self.teacher.user.get_full_name()} занят в это время")
-        
-        # Конфликт: та же аудитория в это же время
-        if self.classroom:
-            classroom_conflict = ScheduleSlot.objects.filter(
-                classroom=self.classroom,
-                day_of_week=self.day_of_week,
-                time_slot=self.time_slot,
-                is_active=True
-            ).exclude(id=self.id)
-            
-            if classroom_conflict.exists():
-                conflicts.append(f"Кабинет {self.classroom.number} занят в это время")
-        
-        return conflicts
+        return f"{self.group.name} - {self.subject.name} ({self.get_lesson_type_display()}, {self.get_day_of_week_display()}, {self.start_time})"
 
 
 class ScheduleException(models.Model):
