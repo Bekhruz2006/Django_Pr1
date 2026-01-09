@@ -1,59 +1,33 @@
-# schedule/forms.py - ИСПРАВЛЕННАЯ ВЕРСИЯ SubjectForm
+# schedule/forms.py - АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ
 
 from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher
 
 class SubjectForm(forms.ModelForm):
-    """Форма для создания/редактирования предмета с распределением часов"""
+    """Форма для создания предмета - ТОЛЬКО общие кредиты, всё остальное автоматически"""
     
     class Meta:
         model = Subject
-        fields = [
-            'name', 'code', 'teacher', 'groups',
-            'lecture_hours', 'practice_hours', 'control_hours', 
-            'independent_work_hours', 'semester_weeks',
-            'description'
-        ]
+        fields = ['name', 'code', 'teacher', 'groups', 'credits', 'description']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Например: Математический анализ'
+                'placeholder': 'Например: Менеджменти экологї'
             }),
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Например: MATH101'
+                'placeholder': 'Например: MEN301'
             }),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'groups': forms.SelectMultiple(attrs={
                 'class': 'form-select',
                 'size': '5'
             }),
-            'lecture_hours': forms.NumberInput(attrs={
+            'credits': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'min': 0,
-                'placeholder': 'Часов лекций за семестр'
-            }),
-            'practice_hours': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 0,
-                'placeholder': 'Часов практики за семестр'
-            }),
-            'control_hours': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 0,
-                'placeholder': 'Часов КМРО за семестр'
-            }),
-            'independent_work_hours': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 0,
-                'placeholder': 'Часов КМД'
-            }),
-            'semester_weeks': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'value': 16,
-                'min': 1,
-                'max': 20
+                'placeholder': 'Например: 6',
+                'min': 1
             }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control', 
@@ -66,56 +40,48 @@ class SubjectForm(forms.ModelForm):
             'code': 'Код предмета *',
             'teacher': 'Преподаватель',
             'groups': 'Группы (можно выбрать несколько)',
-            'lecture_hours': 'Лекции (Л) - часов за семестр *',
-            'practice_hours': 'Практика (А) - часов за семестр *',
-            'control_hours': 'Контроль (КМРО) - часов за семестр *',
-            'independent_work_hours': 'КМД (самостоятельная работа) - часов *',
-            'semester_weeks': 'Недель в семестре',
+            'credits': 'Общее количество кредитов *',
             'description': 'Описание',
         }
         help_texts = {
-            'lecture_hours': 'Аудиторные часы с преподавателем (Л)',
-            'practice_hours': 'Практические/лабораторные занятия (А)',
-            'control_hours': 'Контроль в аудитории (КМРО)',
-            'independent_work_hours': 'Самостоятельная работа студента (КМД)',
-            'semester_weeks': 'Обычно 16 недель',
             'groups': 'Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп',
+            'credits': 'Система автоматически рассчитает все часы по формуле: 1 кредит = 24 часа',
         }
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        
-        lecture = cleaned_data.get('lecture_hours', 0)
-        practice = cleaned_data.get('practice_hours', 0)
-        control = cleaned_data.get('control_hours', 0)
-        kmd = cleaned_data.get('independent_work_hours', 0)
-        
-        # Проверяем, что хотя бы один тип часов указан
-        if lecture == 0 and practice == 0 and control == 0:
-            raise forms.ValidationError(
-                'Укажите хотя бы один тип аудиторных занятий (Лекции, Практика или КМРО)'
-            )
-        
-        return cleaned_data
     
     def save(self, commit=True):
         instance = super().save(commit=False)
         
-        # Автоматически рассчитываем общие кредиты по формуле: 1 кредит = 24 часа
-        total_auditory = instance.lecture_hours + instance.practice_hours + instance.control_hours
-        total_hours = total_auditory + instance.independent_work_hours
+        # ✅ АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ (как в таблице)
+        total_credits = self.cleaned_data.get('total_credits', 0)
         
-        # Обновляем старые поля для обратной совместимости
-        instance.credits = round(total_hours / 24, 1) if total_hours > 0 else 0
+        # 1 кредит = 24 часа
+        total_hours = total_credits * 24
+        
+        # КМД (самостоятельная работа) = 1/3 от общей трудоемкости
+        kmd_hours = total_hours // 3
+        
+        # Аудиторные часы = 2/3 от общей трудоемкости
+        auditory_hours = total_hours - kmd_hours
+        
+        # Аудиторные часы делятся поровну между Л, А, КМРО
+        lecture_hours = auditory_hours // 3
+        practice_hours = auditory_hours // 3
+        control_hours = auditory_hours - lecture_hours - practice_hours  # остаток
+        
+        # Кредиты с преподавателем
+        teacher_credits = auditory_hours // 24
+        
+        # Сохраняем в модель
+        instance.credits = total_credits
         instance.hours_per_semester = total_hours
+        instance.lecture_hours = lecture_hours
+        instance.practice_hours = practice_hours
+        instance.control_hours = control_hours
+        instance.independent_work_hours = kmd_hours
+        instance.semester_weeks = 16  # стандартно
         
-        # Устанавливаем основной тип на основе преобладающего типа занятий
-        if instance.lecture_hours >= instance.practice_hours and instance.lecture_hours >= instance.control_hours:
-            instance.type = 'LECTURE'
-        elif instance.practice_hours >= instance.control_hours:
-            instance.type = 'PRACTICE'
-        else:
-            instance.type = 'SRSP'
+        # Устанавливаем тип (основной - лекция)
+        instance.type = 'LECTURE'
         
         if commit:
             instance.save()
@@ -125,7 +91,7 @@ class SubjectForm(forms.ModelForm):
         return instance
 
 
-# Остальные формы без изменений...
+# ========== ОСТАЛЬНЫЕ ФОРМЫ БЕЗ ИЗМЕНЕНИЙ ==========
 
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
