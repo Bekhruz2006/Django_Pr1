@@ -1,10 +1,12 @@
+# schedule/forms.py - ИСПРАВЛЕННАЯ ВЕРСИЯ SubjectForm
+
 from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher
 
-# schedule/forms.py - ОБНОВЛЕННАЯ ФОРМА SubjectForm
-
 class SubjectForm(forms.ModelForm):
+    """Форма для создания/редактирования предмета с распределением часов"""
+    
     class Meta:
         model = Subject
         fields = [
@@ -14,8 +16,14 @@ class SubjectForm(forms.ModelForm):
             'description'
         ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Например: Математический анализ'
+            }),
+            'code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Например: MATH101'
+            }),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'groups': forms.SelectMultiple(attrs={
                 'class': 'form-select',
@@ -24,38 +32,101 @@ class SubjectForm(forms.ModelForm):
             'lecture_hours': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 0,
-                'placeholder': 'Часов за семестр'
+                'placeholder': 'Часов лекций за семестр'
             }),
             'practice_hours': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 0,
-                'placeholder': 'Часов за семестр'
+                'placeholder': 'Часов практики за семестр'
             }),
             'control_hours': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 0,
-                'placeholder': 'Часов за семестр'
+                'placeholder': 'Часов КМРО за семестр'
             }),
             'independent_work_hours': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 0,
-                'placeholder': 'КМД часов'
+                'placeholder': 'Часов КМД'
             }),
             'semester_weeks': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'value': 16
+                'value': 16,
+                'min': 1,
+                'max': 20
             }),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': 'Дополнительная информация о предмете'
+            }),
+        }
+        labels = {
+            'name': 'Название предмета *',
+            'code': 'Код предмета *',
+            'teacher': 'Преподаватель',
+            'groups': 'Группы (можно выбрать несколько)',
+            'lecture_hours': 'Лекции (Л) - часов за семестр *',
+            'practice_hours': 'Практика (А) - часов за семестр *',
+            'control_hours': 'Контроль (КМРО) - часов за семестр *',
+            'independent_work_hours': 'КМД (самостоятельная работа) - часов *',
+            'semester_weeks': 'Недель в семестре',
+            'description': 'Описание',
         }
         help_texts = {
-            'lecture_hours': 'Лекции (Л) - количество часов за семестр',
-            'practice_hours': 'Практика (А) - количество часов за семестр',
-            'control_hours': 'Контроль (КМРО) - количество часов за семестр',
-            'independent_work_hours': 'КМД - самостоятельная работа студента',
+            'lecture_hours': 'Аудиторные часы с преподавателем (Л)',
+            'practice_hours': 'Практические/лабораторные занятия (А)',
+            'control_hours': 'Контроль в аудитории (КМРО)',
+            'independent_work_hours': 'Самостоятельная работа студента (КМД)',
             'semester_weeks': 'Обычно 16 недель',
+            'groups': 'Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп',
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        lecture = cleaned_data.get('lecture_hours', 0)
+        practice = cleaned_data.get('practice_hours', 0)
+        control = cleaned_data.get('control_hours', 0)
+        kmd = cleaned_data.get('independent_work_hours', 0)
+        
+        # Проверяем, что хотя бы один тип часов указан
+        if lecture == 0 and practice == 0 and control == 0:
+            raise forms.ValidationError(
+                'Укажите хотя бы один тип аудиторных занятий (Лекции, Практика или КМРО)'
+            )
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Автоматически рассчитываем общие кредиты по формуле: 1 кредит = 24 часа
+        total_auditory = instance.lecture_hours + instance.practice_hours + instance.control_hours
+        total_hours = total_auditory + instance.independent_work_hours
+        
+        # Обновляем старые поля для обратной совместимости
+        instance.credits = round(total_hours / 24, 1) if total_hours > 0 else 0
+        instance.hours_per_semester = total_hours
+        
+        # Устанавливаем основной тип на основе преобладающего типа занятий
+        if instance.lecture_hours >= instance.practice_hours and instance.lecture_hours >= instance.control_hours:
+            instance.type = 'LECTURE'
+        elif instance.practice_hours >= instance.control_hours:
+            instance.type = 'PRACTICE'
+        else:
+            instance.type = 'SRSP'
+        
+        if commit:
+            instance.save()
+            if self.cleaned_data.get('groups'):
+                instance.groups.set(self.cleaned_data['groups'])
+        
+        return instance
 
-# ✅ ИСПРАВЛЕНО: Убрано несуществующее поле lesson_type
+
+# Остальные формы без изменений...
+
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
         model = ScheduleSlot
