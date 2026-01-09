@@ -1,4 +1,4 @@
-# schedule/views.py - ИСПРАВЛЕНО: ПРАВИЛЬНЫЙ ПОДСЧЕТ ПО ТИПАМ
+# schedule/views.py - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -45,22 +45,20 @@ def get_time_slots_for_shift(shift):
         ).order_by('start_time')
 
 
-
 # ============ КОНСТРУКТОР РАСПИСАНИЯ (ИСПРАВЛЕН) ============
 @login_required
 @user_passes_test(is_dean)
 def schedule_constructor(request):
-    """✅ ИСПРАВЛЕНО: Правильный подсчет по типам занятий + фильтрация семестров по курсу группы"""
+    """✅ ИСПРАВЛЕНО: Правильный подсчет + фильтрация семестров по курсу"""
     selected_group_id = request.GET.get('group')
     selected_semester_id = request.GET.get('semester')
 
     groups = Group.objects.all().order_by('name')
 
-    # ✅ НОВОЕ: Фильтруем семестры в зависимости от выбранной группы
+    # ✅ Фильтруем семестры в зависимости от выбранной группы
     if selected_group_id:
         try:
             group = Group.objects.get(id=selected_group_id)
-            # ✅ Показываем только семестры для курса этой группы
             semesters = Semester.objects.filter(course=group.course).order_by('-start_date')
         except Group.DoesNotExist:
             semesters = Semester.objects.all().order_by('-start_date')
@@ -81,9 +79,11 @@ def schedule_constructor(request):
     if not selected_semester_id:
         if selected_group_id:
             group = Group.objects.get(id=selected_group_id)
-            selected_semester = Semester.get_active(course=group.course)
+            selected_semester = Semester.objects.filter(
+                course=group.course, is_active=True
+            ).first()
         else:
-            selected_semester = Semester.get_active()
+            selected_semester = Semester.objects.filter(is_active=True).first()
     else:
         try:
             selected_semester = Semester.objects.get(id=selected_semester_id)
@@ -92,25 +92,31 @@ def schedule_constructor(request):
                 group = Group.objects.get(id=selected_group_id)
                 if selected_semester.course != group.course:
                     messages.error(request, f'❌ Семестр для {selected_semester.course} курса, а группа {group.name} на {group.course} курсе!')
-                    selected_semester = Semester.get_active(course=group.course)
+                    selected_semester = Semester.objects.filter(
+                        course=group.course, is_active=True
+                    ).first()
         except Semester.DoesNotExist:
-            selected_semester = Semester.get_active()
+            selected_semester = None
 
-    if not selected_semester:
-        messages.error(request, 'Сначала создайте и активируйте семестр для этого курса')
+    if selected_group_id and not selected_semester:
+        messages.error(request, f'Сначала создайте и активируйте семестр для {group.course} курса')
         return redirect('schedule:manage_semesters')
 
     if selected_group_id:
         try:
             selected_group = Group.objects.get(id=selected_group_id)
+            
+            if not selected_semester:
+                messages.error(request, f'Нет активного семестра для {selected_group.course} курса')
+                return redirect('schedule:manage_semesters')
+            
             time_slots = get_time_slots_for_shift(selected_semester.shift)
-
             days = [
                 (0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'),
                 (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ'),
             ]
 
-            # ✅ ФИЛЬТР: только предметы этой группы + фильтр по курсу семестра
+            # ✅ Фильтр: только предметы этой группы
             assigned_subjects = Subject.objects.filter(
                 groups=selected_group
             ).select_related('teacher__user')
@@ -121,7 +127,6 @@ def schedule_constructor(request):
 
                 # ========== ЛЕКЦИИ ==========
                 if slots_needed['LECTURE'] > 0:
-                    # ✅ ИСПРАВЛЕНО: Фильтруем ТОЛЬКО лекции этого предмета
                     existing_lectures = ScheduleSlot.objects.filter(
                         subject=subject,
                         group=selected_group,
@@ -129,16 +134,15 @@ def schedule_constructor(request):
                         is_active=True
                     ).count()
 
-                    # ✅ ПРАВИЛЬНО: Считаем сколько раз УЖЕ добавлен предмет
                     remaining = max(0, slots_needed['LECTURE'] - existing_lectures)
 
-                    if remaining > 0:
-                        lecture_subjects.append({
-                            'subject': subject,
-                            'remaining': remaining,
-                            'needed': slots_needed['LECTURE'],
-                            'hours_per_week': subject.lecture_hours_per_week
-                        })
+                    # ✅ Всегда добавляем в список, даже если remaining=0 (для отображения)
+                    lecture_subjects.append({
+                        'subject': subject,
+                        'remaining': remaining,
+                        'needed': slots_needed['LECTURE'],
+                        'hours_per_week': subject.lecture_hours_per_week
+                    })
 
                 # ========== ПРАКТИКИ ==========
                 if slots_needed['PRACTICE'] > 0:
@@ -151,13 +155,12 @@ def schedule_constructor(request):
 
                     remaining = max(0, slots_needed['PRACTICE'] - existing_practices)
 
-                    if remaining > 0:
-                        practice_subjects.append({
-                            'subject': subject,
-                            'remaining': remaining,
-                            'needed': slots_needed['PRACTICE'],
-                            'hours_per_week': subject.practice_hours_per_week
-                        })
+                    practice_subjects.append({
+                        'subject': subject,
+                        'remaining': remaining,
+                        'needed': slots_needed['PRACTICE'],
+                        'hours_per_week': subject.practice_hours_per_week
+                    })
 
                 # ========== КМРО ==========
                 if slots_needed['SRSP'] > 0:
@@ -170,13 +173,12 @@ def schedule_constructor(request):
 
                     remaining = max(0, slots_needed['SRSP'] - existing_control)
 
-                    if remaining > 0:
-                        control_subjects.append({
-                            'subject': subject,
-                            'remaining': remaining,
-                            'needed': slots_needed['SRSP'],
-                            'hours_per_week': subject.control_hours_per_week
-                        })
+                    control_subjects.append({
+                        'subject': subject,
+                        'remaining': remaining,
+                        'needed': slots_needed['SRSP'],
+                        'hours_per_week': subject.control_hours_per_week
+                    })
 
             # ✅ Получаем существующее расписание
             schedule_slots = ScheduleSlot.objects.filter(
@@ -210,7 +212,6 @@ def schedule_constructor(request):
     return render(request, 'schedule/constructor_with_limits.html', context)
 
 
-
 # ============ AJAX ENDPOINTS ============
 @login_required
 @require_POST
@@ -226,10 +227,6 @@ def create_schedule_slot(request):
         if not all([group_id, subject_id, day_of_week is not None, time_slot_id]):
             return JsonResponse({'success': False, 'error': 'Не хватает данных'}, status=400)
 
-        active_semester = Semester.get_active()
-        if not active_semester:
-            return JsonResponse({'success': False, 'error': 'Активный семестр не найден'}, status=400)
-
         try:
             group = Group.objects.get(id=group_id)
             subject = Subject.objects.get(id=subject_id)
@@ -237,8 +234,16 @@ def create_schedule_slot(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': f'Объект не найден: {str(e)}'}, status=404)
 
-        # ✅ ПРОВЕРКА: Семестр должен соответствовать курсу группы
-        # (добавим позже в модель)
+        # ✅ Получаем активный семестр для курса этой группы
+        active_semester = Semester.objects.filter(
+            course=group.course, is_active=True
+        ).first()
+        
+        if not active_semester:
+            return JsonResponse({
+                'success': False,
+                'error': f'Нет активного семестра для {group.course} курса'
+            }, status=400)
 
         # Проверка конфликтов
         if ScheduleSlot.objects.filter(
@@ -276,7 +281,6 @@ def create_schedule_slot(request):
         return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
 
 
-
 @login_required
 @require_POST
 def update_schedule_room(request, slot_id):
@@ -306,7 +310,6 @@ def update_schedule_room(request, slot_id):
         return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
 
 
-
 @login_required
 @require_POST
 def delete_schedule_slot(request, slot_id):
@@ -332,20 +335,28 @@ def schedule_view(request):
     """Просмотр расписания"""
     user = request.user
     group = None
-    active_semester = Semester.get_active()
+    
+    # ✅ ИСПРАВЛЕНО: Получаем активный семестр с учетом курса
+    if user.role == 'STUDENT':
+        try:
+            student = user.student_profile
+            group = student.group
+            if group:
+                active_semester = Semester.objects.filter(
+                    course=group.course, is_active=True
+                ).first()
+            else:
+                active_semester = None
+        except Student.DoesNotExist:
+            active_semester = None
+    else:
+        active_semester = Semester.objects.filter(is_active=True).first()
 
     if not active_semester:
         messages.warning(request, 'Активный семестр не найден.')
         return render(request, 'schedule/no_semester.html')
 
-    if user.role == 'STUDENT':
-        try:
-            student = user.student_profile
-            group = student.group
-        except Student.DoesNotExist:
-            pass
-    
-    elif user.role == 'TEACHER':
+    if user.role == 'TEACHER':
         try:
             teacher = user.teacher_profile
             group_ids = ScheduleSlot.objects.filter(
@@ -371,12 +382,18 @@ def schedule_view(request):
         
         if group_id:
             group = get_object_or_404(Group, id=group_id)
+            # ✅ Получаем семестр для курса этой группы
+            active_semester = Semester.objects.filter(
+                course=group.course, is_active=True
+            ).first()
+            if not active_semester:
+                messages.warning(request, f'Нет активного семестра для {group.course} курса')
         
         context = {'groups': groups, 'group': group, 'active_semester': active_semester}
         if not group:
             return render(request, 'schedule/schedule_view_unified.html', context)
 
-    if group:
+    if group and active_semester:
         time_slots = get_time_slots_for_shift(active_semester.shift)
         days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
         
@@ -409,7 +426,21 @@ def today_classes(request):
     today = datetime.now()
     day_of_week = today.weekday()
     current_time = today.time()
-    active_semester = Semester.get_active()
+    
+    # ✅ Получаем семестр с учетом курса
+    if user.role == 'STUDENT':
+        try:
+            student = user.student_profile
+            if student.group:
+                active_semester = Semester.objects.filter(
+                    course=student.group.course, is_active=True
+                ).first()
+            else:
+                active_semester = None
+        except:
+            active_semester = None
+    else:
+        active_semester = Semester.objects.filter(is_active=True).first()
 
     classes = []
     if not active_semester:
@@ -485,7 +516,7 @@ def delete_subject(request, subject_id):
 @user_passes_test(is_dean)
 def manage_semesters(request):
     semesters = Semester.objects.all()
-    active_semester = Semester.get_active()
+    active_semester = Semester.objects.filter(is_active=True).first()
     return render(request, 'schedule/manage_semesters.html', {'semesters': semesters, 'active_semester': active_semester})
 
 @user_passes_test(is_dean)
@@ -517,7 +548,7 @@ def edit_semester(request, semester_id):
 def toggle_semester_active(request, semester_id):
     semester = get_object_or_404(Semester, id=semester_id)
     semester.is_active = not semester.is_active
-    semester.save()
+    semester.save()  # Это автоматически деактивирует другие семестры того же курса
     status = "активирован" if semester.is_active else "деактивирован"
     messages.success(request, f'Семестр {status}')
     return redirect('schedule:manage_semesters')
@@ -571,7 +602,7 @@ def delete_classroom(request, classroom_id):
 
 @user_passes_test(is_dean)
 def manage_academic_week(request):
-    active_semester = Semester.get_active()
+    active_semester = Semester.objects.filter(is_active=True).first()
     current_week = AcademicWeek.get_current()
 
     if request.method == 'POST':
@@ -615,7 +646,7 @@ def group_list(request):
     if user.role == 'TEACHER':
         try:
             teacher = user.teacher_profile
-            active_semester = Semester.get_active()
+            active_semester = Semester.objects.filter(is_active=True).first()
             if active_semester:
                 group_ids = ScheduleSlot.objects.filter(
                     teacher=teacher, semester=active_semester, is_active=True
@@ -647,77 +678,30 @@ def export_schedule(request):
 
     user = request.user
     group = None
-    active_semester = Semester.get_active()
-
-    if not active_semester:
-        messages.error(request, 'Активный семестр не найден')
-        return redirect('schedule:view')
-
-    if user.role == 'STUDENT':
+    
+    group_id = request.GET.get('group')
+    if group_id:
+        group = get_object_or_404(Group, id=group_id)
+    elif user.role == 'STUDENT':
         try:
             student = user.student_profile
             group = student.group
         except Student.DoesNotExist:
             messages.error(request, 'Профиль студента не найден')
             return redirect('schedule:view')
-    elif user.role == 'DEAN' or user.role == 'TEACHER':
-        group_id = request.GET.get('group')
-        if group_id:
-            group = get_object_or_404(Group, id=group_id)
-
+    
     if not group:
         messages.error(request, 'Группа не определена')
         return redirect('schedule:view')
+    
+    # ✅ Получаем семестр для курса группы
+    active_semester = Semester.objects.filter(
+        course=group.course, is_active=True
+    ).first()
+    
+    if not active_semester:
+        messages.error(request, f'Нет активного семестра для {group.course} курса')
+        return redirect('schedule:view')
 
     doc = Document()
-    heading = doc.add_heading('ҶАДВАЛИ ДАРСӢ', 0)
-    heading.alignment = 1  # CENTER
-    
-    info = doc.add_paragraph()
-    info.add_run(f'Группа: {group.name}\n').bold = True
-    info.add_run(f'{group.specialty}\n')
-    info.add_run(f'Количество студентов: {group.students.count()}\n')
-    info.add_run(f'Семестр: {active_semester.name}\n')
-    info.alignment = 1
-    
-    time_slots = get_time_slots_for_shift(active_semester.shift)
-    days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
-    
-    schedule_dict = {}
-    slots = ScheduleSlot.objects.filter(
-        group=group, semester=active_semester, is_active=True
-    ).select_related('subject', 'teacher__user', 'time_slot')
-    
-    for slot in slots:
-        if slot.day_of_week not in schedule_dict:
-            schedule_dict[slot.day_of_week] = {}
-        schedule_dict[slot.day_of_week][slot.time_slot.id] = slot
-    
-    table = doc.add_table(rows=1, cols=3)
-    table.style = 'Table Grid'
-    
-    header_row = table.rows[0]
-    header_row.cells[0].text = 'СОАТ'
-    header_row.cells[1].text = 'Дарс / Устод'
-    header_row.cells[2].text = 'АУД'
-    
-    for day_num, day_name in days:
-        row = table.add_row()
-        cell = row.cells[0]
-        cell.text = day_name
-        cell.merge(row.cells[1]).merge(row.cells[2])
-        
-        for time_slot in time_slots:
-            row = table.add_row()
-            row.cells[0].text = f'{time_slot.start_time.strftime("%H:%M")}-{time_slot.end_time.strftime("%H:%M")}'
-            
-            slot = schedule_dict.get(day_num, {}).get(time_slot.id)
-            if slot:
-                row.cells[1].text = f'{slot.subject.name}\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
-                row.cells[2].text = slot.room or '—'
-    
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    filename = f'schedule_{group.name}_{datetime.now().strftime("%Y%m%d")}.docx'
-    response['Content-Disposition'] = f'attachment; filename={filename}'
-    doc.save(response)
-    return response
+    heading
