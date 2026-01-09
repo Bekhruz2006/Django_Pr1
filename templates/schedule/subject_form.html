@@ -4,18 +4,23 @@
 
 {% block content %}
 <div class="row mt-4">
-    <div class="col-lg-10 mx-auto">
+    <div class="col-lg-8 mx-auto">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header bg-primary text-white">
                 <i class="bi bi-book"></i> {{ title|default:"Добавить предмет" }}
             </div>
             <div class="card-body">
                 <form method="post" id="subjectForm">
                     {% csrf_token %}
                     
-                    <!-- Основная информация -->
+                    <!-- ✅ УПРОЩЕННАЯ ФОРМА: ТОЛЬКО КРЕДИТЫ -->
+                    <div class="alert alert-success">
+                        <h5><i class="bi bi-magic"></i> Автоматический расчет</h5>
+                        <p class="mb-0">Введите только <strong>общее количество кредитов</strong>, система сама рассчитает все часы по формуле: <code>1 кредит = 24 часа</code></p>
+                    </div>
+
                     <div class="card mb-3">
-                        <div class="card-header bg-primary text-white">
+                        <div class="card-header bg-light">
                             <i class="bi bi-info-circle"></i> Основная информация
                         </div>
                         <div class="card-body">
@@ -58,101 +63,54 @@
                         </div>
                     </div>
 
-                    <!-- ✅ Распределение часов ПО ТАБЛИЦЕ -->
-                    <div class="card mb-3">
+                    <!-- ✅ ГЛАВНОЕ ПОЛЕ: КРЕДИТЫ -->
+                    <div class="card mb-3 border-success">
                         <div class="card-header bg-success text-white">
-                            <i class="bi bi-calculator"></i> Распределение часов за семестр
+                            <i class="bi bi-calculator"></i> Учебная нагрузка
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <!-- Лекции -->
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label text-primary">
-                                        <i class="bi bi-mortarboard"></i> {{ form.lecture_hours.label }}
-                                    </label>
-                                    {{ form.lecture_hours }}
-                                    <small class="form-text text-muted d-block">{{ form.lecture_hours.help_text }}</small>
-                                    <small class="text-primary fw-bold" id="lecture-weekly">0 ч/нед</small>
-                                    {% if form.lecture_hours.errors %}
-                                        <div class="text-danger small">{{ form.lecture_hours.errors }}</div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Практика -->
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label text-success">
-                                        <i class="bi bi-gear"></i> {{ form.practice_hours.label }}
-                                    </label>
-                                    {{ form.practice_hours }}
-                                    <small class="form-text text-muted d-block">{{ form.practice_hours.help_text }}</small>
-                                    <small class="text-success fw-bold" id="practice-weekly">0 ч/нед</small>
-                                    {% if form.practice_hours.errors %}
-                                        <div class="text-danger small">{{ form.practice_hours.errors }}</div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- КМРО -->
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label text-warning">
-                                        <i class="bi bi-pencil-square"></i> {{ form.control_hours.label }}
-                                    </label>
-                                    {{ form.control_hours }}
-                                    <small class="form-text text-muted d-block">{{ form.control_hours.help_text }}</small>
-                                    <small class="text-warning fw-bold" id="control-weekly">0 ч/нед</small>
-                                    {% if form.control_hours.errors %}
-                                        <div class="text-danger small">{{ form.control_hours.errors }}</div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- КМД -->
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label text-info">
-                                        <i class="bi bi-book-half"></i> {{ form.independent_work_hours.label }}
-                                    </label>
-                                    {{ form.independent_work_hours }}
-                                    <small class="form-text text-muted d-block">{{ form.independent_work_hours.help_text }}</small>
-                                    {% if form.independent_work_hours.errors %}
-                                        <div class="text-danger small">{{ form.independent_work_hours.errors }}</div>
-                                    {% endif %}
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>{{ form.total_credits.label }}</strong></label>
+                                {{ form.total_credits }}
+                                <small class="form-text text-muted d-block">{{ form.total_credits.help_text }}</small>
+                                {% if form.total_credits.errors %}
+                                    <div class="text-danger small">{{ form.total_credits.errors }}</div>
+                                {% endif %}
                             </div>
                             
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">{{ form.semester_weeks.label }}</label>
-                                    {{ form.semester_weeks }}
-                                    <small class="form-text text-muted d-block">{{ form.semester_weeks.help_text }}</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ✅ Автоматический расчет (1 кредит = 24 часа) -->
-                    <div class="card mb-3 border-info">
-                        <div class="card-header bg-info text-white">
-                            <i class="bi bi-calculator-fill"></i> Автоматический расчет (1 кредит = 24 часа)
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <strong>Аудиторные часы:</strong>
-                                    <h4 class="text-primary mb-0" id="total-auditory">0 ч</h4>
-                                    <small class="text-muted">Л + А + КМРО</small>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Общая трудоемкость:</strong>
-                                    <h4 class="text-success mb-0" id="total-hours">0 ч</h4>
-                                    <small class="text-muted">Аудиторные + КМД</small>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Кредиты с преподавателем:</strong>
-                                    <h4 class="text-warning mb-0" id="teacher-credits">0</h4>
-                                    <small class="text-muted">Ауд. часы / 24</small>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Общие кредиты:</strong>
-                                    <h4 class="text-info mb-0" id="total-credits">0</h4>
-                                    <small class="text-muted">Общие часы / 24</small>
+                            <!-- ✅ Автоматический расчет (живое обновление) -->
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>📊 Автоматический расчет:</h6>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Лекции (Л):</small>
+                                            <h5 class="text-primary" id="calc-lecture">0 ч</h5>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Практика (А):</small>
+                                            <h5 class="text-success" id="calc-practice">0 ч</h5>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">КМРО:</small>
+                                            <h5 class="text-warning" id="calc-control">0 ч</h5>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">КМД:</small>
+                                            <h5 class="text-info" id="calc-kmd">0 ч</h5>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Аудиторные часы:</strong>
+                                            <h4 class="text-primary mb-0" id="calc-auditory">0 ч</h4>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Общая трудоемкость:</strong>
+                                            <h4 class="text-success mb-0" id="calc-total">0 ч</h4>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -162,61 +120,49 @@
                     <div class="mb-3">
                         <label class="form-label">{{ form.description.label }}</label>
                         {{ form.description }}
-                        {% if form.description.errors %}
-                            <div class="text-danger small">{{ form.description.errors }}</div>
-                        {% endif %}
                     </div>
                     
-                    <!-- ✅ Примеры из ВАШЕЙ ТАБЛИЦЫ -->
-                    <div class="alert alert-success">
-                        <h6><i class="bi bi-lightbulb"></i> Примеры из таблицы:</h6>
+                    <!-- ✅ ПРИМЕРЫ ИЗ ТАБЛИЦЫ -->
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-lightbulb"></i> Примеры из вашей таблицы:</h6>
                         <table class="table table-sm table-bordered">
                             <thead>
                                 <tr>
                                     <th>Предмет</th>
+                                    <th>Кредиты</th>
                                     <th>Л</th>
                                     <th>А</th>
                                     <th>КМРО</th>
                                     <th>КМД</th>
                                     <th>Итого</th>
-                                    <th>Кредиты</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td>Менеджменти экологї</td>
+                                    <td><strong>6</strong></td>
                                     <td>32</td>
                                     <td>32</td>
                                     <td>32</td>
                                     <td>48</td>
                                     <td>144 ч</td>
-                                    <td><strong>6</strong></td>
-                                </tr>
-                                <tr>
-                                    <td>Идоракунии лоиҳаҳо</td>
-                                    <td>32</td>
-                                    <td>32</td>
-                                    <td>32</td>
-                                    <td>48</td>
-                                    <td>144 ч</td>
-                                    <td><strong>6</strong></td>
                                 </tr>
                                 <tr>
                                     <td>Забони англисӣ</td>
+                                    <td><strong>3</strong></td>
                                     <td>16</td>
                                     <td>16</td>
                                     <td>16</td>
                                     <td>24</td>
                                     <td>72 ч</td>
-                                    <td><strong>3</strong></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Сохранить
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Сохранить предмет
                         </button>
                         <a href="{% url 'schedule:manage_subjects' %}" class="btn btn-secondary">
                             <i class="bi bi-x-circle"></i> Отмена
@@ -230,62 +176,39 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const lectureInput = document.querySelector('input[name="lecture_hours"]');
-    const practiceInput = document.querySelector('input[name="practice_hours"]');
-    const controlInput = document.querySelector('input[name="control_hours"]');
-    const kmdInput = document.querySelector('input[name="independent_work_hours"]');
-    const weeksInput = document.querySelector('input[name="semester_weeks"]');
+    const creditsInput = document.querySelector('input[name="total_credits"]');
     
     function calculateAll() {
-        const lecture = parseInt(lectureInput.value) || 0;
-        const practice = parseInt(practiceInput.value) || 0;
-        const control = parseInt(controlInput.value) || 0;
-        const kmd = parseInt(kmdInput.value) || 0;
-        const weeks = parseInt(weeksInput.value) || 16;
+        const credits = parseInt(creditsInput.value) || 0;
         
-        // ✅ Часы в неделю
-        const lectureWeekly = (lecture / weeks).toFixed(1);
-        const practiceWeekly = (practice / weeks).toFixed(1);
-        const controlWeekly = (control / weeks).toFixed(1);
+        // ✅ ПО ФОРМУЛЕ: 1 кредит = 24 часа
+        const totalHours = credits * 24;
         
-        // ✅ Общие показатели по формуле: 1 кредит = 24 часа
-        const totalAuditory = lecture + practice + control;
-        const totalHours = totalAuditory + kmd;
-        const teacherCredits = (totalAuditory / 24).toFixed(1);
-        const totalCredits = (totalHours / 24).toFixed(1);
+        // КМД = 1/3 от общей трудоемкости
+        const kmdHours = Math.floor(totalHours / 3);
         
-        // Обновляем отображение
-        document.getElementById('lecture-weekly').textContent = `${lectureWeekly} ч/нед`;
-        document.getElementById('practice-weekly').textContent = `${practiceWeekly} ч/нед`;
-        document.getElementById('control-weekly').textContent = `${controlWeekly} ч/нед`;
+        // Аудиторные = 2/3
+        const auditoryHours = totalHours - kmdHours;
         
-        document.getElementById('total-auditory').textContent = `${totalAuditory} ч`;
-        document.getElementById('total-hours').textContent = `${totalHours} ч`;
-        document.getElementById('teacher-credits').textContent = teacherCredits;
-        document.getElementById('total-credits').textContent = totalCredits;
+        // Делим поровну: Л, А, КМРО
+        const lecture = Math.floor(auditoryHours / 3);
+        const practice = Math.floor(auditoryHours / 3);
+        const control = auditoryHours - lecture - practice;
+        
+        // Обновляем интерфейс
+        document.getElementById('calc-lecture').textContent = lecture + ' ч';
+        document.getElementById('calc-practice').textContent = practice + ' ч';
+        document.getElementById('calc-control').textContent = control + ' ч';
+        document.getElementById('calc-kmd').textContent = kmdHours + ' ч';
+        document.getElementById('calc-auditory').textContent = auditoryHours + ' ч';
+        document.getElementById('calc-total').textContent = totalHours + ' ч';
     }
     
-    // Вызываем при загрузке для заполненной формы
+    // Вызываем при загрузке
     calculateAll();
     
     // Слушаем изменения
-    [lectureInput, practiceInput, controlInput, kmdInput, weeksInput].forEach(input => {
-        input.addEventListener('input', calculateAll);
-    });
+    creditsInput.addEventListener('input', calculateAll);
 });
 </script>
-
-<style>
-.card-header {
-    font-weight: 600;
-}
-
-input[type="number"] {
-    font-size: 1.1rem;
-}
-
-#total-auditory, #total-hours, #teacher-credits, #total-credits {
-    font-weight: bold;
-}
-</style>
 {% endblock %}

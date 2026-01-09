@@ -1,15 +1,27 @@
-# schedule/forms.py - АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ
+# schedule/forms.py - АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ (1 КРЕДИТ = 24 ЧАСА)
 
 from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher
 
 class SubjectForm(forms.ModelForm):
-    """Форма для создания предмета - ТОЛЬКО общие кредиты, всё остальное автоматически"""
+    """✅ Форма для создания предмета - ТОЛЬКО общие кредиты, всё остальное АВТОМАТИЧЕСКИ"""
+    
+    # ✅ Добавляем поле для ввода общих кредитов (не из модели)
+    total_credits = forms.IntegerField(
+        min_value=1,
+        max_value=12,
+        label='Общее количество кредитов',
+        help_text='Например: 6 (система автоматически рассчитает все часы)',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Например: 6'
+        })
+    )
     
     class Meta:
         model = Subject
-        fields = ['name', 'code', 'teacher', 'groups', 'credits', 'description']
+        fields = ['name', 'code', 'teacher', 'groups', 'description']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -24,15 +36,10 @@ class SubjectForm(forms.ModelForm):
                 'class': 'form-select',
                 'size': '5'
             }),
-            'credits': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Например: 6',
-                'min': 1
-            }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control', 
                 'rows': 3,
-                'placeholder': 'Дополнительная информация о предмете'
+                'placeholder': 'Дополнительная информация'
             }),
         }
         labels = {
@@ -40,18 +47,28 @@ class SubjectForm(forms.ModelForm):
             'code': 'Код предмета *',
             'teacher': 'Преподаватель',
             'groups': 'Группы (можно выбрать несколько)',
-            'credits': 'Общее количество кредитов *',
             'description': 'Описание',
         }
         help_texts = {
             'groups': 'Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп',
-            'credits': 'Система автоматически рассчитает все часы по формуле: 1 кредит = 24 часа',
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Если редактируем существующий предмет - заполняем total_credits
+        if self.instance and self.instance.pk:
+            # Вычисляем из существующих данных
+            total_hours = (self.instance.lecture_hours + 
+                          self.instance.practice_hours + 
+                          self.instance.control_hours + 
+                          self.instance.independent_work_hours)
+            self.initial['total_credits'] = round(total_hours / 24)
     
     def save(self, commit=True):
         instance = super().save(commit=False)
         
-        # ✅ АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ (как в таблице)
+        # ✅ АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ (1 кредит = 24 часа)
         total_credits = self.cleaned_data.get('total_credits', 0)
         
         # 1 кредит = 24 часа
@@ -63,17 +80,12 @@ class SubjectForm(forms.ModelForm):
         # Аудиторные часы = 2/3 от общей трудоемкости
         auditory_hours = total_hours - kmd_hours
         
-        # Аудиторные часы делятся поровну между Л, А, КМРО
+        # ✅ Аудиторные часы делятся ПОРОВНУ между Л, А, КМРО
         lecture_hours = auditory_hours // 3
         practice_hours = auditory_hours // 3
         control_hours = auditory_hours - lecture_hours - practice_hours  # остаток
         
-        # Кредиты с преподавателем
-        teacher_credits = auditory_hours // 24
-        
         # Сохраняем в модель
-        instance.credits = total_credits
-        instance.hours_per_semester = total_hours
         instance.lecture_hours = lecture_hours
         instance.practice_hours = practice_hours
         instance.control_hours = control_hours
@@ -82,6 +94,10 @@ class SubjectForm(forms.ModelForm):
         
         # Устанавливаем тип (основной - лекция)
         instance.type = 'LECTURE'
+        
+        # Старые поля для совместимости
+        instance.credits = total_credits
+        instance.hours_per_semester = total_hours
         
         if commit:
             instance.save()

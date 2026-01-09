@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load schedule_filters %}
+
+{% block title %}Конструктор расписания{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <!-- Выбор группы и семестра -->
+    <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-people"></i> Выбор группы и семестра
+            </div>
+            <div class="card-body">
+                <form method="get" id="groupSelectionForm">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Группа</label>
+                            <select class="form-select" name="group" required>
+                                <option value="">Выберите группу...</option>
+                                {% for g in groups %}
+                                    <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>
+                                        {{ g.name }} - {{ g.specialty|truncatewords:5 }} ({{ g.students.count }} чел.)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Семестр</label>
+                            <select class="form-select" name="semester">
+                                {% for sem in semesters %}
+                                    <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
+                                        {{ sem.name }} ({{ sem.get_shift_display }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-arrow-clockwise"></i> Загрузить
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if group %}
+    <!-- ЛЕВАЯ ПАНЕЛЬ: Предметы с лимитами -->
+    <div class="col-lg-3">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-book"></i> Доступные предметы
+                <small class="d-block mt-1">Перетащите в расписание</small>
+            </div>
+            <div class="card-body p-0" style="max-height: 700px; overflow-y: auto;">
+                
+                <!-- ✅ ЛЕКЦИИ -->
+                {% if lecture_subjects %}
+                <div class="bg-primary bg-opacity-10 p-2">
+                    <strong><i class="bi bi-mortarboard"></i> Лекции (2 группы)</strong>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for item in lecture_subjects %}
+                        <div class="list-group-item subject-item p-2"
+                             draggable="true"
+                             data-subject-id="{{ item.subject.id }}"
+                             data-subject-name="{{ item.subject.name }}"
+                             data-subject-type="LECTURE"
+                             data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
+                             data-remaining="{{ item.remaining }}"
+                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
+                            <strong>{{ item.subject.name }}</strong><br>
+                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'—' }}</small><br>
+                            <span class="badge bg-primary">Лекция (2 гр.)</span><br>
+                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small><br>
+                            <strong class="{% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
+                                Осталось: {{ item.remaining }} / {{ item.needed }}
+                            </strong>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- ✅ ПРАКТИКИ -->
+                {% if practice_subjects %}
+                <div class="bg-success bg-opacity-10 p-2 mt-2">
+                    <strong><i class="bi bi-gear"></i> Практики (1 группа)</strong>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for item in practice_subjects %}
+                        <div class="list-group-item subject-item p-2"
+                             draggable="true"
+                             data-subject-id="{{ item.subject.id }}"
+                             data-subject-name="{{ item.subject.name }}"
+                             data-subject-type="PRACTICE"
+                             data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
+                             data-remaining="{{ item.remaining }}"
+                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
+                            <strong>{{ item.subject.name }}</strong><br>
+                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'—' }}</small><br>
+                            <span class="badge bg-success">Практика</span><br>
+                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small><br>
+                            <strong class="{% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
+                                Осталось: {{ item.remaining }} / {{ item.needed }}
+                            </strong>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- ✅ КМРО/СРСП -->
+                {% if control_subjects %}
+                <div class="bg-warning bg-opacity-10 p-2 mt-2">
+                    <strong><i class="bi bi-pencil-square"></i> КМРО/СРСП (1 группа)</strong>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for item in control_subjects %}
+                        <div class="list-group-item subject-item p-2"
+                             draggable="true"
+                             data-subject-id="{{ item.subject.id }}"
+                             data-subject-name="{{ item.subject.name }}"
+                             data-subject-type="SRSP"
+                             data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
+                             data-remaining="{{ item.remaining }}"
+                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
+                            <strong>{{ item.subject.name }}</strong><br>
+                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'—' }}</small><br>
+                            <span class="badge bg-warning">КМРО/СРСП</span><br>
+                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small><br>
+                            <strong class="{% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
+                                Осталось: {{ item.remaining }} / {{ item.needed }}
+                            </strong>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not lecture_subjects and not practice_subjects and not control_subjects %}
+                    <div class="p-3 text-center text-muted">
+                        <i class="bi bi-inbox"></i><br>
+                        Нет доступных предметов.<br>
+                        Назначьте предметы группе.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ: Расписание -->
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-week"></i> ҶАДВАЛИ ДАРСӢ - {{ group.name }}</span>
+                <div>
+                    <a href="{% url 'schedule:export' %}?group={{ group.id }}" 
+                       class="btn btn-success btn-sm">
+                        <i class="bi bi-download"></i> Экспорт
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 schedule-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">СОАТ</th>
+                                <th>Дарс / Устод</th>
+                                <th style="width: 60px;">АУД</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day_num, day_name in days %}
+                                <tr class="table-secondary">
+                                    <td colspan="3" class="text-center"><strong>{{ day_name }}</strong></td>
+                                </tr>
+                                
+                                {% for time_slot in time_slots %}
+                                    <tr>
+                                        <td class="text-center time-cell">
+                                            <strong>{{ time_slot.start_time|time:"H:i" }}-{{ time_slot.end_time|time:"H:i" }}</strong>
+                                        </td>
+                                        
+                                        {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                        <td class="schedule-drop-zone p-2"
+                                            data-group-id="{{ group.id }}"
+                                            data-day="{{ day_num }}"
+                                            data-time-slot="{{ time_slot.id }}">
+                                            {% if slot %}
+                                            <div class="lesson-content">
+                                                <strong>{{ slot.subject.name }} ({{ slot.subject.get_type_display }})</strong><br>
+                                                <small class="text-muted">{{ slot.teacher.user.get_full_name|default:'—' }}</small>
+                                                <button class="btn btn-sm btn-danger delete-slot float-end" 
+                                                        data-slot-id="{{ slot.id }}"
+                                                        data-subject-id="{{ slot.subject.id }}">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="aud-cell text-center" 
+                                            {% if slot %}data-slot-id="{{ slot.id }}"{% endif %}>
+                                            {% if slot %}
+                                            <div class="aud-display" onclick="editAud(this)">
+                                                <strong>{{ slot.room|default:'?' }}</strong>
+                                            </div>
+                                            <input type="text" 
+                                                   class="form-control form-control-sm aud-input" 
+                                                   value="{{ slot.room|default:'' }}"
+                                                   style="display: none;"
+                                                   onblur="saveAud(this, {{ slot.id }})"
+                                                   onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
+                                            {% endif %}
+                                        </td>
+                                        {% endwith %}
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <h6><i class="bi bi-info-circle"></i> Инструкция:</h6>
+            <ul class="mb-0">
+                <li>Перетащите предмет из левой панели в расписание</li>
+                <li>Предмет исчезнет из списка, когда достигнут лимит</li>
+                <li>При удалении предмет вернется в список</li>
+                <li>Лекции проводятся для 2 групп одновременно</li>
+            </ul>
+        </div>
+    </div>
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> Выберите группу для составления расписания
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.schedule-table { font-size: 0.85rem; }
+.schedule-drop-zone {
+    min-height: 60px;
+    background-color: #fff;
+    border: 2px dashed transparent;
+    transition: all 0.2s;
+}
+.schedule-drop-zone.drag-over {
+    background-color: #d1e7dd;
+    border-color: #198754;
+}
+.subject-item:hover { background-color: #f0f0f0; transform: translateX(3px); }
+.subject-item:active { opacity: 0.5; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function getCookie(name) {
+        let value = null;
+        if (document.cookie) {
+            document.cookie.split(';').forEach(cookie => {
+                const [key, val] = cookie.trim().split('=');
+                if (key === name) value = decodeURIComponent(val);
+            });
+        }
+        return value;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    let draggedData = {};
+
+    // DRAG
+    document.querySelectorAll('.subject-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            draggedData = {
+                subjectId: this.dataset.subjectId,
+                subjectName: this.dataset.subjectName,
+                subjectType: this.dataset.subjectType,
+                teacherName: this.dataset.teacherName,
+                remaining: parseInt(this.dataset.remaining)
+            };
+            this.style.opacity = '0.4';
+        });
+        item.addEventListener('dragend', function() { this.style.opacity = '1'; });
+    });
+
+    // DROP
+    document.querySelectorAll('.schedule-drop-zone').forEach(cell => {
+        cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('drag-over'); });
+        cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+        cell.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (draggedData.remaining <= 0) {
+                alert('❌ Достигнут лимит для этого предмета!');
+                return;
+            }
+
+            const groupId = this.dataset.groupId;
+            const dayOfWeek = this.dataset.day;
+            const timeSlot = this.dataset.timeSlot;
+
+            fetch('/schedule/constructor/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    group: groupId,
+                    subject: draggedData.subjectId,
+                    day_of_week: dayOfWeek,
+                    time_slot: timeSlot
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert('❌ ' + data.error);
+            });
+        });
+    });
+
+    // DELETE
+    document.querySelectorAll('.delete-slot').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (!confirm('Удалить?')) return;
+            
+            fetch(`/schedule/constructor/delete/${this.dataset.slotId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) location.reload();
+            });
+        });
+    });
+});
+
+function editAud(el) {
+    el.style.display = 'none';
+    el.nextElementSibling.style.display = 'block';
+    el.nextElementSibling.focus();
+}
+
+function saveAud(input, slotId) {
+    const value = input.value.trim();
+    fetch(`/schedule/constructor/update-room/${slotId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.cookie.split('csrftoken=')[1].split(';')[0]
+        },
+        body: JSON.stringify({ room: value })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            input.previousElementSibling.querySelector('strong').textContent = data.room || '?';
+            input.style.display = 'none';
+            input.previousElementSibling.style.display = 'block';
+        } else alert(data.error);
+    });
+}
+</script>
+{% endblock %}
