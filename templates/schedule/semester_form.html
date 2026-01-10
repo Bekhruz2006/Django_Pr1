@@ -76,7 +76,14 @@
                             Сделать активным семестром (для {{ form.course.value }} курса)
                         </label>
                     </div>
-                    
+                    {% if semester and semester.pk %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Внимание при изменении смены:</strong><br>
+                        Если вы меняете смену (утренняя ↔ дневная), рекомендуется запустить команду очистки:
+                        <pre class="mb-0 mt-2"><code>python manage.py cleanup_schedule</code></pre>
+                    </div>
+                    {% endif %}
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> 
                         <strong>Важно:</strong> Семестр будет доступен только для групп {{ form.course.value }} курса

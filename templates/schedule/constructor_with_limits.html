@@ -57,7 +57,7 @@
                 <small class="d-block mt-1">Перетащите в расписание</small>
             </div>
             <div class="card-body p-0" style="max-height: 700px; overflow-y: auto;">
-                
+
                 <!-- ✅ ЛЕКЦИИ -->
                 {% if lecture_subjects %}
                 <div class="bg-primary bg-opacity-10 p-2">
@@ -156,7 +156,7 @@
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-calendar-week"></i> ҶАДВАЛИ ДАРСӢ - {{ group.name }}</span>
                 <div>
-                    <a href="{% url 'schedule:export' %}?group={{ group.id }}" 
+                    <a href="{% url 'schedule:export' %}?group={{ group.id }}"
                        class="btn btn-success btn-sm">
                         <i class="bi bi-download"></i> Экспорт
                     </a>
@@ -177,13 +177,13 @@
                                 <tr class="table-secondary">
                                     <td colspan="3" class="text-center"><strong>{{ day_name }}</strong></td>
                                 </tr>
-                                
+
                                 {% for time_slot in time_slots %}
                                     <tr>
                                         <td class="text-center time-cell">
                                             <strong>{{ time_slot.start_time|time:"H:i" }}-{{ time_slot.end_time|time:"H:i" }}</strong>
                                         </td>
-                                        
+
                                         {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
                                         <td class="schedule-drop-zone p-2"
                                             data-group-id="{{ group.id }}"
@@ -191,24 +191,32 @@
                                             data-time-slot="{{ time_slot.id }}">
                                             {% if slot %}
                                             <div class="lesson-content">
-                                                <strong>{{ slot.subject.name }} ({{ slot.subject.get_type_display }})</strong><br>
+                                                <strong>{{ slot.subject.name }}</strong>
+                                                <span class="badge bg-{% if slot.lesson_type == 'LECTURE' %}primary{% elif slot.lesson_type == 'PRACTICE' %}success{% else %}warning{% endif %} ms-1">
+                                                    {{ slot.get_lesson_type_display }}
+                                                </span>
+                                                <br>
                                                 <small class="text-muted">{{ slot.teacher.user.get_full_name|default:'—' }}</small>
-                                                <button class="btn btn-sm btn-danger delete-slot float-end" 
+                                                <button class="btn btn-sm btn-danger delete-slot float-end"
                                                         data-slot-id="{{ slot.id }}"
                                                         data-subject-id="{{ slot.subject.id }}">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </div>
+                                            {% else %}
+                                            <div class="empty-slot" style="min-height: 50px;">
+                                                <!-- Перетащите предмет сюда -->
+                                            </div>
                                             {% endif %}
                                         </td>
-                                        <td class="aud-cell text-center" 
+                                        <td class="aud-cell text-center"
                                             {% if slot %}data-slot-id="{{ slot.id }}"{% endif %}>
                                             {% if slot %}
                                             <div class="aud-display" onclick="editAud(this)">
                                                 <strong>{{ slot.room|default:'?' }}</strong>
                                             </div>
-                                            <input type="text" 
-                                                   class="form-control form-control-sm aud-input" 
+                                            <input type="text"
+                                                   class="form-control form-control-sm aud-input"
                                                    value="{{ slot.room|default:'' }}"
                                                    style="display: none;"
                                                    onblur="saveAud(this, {{ slot.id }})"
@@ -245,133 +253,391 @@
 </div>
 
 <style>
-.schedule-table { font-size: 0.85rem; }
+.schedule-table { 
+    font-size: 0.85rem; 
+}
+
+.schedule-table th, .schedule-table td {
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    vertical-align: top;
+}
+
+.time-cell {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    vertical-align: middle !important;
+}
+
+/* Все ячейки должны быть drop-zone */
 .schedule-drop-zone {
-    min-height: 60px;
+    min-height: 60px !important;
     background-color: #fff;
     border: 2px dashed transparent;
     transition: all 0.2s;
+    position: relative;
+    cursor: crosshair;
 }
+
+.schedule-drop-zone .empty-slot {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    font-size: 0.75rem;
+}
+
+.schedule-drop-zone:hover {
+    background-color: #f8f9fa;
+    border-color: #ccc;
+}
+
 .schedule-drop-zone.drag-over {
-    background-color: #d1e7dd;
-    border-color: #198754;
+    background-color: #d1e7dd !important;
+    border-color: #198754 !important;
+    border-style: solid !important;
 }
-.subject-item:hover { background-color: #f0f0f0; transform: translateX(3px); }
-.subject-item:active { opacity: 0.5; }
+
+.lesson-content {
+    position: relative;
+    min-height: 50px;
+}
+
+.subject-item {
+    cursor: move;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.subject-item:hover { 
+    background-color: #f0f0f0; 
+    transform: translateX(3px); 
+}
+
+.subject-item:active { 
+    opacity: 0.5; 
+}
+
+.aud-cell {
+    background-color: #f8f9fa;
+    vertical-align: middle !important;
+}
+
+.aud-display:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Конструктор загружен');
+
     function getCookie(name) {
-        let value = null;
-        if (document.cookie) {
-            document.cookie.split(';').forEach(cookie => {
-                const [key, val] = cookie.trim().split('=');
-                if (key === name) value = decodeURIComponent(val);
-            });
-        }
-        return value;
-    }
-    const csrftoken = getCookie('csrftoken');
-
-    let draggedData = {};
-
-    document.querySelectorAll('.subject-item').forEach(item => {
-        item.addEventListener('dragstart', function(e) {
-            draggedData = {
-                subjectId: this.dataset.subjectId,
-                subjectName: this.dataset.subjectName,
-                subjectType: this.dataset.subjectType,  // ✅ Передаём тип
-                teacherName: this.dataset.teacherName,
-                remaining: parseInt(this.dataset.remaining)
-            };
-            this.style.opacity = '0.4';
-        });
-        item.addEventListener('dragend', function() { this.style.opacity = '1'; });
-    });
-
-    // DROP
-    document.querySelectorAll('.schedule-drop-zone').forEach(cell => {
-        cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('drag-over'); });
-        cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
-        cell.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-            
-            if (draggedData.remaining <= 0) {
-                alert('❌ Достигнут лимит для этого предмета!');
-                return;
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (let i = 0; i < cookies.length; i++) {
+            const c = cookies[i].trim();
+            if (c.startsWith(name + '=')) {
+                return decodeURIComponent(c.substring(name.length + 1));
             }
+        }
+        return null;
+    }
+    const csrftoken = getCookie('csrftoken') || '';
 
-            const groupId = this.dataset.groupId;
-            const dayOfWeek = this.dataset.day;
-            const timeSlot = this.dataset.timeSlot;
+    let draggedData = null;
 
-            fetch('/schedule/constructor/create/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({
-                    group: groupId,
-                    subject: draggedData.subjectId,
-                    day_of_week: dayOfWeek,
-                    time_slot: timeSlot,
-                    lesson_type: draggedData.subjectType  // ✅ ДОБАВЛЕНО
+    // helper: safe parse JSON
+    function safeJson(response) {
+        return response.text().then(text => {
+            try { return JSON.parse(text); } catch(e) { return { success: false, error: 'Invalid JSON response' }; }
+        });
+    }
+
+    // ATTACH drag listeners to subject items - support items that might be re-rendered
+    function attachDragHandlers(el) {
+        if (!el) return;
+        // prevent double attaching
+        if (el._hasDragHandler) return;
+        el._hasDragHandler = true;
+
+        el.addEventListener('dragstart', function(e) {
+            try {
+                const rem = parseInt(this.dataset.remaining || '0');
+                draggedData = {
+                    subjectId: this.dataset.subjectId,
+                    subjectName: this.dataset.subjectName,
+                    subjectType: this.dataset.subjectType,
+                    teacherName: this.dataset.teacherName || '',
+                    remaining: isNaN(rem) ? 0 : rem
+                };
+
+                // Make sure drag image is not huge and does not shift view
+                try {
+                    const img = document.createElement('canvas');
+                    img.width = img.height = 1;
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                } catch (err) {
+                    // ignore if not supported
+                }
+
+                // set transferable data for browsers that require it
+                try { e.dataTransfer.setData('text/plain', JSON.stringify(draggedData)); } catch(e) {}
+                e.dataTransfer.effectAllowed = 'copy';
+                this.style.opacity = '0.4';
+                console.log('dragstart', draggedData);
+            } catch (ex) { console.error('dragstart err', ex); }
+        });
+
+        el.addEventListener('dragend', function() {
+            try { this.style.opacity = '1'; } catch(e){}
+            draggedData = null;
+            stopAutoScroll();
+            console.log('dragend');
+        });
+    }
+
+    document.querySelectorAll('.subject-item').forEach(attachDragHandlers);
+
+    // DELETE (делегируем обработку, на случай перерендеринга)
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.delete-slot');
+        if (!btn) return;
+        e.stopPropagation();
+        if (!confirm('Удалить?')) return;
+        const slotId = btn.dataset.slotId;
+        if (!slotId) return;
+        fetch(`/schedule/constructor/delete/${slotId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken }
+        })
+        .then(r => safeJson(r))
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else alert(data.error || 'Ошибка удаления');
+        })
+        .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
+    });
+
+    // EDIT ROOM helpers
+    window.editAud = function(el) {
+        if (!el) return;
+        const input = el.nextElementSibling;
+        if (!input) return;
+        el.style.display = 'none';
+        input.style.display = 'block';
+        input.focus();
+    }
+
+    window.saveAud = function(input, slotId) {
+        if (!input) return;
+        const value = input.value.trim();
+        if (!slotId) return alert('Нет id слота');
+        fetch(`/schedule/constructor/update-room/${slotId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ room: value })
+        })
+        .then(r => safeJson(r))
+        .then(data => {
+            if (data.success) {
+                const prev = input.previousElementSibling;
+                if (prev) prev.querySelector('strong').textContent = data.room || '?';
+                input.style.display = 'none';
+                if (prev) prev.style.display = 'block';
+            } else alert(data.error || 'Ошибка сохранения');
+        })
+        .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
+    }
+
+    // -------------------------
+    // Автоскролл (window + контейнеры)
+    // -------------------------
+    let autoScrollState = {
+        active: false,
+        direction: 0, // -1 up, +1 down
+        container: null,
+        rafId: null
+    };
+
+    function autoScrollStep() {
+        try {
+            if (!autoScrollState.active) return;
+            const dir = autoScrollState.direction;
+            const container = autoScrollState.container;
+            // adaptive speed: если контейнер большой — увеличить шаг
+            const step = Math.max(8, Math.min(40, Math.round((container ? container.clientHeight : window.innerHeight) * 0.02)));
+            if (container) container.scrollTop += dir * step;
+            else window.scrollBy(0, dir * step);
+        } finally {
+            autoScrollState.rafId = requestAnimationFrame(autoScrollStep);
+        }
+    }
+
+    function startAutoScroll(direction, container = null) {
+        if (autoScrollState.active && autoScrollState.direction === direction && autoScrollState.container === container) return;
+        stopAutoScroll();
+        autoScrollState.active = true;
+        autoScrollState.direction = direction;
+        autoScrollState.container = container;
+        autoScrollState.rafId = requestAnimationFrame(autoScrollStep);
+    }
+
+    function stopAutoScroll() {
+        autoScrollState.active = false;
+        autoScrollState.direction = 0;
+        autoScrollState.container = null;
+        if (autoScrollState.rafId) {
+            cancelAnimationFrame(autoScrollState.rafId);
+            autoScrollState.rafId = null;
+        }
+    }
+
+    // Обработка dragover на документе (для прокрутки окна)
+    document.addEventListener('dragover', function(e) {
+        try {
+            e.preventDefault();
+            const margin = 120; // px от края
+            const y = e.clientY;
+            const h = window.innerHeight;
+            if (y < margin) startAutoScroll(-1, null);
+            else if (y > h - margin) startAutoScroll(1, null);
+            else stopAutoScroll();
+        } catch (ex) { console.error(ex); }
+    });
+
+    // Останавливаем и на drop
+    document.addEventListener('drop', function(e) { stopAutoScroll(); });
+    document.addEventListener('dragend', function(e) { stopAutoScroll(); });
+
+    // Автоскролл для прокручиваемых контейнеров (левый список предметов и таблица)
+    const containerSelectors = ['.card-body.p-0', '.table-responsive'];
+    const scrollContainers = [];
+    containerSelectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(c => scrollContainers.push(c));
+    });
+
+    // Добавляем dragover listener для контейнеров
+    scrollContainers.forEach(container => {
+        container.addEventListener('dragover', function(e) {
+            try {
+                e.preventDefault();
+                const rect = this.getBoundingClientRect();
+                const localY = e.clientY - rect.top;
+                const margin = Math.min(80, rect.height * 0.18);
+                if (localY < margin) startAutoScroll(-1, this);
+                else if (localY > rect.height - margin) startAutoScroll(1, this);
+                else stopAutoScroll();
+            } catch (ex) { console.error(ex); }
+        });
+        container.addEventListener('dragleave', function(e) { stopAutoScroll(); });
+        container.addEventListener('drop', function(e) { stopAutoScroll(); });
+    });
+
+    // DROP ZONES
+    function handleDropZone(cell) {
+        // avoid double attach
+        if (cell._hasDropHandler) return;
+        cell._hasDropHandler = true;
+
+        cell.addEventListener('dragover', function(e) {
+            try { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; this.classList.add('drag-over'); } catch(e){}
+        });
+
+        cell.addEventListener('dragleave', function(e) {
+            try {
+                // если курсор действительно ушёл
+                if (!this.contains(e.relatedTarget)) this.classList.remove('drag-over');
+            } catch(e) { this.classList.remove('drag-over'); }
+        });
+
+        cell.addEventListener('drop', function(e) {
+            try {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                stopAutoScroll();
+                // если draggedData null — попробуем получить из dataTransfer
+                if (!draggedData) {
+                    try {
+                        const txt = e.dataTransfer.getData('text/plain');
+                        if (txt) draggedData = JSON.parse(txt);
+                    } catch (ex) { /* ignore */ }
+                }
+
+                console.log('drop target', this.dataset, 'dragged', draggedData);
+
+                if (!draggedData) return alert('Не удалось определить перетаскиваемый предмет.');
+                if (parseInt(draggedData.remaining || 0) <= 0) return alert('Достигнут лимит для этого предмета!');
+
+                const groupId = this.dataset.groupId;
+                const dayOfWeek = this.dataset.day;
+                const timeSlot = this.dataset.timeSlot;
+                if (!groupId || !dayOfWeek || !timeSlot) return alert('Недостаточно данных для размещения предмета.');
+
+                // блокируем UI простым семафором
+                const prevCursor = document.body.style.cursor;
+                document.body.style.cursor = 'wait';
+
+                fetch('/schedule/constructor/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        group: groupId,
+                        subject: draggedData.subjectId,
+                        day_of_week: dayOfWeek,
+                        time_slot: timeSlot,
+                        lesson_type: draggedData.subjectType
+                    })
                 })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) location.reload();
-                else alert('❌ ' + data.error);
-            });
-        });
-    });
+                .then(r => {
+                    // допустим сервер возвращает код ошибки и HTML
+                    if (!r.ok) return safeJson(r).then(j => { throw new Error(j.error || 'Server error'); });
+                    return safeJson(r);
+                })
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Не удалось создать запись');
+                    }
+                })
+                .catch(err => { alert('Ошибка: ' + (err.message || err)); })
+                .finally(() => { document.body.style.cursor = prevCursor; draggedData = null; });
 
-
-    // DELETE
-    document.querySelectorAll('.delete-slot').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (!confirm('Удалить?')) return;
-            
-            fetch(`/schedule/constructor/delete/${this.dataset.slotId}/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrftoken }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) location.reload();
-            });
+            } catch (ex) { console.error(ex); }
         });
-    });
+    }
+
+    // Инициализация drop zones
+    document.querySelectorAll('.schedule-drop-zone').forEach(handleDropZone);
+
+    // наблюдатель за DOM: если бекенд подгружает элементы через ajax, прикрепим обработчики
+    try {
+        const mo = new MutationObserver(muts => {
+            for (const m of muts) {
+                if (m.addedNodes && m.addedNodes.length) {
+                    m.addedNodes.forEach(n => {
+                        if (!(n instanceof HTMLElement)) return;
+                        if (n.matches && n.matches('.subject-item')) attachDragHandlers(n);
+                        n.querySelectorAll && n.querySelectorAll('.subject-item').forEach(attachDragHandlers);
+                        if (n.matches && n.matches('.schedule-drop-zone')) handleDropZone(n);
+                        n.querySelectorAll && n.querySelectorAll('.schedule-drop-zone').forEach(handleDropZone);
+                    });
+                }
+            }
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+    } catch (e) { /* не критично */ }
+
 });
-
-function editAud(el) {
-    el.style.display = 'none';
-    el.nextElementSibling.style.display = 'block';
-    el.nextElementSibling.focus();
-}
-
-function saveAud(input, slotId) {
-    const value = input.value.trim();
-    fetch(`/schedule/constructor/update-room/${slotId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.cookie.split('csrftoken=')[1].split(';')[0]
-        },
-        body: JSON.stringify({ room: value })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            input.previousElementSibling.querySelector('strong').textContent = data.room || '?';
-            input.style.display = 'none';
-            input.previousElementSibling.style.display = 'block';
-        } else alert(data.error);
-    });
-}
 </script>
+
 {% endblock %}

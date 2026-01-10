@@ -180,9 +180,13 @@ def schedule_constructor(request):
                         })
 
             # Получаем существующее расписание
+            valid_slot_ids = list(time_slots.values_list('id', flat=True))
+
+
             schedule_slots = ScheduleSlot.objects.filter(
                 group=selected_group,
                 semester=selected_semester,
+                time_slot_id__in=valid_slot_ids,
                 is_active=True
             ).select_related('subject', 'teacher__user', 'time_slot')
 
@@ -215,7 +219,7 @@ def schedule_constructor(request):
 @login_required
 @require_POST
 def create_schedule_slot(request):
-    """✅ ИСПРАВЛЕНО: Создание занятия с заполнением start_time/end_time"""
+    """✅ ИСПРАВЛЕНО: Проверка конфликтов с учётом смены"""
     try:
         data = json.loads(request.body)
         group_id = data.get('group')
@@ -238,20 +242,44 @@ def create_schedule_slot(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': f'Объект не найден: {str(e)}'}, status=404)
 
-        # Проверка конфликтов
-        if ScheduleSlot.objects.filter(
-            group=group, day_of_week=day_of_week, time_slot=time_slot,
-            semester=active_semester, is_active=True
-        ).exists():
+        # ✅ ИСПРАВЛЕНО: Проверяем, что временной слот соответствует смене семестра
+        from schedule.views import get_time_slots_for_shift
+        valid_slots = get_time_slots_for_shift(active_semester.shift)
+        if time_slot not in valid_slots:
             return JsonResponse({
                 'success': False,
-                'error': f'⚠️ У группы {group.name} уже есть занятие в это время'
+                'error': f'❌ Временной слот {time_slot} не соответствует смене {active_semester.get_shift_display()}'
+            }, status=400)
+
+        # ✅ ИСПРАВЛЕНО: Проверка конфликтов - только для текущего семестра
+        if ScheduleSlot.objects.filter(
+            group=group, 
+            day_of_week=day_of_week, 
+            time_slot=time_slot,
+            semester=active_semester, 
+            is_active=True
+        ).exists():
+            # Дополнительная отладка
+            existing = ScheduleSlot.objects.filter(
+                group=group, 
+                day_of_week=day_of_week, 
+                time_slot=time_slot,
+                semester=active_semester, 
+                is_active=True
+            ).first()
+            
+            return JsonResponse({
+                'success': False,
+                'error': f'⚠️ У группы {group.name} уже есть занятие в это время: {existing.subject.name} ({existing.get_lesson_type_display()})'
             }, status=400)
 
         if subject.teacher:
             teacher_conflict = ScheduleSlot.objects.filter(
-                teacher=subject.teacher, day_of_week=day_of_week, time_slot=time_slot,
-                semester=active_semester, is_active=True
+                teacher=subject.teacher, 
+                day_of_week=day_of_week, 
+                time_slot=time_slot,
+                semester=active_semester, 
+                is_active=True
             ).exclude(group=group)
 
             if teacher_conflict.exists():
@@ -261,7 +289,7 @@ def create_schedule_slot(request):
                     'error': f'❌ Преподаватель {subject.teacher.user.get_full_name()} занят (группа {existing.group.name})'
                 }, status=400)
 
-        # ✅ ИСПРАВЛЕНО: Создаём объект и явно заполняем start_time/end_time
+        # ✅ Создаём объект
         schedule_slot = ScheduleSlot(
             group=group, 
             subject=subject, 
@@ -270,8 +298,8 @@ def create_schedule_slot(request):
             semester=active_semester,
             teacher=subject.teacher, 
             lesson_type=lesson_type,
-            start_time=time_slot.start_time,  # ✅ ДОБАВЛЕНО
-            end_time=time_slot.end_time,      # ✅ ДОБАВЛЕНО
+            start_time=time_slot.start_time,
+            end_time=time_slot.end_time,
             room=None
         )
         schedule_slot.save()
@@ -279,8 +307,9 @@ def create_schedule_slot(request):
         return JsonResponse({'success': True, 'slot': {'id': schedule_slot.id}})
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
-
 
 @login_required
 @require_POST
@@ -397,9 +426,13 @@ def schedule_view(request):
     if group and active_semester:
         time_slots = get_time_slots_for_shift(active_semester.shift)
         days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
+        valid_slot_ids = list(time_slots.values_list('id', flat=True))
         
         slots = ScheduleSlot.objects.filter(
-            group=group, semester=active_semester, is_active=True
+            group=group, 
+            semester=active_semester, 
+            time_slot_id__in=valid_slot_ids,  # ✅ ДОБАВЛЕНО
+            is_active=True
         ).select_related('subject', 'teacher__user', 'time_slot')
         
         schedule_data = {group.id: {}}
