@@ -108,14 +108,16 @@ class Subject(models.Model):
     
     # ========== ДЛЯ КОНСТРУКТОРА: Сколько раз нужно добавить в расписание ==========
     
-    def get_weekly_slots_needed(self, slot_duration=1):  # ✅ ИЗМЕНЕНО: 2 → 1
-
+    def get_weekly_slots_needed(self, slot_duration=1):
+        import math
         return {
-            'LECTURE': int(self.lecture_hours_per_week / slot_duration),
-            'PRACTICE': int(self.practice_hours_per_week / slot_duration),
-            'SRSP': int(self.control_hours_per_week / slot_duration),
+            # Используем ceil, чтобы если есть часы (например 0.7), 
+            # они превращались в 1 слот, а не исчезали
+            'LECTURE': math.ceil(self.lecture_hours_per_week / slot_duration),
+            'PRACTICE': math.ceil(self.practice_hours_per_week / slot_duration),
+            'SRSP': math.ceil(self.control_hours_per_week / slot_duration),
         }
-    
+        
     def get_remaining_slots(self, group, lesson_type):
         """
         Сколько еще раз можно добавить предмет в расписание для группы
@@ -282,10 +284,10 @@ class ScheduleSlot(models.Model):
         verbose_name_plural = "Занятия"
         ordering = ['day_of_week', 'start_time']
     
-# Найти класс ScheduleSlot и заменить __str__
     def __str__(self):
-        teacher_name = self.teacher.user.last_name if self.teacher else "БЕЗ ПРЕПОДА"
-        return f"{self.group.name} | {self.subject.name} ({self.get_lesson_type_display()}) | {teacher_name} | {self.get_day_of_week_display()}"
+        return f"{self.group.name} - {self.subject.name} ({self.get_lesson_type_display()}, {self.get_day_of_week_display()}, {self.start_time})"
+
+
 class ScheduleException(models.Model):
     """Исключение в расписании (отмена, перенос)"""
     EXCEPTION_TYPES = [

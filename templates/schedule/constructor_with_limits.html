@@ -252,9 +252,31 @@
     {% endif %}
 </div>
 
+<!-- Модальное окно конфликтов -->
+<div class="modal fade" id="conflictModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Внимание: Конфликт</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="conflictMessage"></p>
+                <div class="alert alert-warning">
+                    Вы можете проигнорировать это предупреждение и добавить занятие как исключение.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="forceSaveBtn">Все равно сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-.schedule-table { 
-    font-size: 0.85rem; 
+.schedule-table {
+    font-size: 0.85rem;
 }
 
 .schedule-table th, .schedule-table td {
@@ -310,13 +332,13 @@
     user-select: none;
 }
 
-.subject-item:hover { 
-    background-color: #f0f0f0; 
-    transform: translateX(3px); 
+.subject-item:hover {
+    background-color: #f0f0f0;
+    transform: translateX(3px);
 }
 
-.subject-item:active { 
-    opacity: 0.5; 
+.subject-item:active {
+    opacity: 0.5;
 }
 
 .aud-cell {
@@ -347,6 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrftoken = getCookie('csrftoken') || '';
 
     let draggedData = null;
+    let lastAttemptData = null; // Для хранения данных последнего неудачного запроса
 
     // helper: safe parse JSON
     function safeJson(response) {
@@ -354,6 +377,60 @@ document.addEventListener('DOMContentLoaded', function() {
             try { return JSON.parse(text); } catch(e) { return { success: false, error: 'Invalid JSON response' }; }
         });
     }
+
+    function createScheduleSlot(groupId, subjectId, dayOfWeek, timeSlot, lessonType, isForce = false) {
+        const csrftoken = getCookie('csrftoken');
+
+        // Сохраняем данные на случай, если пользователь нажмет "Все равно сохранить"
+        lastAttemptData = { groupId, subjectId, dayOfWeek, timeSlot, lessonType };
+
+        fetch('/schedule/constructor/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                group: groupId,
+                subject: subjectId,
+                day_of_week: dayOfWeek,
+                time_slot: timeSlot,
+                lesson_type: lessonType,
+                force: isForce // Отправляем флаг исключения
+            })
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(res => {
+            if (res.status === 200 && res.body.success) {
+                location.reload();
+            } else {
+                // Если сервер вернул флаг конфликта - показываем модалку с кнопкой Force
+                if (res.body.is_conflict) {
+                    document.getElementById('conflictMessage').innerHTML = `<strong>${res.body.error}</strong>`;
+                    const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
+                    modal.show();
+                } else {
+                    alert('Ошибка: ' + res.body.error);
+                }
+            }
+        })
+        .catch(error => alert('Ошибка соединения: ' + error));
+    }
+
+    // Обработчик кнопки "Все равно сохранить" в модалке
+    document.getElementById('forceSaveBtn').addEventListener('click', function() {
+        if (lastAttemptData) {
+            // Вызываем ту же функцию, но с флагом force = true
+            createScheduleSlot(
+                lastAttemptData.groupId,
+                lastAttemptData.subjectId,
+                lastAttemptData.dayOfWeek,
+                lastAttemptData.timeSlot,
+                lastAttemptData.lessonType,
+                true
+            );
+        }
+    });
 
     // ATTACH drag listeners to subject items - support items that might be re-rendered
     function attachDragHandlers(el) {
@@ -583,36 +660,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const prevCursor = document.body.style.cursor;
                 document.body.style.cursor = 'wait';
 
-                fetch('/schedule/constructor/create/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify({
-                        group: groupId,
-                        subject: draggedData.subjectId,
-                        day_of_week: dayOfWeek,
-                        time_slot: timeSlot,
-                        lesson_type: draggedData.subjectType
-                    })
-                })
-                .then(r => {
-                    // допустим сервер возвращает код ошибки и HTML
-                    if (!r.ok) return safeJson(r).then(j => { throw new Error(j.error || 'Server error'); });
-                    return safeJson(r);
-                })
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert(data.error || 'Не удалось создать запись');
-                    }
-                })
-                .catch(err => { alert('Ошибка: ' + (err.message || err)); })
-                .finally(() => { document.body.style.cursor = prevCursor; draggedData = null; });
+                createScheduleSlot(
+                    groupId,
+                    draggedData.subjectId,
+                    dayOfWeek,
+                    timeSlot,
+                    draggedData.subjectType,
+                    false // Первый раз пробуем без силы
+                );
 
             } catch (ex) { console.error(ex); }
+            finally {
+                document.body.style.cursor = prevCursor;
+                draggedData = null;
+            }
         });
     }
 
