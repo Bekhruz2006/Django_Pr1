@@ -219,7 +219,12 @@ def schedule_constructor(request):
 @login_required
 @require_POST
 def create_schedule_slot(request):
-    """Создание занятия с проверкой лимитов и конфликтов"""
+    """
+    Создание занятия с умной проверкой конфликтов:
+    - Разрешает одну лекцию одного препода для нескольких групп в одно время.
+    - Запрещает разные предметы у одного препода в одно время.
+    - Запрещает один кабинет для разных преподов/предметов.
+    """
     try:
         data = json.loads(request.body)
         group_id = data.get('group')
@@ -229,19 +234,18 @@ def create_schedule_slot(request):
         lesson_type = data.get('lesson_type', 'LECTURE')
 
         if not all([group_id, subject_id, day_of_week is not None, time_slot_id]):
-            return JsonResponse({'success': False, 'error': 'Неполные данные запроса'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Неполные данные'}, status=400)
 
         group = get_object_or_404(Group, id=group_id)
         subject = get_object_or_404(Subject, id=subject_id)
         time_slot = get_object_or_404(TimeSlot, id=time_slot_id)
         
-        # 1. Ищем активный семестр именно ДЛЯ КУРСА ЭТОЙ ГРУППЫ
+        # Находим активный семестр именно для этого курса
         active_semester = Semester.objects.filter(course=group.course, is_active=True).first()
-        
         if not active_semester:
             return JsonResponse({'success': False, 'error': f'Нет активного семестра для {group.course} курса'}, status=400)
 
-        # 2. Проверка лимита часов (можно ли еще добавить этот тип занятия)
+        # 1. ПРОВЕРКА ЛИМИТОВ (Кредиты/Часы)
         needed_slots = subject.get_weekly_slots_needed().get(lesson_type, 0)
         existing_count = ScheduleSlot.objects.filter(
             group=group, subject=subject, semester=active_semester,
@@ -251,34 +255,41 @@ def create_schedule_slot(request):
         if existing_count >= needed_slots:
             return JsonResponse({
                 'success': False, 
-                'error': f'Превышен лимит! Для "{subject.name}" ({lesson_type}) положено {needed_slots} занятий в неделю.'
+                'error': f'Лимит! У группы уже стоит {existing_count} из {needed_slots} запл. занятий "{lesson_type}"'
             }, status=400)
 
-        # 3. Проверка конфликта времени у ГРУППЫ
-        conflict_group = ScheduleSlot.objects.filter(
+        # 2. ПРОВЕРКА КОНФЛИКТА ПРЕПОДАВАТЕЛЯ
+        if subject.teacher:
+            # Ищем, чем занят препод в это время
+            teacher_busy = ScheduleSlot.objects.filter(
+                teacher=subject.teacher, day_of_week=day_of_week, 
+                time_slot=time_slot, semester=active_semester, is_active=True
+            ).first()
+
+            if teacher_busy:
+                # УСЛОВИЕ ЛЕКЦИИ: Если это лекция по ТОМУ ЖЕ предмету - разрешаем (поток)
+                is_shared_lecture = (
+                    lesson_type == 'LECTURE' and 
+                    teacher_busy.lesson_type == 'LECTURE' and 
+                    teacher_busy.subject == subject
+                )
+                
+                if not is_shared_lecture:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'❌ Преподаватель {subject.teacher.user.get_full_name()} уже ведет "{teacher_busy.subject.name}" ({teacher_busy.get_lesson_type_display()}) у группы {teacher_busy.group.name}'
+                    }, status=400)
+
+        # 3. ПРОВЕРКА КОНФЛИКТА ГРУППЫ (у группы не может быть две пары одновременно)
+        group_busy = ScheduleSlot.objects.filter(
             group=group, day_of_week=day_of_week, time_slot=time_slot,
             semester=active_semester, is_active=True
-        ).first()
+        ).exists()
         
-        if conflict_group:
-            return JsonResponse({
-                'success': False,
-                'error': f'⚠️ У группы уже есть занятие: {conflict_group.subject.name} ({conflict_group.get_lesson_type_display()})'
-            }, status=400)
+        if group_busy:
+            return JsonResponse({'success': False, 'error': '⚠️ У группы уже есть занятие в это время'}, status=400)
 
-        # 4. Проверка конфликта у ПРЕПОДАВАТЕЛЯ
-        if subject.teacher:
-            conflict_teacher = ScheduleSlot.objects.filter(
-                teacher=subject.teacher, day_of_week=day_of_week, time_slot=time_slot,
-                semester=active_semester, is_active=True
-            ).first()
-            if conflict_teacher:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'❌ Преподаватель занят в группе {conflict_teacher.group.name}'
-                }, status=400)
-
-        # Сохранение
+        # Если все проверки прошли - создаем
         new_slot = ScheduleSlot.objects.create(
             group=group, subject=subject, teacher=subject.teacher,
             semester=active_semester, day_of_week=day_of_week,
@@ -294,30 +305,51 @@ def create_schedule_slot(request):
 @login_required
 @require_POST
 def update_schedule_room(request, slot_id):
-    """Обновление номера кабинета"""
+    """Обновление кабинета с проверкой на занятость другими преподами"""
     try:
         data = json.loads(request.body)
-        room = data.get('room', '').strip()
-        
-        schedule_slot = ScheduleSlot.objects.get(id=slot_id)
-        
-        if room:
-            classroom_exists = Classroom.objects.filter(number=room, is_active=True).exists()
-            if not classroom_exists:
+        room_number = data.get('room', '').strip()
+        slot = get_object_or_404(ScheduleSlot, id=slot_id)
+
+        if not room_number:
+            slot.room = None
+            slot.save()
+            return JsonResponse({'success': True, 'room': '?'})
+
+        # Проверяем, существует ли такой кабинет в справочнике
+        classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
+        if not classroom:
+            return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не существует или неактивен'}, status=400)
+
+        # ПРОВЕРКА: Не занят ли кабинет кем-то другим в это время?
+        other_occupant = ScheduleSlot.objects.filter(
+            room=room_number, day_of_week=slot.day_of_week,
+            time_slot=slot.time_slot, semester=slot.semester, is_active=True
+        ).exclude(group=slot.group).first()
+
+        if other_occupant:
+            # Разрешаем, если это тот же препод ведет ту же лекцию (объединение групп в одном зале)
+            is_same_lecture = (
+                slot.lesson_type == 'LECTURE' and 
+                other_occupant.lesson_type == 'LECTURE' and 
+                other_occupant.subject == slot.subject and
+                other_occupant.teacher == slot.teacher
+            )
+            
+            if not is_same_lecture:
                 return JsonResponse({
                     'success': False,
-                    'error': f'❌ Кабинет {room} не найден. Добавьте его в "Управление кабинетами".'
+                    'error': f'🚫 Кабинет {room_number} занят: {other_occupant.teacher.user.last_name} - {other_occupant.subject.name}'
                 }, status=400)
-        
-        schedule_slot.room = room if room else None
-        schedule_slot.save()
-        
-        return JsonResponse({'success': True, 'room': schedule_slot.room or '?'})
 
-    except ScheduleSlot.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Занятие не найдено'}, status=404)
+        slot.room = room_number
+        slot.classroom = classroom
+        slot.save()
+        
+        return JsonResponse({'success': True, 'room': slot.room})
+
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @login_required

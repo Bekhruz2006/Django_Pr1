@@ -282,10 +282,10 @@ class ScheduleSlot(models.Model):
         verbose_name_plural = "Занятия"
         ordering = ['day_of_week', 'start_time']
     
+# Найти класс ScheduleSlot и заменить __str__
     def __str__(self):
-        return f"{self.group.name} - {self.subject.name} ({self.get_lesson_type_display()}, {self.get_day_of_week_display()}, {self.start_time})"
-
-
+        teacher_name = self.teacher.user.last_name if self.teacher else "БЕЗ ПРЕПОДА"
+        return f"{self.group.name} | {self.subject.name} ({self.get_lesson_type_display()}) | {teacher_name} | {self.get_day_of_week_display()}"
 class ScheduleException(models.Model):
     """Исключение в расписании (отмена, перенос)"""
     EXCEPTION_TYPES = [
