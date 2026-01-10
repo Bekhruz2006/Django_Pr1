@@ -219,7 +219,7 @@ def schedule_constructor(request):
 @login_required
 @require_POST
 def create_schedule_slot(request):
-    """✅ ИСПРАВЛЕНО: Проверка конфликтов с учётом смены"""
+    """Создание занятия с проверкой лимитов и конфликтов"""
     try:
         data = json.loads(request.body)
         group_id = data.get('group')
@@ -229,87 +229,67 @@ def create_schedule_slot(request):
         lesson_type = data.get('lesson_type', 'LECTURE')
 
         if not all([group_id, subject_id, day_of_week is not None, time_slot_id]):
-            return JsonResponse({'success': False, 'error': 'Не хватает данных'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Неполные данные запроса'}, status=400)
 
-        active_semester = Semester.get_active()
+        group = get_object_or_404(Group, id=group_id)
+        subject = get_object_or_404(Subject, id=subject_id)
+        time_slot = get_object_or_404(TimeSlot, id=time_slot_id)
+        
+        # 1. Ищем активный семестр именно ДЛЯ КУРСА ЭТОЙ ГРУППЫ
+        active_semester = Semester.objects.filter(course=group.course, is_active=True).first()
+        
         if not active_semester:
-            return JsonResponse({'success': False, 'error': 'Активный семестр не найден'}, status=400)
+            return JsonResponse({'success': False, 'error': f'Нет активного семестра для {group.course} курса'}, status=400)
 
-        try:
-            group = Group.objects.get(id=group_id)
-            subject = Subject.objects.get(id=subject_id)
-            time_slot = TimeSlot.objects.get(id=time_slot_id)
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': f'Объект не найден: {str(e)}'}, status=404)
+        # 2. Проверка лимита часов (можно ли еще добавить этот тип занятия)
+        needed_slots = subject.get_weekly_slots_needed().get(lesson_type, 0)
+        existing_count = ScheduleSlot.objects.filter(
+            group=group, subject=subject, semester=active_semester,
+            lesson_type=lesson_type, is_active=True
+        ).count()
 
-        # ✅ ИСПРАВЛЕНО: Проверяем, что временной слот соответствует смене семестра
-        from schedule.views import get_time_slots_for_shift
-        valid_slots = get_time_slots_for_shift(active_semester.shift)
-        if time_slot not in valid_slots:
+        if existing_count >= needed_slots:
             return JsonResponse({
-                'success': False,
-                'error': f'❌ Временной слот {time_slot} не соответствует смене {active_semester.get_shift_display()}'
+                'success': False, 
+                'error': f'Превышен лимит! Для "{subject.name}" ({lesson_type}) положено {needed_slots} занятий в неделю.'
             }, status=400)
 
-        # ✅ ИСПРАВЛЕНО: Проверка конфликтов - только для текущего семестра
-        if ScheduleSlot.objects.filter(
-            group=group, 
-            day_of_week=day_of_week, 
-            time_slot=time_slot,
-            semester=active_semester, 
-            is_active=True
-        ).exists():
-            # Дополнительная отладка
-            existing = ScheduleSlot.objects.filter(
-                group=group, 
-                day_of_week=day_of_week, 
-                time_slot=time_slot,
-                semester=active_semester, 
-                is_active=True
-            ).first()
-            
+        # 3. Проверка конфликта времени у ГРУППЫ
+        conflict_group = ScheduleSlot.objects.filter(
+            group=group, day_of_week=day_of_week, time_slot=time_slot,
+            semester=active_semester, is_active=True
+        ).first()
+        
+        if conflict_group:
             return JsonResponse({
                 'success': False,
-                'error': f'⚠️ У группы {group.name} уже есть занятие в это время: {existing.subject.name} ({existing.get_lesson_type_display()})'
+                'error': f'⚠️ У группы уже есть занятие: {conflict_group.subject.name} ({conflict_group.get_lesson_type_display()})'
             }, status=400)
 
+        # 4. Проверка конфликта у ПРЕПОДАВАТЕЛЯ
         if subject.teacher:
-            teacher_conflict = ScheduleSlot.objects.filter(
-                teacher=subject.teacher, 
-                day_of_week=day_of_week, 
-                time_slot=time_slot,
-                semester=active_semester, 
-                is_active=True
-            ).exclude(group=group)
-
-            if teacher_conflict.exists():
-                existing = teacher_conflict.first()
+            conflict_teacher = ScheduleSlot.objects.filter(
+                teacher=subject.teacher, day_of_week=day_of_week, time_slot=time_slot,
+                semester=active_semester, is_active=True
+            ).first()
+            if conflict_teacher:
                 return JsonResponse({
                     'success': False,
-                    'error': f'❌ Преподаватель {subject.teacher.user.get_full_name()} занят (группа {existing.group.name})'
+                    'error': f'❌ Преподаватель занят в группе {conflict_teacher.group.name}'
                 }, status=400)
 
-        # ✅ Создаём объект
-        schedule_slot = ScheduleSlot(
-            group=group, 
-            subject=subject, 
-            day_of_week=day_of_week,
-            time_slot=time_slot, 
-            semester=active_semester,
-            teacher=subject.teacher, 
-            lesson_type=lesson_type,
-            start_time=time_slot.start_time,
-            end_time=time_slot.end_time,
-            room=None
+        # Сохранение
+        new_slot = ScheduleSlot.objects.create(
+            group=group, subject=subject, teacher=subject.teacher,
+            semester=active_semester, day_of_week=day_of_week,
+            time_slot=time_slot, lesson_type=lesson_type,
+            start_time=time_slot.start_time, end_time=time_slot.end_time
         )
-        schedule_slot.save()
 
-        return JsonResponse({'success': True, 'slot': {'id': schedule_slot.id}})
+        return JsonResponse({'success': True, 'slot_id': new_slot.id})
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 @require_POST
@@ -705,37 +685,74 @@ def group_list(request):
 
 @login_required
 def export_schedule(request):
-    """Экспорт расписания в DOCX"""
+    """Экспорт расписания в формат DOCX"""
     if not DOCX_AVAILABLE:
-        messages.error(request, 'Библиотека python-docx не установлена')
+        messages.error(request, 'Библиотека python-docx не установлена.')
         return redirect('schedule:view')
 
-    user = request.user
-    group = None
-    
     group_id = request.GET.get('group')
-    if group_id:
-        group = get_object_or_404(Group, id=group_id)
-    elif user.role == 'STUDENT':
-        try:
-            student = user.student_profile
-            group = student.group
-        except Student.DoesNotExist:
-            messages.error(request, 'Профиль студента не найден')
-            return redirect('schedule:view')
+    group = get_object_or_404(Group, id=group_id)
     
-    if not group:
-        messages.error(request, 'Группа не определена')
-        return redirect('schedule:view')
-    
-    # ✅ Получаем семестр для курса группы
-    active_semester = Semester.objects.filter(
-        course=group.course, is_active=True
-    ).first()
-    
+    # Семестр для курса группы
+    active_semester = Semester.objects.filter(course=group.course, is_active=True).first()
     if not active_semester:
-        messages.error(request, f'Нет активного семестра для {group.course} курса')
+        messages.error(request, 'Активный семестр не найден.')
         return redirect('schedule:view')
 
     doc = Document()
-    heading
+    
+    # Настройка заголовка
+    section = doc.sections[0]
+    title = doc.add_heading(f'ҶАДВАЛИ ДАРСӢ', 0)
+    title.alignment = 1 # Center
+    
+    p = doc.add_paragraph()
+    p.alignment = 1
+    run = p.add_run(f'Группа: {group.name} | Курс: {group.course} | Семестр: {active_semester.name}')
+    run.bold = True
+
+    # Получаем данные
+    time_slots = get_time_slots_for_shift(active_semester.shift)
+    days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
+    
+    # Создаем таблицу
+    table = doc.add_table(rows=1, cols=3)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'СОАТ'
+    hdr_cells[1].text = 'ДАРС / УСТОД'
+    hdr_cells[2].text = 'АУД'
+
+    for day_num, day_name in days:
+        # Строка с названием дня
+        row = table.add_row()
+        row.cells[0].merge(row.cells[2])
+        row.cells[0].text = day_name
+        row.cells[0].paragraphs[0].runs[0].bold = True
+        
+        slots = ScheduleSlot.objects.filter(
+            group=group, semester=active_semester, 
+            day_of_week=day_num, is_active=True
+        ).select_related('subject', 'teacher__user', 'time_slot')
+
+        for ts in time_slots:
+            row = table.add_row()
+            row.cells[0].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
+            
+            slot = slots.filter(time_slot=ts).first()
+            if slot:
+                row.cells[1].text = f'{slot.subject.name} ({slot.get_lesson_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
+                row.cells[2].text = slot.room if slot.room else '—'
+            else:
+                row.cells[1].text = '—'
+                row.cells[2].text = '—'
+
+    # Подготовка файла к отправке
+    from io import BytesIO
+    target = BytesIO()
+    doc.save(target)
+    target.seek(0)
+
+    filename = f"Schedule_{group.name}.docx"
+    from django.http import FileResponse
+    return FileResponse(target, as_attachment=True, filename=filename)
