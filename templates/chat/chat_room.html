@@ -118,7 +118,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     let hasNewMessages = false;
                     
                     data.messages.forEach(msg => {
-                        // Проверяем, не добавлено ли уже это сообщение
+                        if (document.querySelector(`[data-message-id="${msg.id}"]`)) {
+                            return; 
+                        }
                         if (!processedMessages.has(msg.id)) {
                             processedMessages.add(msg.id);
                             

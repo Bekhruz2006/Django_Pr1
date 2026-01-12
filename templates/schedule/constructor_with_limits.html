@@ -5,7 +5,7 @@
 {% block title %}Конструктор расписания{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
+<div  style="position: static; top: 100px;"  class="row mt-4">
     <!-- Выбор группы и семестра -->
     <div class="col-12">
         <div class="card mb-3">
@@ -49,16 +49,14 @@
     </div>
 
     {% if group %}
-    <!-- ЛЕВАЯ ПАНЕЛЬ: Предметы с лимитами -->
     <div class="col-lg-3">
-        <div class="card sticky-top" style="top: 20px;">
+        <div class="card sticky-top" style="top: 20px; height: 2500px;">
             <div class="card-header bg-success text-white">
                 <i class="bi bi-book"></i> Доступные предметы
                 <small class="d-block mt-1">Перетащите в расписание</small>
             </div>
-            <div class="card-body p-0" style="max-height: 700px; overflow-y: auto;">
+            <div class="card-body p-0" style="max-height: 2500px; overflow-y: auto; ">
 
-                <!-- ✅ ЛЕКЦИИ -->
                 {% if lecture_subjects %}
                 <div class="bg-primary bg-opacity-10 p-2">
                     <strong><i class="bi bi-mortarboard"></i> Лекции (2 группы)</strong>
@@ -85,7 +83,6 @@
                 </div>
                 {% endif %}
 
-                <!-- ✅ ПРАКТИКИ -->
                 {% if practice_subjects %}
                 <div class="bg-success bg-opacity-10 p-2 mt-2">
                     <strong><i class="bi bi-gear"></i> Практики (1 группа)</strong>
@@ -112,7 +109,6 @@
                 </div>
                 {% endif %}
 
-                <!-- ✅ КМРО/СРСП -->
                 {% if control_subjects %}
                 <div class="bg-warning bg-opacity-10 p-2 mt-2">
                     <strong><i class="bi bi-pencil-square"></i> КМРО/СРСП (1 группа)</strong>
@@ -150,9 +146,8 @@
         </div>
     </div>
 
-    <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ: Расписание -->
     <div class="col-lg-9">
-        <div class="card">
+        <div  class="card">
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-calendar-week"></i> ҶАДВАЛИ ДАРСӢ - {{ group.name }}</span>
                 <div>
@@ -162,7 +157,7 @@
                     </a>
                 </div>
             </div>
-            <div class="card-body p-0">
+            <div  class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-bordered mb-0 schedule-table">
                         <thead class="table-light">
@@ -252,7 +247,6 @@
     {% endif %}
 </div>
 
-<!-- Модальное окно конфликтов -->
 <div class="modal fade" id="conflictModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -291,7 +285,6 @@
     vertical-align: middle !important;
 }
 
-/* Все ячейки должны быть drop-zone */
 .schedule-drop-zone {
     min-height: 60px !important;
     background-color: #fff;
@@ -369,9 +362,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrftoken = getCookie('csrftoken') || '';
 
     let draggedData = null;
-    let lastAttemptData = null; // Для хранения данных последнего неудачного запроса
+    let lastAttemptData = null; 
 
-    // helper: safe parse JSON
+    
     function safeJson(response) {
         return response.text().then(text => {
             try { return JSON.parse(text); } catch(e) { return { success: false, error: 'Invalid JSON response' }; }
@@ -381,7 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function createScheduleSlot(groupId, subjectId, dayOfWeek, timeSlot, lessonType, isForce = false) {
         const csrftoken = getCookie('csrftoken');
 
-        // Сохраняем данные на случай, если пользователь нажмет "Все равно сохранить"
         lastAttemptData = { groupId, subjectId, dayOfWeek, timeSlot, lessonType };
 
         fetch('/schedule/constructor/create/', {
@@ -396,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 day_of_week: dayOfWeek,
                 time_slot: timeSlot,
                 lesson_type: lessonType,
-                force: isForce // Отправляем флаг исключения
+                force: isForce
             })
         })
         .then(response => response.json().then(data => ({ status: response.status, body: data })))
@@ -404,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (res.status === 200 && res.body.success) {
                 location.reload();
             } else {
-                // Если сервер вернул флаг конфликта - показываем модалку с кнопкой Force
                 if (res.body.is_conflict) {
                     document.getElementById('conflictMessage').innerHTML = `<strong>${res.body.error}</strong>`;
                     const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
@@ -417,10 +408,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => alert('Ошибка соединения: ' + error));
     }
 
-    // Обработчик кнопки "Все равно сохранить" в модалке
     document.getElementById('forceSaveBtn').addEventListener('click', function() {
         if (lastAttemptData) {
-            // Вызываем ту же функцию, но с флагом force = true
             createScheduleSlot(
                 lastAttemptData.groupId,
                 lastAttemptData.subjectId,
@@ -432,10 +421,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ATTACH drag listeners to subject items - support items that might be re-rendered
     function attachDragHandlers(el) {
         if (!el) return;
-        // prevent double attaching
         if (el._hasDragHandler) return;
         el._hasDragHandler = true;
 
@@ -450,16 +437,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     remaining: isNaN(rem) ? 0 : rem
                 };
 
-                // Make sure drag image is not huge and does not shift view
                 try {
                     const img = document.createElement('canvas');
                     img.width = img.height = 1;
                     e.dataTransfer.setDragImage(img, 0, 0);
                 } catch (err) {
-                    // ignore if not supported
                 }
 
-                // set transferable data for browsers that require it
                 try { e.dataTransfer.setData('text/plain', JSON.stringify(draggedData)); } catch(e) {}
                 e.dataTransfer.effectAllowed = 'copy';
                 this.style.opacity = '0.4';
@@ -477,7 +461,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.subject-item').forEach(attachDragHandlers);
 
-    // DELETE (делегируем обработку, на случай перерендеринга)
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('.delete-slot');
         if (!btn) return;
@@ -498,7 +481,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
     });
 
-    // EDIT ROOM helpers
     window.editAud = function(el) {
         if (!el) return;
         const input = el.nextElementSibling;
@@ -532,12 +514,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
     }
 
-    // -------------------------
-    // Автоскролл (window + контейнеры)
-    // -------------------------
     let autoScrollState = {
         active: false,
-        direction: 0, // -1 up, +1 down
+        direction: 0,
         container: null,
         rafId: null
     };
@@ -547,7 +526,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!autoScrollState.active) return;
             const dir = autoScrollState.direction;
             const container = autoScrollState.container;
-            // adaptive speed: если контейнер большой — увеличить шаг
             const step = Math.max(8, Math.min(40, Math.round((container ? container.clientHeight : window.innerHeight) * 0.02)));
             if (container) container.scrollTop += dir * step;
             else window.scrollBy(0, dir * step);
@@ -575,7 +553,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Обработка dragover на документе (для прокрутки окна)
     document.addEventListener('dragover', function(e) {
         try {
             e.preventDefault();
@@ -588,18 +565,15 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (ex) { console.error(ex); }
     });
 
-    // Останавливаем и на drop
     document.addEventListener('drop', function(e) { stopAutoScroll(); });
     document.addEventListener('dragend', function(e) { stopAutoScroll(); });
 
-    // Автоскролл для прокручиваемых контейнеров (левый список предметов и таблица)
     const containerSelectors = ['.card-body.p-0', '.table-responsive'];
     const scrollContainers = [];
     containerSelectors.forEach(sel => {
         document.querySelectorAll(sel).forEach(c => scrollContainers.push(c));
     });
 
-    // Добавляем dragover listener для контейнеров
     scrollContainers.forEach(container => {
         container.addEventListener('dragover', function(e) {
             try {
@@ -616,9 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
         container.addEventListener('drop', function(e) { stopAutoScroll(); });
     });
 
-    // DROP ZONES
     function handleDropZone(cell) {
-        // avoid double attach
         if (cell._hasDropHandler) return;
         cell._hasDropHandler = true;
 
@@ -628,7 +600,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         cell.addEventListener('dragleave', function(e) {
             try {
-                // если курсор действительно ушёл
                 if (!this.contains(e.relatedTarget)) this.classList.remove('drag-over');
             } catch(e) { this.classList.remove('drag-over'); }
         });
@@ -638,7 +609,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 this.classList.remove('drag-over');
                 stopAutoScroll();
-                // если draggedData null — попробуем получить из dataTransfer
                 if (!draggedData) {
                     try {
                         const txt = e.dataTransfer.getData('text/plain');
@@ -656,7 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const timeSlot = this.dataset.timeSlot;
                 if (!groupId || !dayOfWeek || !timeSlot) return alert('Недостаточно данных для размещения предмета.');
 
-                // блокируем UI простым семафором
                 const prevCursor = document.body.style.cursor;
                 document.body.style.cursor = 'wait';
 
@@ -666,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dayOfWeek,
                     timeSlot,
                     draggedData.subjectType,
-                    false // Первый раз пробуем без силы
+                    false 
                 );
 
             } catch (ex) { console.error(ex); }
@@ -677,10 +646,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Инициализация drop zones
     document.querySelectorAll('.schedule-drop-zone').forEach(handleDropZone);
 
-    // наблюдатель за DOM: если бекенд подгружает элементы через ajax, прикрепим обработчики
     try {
         const mo = new MutationObserver(muts => {
             for (const m of muts) {
@@ -696,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         mo.observe(document.body, { childList: true, subtree: true });
-    } catch (e) { /* не критично */ }
+    } catch (e) { }
 
 });
 </script>

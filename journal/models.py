@@ -185,22 +185,18 @@ class StudentStatistics(models.Model):
         verbose_name="Студент"
     )
     
-    # GPA и рейтинг
     overall_gpa = models.FloatField(default=0.0, verbose_name="Общий средний балл")
     group_rank = models.IntegerField(default=0, verbose_name="Рейтинг в группе")
     
-    # Посещаемость
     attendance_percentage = models.FloatField(default=0.0, verbose_name="Процент посещаемости")
     total_lessons = models.IntegerField(default=0, verbose_name="Всего занятий")
     attended_lessons = models.IntegerField(default=0, verbose_name="Посещено занятий")
     
-    # 🆕 ДОБАВЬТЕ ЭТИ ПОЛЯ
     absent_illness = models.IntegerField(default=0, verbose_name="НБ-Болезнь")
     absent_valid = models.IntegerField(default=0, verbose_name="НБ-Уважительная")
     absent_invalid = models.IntegerField(default=0, verbose_name="НБ-Неуважительная")
     total_absent = models.IntegerField(default=0, verbose_name="Всего прогулов")
     
-    # Статистика по предметам (JSON для гибкости)
     subjects_data = models.JSONField(default=dict, verbose_name="Данные по предметам")
     
     last_updated = models.DateTimeField(auto_now=True, verbose_name="Последнее обновление")
@@ -272,7 +268,6 @@ class StudentStatistics(models.Model):
     
     @classmethod
     def recalculate_group(cls, group):
-        """Пересчет статистики для всей группы (для рейтингов)"""
         students = Student.objects.filter(group=group)
         for student in students:
             stats, _ = cls.objects.get_or_create(student=student)

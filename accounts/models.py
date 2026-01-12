@@ -27,16 +27,12 @@ class User(AbstractUser):
 class Group(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="Название группы")
     course = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], verbose_name="Курс")
-    academic_year = models.IntegerField(verbose_name="Год обучения")
+    academic_year = models.CharField(max_length=20, verbose_name="Учебный год (напр. 2024-2025)")
     specialty = models.CharField(max_length=200, verbose_name="Специальность")
 
-    class Meta:
-        verbose_name = "Группа"
-        verbose_name_plural = "Группы"
-        ordering = ['course', 'name']
-
     def __str__(self):
-        return f"{self.name} ({self.course} курс)"
+        return f"{self.name} ({self.academic_year})"
+
 
 class Student(models.Model):
     GENDER_CHOICES = [

@@ -98,13 +98,14 @@ def delete_message(request, message_id):
 
 @login_required
 def get_new_messages(request, room_id):
-    
     room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
     last_message_id = request.GET.get('last_id', 0)
     
     new_messages = room.messages.filter(
         id__gt=last_message_id
     ).select_related('sender').order_by('created_at')
+    
+    new_messages.exclude(sender=request.user).update(is_read=True)
     
     messages_data = []
     for msg in new_messages:

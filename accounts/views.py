@@ -39,13 +39,6 @@ def generate_student_id():
 
 
 
-
-
-
-
-
-
-
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
 
@@ -82,7 +75,7 @@ def profile_view(request):
     
     if user.role == 'STUDENT':
         profile = get_object_or_404(Student, user=user)
-        # Добавляем статистику для студента
+
         from journal.models import StudentStatistics
         stats, _ = StudentStatistics.objects.get_or_create(student=profile)
         stats.recalculate()
@@ -91,13 +84,11 @@ def profile_view(request):
         
     elif user.role == 'TEACHER':
         profile = get_object_or_404(Teacher, user=user)
-        
-        # Получаем группы преподавателя с статистикой
+
         from schedule.models import ScheduleSlot
         from journal.models import StudentStatistics
         from django.db.models import Avg
         
-        # Находим все группы, у которых этот преподаватель ведет занятия
         group_ids = ScheduleSlot.objects.filter(
             teacher=profile,
             is_active=True
@@ -111,7 +102,6 @@ def profile_view(request):
             students_count = students.count()
             
             if students_count > 0:
-                # Рассчитываем средний GPA и посещаемость
                 stats_list = []
                 for student in students:
                     stats, _ = StudentStatistics.objects.get_or_create(student=student)
@@ -130,7 +120,6 @@ def profile_view(request):
         context['profile'] = profile
         context['teacher_groups'] = teacher_groups
         
-        # Добавляем расписание на сегодня
         from datetime import datetime
         today = datetime.now()
         day_of_week = today.weekday()
@@ -221,7 +210,6 @@ def user_management(request):
             models.Q(last_name__icontains=search)
         )
     
-    # ✅ ИСПРАВЛЕНО: Безопасная загрузка профилей
     users = users.select_related('student_profile', 'teacher_profile', 'dean_profile')
     
     users_with_profiles = []
@@ -232,7 +220,6 @@ def user_management(request):
             'profile_id': None
         }
         
-        # ✅ Безопасная проверка существования профилей
         try:
             if user_obj.role == 'STUDENT':
                 if hasattr(user_obj, 'student_profile'):
@@ -271,11 +258,8 @@ def add_user(request):
                 
                 role = user_form.cleaned_data['role']
                 
-                # ✅ ИСПРАВЛЕНО: Профили создаются автоматически через сигнал post_save
-                # Просто проверяем, что они создались
                 try:
                     if role == 'STUDENT':
-                        # Проверяем, не существует ли уже профиль студента
                         if not hasattr(user, 'student_profile'):
                             student_id = generate_student_id()
                             Student.objects.create(
@@ -298,10 +282,8 @@ def add_user(request):
                                 residence_address=''
                             )
                     elif role == 'TEACHER':
-                        # Проверяем через get_or_create (на случай если сигнал не сработал)
                         Teacher.objects.get_or_create(user=user)
                     elif role == 'DEAN':
-                        # Проверяем через get_or_create (на случай если сигнал не сработал)
                         Dean.objects.get_or_create(user=user)
                     
                     messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123')
@@ -377,12 +359,10 @@ def reset_password(request, user_id):
 def toggle_user_active(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
     
-    # ✅ ЗАЩИТА: Нельзя заблокировать самого себя
     if user_obj.id == request.user.id:
         messages.error(request, '❌ Вы не можете заблокировать сам себя!')
         return redirect('accounts:user_management')
     
-    # ✅ ЗАЩИТА: Нельзя заблокировать других суперпользователей (опционально)
     if user_obj.is_superuser and not request.user.is_superuser:
         messages.error(request, '❌ Вы не можете заблокировать суперпользователя!')
         return redirect('accounts:user_management')
@@ -412,7 +392,6 @@ def transfer_student(request, student_id):
                     reason=form.cleaned_data['reason'],
                     transferred_by=request.user
                 )
-                
                 student.group = new_group
                 student.save()
                 
@@ -426,12 +405,12 @@ def transfer_student(request, student_id):
         'student': student
     })
 
-# В accounts/views.py заменить функцию view_user_profile на эту:
+
 
 @login_required
 def view_user_profile(request, user_id):
-    """Просмотр профиля пользователя деканом"""
-    if request.user.role != 'DEAN':
+    
+    if request.user.role not in ['DEAN', 'TEACHER']:
         messages.error(request, 'Доступ запрещен')
         return redirect('core:dashboard')
     
@@ -442,10 +421,8 @@ def view_user_profile(request, user_id):
         'user': user_obj,
         'viewing_as_dean': True
     }
-    
     if user_obj.role == 'STUDENT':
         profile = get_object_or_404(Student, user=user_obj)
-        # Получаем или создаем статистику
         from journal.models import StudentStatistics
         stats, _ = StudentStatistics.objects.get_or_create(student=profile)
         stats.recalculate()
@@ -456,7 +433,6 @@ def view_user_profile(request, user_id):
     elif user_obj.role == 'TEACHER':
         profile = get_object_or_404(Teacher, user=user_obj)
         
-        # Получаем группы преподавателя с статистикой
         from schedule.models import ScheduleSlot
         from journal.models import StudentStatistics
         
@@ -491,7 +467,6 @@ def view_user_profile(request, user_id):
         context['profile'] = profile
         context['teacher_groups'] = teacher_groups
         
-        # Добавляем расписание на сегодня
         from datetime import datetime
         today = datetime.now()
         day_of_week = today.weekday()
@@ -526,7 +501,6 @@ def group_management(request):
     course_filter = request.GET.get('course', '')
     
     if search:
-        #group_management(request=)
         groups = groups.filter(
             models.Q(name__icontains=search) |
             models.Q(specialty__icontains=search)
@@ -576,7 +550,11 @@ def edit_group(request, group_id):
 
 @user_passes_test(is_dean)
 def delete_group(request, group_id):
-    
+    group = get_object_or_404(Group, id=group_id)
+    slots_count = ScheduleSlot.objects.filter(group=group).count()
+    if students_count > 0 or slots_count > 0:
+        messages.error(request, 'Нельзя удалить: в группе есть студенты или расписание.')
+
     group = get_object_or_404(Group, id=group_id)
     
     students_count = Student.objects.filter(group=group).count()

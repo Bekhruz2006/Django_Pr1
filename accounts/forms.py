@@ -2,15 +2,13 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User, Student, Teacher, Dean, Group
 from datetime import datetime
+from core.validators import validate_image_only
+
 
 class UserCreateForm(forms.ModelForm):
     role = forms.ChoiceField(choices=User.ROLE_CHOICES, label="Роль")
     first_name = forms.CharField(max_length=150, required=True, label="Имя")
     last_name = forms.CharField(max_length=150, required=True, label="Фамилия")
-    
-    
-
-
 
     class Meta:
         model = User
@@ -77,6 +75,7 @@ class DeanForm(forms.ModelForm):
         fields = ['office_location', 'reception_hours', 'contact_email']
 
 class UserEditForm(forms.ModelForm):
+    photo = forms.ImageField(required=False, validators=[validate_image_only])
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'phone', 'photo']
@@ -116,9 +115,35 @@ class PasswordResetByDeanForm(forms.Form):
         return cleaned_data
 
 class GroupForm(forms.ModelForm):
+    assign_students = forms.ModelMultipleChoiceField(
+        queryset=Student.objects.all(),
+        required=False,
+        label="Добавить студентов в группу",
+        widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '10'})
+    )
+
     class Meta:
         model = Group
         fields = ['name', 'course', 'academic_year', 'specialty']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['assign_students'].initial = self.instance.students.all()
+        
+        self.fields['assign_students'].queryset = Student.objects.select_related('user').order_by('user__last_name')
+
+    def save(self, commit=True):
+        group = super().save(commit=commit)
+        if commit:
+            selected_students = self.cleaned_data.get('assign_students')
+            self.instance.students.exclude(id__in=selected_students.values_list('id', flat=True)).update(group=None)
+            for student in selected_students:
+                student.group = group
+                student.save()
+        return group
+
+
 
 class GroupTransferForm(forms.Form):
     to_group = forms.ModelChoiceField(

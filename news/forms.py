@@ -1,7 +1,12 @@
 from django import forms
 from .models import News, NewsComment
+from core.validators import validate_file_extension
+
+
 
 class NewsForm(forms.ModelForm):
+    image = forms.ImageField(required=False, validators=[validate_file_extension], widget=forms.FileInput(attrs={'class': 'form-control'}))
+    video_file = forms.FileField(required=False, validators=[validate_file_extension], widget=forms.FileInput(attrs={'class': 'form-control'}))
     class Meta:
         model = News
         fields = [

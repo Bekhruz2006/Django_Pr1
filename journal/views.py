@@ -1,4 +1,3 @@
-# journal/views.py - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -21,20 +20,19 @@ def is_dean(user):
 def is_student(user):
     return user.is_authenticated and user.role == 'STUDENT'
 
-# ========== ДЛЯ ПРЕПОДАВАТЕЛЕЙ ==========
 
 @login_required
 @user_passes_test(is_teacher)
 def journal_view(request):
-    """Журнал преподавателя"""
     teacher = request.user.teacher_profile
     group_id = request.GET.get('group')
     subject_id = request.GET.get('subject')
     week_num = request.GET.get('week')
     
     if not group_id or not subject_id:
-        form = JournalFilterForm(teacher=teacher)
+        form = JournalFilterForm(teacher=teacher) 
         return render(request, 'journal/select_journal.html', {'form': form})
+
     
     group = get_object_or_404(Group, id=group_id)
     subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
@@ -46,8 +44,6 @@ def journal_view(request):
         week_num = current_week.current_week
     else:
         week_num = 1
-
-    # ✅ Только АКТИВНЫЕ слоты расписания
     schedule_slots = ScheduleSlot.objects.filter(
         group=group, subject=subject, is_active=True
     ).order_by('day_of_week', 'start_time')
@@ -110,7 +106,6 @@ def journal_view(request):
 @login_required
 @user_passes_test(is_teacher)
 def update_entry(request, entry_id):
-    """✅ НОВАЯ ЛОГИКА: Баллы за неделю, НБ за день"""
     entry = get_object_or_404(JournalEntry, id=entry_id)
     teacher = request.user.teacher_profile
 
@@ -127,7 +122,6 @@ def update_entry(request, entry_id):
         new_attendance = request.POST.get('attendance_status')
         
         with transaction.atomic():
-            # ✅ Балл применяется ко ВСЕЙ НЕДЕЛЕ
             if new_grade and new_grade.strip():
                 grade_value = int(new_grade)
                 current_week = AcademicWeek.get_current()
@@ -155,7 +149,6 @@ def update_entry(request, entry_id):
                     entry.save()
                     messages.success(request, f'✅ Балл {grade_value} выставлен')
             
-            # ✅ НБ только для этого дня
             elif new_attendance and new_attendance != old_attendance:
                 entry.attendance_status = new_attendance
                 if new_attendance != 'PRESENT':
@@ -178,7 +171,6 @@ def update_entry(request, entry_id):
 @login_required
 @user_passes_test(is_teacher)
 def bulk_update(request):
-    """✅ Массовое обновление - только НБ"""
     if request.method != 'POST':
         return redirect('journal:journal_view')
     
@@ -243,7 +235,6 @@ def bulk_update(request):
 @login_required
 @user_passes_test(is_teacher)
 def change_log_view(request):
-    """История изменений (без изменений)"""
     teacher = request.user.teacher_profile
     group_id, subject_id = request.GET.get('group'), request.GET.get('subject')
     
@@ -275,12 +266,9 @@ def change_log_view(request):
         'logs': logs[:100], 'group': group, 'subject': subject, 'filter_form': filter_form
     })
 
-# ========== ДЛЯ СТУДЕНТОВ ==========
-
 @login_required
 @user_passes_test(is_student)
 def student_journal_view(request):
-    """Журнал студента (без изменений)"""
     student = request.user.student_profile
     entries = JournalEntry.objects.filter(student=student).select_related('subject').order_by('lesson_date')
     subjects_data = {}
@@ -312,12 +300,10 @@ def student_journal_view(request):
         'student': student, 'subjects_data': subjects_data.values(), 'stats': stats
     })
 
-# ========== ДЛЯ ДЕКАНА ==========
 
 @login_required
 @user_passes_test(is_dean)
 def dean_journal_view(request):
-    """✅ Аналитика декана с именами преподавателей"""
     group_id, view_type = request.GET.get('group'), request.GET.get('view', 'summary')
     groups = Group.objects.all()
     selected_group, group_stats, at_risk_students = None, None, []
@@ -345,7 +331,6 @@ def dean_journal_view(request):
             group_stats['avg_gpa'] = sum(s.overall_gpa for s in all_stats) / len(all_stats)
             group_stats['avg_attendance'] = sum(s.attendance_percentage for s in all_stats) / len(all_stats)
         
-        # ✅ С именами преподавателей
         subjects = Subject.objects.filter(
             journal_entries__student__group=selected_group
         ).distinct().select_related('teacher__user')
@@ -369,7 +354,6 @@ def dean_journal_view(request):
 @login_required
 @user_passes_test(is_dean)
 def department_report(request):
-    """✅ Отчёт кафедры с прогулами"""
     sort_by = request.GET.get('sort', 'group')
     groups = Group.objects.all()
     groups_data = []
@@ -431,7 +415,6 @@ def department_report(request):
 @login_required
 @user_passes_test(is_dean)
 def group_detailed_report(request, group_id):
-    """✅ Детальный отчёт группы с прогулами"""
     group = get_object_or_404(Group, id=group_id)
     students = Student.objects.filter(group=group).select_related('user')
     subjects = Subject.objects.filter(journal_entries__student__group=group).distinct()

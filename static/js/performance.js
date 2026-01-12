@@ -1,11 +1,4 @@
-/**
- * Модуль оптимизации производительности
- * Включает: ленивую загрузку, дебаунсинг, кеширование
- */
 
-// ============================================
-// 1. ЛЕНИВАЯ ЗАГРУЗКА ИЗОБРАЖЕНИЙ
-// ============================================
 class LazyLoader {
     constructor() {
         this.images = document.querySelectorAll('img[data-src]');
@@ -27,7 +20,6 @@ class LazyLoader {
             
             this.images.forEach(img => imageObserver.observe(img));
         } else {
-            // Fallback для старых браузеров
             this.images.forEach(img => {
                 img.src = img.dataset.src;
             });
@@ -35,9 +27,6 @@ class LazyLoader {
     }
 }
 
-// ============================================
-// 2. ДЕБАУНСИНГ И ТРОТТЛИНГ
-// ============================================
 const debounce = (func, wait = 300) => {
     let timeout;
     return function executedFunction(...args) {
@@ -61,11 +50,8 @@ const throttle = (func, limit = 100) => {
     };
 };
 
-// ============================================
-// 3. КЕШИРОВАНИЕ AJAX-ЗАПРОСОВ
-// ============================================
 class CacheManager {
-    constructor(ttl = 5 * 60 * 1000) { // 5 минут по умолчанию
+    constructor(ttl = 5 * 60 * 1000) { 
         this.cache = new Map();
         this.ttl = ttl;
     }
@@ -97,22 +83,18 @@ class CacheManager {
 
 const cache = new CacheManager();
 
-// Обертка для fetch с кешированием
 async function cachedFetch(url, options = {}) {
     const cacheKey = url + JSON.stringify(options);
     
-    // Проверяем кеш
     const cached = cache.get(cacheKey);
     if (cached && !options.ignoreCache) {
         return Promise.resolve(cached);
     }
     
-    // Делаем запрос
     try {
         const response = await fetch(url, options);
         const data = await response.json();
         
-        // Сохраняем в кеш только успешные GET-запросы
         if (response.ok && (!options.method || options.method === 'GET')) {
             cache.set(cacheKey, data);
         }
@@ -124,9 +106,6 @@ async function cachedFetch(url, options = {}) {
     }
 }
 
-// ============================================
-// 4. ОПТИМИЗАЦИЯ СКРОЛЛА
-// ============================================
 const optimizeScroll = () => {
     let ticking = false;
     
@@ -144,9 +123,6 @@ const optimizeScroll = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
 };
 
-// ============================================
-// 5. ПРЕДЗАГРУЗКА ССЫЛОК ПРИ HOVER
-// ============================================
 class LinkPrefetcher {
     constructor() {
         this.prefetched = new Set();
@@ -171,9 +147,6 @@ class LinkPrefetcher {
     }
 }
 
-// ============================================
-// 6. ОПТИМИЗАЦИЯ ФОРМ
-// ============================================
 class FormOptimizer {
     constructor() {
         this.forms = document.querySelectorAll('form');
@@ -182,12 +155,10 @@ class FormOptimizer {
     
     init() {
         this.forms.forEach(form => {
-            // Автосохранение в localStorage
             if (form.dataset.autosave) {
                 this.enableAutosave(form);
             }
             
-            // Предотвращение двойной отправки
             form.addEventListener('submit', (e) => {
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn && !submitBtn.disabled) {
@@ -195,7 +166,6 @@ class FormOptimizer {
                     submitBtn.dataset.originalText = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отправка...';
                     
-                    // Включаем кнопку обратно через 3 секунды (на случай ошибки)
                     setTimeout(() => {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = submitBtn.dataset.originalText;
@@ -208,7 +178,6 @@ class FormOptimizer {
     enableAutosave(form) {
         const formId = form.id || 'form_' + Date.now();
         
-        // Восстанавливаем данные при загрузке
         const saved = localStorage.getItem('autosave_' + formId);
         if (saved) {
             try {
@@ -222,7 +191,6 @@ class FormOptimizer {
             }
         }
         
-        // Сохраняем при изменении (с дебаунсингом)
         const saveData = debounce(() => {
             const data = {};
             Array.from(form.elements).forEach(el => {
@@ -235,16 +203,12 @@ class FormOptimizer {
         
         form.addEventListener('input', saveData);
         
-        // Очищаем при успешной отправке
         form.addEventListener('submit', () => {
             localStorage.removeItem('autosave_' + formId);
         });
     }
 }
 
-// ============================================
-// 7. ОПТИМИЗАЦИЯ ТАБЛИЦ
-// ============================================
 class TableOptimizer {
     constructor(selector = 'table') {
         this.tables = document.querySelectorAll(selector);
@@ -260,12 +224,11 @@ class TableOptimizer {
     }
     
     virtualize(table) {
-        // Виртуализация больших таблиц
         const tbody = table.querySelector('tbody');
         if (!tbody) return;
         
         const rows = Array.from(tbody.rows);
-        const rowHeight = 50; // примерная высота строки
+        const rowHeight = 50; 
         const visibleRows = Math.ceil(window.innerHeight / rowHeight) + 5;
         
         let startIndex = 0;
@@ -275,7 +238,7 @@ class TableOptimizer {
             startIndex = Math.floor(scrollTop / rowHeight);
             const endIndex = Math.min(startIndex + visibleRows, rows.length);
             
-            // Скрываем все строки
+            
             rows.forEach((row, i) => {
                 row.style.display = (i >= startIndex && i < endIndex) ? '' : 'none';
             });
@@ -286,26 +249,18 @@ class TableOptimizer {
     }
 }
 
-// ============================================
-// 8. ИНИЦИАЛИЗАЦИЯ
-// ============================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Performance optimization initialized');
     
-    // Запускаем оптимизаторы
     new LazyLoader();
     new LinkPrefetcher();
     new FormOptimizer();
     new TableOptimizer();
     optimizeScroll();
     
-    // Очищаем кеш при выходе
     window.addEventListener('beforeunload', () => {
-        // Не очищаем полностью, чтобы сохранить между вкладками
-        // cache.clear();
     });
     
-    // Экспортируем утилиты в глобальную область
     window.PerformanceUtils = {
         debounce,
         throttle,
@@ -314,11 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 });
 
-// ============================================
-// 9. МЕТРИКИ ПРОИЗВОДИТЕЛЬНОСТИ
-// ============================================
 if ('PerformanceObserver' in window) {
-    // Отслеживание времени загрузки
     const perfObserver = new PerformanceObserver((list) => {
         list.getEntries().forEach((entry) => {
             console.log('⏱️ Performance:', entry.name, entry.duration.toFixed(2) + 'ms');
@@ -328,7 +279,6 @@ if ('PerformanceObserver' in window) {
     perfObserver.observe({ entryTypes: ['measure', 'navigation', 'resource'] });
 }
 
-// Измерение времени до первой отрисовки контента
 window.addEventListener('load', () => {
     const perfData = performance.getEntriesByType('navigation')[0];
     if (perfData) {

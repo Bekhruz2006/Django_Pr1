@@ -1,4 +1,3 @@
-# schedule/admin.py - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ
 from django.contrib import admin
 from .models import (
     Subject, TimeSlot, ScheduleSlot, Semester, 

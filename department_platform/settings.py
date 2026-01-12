@@ -1,3 +1,7 @@
+#  Copyright (c) 2025. Created by Фахридинов Бехруз.
+#  Project: Department Platform (Деканат)
+#  Contact: behruzfahridinov67@gmail.com
+
 import os
 from pathlib import Path
 
@@ -17,13 +21,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # ВАШИ ПРИЛОЖЕНИЯ - ОБЯЗАТЕЛЬНО ДОЛЖНЫ БЫТЬ!
-    'accounts.apps.AccountsConfig',      # ← ПРОВЕРЬТЕ
-    'journal.apps.JournalConfig',        # ← ПРОВЕРЬТЕ
-    'schedule.apps.ScheduleConfig',      # ← ПРОВЕРЬТЕ
-    'news.apps.NewsConfig',              # ← ПРОВЕРЬТЕ
-    'chat.apps.ChatConfig',              # ← ПРОВЕРЬТЕ
-    'core.apps.CoreConfig',              # ← ПРОВЕРЬТЕ
+    'accounts.apps.AccountsConfig',      
+    'journal.apps.JournalConfig',       
+    'schedule.apps.ScheduleConfig',      
+    'news.apps.NewsConfig',             
+    'chat.apps.ChatConfig',             
+    'core.apps.CoreConfig',            
 ]
 
 MIDDLEWARE = [

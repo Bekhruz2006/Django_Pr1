@@ -172,7 +172,7 @@ body.dark-mode .table-light {
 .card {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    overflow: hidden;
+    overflow: hidden;/
 }
 
 .card::before {
@@ -195,7 +195,6 @@ body.dark-mode .table-light {
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
-/* ИСПРАВЛЕНО: Убрана анимация для dropdown toggles */
 .btn:not(.dropdown-toggle):not([data-bs-toggle]) {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -263,7 +262,7 @@ body.dark-mode .table-light {
     border-radius: 2px;
 }
 
-/* НЕ применяем подчеркивание к dropdown toggles */
+
 .nav-link:not(.dropdown-toggle):hover::after {
     width: 80%;
 }

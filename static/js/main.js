@@ -254,7 +254,6 @@ window.addEventListener('load', function() {
 });
 
 function createRipple(event) {
-    // НЕ применяем ripple к dropdown и nav-link
     if (event.currentTarget.classList.contains('dropdown-toggle') || 
         event.currentTarget.classList.contains('nav-link') ||
         event.currentTarget.hasAttribute('data-bs-toggle')) {
@@ -279,7 +278,6 @@ function createRipple(event) {
     button.appendChild(ripple);
 }
 
-// ИСПРАВЛЕНО: Применяем ripple только к обычным кнопкам, не к dropdown
 document.querySelectorAll('.btn:not(.dropdown-toggle):not([data-bs-toggle="dropdown"])').forEach(button => {
     button.addEventListener('click', createRipple);
 });

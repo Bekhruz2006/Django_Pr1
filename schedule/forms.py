@@ -1,113 +1,53 @@
-# schedule/forms.py - АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ (1 КРЕДИТ = 24 ЧАСА)
 
 from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher
 
+
 class SubjectForm(forms.ModelForm):
-    """✅ Форма для создания предмета - ТОЛЬКО общие кредиты, всё остальное АВТОМАТИЧЕСКИ"""
-    
-    # ✅ Добавляем поле для ввода общих кредитов (не из модели)
-    total_credits = forms.IntegerField(
-        min_value=1,
-        max_value=12,
-        label='Общее количество кредитов',
-        help_text='Например: 6 (система автоматически рассчитает все часы)',
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Например: 6'
-        })
+    total_credits_calc = forms.IntegerField(
+        min_value=1, max_value=20, required=False, 
+        label="Авто-расчет по кредитам",
+        help_text="Введите количество кредитов (напр. 6), чтобы заполнить часы автоматически",
+        widget=forms.NumberInput(attrs={'class': 'form-control border-primary', 'id': 'id_total_credits_calc'})
     )
-    
+
     class Meta:
         model = Subject
-        fields = ['name', 'code', 'teacher', 'groups', 'description']
+        fields = [
+            'name', 'code', 'teacher', 'groups', 
+            'lecture_hours', 'practice_hours', 'control_hours', 
+            'independent_work_hours', 'semester_weeks'
+        ]
         widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Например: Менеджменти экологї'
-            }),
-            'code': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Например: MEN301'
-            }),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
-            'groups': forms.SelectMultiple(attrs={
-                'class': 'form-select',
-                'size': '5'
-            }),
-            'description': forms.Textarea(attrs={
-                'class': 'form-control', 
-                'rows': 3,
-                'placeholder': 'Дополнительная информация'
-            }),
+            'groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
+            'lecture_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_lecture_hours'}),
+            'practice_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_practice_hours'}),
+            'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
+            'independent_work_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_work_hours'}),
+            'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
         }
-        labels = {
-            'name': 'Название предмета *',
-            'code': 'Код предмета *',
-            'teacher': 'Преподаватель',
-            'groups': 'Группы (можно выбрать несколько)',
-            'description': 'Описание',
-        }
-        help_texts = {
-            'groups': 'Удерживайте Ctrl (Cmd на Mac) для выбора нескольких групп',
-        }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # Если редактируем существующий предмет - заполняем total_credits
-        if self.instance and self.instance.pk:
-            # Вычисляем из существующих данных
-            total_hours = (self.instance.lecture_hours + 
-                          self.instance.practice_hours + 
-                          self.instance.control_hours + 
-                          self.instance.independent_work_hours)
-            self.initial['total_credits'] = round(total_hours / 24)
-    
+
     def save(self, commit=True):
         instance = super().save(commit=False)
-        
-        # ✅ АВТОМАТИЧЕСКИЙ РАСЧЕТ ПО ФОРМУЛЕ (1 кредит = 24 часа)
-        total_credits = self.cleaned_data.get('total_credits', 0)
-        
-        # 1 кредит = 24 часа
-        total_hours = total_credits * 24
-        
-        # КМД (самостоятельная работа) = 1/3 от общей трудоемкости
-        kmd_hours = total_hours // 3
-        
-        # Аудиторные часы = 2/3 от общей трудоемкости
-        auditory_hours = total_hours - kmd_hours
-        
-        # ✅ Аудиторные часы делятся ПОРОВНУ между Л, А, КМРО
-        lecture_hours = auditory_hours // 3
-        practice_hours = auditory_hours // 3
-        control_hours = auditory_hours - lecture_hours - practice_hours  # остаток
-        
-        # Сохраняем в модель
-        instance.lecture_hours = lecture_hours
-        instance.practice_hours = practice_hours
-        instance.control_hours = control_hours
-        instance.independent_work_hours = kmd_hours
-        instance.semester_weeks = 16  # стандартно
-        
-        # Устанавливаем тип (основной - лекция)
-        instance.type = 'LECTURE'
-        
-        # Старые поля для совместимости
-        instance.credits = total_credits
-        instance.hours_per_semester = total_hours
+        instance.hours_per_semester = (
+            (instance.lecture_hours or 0) + 
+            (instance.practice_hours or 0) + 
+            (instance.control_hours or 0) + 
+            (instance.independent_work_hours or 0)
+        )
+        instance.credits = round(instance.hours_per_semester / 24, 1)
         
         if commit:
             instance.save()
-            if self.cleaned_data.get('groups'):
-                instance.groups.set(self.cleaned_data['groups'])
-        
+            self.save_m2m() 
         return instance
 
 
-# ========== ОСТАЛЬНЫЕ ФОРМЫ БЕЗ ИЗМЕНЕНИЙ ==========
+
 
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
@@ -141,26 +81,24 @@ class ScheduleSlotForm(forms.ModelForm):
 class SemesterForm(forms.ModelForm):
     class Meta:
         model = Semester
-        fields = ['name', 'number', 'shift', 'course', 'start_date', 'end_date', 'is_active']
+        fields = ['name', 'academic_year', 'number', 'course', 'shift', 'start_date', 'end_date', 'groups', 'is_active']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'number': forms.Select(attrs={'class': 'form-select'}),
-            'shift': forms.Select(attrs={'class': 'form-select'}),
-            'course': forms.Select(attrs={'class': 'form-select'}),  # ✅ НОВОЕ
+            'groups': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '10'}),
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
-        
-        if start_date and end_date and start_date >= end_date:
-            raise forms.ValidationError('Дата окончания должна быть позже даты начала')
-        
-        return cleaned_data
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'course' in self.data:
+            try:
+                course_val = int(self.data.get('course'))
+                self.fields['groups'].queryset = Group.objects.filter(course=course_val)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            self.fields['groups'].queryset = Group.objects.filter(course=self.instance.course)
+
 
 
 class ClassroomForm(forms.ModelForm):

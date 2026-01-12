@@ -28,7 +28,8 @@
                         </thead>
                         <tbody>
                             {% for student in item.students %}
-                            <tr onclick="window.location='{% url 'accounts:profile' %}?user_id={{ student.user.id }}'" style="cursor: pointer;">
+                            <tr onclick="window.location='{% url 'accounts:view_user_profile' student.user.id %}'" style="cursor: pointer;">
+
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     <a href="{% url 'accounts:profile' %}?user_id={{ student.user.id }}">
