@@ -184,7 +184,7 @@ def schedule_constructor(request):
 
         except Group.DoesNotExist:
             pass
-
+    
     context = {
         'groups': groups,
         'semesters': semesters,
@@ -290,7 +290,6 @@ def update_schedule_room(request, slot_id):
         classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
         if not classroom:
             return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не существует'}, status=400)
-
         other_occupant = ScheduleSlot.objects.filter(
             room=room_number,
             day_of_week=slot.day_of_week,
