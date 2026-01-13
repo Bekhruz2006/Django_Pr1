@@ -2,11 +2,11 @@
 {% load static %}
 {% load schedule_filters %}
 
-{% block title %}Конструктор расписания{% endblock %}
+{% block title %}Конструктор расписания (Потоки){% endblock %}
 
 {% block content %}
-<div  style="position: static; top: 100px;"  class="row mt-4">
-    <!-- Выбор группы и семестра -->
+<div class="row mt-4">
+    <!-- Group Selection -->
     <div class="col-12">
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
@@ -31,7 +31,7 @@
                             <select class="form-select" name="semester">
                                 {% for sem in semesters %}
                                     <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
-                                        {{ sem.name }} ({{ sem.get_shift_display }})
+                                        {{ sem.name }} ({{ sem.get_shift_display }}) {% if sem.is_active %}[Активен]{% endif %}
                                     </option>
                                 {% endfor %}
                             </select>
@@ -49,17 +49,17 @@
     </div>
 
     {% if group %}
+    <!-- SUBJECTS LIST -->
     <div class="col-lg-3">
-        <div class="card sticky-top" style="top: 20px; height: 2500px;">
-            <div class="card-header bg-success text-white">
+        <div class="card sticky-top" style="top: 20px; height: 85vh;">
+            <div class="card-header bg-dark text-white">
                 <i class="bi bi-book"></i> Доступные предметы
-                <small class="d-block mt-1">Перетащите в расписание</small>
             </div>
-            <div class="card-body p-0" style="max-height: 2500px; overflow-y: auto; ">
+            <div class="card-body p-0" style="max-height: 80vh; overflow-y: auto;">
 
                 {% if lecture_subjects %}
-                <div class="bg-primary bg-opacity-10 p-2">
-                    <strong><i class="bi bi-mortarboard"></i> Лекции (2 группы)</strong>
+                <div class="bg-primary bg-opacity-10 p-2 border-bottom border-primary">
+                    <strong><i class="bi bi-mortarboard"></i> Лекции</strong>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in lecture_subjects %}
@@ -70,22 +70,36 @@
                              data-subject-type="LECTURE"
                              data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
                              data-remaining="{{ item.remaining }}"
-                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
-                            <strong>{{ item.subject.name }}</strong><br>
-                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'—' }}</small><br>
-                            <span class="badge bg-primary">Лекция (2 гр.)</span><br>
-                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small><br>
-                            <strong class="{% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
+                             data-subject-is-stream="{{ item.is_stream|yesno:'true,false' }}"
+                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
+
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ item.subject.name }}</strong>
+                                {% if item.is_stream %}
+                                    <span class="badge bg-indigo" title="Поток: {{ item.stream_count }} групп">Поток ({{ item.stream_count }})</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Лекция</span>
+                                {% endif %}
+                            </div>
+
+                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'Преподаватель не назначен' }}</small><br>
+                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small>
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar {% if item.remaining > 0 %}bg-success{% else %}bg-secondary{% endif %}"
+                                     style="width: 100%"></div>
+                            </div>
+                            <small class="d-block text-end mt-1 {% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
                                 Осталось: {{ item.remaining }} / {{ item.needed }}
-                            </strong>
+                            </small>
                         </div>
                     {% endfor %}
                 </div>
                 {% endif %}
 
+                <!-- Practice and SRSP sections similar to above, just usually not streams -->
                 {% if practice_subjects %}
-                <div class="bg-success bg-opacity-10 p-2 mt-2">
-                    <strong><i class="bi bi-gear"></i> Практики (1 группа)</strong>
+                <div class="bg-success bg-opacity-10 p-2 mt-2 border-bottom border-success">
+                    <strong><i class="bi bi-gear"></i> Практики</strong>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in practice_subjects %}
@@ -96,22 +110,19 @@
                              data-subject-type="PRACTICE"
                              data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
                              data-remaining="{{ item.remaining }}"
-                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
+                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
                             <strong>{{ item.subject.name }}</strong><br>
-                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'—' }}</small><br>
                             <span class="badge bg-success">Практика</span><br>
-                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small><br>
-                            <strong class="{% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
-                                Осталось: {{ item.remaining }} / {{ item.needed }}
-                            </strong>
+                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'-' }}</small>
+                            <small class="d-block text-end mt-1 text-success">Ост: {{ item.remaining }}</small>
                         </div>
                     {% endfor %}
                 </div>
                 {% endif %}
 
                 {% if control_subjects %}
-                <div class="bg-warning bg-opacity-10 p-2 mt-2">
-                    <strong><i class="bi bi-pencil-square"></i> КМРО/СРСП (1 группа)</strong>
+                <div class="bg-warning bg-opacity-10 p-2 mt-2 border-bottom border-warning">
+                    <strong><i class="bi bi-pencil-square"></i> СРСП</strong>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for item in control_subjects %}
@@ -122,96 +133,90 @@
                              data-subject-type="SRSP"
                              data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
                              data-remaining="{{ item.remaining }}"
-                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
+                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
                             <strong>{{ item.subject.name }}</strong><br>
-                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'—' }}</small><br>
-                            <span class="badge bg-warning">КМРО/СРСП</span><br>
-                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small><br>
-                            <strong class="{% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
-                                Осталось: {{ item.remaining }} / {{ item.needed }}
-                            </strong>
+                            <span class="badge bg-warning text-dark">СРСП</span><br>
+                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'-' }}</small>
+                            <small class="d-block text-end mt-1 text-warning">Ост: {{ item.remaining }}</small>
                         </div>
                     {% endfor %}
                 </div>
-                {% endif %}
-
-                {% if not lecture_subjects and not practice_subjects and not control_subjects %}
-                    <div class="p-3 text-center text-muted">
-                        <i class="bi bi-inbox"></i><br>
-                        Нет доступных предметов.<br>
-                        Назначьте предметы группе.
-                    </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
+    <!-- SCHEDULE GRID -->
     <div class="col-lg-9">
-        <div  class="card">
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-calendar-week"></i> ҶАДВАЛИ ДАРСӢ - {{ group.name }}</span>
-                <div>
-                    <a href="{% url 'schedule:export' %}?group={{ group.id }}"
-                       class="btn btn-success btn-sm">
-                        <i class="bi bi-download"></i> Экспорт
-                    </a>
-                </div>
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-primary"><i class="bi bi-calendar-week"></i> Расписание: {{ group.name }}</h5>
+                <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-file-word"></i> Скачать DOCX
+                </a>
             </div>
-            <div  class="card-body p-0">
+            <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-bordered mb-0 schedule-table">
-                        <thead class="table-light">
+                        <thead class="bg-light">
                             <tr>
-                                <th style="width: 80px;">СОАТ</th>
-                                <th>Дарс / Устод</th>
-                                <th style="width: 60px;">АУД</th>
+                                <th style="width: 100px;" class="text-center align-middle">Время</th>
+                                <th>Предмет / Преподаватель</th>
+                                <th style="width: 80px;" class="text-center align-middle">Каб.</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for day_num, day_name in days %}
-                                <tr class="table-secondary">
-                                    <td colspan="3" class="text-center"><strong>{{ day_name }}</strong></td>
+                                <tr class="table-secondary border-bottom-0">
+                                    <td colspan="3" class="fw-bold ps-3 text-uppercase text-secondary" style="letter-spacing: 1px;">
+                                        {{ day_name }}
+                                    </td>
                                 </tr>
 
                                 {% for time_slot in time_slots %}
                                     <tr>
-                                        <td class="text-center time-cell">
-                                            <strong>{{ time_slot.start_time|time:"H:i" }}-{{ time_slot.end_time|time:"H:i" }}</strong>
+                                        <td class="text-center align-middle time-cell text-muted">
+                                            {{ time_slot.start_time|time:"H:i" }}<br>
+                                            <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
                                         </td>
 
                                         {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
-                                        <td class="schedule-drop-zone p-2"
+                                        <td class="schedule-drop-zone p-1 align-middle"
                                             data-group-id="{{ group.id }}"
                                             data-day="{{ day_num }}"
                                             data-time-slot="{{ time_slot.id }}">
                                             {% if slot %}
-                                            <div class="lesson-content">
-                                                <strong>{{ slot.subject.name }}</strong>
-                                                <span class="badge bg-{% if slot.lesson_type == 'LECTURE' %}primary{% elif slot.lesson_type == 'PRACTICE' %}success{% else %}warning{% endif %} ms-1">
-                                                    {{ slot.get_lesson_type_display }}
-                                                </span>
-                                                <br>
-                                                <small class="text-muted">{{ slot.teacher.user.get_full_name|default:'—' }}</small>
-                                                <button class="btn btn-sm btn-danger delete-slot float-end"
-                                                        data-slot-id="{{ slot.id }}"
-                                                        data-subject-id="{{ slot.subject.id }}">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                            <div class="lesson-card p-2 rounded shadow-sm h-100 position-relative border-start border-4 border-{{ slot.get_color_class }}" style="background-color: #fff;">
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="badge bg-{{ slot.get_color_class }} mb-1">
+                                                        {{ slot.get_lesson_type_display }}
+                                                        {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
+                                                    </span>
+                                                    <button class="btn btn-link text-danger p-0 delete-slot"
+                                                            data-slot-id="{{ slot.id }}"
+                                                            title="Удалить"
+                                                            style="line-height: 1;">
+                                                        <i class="bi bi-x-circle-fill"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="fw-bold text-dark">{{ slot.subject.name }}</div>
+                                                <div class="small text-muted">{{ slot.teacher.user.get_full_name|default:'Преподаватель не назначен' }}</div>
                                             </div>
                                             {% else %}
-                                            <div class="empty-slot" style="min-height: 50px;">
-                                                <!-- Перетащите предмет сюда -->
+                                            <div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;">
+                                                <small class="opacity-50">Свободно</small>
                                             </div>
                                             {% endif %}
                                         </td>
-                                        <td class="aud-cell text-center"
-                                            {% if slot %}data-slot-id="{{ slot.id }}"{% endif %}>
+                                        <td class="align-middle text-center bg-light">
                                             {% if slot %}
-                                            <div class="aud-display" onclick="editAud(this)">
-                                                <strong>{{ slot.room|default:'?' }}</strong>
+                                            <div class="aud-display badge bg-secondary text-wrap"
+                                                 style="cursor: pointer; min-width: 40px;"
+                                                 onclick="editAud(this)"
+                                                 title="Нажмите, чтобы изменить">
+                                                {{ slot.room|default:'?' }}
                                             </div>
-                                            <input type="text"
-                                                   class="form-control form-control-sm aud-input"
+                                            <input type="text" class="form-control form-control-sm aud-input text-center p-0"
                                                    value="{{ slot.room|default:'' }}"
                                                    style="display: none;"
                                                    onblur="saveAud(this, {{ slot.id }})"
@@ -227,26 +232,19 @@
                 </div>
             </div>
         </div>
-
-        <div class="alert alert-info mt-3">
-            <h6><i class="bi bi-info-circle"></i> Инструкция:</h6>
-            <ul class="mb-0">
-                <li>Перетащите предмет из левой панели в расписание</li>
-                <li>Предмет исчезнет из списка, когда достигнут лимит</li>
-                <li>При удалении предмет вернется в список</li>
-                <li>Лекции проводятся для 2 групп одновременно</li>
-            </ul>
-        </div>
     </div>
     {% else %}
-        <div class="col-12">
-            <div class="alert alert-info text-center">
-                <i class="bi bi-info-circle"></i> Выберите группу для составления расписания
+        <div class="col-12 mt-5">
+            <div class="text-center py-5">
+                <i class="bi bi-arrow-up-circle text-primary" style="font-size: 3rem;"></i>
+                <h4 class="mt-3">Выберите группу и семестр</h4>
+                <p class="text-muted">Для начала работы с расписанием используйте форму выше.</p>
             </div>
         </div>
     {% endif %}
 </div>
 
+<!-- Conflict Modal -->
 <div class="modal fade" id="conflictModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -268,103 +266,28 @@
     </div>
 </div>
 
-<style>
-.schedule-table {
-    font-size: 0.85rem;
-}
-
-.schedule-table th, .schedule-table td {
-    border: 1px solid #dee2e6;
-    padding: 8px;
-    vertical-align: top;
-}
-
-.time-cell {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    vertical-align: middle !important;
-}
-
-.schedule-drop-zone {
-    min-height: 60px !important;
-    background-color: #fff;
-    border: 2px dashed transparent;
-    transition: all 0.2s;
-    position: relative;
-    cursor: crosshair;
-}
-
-.schedule-drop-zone .empty-slot {
-    min-height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ccc;
-    font-size: 0.75rem;
-}
-
-.schedule-drop-zone:hover {
-    background-color: #f8f9fa;
-    border-color: #ccc;
-}
-
-.schedule-drop-zone.drag-over {
-    background-color: #d1e7dd !important;
-    border-color: #198754 !important;
-    border-style: solid !important;
-}
-
-.lesson-content {
-    position: relative;
-    min-height: 50px;
-}
-
-.subject-item {
-    cursor: move;
-    transition: all 0.2s;
-    user-select: none;
-}
-
-.subject-item:hover {
-    background-color: #f0f0f0;
-    transform: translateX(3px);
-}
-
-.subject-item:active {
-    opacity: 0.5;
-}
-
-.aud-cell {
-    background-color: #f8f9fa;
-    vertical-align: middle !important;
-}
-
-.aud-display:hover {
-    background-color: #e9ecef;
-    cursor: pointer;
-}
-</style>
-
+<!-- Scripts (Drag & Drop Logic) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Конструктор загружен');
-
     function getCookie(name) {
-        const cookies = document.cookie ? document.cookie.split(';') : [];
-        for (let i = 0; i < cookies.length; i++) {
-            const c = cookies[i].trim();
-            if (c.startsWith(name + '=')) {
-                return decodeURIComponent(c.substring(name.length + 1));
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
             }
         }
-        return null;
+        return cookieValue;
     }
-    const csrftoken = getCookie('csrftoken') || '';
+    const csrftoken = getCookie('csrftoken');
 
     let draggedData = null;
-    let lastAttemptData = null; 
+    let lastAttemptData = null;
 
-    
     function safeJson(response) {
         return response.text().then(text => {
             try { return JSON.parse(text); } catch(e) { return { success: false, error: 'Invalid JSON response' }; }
@@ -372,11 +295,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createScheduleSlot(groupId, subjectId, dayOfWeek, timeSlot, lessonType, isForce = false) {
-        const csrftoken = getCookie('csrftoken');
-
         lastAttemptData = { groupId, subjectId, dayOfWeek, timeSlot, lessonType };
 
-        fetch('/schedule/constructor/create/', {
+        fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -394,6 +315,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json().then(data => ({ status: response.status, body: data })))
         .then(res => {
             if (res.status === 200 && res.body.success) {
+                if (res.body.is_stream) {
+                    alert('✅ Поток создан! Занятие добавлено для всех групп потока.');
+                }
                 location.reload();
             } else {
                 if (res.body.is_conflict) {
@@ -427,35 +351,32 @@ document.addEventListener('DOMContentLoaded', function() {
         el._hasDragHandler = true;
 
         el.addEventListener('dragstart', function(e) {
+            const isStream = this.dataset.subjectIsStream === 'true';
+            draggedData = {
+                subjectId: this.dataset.subjectId,
+                subjectName: this.dataset.subjectName,
+                subjectType: this.dataset.subjectType,
+                teacherName: this.dataset.teacherName || '',
+                isStream: isStream,
+                remaining: parseInt(this.dataset.remaining || '0')
+            };
+
             try {
-                const rem = parseInt(this.dataset.remaining || '0');
-                draggedData = {
-                    subjectId: this.dataset.subjectId,
-                    subjectName: this.dataset.subjectName,
-                    subjectType: this.dataset.subjectType,
-                    teacherName: this.dataset.teacherName || '',
-                    remaining: isNaN(rem) ? 0 : rem
-                };
+                const img = document.createElement('canvas');
+                img.width = img.height = 1;
+                e.dataTransfer.setDragImage(img, 0, 0);
+            } catch (err) {
+            }
 
-                try {
-                    const img = document.createElement('canvas');
-                    img.width = img.height = 1;
-                    e.dataTransfer.setDragImage(img, 0, 0);
-                } catch (err) {
-                }
-
-                try { e.dataTransfer.setData('text/plain', JSON.stringify(draggedData)); } catch(e) {}
-                e.dataTransfer.effectAllowed = 'copy';
-                this.style.opacity = '0.4';
-                console.log('dragstart', draggedData);
-            } catch (ex) { console.error('dragstart err', ex); }
+            try { e.dataTransfer.setData('text/plain', JSON.stringify(draggedData)); } catch(e) {}
+            e.dataTransfer.effectAllowed = 'copy';
+            this.style.opacity = '0.4';
         });
 
         el.addEventListener('dragend', function() {
             try { this.style.opacity = '1'; } catch(e){}
             draggedData = null;
             stopAutoScroll();
-            console.log('dragend');
         });
     }
 
@@ -465,12 +386,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const btn = e.target.closest('.delete-slot');
         if (!btn) return;
         e.stopPropagation();
-        if (!confirm('Удалить?')) return;
+        if (!confirm('Удалить занятие? Если это поток, удалится у всех групп.')) return;
         const slotId = btn.dataset.slotId;
         if (!slotId) return;
-        fetch(`/schedule/constructor/delete/${slotId}/`, {
+        fetch('/schedule/constructor/delete/' + slotId + '/', {
             method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken }
+            headers: {'X-CSRFToken': csrftoken}
         })
         .then(r => safeJson(r))
         .then(data => {
@@ -556,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('dragover', function(e) {
         try {
             e.preventDefault();
-            const margin = 120; // px от края
+            const margin = 120;
             const y = e.clientY;
             const h = window.innerHeight;
             if (y < margin) startAutoScroll(-1, null);
@@ -616,8 +537,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     } catch (ex) { /* ignore */ }
                 }
 
-                console.log('drop target', this.dataset, 'dragged', draggedData);
-
                 if (!draggedData) return alert('Не удалось определить перетаскиваемый предмет.');
                 if (parseInt(draggedData.remaining || 0) <= 0) return alert('Достигнут лимит для этого предмета!');
 
@@ -635,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dayOfWeek,
                     timeSlot,
                     draggedData.subjectType,
-                    false 
+                    false
                 );
 
             } catch (ex) { console.error(ex); }
@@ -664,8 +583,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         mo.observe(document.body, { childList: true, subtree: true });
     } catch (e) { }
-
 });
 </script>
 
+<style>
+.schedule-table {
+    font-size: 0.85rem;
+}
+
+.schedule-table th, .schedule-table td {
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    vertical-align: top;
+}
+
+.time-cell {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    vertical-align: middle !important;
+}
+
+.schedule-drop-zone {
+    min-height: 60px !important;
+    background-color: #fff;
+    border: 2px dashed transparent;
+    transition: all 0.2s;
+    position: relative;
+    cursor: crosshair;
+}
+
+.schedule-drop-zone .empty-slot {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    font-size: 0.75rem;
+}
+
+.schedule-drop-zone:hover {
+    background-color: #f8f9fa;
+    border-color: #ccc;
+}
+
+.schedule-drop-zone.drag-over {
+    background-color: #d1e7dd !important;
+    border-color: #198754 !important;
+    border-style: solid !important;
+}
+
+.lesson-card {
+    position: relative;
+    min-height: 50px;
+}
+
+.subject-item {
+    cursor: move;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.subject-item:hover {
+    background-color: #f0f0f0;
+    transform: translateX(3px);
+}
+
+.subject-item:active {
+    opacity: 0.5;
+}
+
+.aud-cell {
+    background-color: #f8f9fa;
+    vertical-align: middle !important;
+}
+
+.aud-display:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+</style>
 {% endblock %}

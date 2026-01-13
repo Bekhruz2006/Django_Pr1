@@ -1,9 +1,9 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User, Group, Teacher
-from datetime import timedelta
-
-
+from datetime import timedelta, date
+import uuid
+import math
 
 class Subject(models.Model):
     TYPE_CHOICES = [
@@ -11,7 +11,7 @@ class Subject(models.Model):
         ('PRACTICE', 'Практика'),
         ('SRSP', 'СРСП (КМРО)'),
     ]
-    
+
     name = models.CharField(max_length=200, verbose_name="Название")
     code = models.CharField(max_length=20, unique=True, verbose_name="Код")
     type = models.CharField(
@@ -20,14 +20,14 @@ class Subject(models.Model):
         default='LECTURE',
         verbose_name="Основной тип"
     )
-    
+
     lecture_hours = models.IntegerField(default=0, verbose_name="Лекции (Л) часов за семестр")
     practice_hours = models.IntegerField(default=0, verbose_name="Практика (А) часов за семестр")
     control_hours = models.IntegerField(default=0, verbose_name="Контроль (КМРО) часов за семестр")
     independent_work_hours = models.IntegerField(default=0, verbose_name="КМД часов за семестр")
-    
+
     semester_weeks = models.IntegerField(default=16, verbose_name="Недель в семестре")
-    
+
     teacher = models.ForeignKey(
         'accounts.Teacher',
         on_delete=models.SET_NULL,
@@ -35,86 +35,82 @@ class Subject(models.Model):
         blank=True,
         verbose_name="Преподаватель"
     )
-    
+
     groups = models.ManyToManyField(
         'accounts.Group',
         related_name='assigned_subjects',
         blank=True,
         verbose_name="Группы"
     )
-    
+
     description = models.TextField(blank=True, verbose_name="Описание")
-    
+
     credits = models.IntegerField(default=0, verbose_name="Кредиты (устарело)")
     hours_per_semester = models.IntegerField(default=0, verbose_name="Часов (устарело)")
-    
+
     class Meta:
         verbose_name = "Предмет"
         verbose_name_plural = "Предметы"
         ordering = ['name']
-    
+
     def __str__(self):
         return f"{self.name} ({self.code})"
-    
-    
+
     @property
     def total_auditory_hours(self):
         return self.lecture_hours + self.practice_hours + self.control_hours
-    
+
     @property
     def total_hours(self):
         return self.total_auditory_hours + self.independent_work_hours
-    
+
     @property
     def total_credits(self):
         return round(self.total_hours / 24, 1) if self.total_hours > 0 else 0
-    
+
     @property
     def teacher_credits(self):
         return round(self.total_auditory_hours / 24, 1) if self.total_auditory_hours > 0 else 0
-    
-    
+
     @property
     def lecture_hours_per_week(self):
         return round(self.lecture_hours / self.semester_weeks, 1) if self.semester_weeks > 0 else 0
-    
+
     @property
     def practice_hours_per_week(self):
         return round(self.practice_hours / self.semester_weeks, 1) if self.semester_weeks > 0 else 0
-    
+
     @property
     def control_hours_per_week(self):
         return round(self.control_hours / self.semester_weeks, 1) if self.semester_weeks > 0 else 0
-    
+
     @property
     def total_hours_per_week(self):
         return self.lecture_hours_per_week + self.practice_hours_per_week + self.control_hours_per_week
-    
-    
+
     def get_weekly_slots_needed(self, slot_duration=1):
-            import math
-            return {
-                'LECTURE': math.ceil(self.lecture_hours / self.semester_weeks),
-                'PRACTICE': math.ceil(self.practice_hours / self.semester_weeks),
-                'SRSP': math.ceil(self.control_hours / self.semester_weeks),
-            }
-        
+        return {
+            'LECTURE': math.ceil(self.lecture_hours / self.semester_weeks),
+            'PRACTICE': math.ceil(self.practice_hours / self.semester_weeks),
+            'SRSP': math.ceil(self.control_hours / self.semester_weeks),
+        }
+
     def get_remaining_slots(self, group, lesson_type):
         needed = self.get_weekly_slots_needed()
         needed_count = needed.get(lesson_type, 0)
-        
+
         from schedule.models import ScheduleSlot
         existing_count = ScheduleSlot.objects.filter(
             subject=self,
             group=group,
             is_active=True
         ).count()
-        
+
         return max(0, needed_count - existing_count)
-    
+
     def can_add_to_schedule(self, group, lesson_type):
         return self.get_remaining_slots(group, lesson_type) > 0
-    
+
     def get_color_class(self):
         return {
             'LECTURE': 'primary',
@@ -122,19 +118,26 @@ class Subject(models.Model):
             'SRSP': 'warning'
         }.get(self.type, 'secondary')
 
+    def get_stream_groups(self):
+        """Returns all groups assigned to this subject."""
+        return self.groups.all()
+
+    def is_stream_subject(self):
+        """Checks if subject is assigned to multiple groups (Stream potential)."""
+        return self.groups.count() > 1
+
 class TimeSlot(models.Model):
     start_time = models.TimeField(verbose_name="Начало")
     end_time = models.TimeField(verbose_name="Конец")
     name = models.CharField(max_length=50, blank=True, verbose_name="Название")
-    
+
     class Meta:
         verbose_name = "Временной слот"
         verbose_name_plural = "Временные слоты"
         ordering = ['start_time']
-    
+
     def __str__(self):
         return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
-
 
 class Semester(models.Model):
     NUMBER_CHOICES = [
@@ -183,7 +186,7 @@ class Semester(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_active:
-            pass
+            Semester.objects.exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
 
     @classmethod
@@ -192,23 +195,19 @@ class Semester(models.Model):
             return cls.objects.filter(is_active=True, course=course).first()
         return cls.objects.filter(is_active=True).first()
 
-
-
-
 class Classroom(models.Model):
     number = models.CharField(max_length=20, unique=True, verbose_name="Номер")
     floor = models.IntegerField(verbose_name="Этаж")
     capacity = models.IntegerField(default=30, verbose_name="Вместимость")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
-    
+
     class Meta:
         verbose_name = "Кабинет"
         verbose_name_plural = "Кабинеты"
         ordering = ['floor', 'number']
-    
+
     def __str__(self):
         return f"Каб. {self.number}"
-
 
 class ScheduleSlot(models.Model):
     DAYS_OF_WEEK = [
@@ -219,24 +218,24 @@ class ScheduleSlot(models.Model):
         (4, 'Пятница'),
         (5, 'Суббота'),
     ]
-    
+
     LESSON_TYPE_CHOICES = [
         ('LECTURE', 'Лекция'),
         ('PRACTICE', 'Практика'),
         ('SRSP', 'СРСП (КМРО)'),
     ]
-    
+
     group = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Предмет")
     teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Преподаватель")
-    
+
     lesson_type = models.CharField(
         max_length=10,
         choices=LESSON_TYPE_CHOICES,
         default='LECTURE',
         verbose_name="Тип занятия"
     )
-    
+
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name="Семестр")
     day_of_week = models.IntegerField(choices=DAYS_OF_WEEK, verbose_name="День недели")
     time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, verbose_name="Время")
@@ -245,46 +244,54 @@ class ScheduleSlot(models.Model):
     classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Кабинет")
     room = models.CharField(max_length=20, blank=True, null=True, verbose_name="Номер кабинета (текст)")
     is_active = models.BooleanField(default=True, verbose_name="Активно")
-    
+
+    # ✅ NEW: Identify streams
+    stream_id = models.UUIDField(null=True, blank=True, verbose_name="ID Потока")
+
     class Meta:
         verbose_name = "Занятие"
         verbose_name_plural = "Занятия"
         ordering = ['day_of_week', 'start_time']
-    def get_color_class(self):
-        return {
-            'LECTURE': 'primary',   # Синий
-            'PRACTICE': 'success',  # Зеленый
-            'SRSP': 'warning'       # Желтый
-        }.get(self.lesson_type, 'secondary')    
-    def __str__(self):
-        return f"{self.group.name} - {self.subject.name} ({self.get_lesson_type_display()}, {self.get_day_of_week_display()}, {self.start_time})"
 
+    def get_color_class(self):
+        # Specific color for streams
+        if self.stream_id:
+            return 'indigo' # Custom CSS class for streams
+
+        return {
+            'LECTURE': 'primary',   # Blue
+            'PRACTICE': 'success',  # Green
+            'SRSP': 'warning'       # Yellow
+        }.get(self.lesson_type, 'secondary')
+
+    def __str__(self):
+        stream_mark = " [STREAM]" if self.stream_id else ""
+        return f"{self.group.name} - {self.subject.name} ({self.get_lesson_type_display()}){stream_mark}"
 
 class ScheduleException(models.Model):
     EXCEPTION_TYPES = [
         ('CANCEL', 'Отменено'),
         ('RESCHEDULE', 'Перенесено'),
     ]
-    
+
     schedule_slot = models.ForeignKey(ScheduleSlot, on_delete=models.CASCADE, verbose_name="Занятие")
     exception_type = models.CharField(max_length=20, choices=EXCEPTION_TYPES, verbose_name="Тип")
     exception_date = models.DateField(verbose_name="Дата исключения")
     reason = models.TextField(verbose_name="Причина")
-    
+
     new_date = models.DateField(null=True, blank=True, verbose_name="Новая дата")
     new_start_time = models.TimeField(null=True, blank=True, verbose_name="Новое время начала")
     new_end_time = models.TimeField(null=True, blank=True, verbose_name="Новое время окончания")
     new_classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Новый кабинет")
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         verbose_name = "Исключение в расписании"
         verbose_name_plural = "Исключения в расписании"
-    
+
     def __str__(self):
         return f"{self.schedule_slot} - {self.get_exception_type_display()} ({self.exception_date})"
-
 
 class AcademicWeek(models.Model):
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name="Семестр")
@@ -292,28 +299,27 @@ class AcademicWeek(models.Model):
     start_date = models.DateField(verbose_name="Начало недели")
     end_date = models.DateField(verbose_name="Конец недели")
     is_current = models.BooleanField(default=True, verbose_name="Текущая неделя")
-    
+
     class Meta:
         verbose_name = "Учебная неделя"
         verbose_name_plural = "Учебные недели"
-    
+
     def __str__(self):
         return f"Неделя {self.week_number} ({self.start_date})"
-    
+
     @classmethod
     def get_current(cls):
         return cls.objects.filter(is_current=True).first()
-    
+
     @property
     def semester_start_date(self):
         return self.semester.start_date if self.semester else self.start_date
-    
+
     @property
     def current_week(self):
         return self.week_number
-    
+
     def calculate_current_week(self):
-        from datetime import date
         today = date.today()
         delta = today - self.semester.start_date
         return (delta.days // 7) + 1

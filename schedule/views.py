@@ -4,8 +4,10 @@ from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
 from django.views.decorators.http import require_POST
+from django.db import transaction
 from datetime import datetime, timedelta
 import json
+import uuid
 
 try:
     from docx import Document
@@ -52,7 +54,6 @@ def schedule_constructor(request):
     selected_semester_id = request.GET.get('semester')
 
     groups = Group.objects.all().order_by('name')
-
     if selected_group_id:
         try:
             group = Group.objects.get(id=selected_group_id)
@@ -110,6 +111,11 @@ def schedule_constructor(request):
             for subject in assigned_subjects:
                 slots_needed = subject.get_weekly_slots_needed()
 
+                # Check if it's a stream (multiple groups)
+                is_stream = subject.groups.count() > 1
+                stream_groups_count = subject.groups.count()
+
+                # --- LECTURES (Can be streams) ---
                 if slots_needed['LECTURE'] > 0:
                     existing_lectures = ScheduleSlot.objects.filter(
                         subject=subject,
@@ -126,9 +132,12 @@ def schedule_constructor(request):
                             'subject': subject,
                             'remaining': remaining,
                             'needed': slots_needed['LECTURE'],
-                            'hours_per_week': subject.lecture_hours_per_week
+                            'hours_per_week': subject.lecture_hours_per_week,
+                            'is_stream': is_stream,
+                            'stream_count': stream_groups_count if is_stream else 1
                         })
 
+                # --- PRACTICE (Usually individual) ---
                 if slots_needed['PRACTICE'] > 0:
                     existing_practices = ScheduleSlot.objects.filter(
                         subject=subject,
@@ -145,9 +154,11 @@ def schedule_constructor(request):
                             'subject': subject,
                             'remaining': remaining,
                             'needed': slots_needed['PRACTICE'],
-                            'hours_per_week': subject.practice_hours_per_week
+                            'hours_per_week': subject.practice_hours_per_week,
+                            'is_stream': False
                         })
 
+                # --- SRSP (Usually individual) ---
                 if slots_needed['SRSP'] > 0:
                     existing_control = ScheduleSlot.objects.filter(
                         subject=subject,
@@ -164,7 +175,8 @@ def schedule_constructor(request):
                             'subject': subject,
                             'remaining': remaining,
                             'needed': slots_needed['SRSP'],
-                            'hours_per_week': subject.control_hours_per_week
+                            'hours_per_week': subject.control_hours_per_week,
+                            'is_stream': False
                         })
 
             valid_slot_ids = list(time_slots.values_list('id', flat=True))
@@ -184,7 +196,7 @@ def schedule_constructor(request):
 
         except Group.DoesNotExist:
             pass
-    
+
     context = {
         'groups': groups,
         'semesters': semesters,
@@ -197,7 +209,6 @@ def schedule_constructor(request):
         'days': days,
         'schedule_data': schedule_data,
     }
-
     return render(request, 'schedule/constructor_with_limits.html', context)
 
 @login_required
@@ -222,53 +233,84 @@ def create_schedule_slot(request):
         if not active_semester:
             return JsonResponse({'success': False, 'error': 'Нет активного семестра для этой группы'}, status=400)
 
+        # Check Shift Validity
         start_h = time_slot.start_time.hour
         if active_semester.shift == 'MORNING' and start_h >= 13:
             return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот ДНЕВНОЙ, а группа УТРЕННЯЯ.'}, status=400)
         if active_semester.shift == 'DAY' and start_h < 13:
             return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот УТРЕННИЙ, а группа ДНЕВНАЯ.'}, status=400)
 
-        if not force:
-            needed_slots = subject.get_weekly_slots_needed().get(lesson_type, 0)
-            existing_count = ScheduleSlot.objects.filter(
-                group=group, subject=subject, semester=active_semester,
-                lesson_type=lesson_type, is_active=True
-            ).count()
-            if existing_count >= needed_slots:
-                return JsonResponse({'success': False, 'error': f'Лимит занятий "{lesson_type}" исчерпан.'}, status=400)
+        # Logic for Streams
+        groups_to_schedule = [group]
+        is_stream = False
+        stream_id = None
 
-        if subject.teacher and not force:
-            teacher_busy = ScheduleSlot.objects.filter(
-                teacher=subject.teacher, day_of_week=day_of_week,
-                time_slot=time_slot, semester__is_active=True, is_active=True
-            ).first()
+        if lesson_type == 'LECTURE' and subject.groups.count() > 1:
+            # It's a stream lecture!
+            groups_to_schedule = list(subject.groups.all())
+            is_stream = True
+            stream_id = uuid.uuid4() # Generate unique ID for this batch
 
-            if teacher_busy:
-                is_same_subject = (teacher_busy.subject_id == subject.id)
-                both_are_lectures = (lesson_type == 'LECTURE' and teacher_busy.lesson_type == 'LECTURE')
+        with transaction.atomic():
+            created_slots = []
 
-                if not (is_same_subject and both_are_lectures):
-                    return JsonResponse({
-                        'success': False,
-                        'is_conflict': True,
-                        'error': f'Преподаватель занят с группой {teacher_busy.group.name} ({teacher_busy.get_lesson_type_display()}).'
-                    }, status=400)
+            for target_group in groups_to_schedule:
+                # 1. Check Limits (skip if force)
+                if not force:
+                    needed_slots = subject.get_weekly_slots_needed().get(lesson_type, 0)
+                    existing_count = ScheduleSlot.objects.filter(
+                        group=target_group, subject=subject, semester=active_semester,
+                        lesson_type=lesson_type, is_active=True
+                    ).count()
 
-        if not force:
-            if ScheduleSlot.objects.filter(group=group, day_of_week=day_of_week, time_slot=time_slot, semester=active_semester, is_active=True).exists():
-                return JsonResponse({
-                    'success': False,
-                    'is_conflict': True,
-                    'error': 'У этой группы уже стоит пара в это время!'
-                }, status=400)
+                    if existing_count >= needed_slots:
+                        # Warning if one group in stream is full?
+                        # Ideally, streams are synchronized. We'll proceed but might warn.
+                        # For strictness:
+                        if not is_stream: # Only block strictly for individual
+                             return JsonResponse({'success': False, 'error': f'Лимит занятий "{lesson_type}" исчерпан для {target_group.name}.'}, status=400)
 
-        new_slot = ScheduleSlot.objects.create(
-            group=group, subject=subject, teacher=subject.teacher,
-            semester=active_semester, day_of_week=day_of_week,
-            time_slot=time_slot, lesson_type=lesson_type,
-            start_time=time_slot.start_time, end_time=time_slot.end_time
-        )
-        return JsonResponse({'success': True, 'slot_id': new_slot.id})
+                # 2. Check Group Occupancy
+                if not force:
+                    if ScheduleSlot.objects.filter(group=target_group, day_of_week=day_of_week, time_slot=time_slot, semester=active_semester, is_active=True).exists():
+                         return JsonResponse({
+                            'success': False,
+                            'is_conflict': True,
+                            'error': f'Группа {target_group.name} уже занята в это время!'
+                        }, status=400)
+
+                # 3. Check Teacher Occupancy (Allow if it's the SAME stream we are creating)
+                if subject.teacher and not force:
+                    teacher_busy = ScheduleSlot.objects.filter(
+                        teacher=subject.teacher, day_of_week=day_of_week,
+                        time_slot=time_slot, semester__is_active=True, is_active=True
+                    ).first()
+
+                    if teacher_busy:
+                        # If existing slot is part of the same stream (unlikely during creation) or manual override
+                        # BUT, we are creating a NEW stream. Teacher shouldn't be busy with OTHER subjects.
+                        return JsonResponse({
+                            'success': False,
+                            'is_conflict': True,
+                            'error': f'Преподаватель занят с группой {teacher_busy.group.name}.'
+                        }, status=400)
+
+                # Create Slot
+                new_slot = ScheduleSlot.objects.create(
+                    group=target_group,
+                    subject=subject,
+                    teacher=subject.teacher,
+                    semester=active_semester,
+                    day_of_week=day_of_week,
+                    time_slot=time_slot,
+                    lesson_type=lesson_type,
+                    start_time=time_slot.start_time,
+                    end_time=time_slot.end_time,
+                    stream_id=stream_id if is_stream else None
+                )
+                created_slots.append(new_slot)
+
+        return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -281,39 +323,49 @@ def update_schedule_room(request, slot_id):
         room_number = data.get('room', '').strip()
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
-        if not room_number:
-            slot.room = None
-            slot.classroom = None
-            slot.save()
-            return JsonResponse({'success': True, 'room': '?'})
+        classroom = None
+        if room_number:
+            classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
+            if not classroom:
+                return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не существует'}, status=400)
 
-        classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
-        if not classroom:
-            return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не существует'}, status=400)
-        other_occupant = ScheduleSlot.objects.filter(
-            room=room_number,
-            day_of_week=slot.day_of_week,
-            time_slot=slot.time_slot,
-            semester__is_active=True,
-            is_active=True
-        ).exclude(group=slot.group).first()
-
-        if other_occupant:
-            is_shared_lecture = (
-                slot.lesson_type == 'LECTURE' and
-                other_occupant.lesson_type == 'LECTURE' and
-                slot.subject_id == other_occupant.subject_id
+            # Check Room Occupancy
+            # Exclude current slot(s)
+            query = ScheduleSlot.objects.filter(
+                classroom=classroom,
+                day_of_week=slot.day_of_week,
+                time_slot=slot.time_slot,
+                semester__is_active=True,
+                is_active=True
             )
-            if not is_shared_lecture:
+
+            if slot.stream_id:
+                query = query.exclude(stream_id=slot.stream_id)
+            else:
+                query = query.exclude(id=slot.id)
+
+            other_occupant = query.first()
+
+            if other_occupant:
                 return JsonResponse({
                     'success': False,
                     'error': f'Кабинет занят группой {other_occupant.group.name} ({other_occupant.subject.name})'
                 }, status=400)
 
-        slot.room = room_number
-        slot.classroom = classroom
-        slot.save()
-        return JsonResponse({'success': True, 'room': slot.room})
+        # Update Logic (Handle Streams)
+        with transaction.atomic():
+            if slot.stream_id:
+                # Update all slots in this stream
+                ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(
+                    room=room_number if room_number else None,
+                    classroom=classroom
+                )
+            else:
+                slot.room = room_number if room_number else None
+                slot.classroom = classroom
+                slot.save()
+
+        return JsonResponse({'success': True, 'room': room_number or '?'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -321,19 +373,26 @@ def update_schedule_room(request, slot_id):
 @require_POST
 def delete_schedule_slot(request, slot_id):
     try:
-        schedule_slot = ScheduleSlot.objects.get(id=slot_id)
+        schedule_slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
         if not (request.user.is_staff or hasattr(request.user, 'dean_profile')):
             return JsonResponse({'success': False, 'error': 'Нет прав'}, status=403)
 
-        schedule_slot.delete()
-        return JsonResponse({'success': True, 'message': 'Занятие удалено'})
+        with transaction.atomic():
+            if schedule_slot.stream_id:
+                # Delete entire stream
+                count = ScheduleSlot.objects.filter(stream_id=schedule_slot.stream_id).delete()[0]
+                msg = f'Удален поток ({count} групп)'
+            else:
+                schedule_slot.delete()
+                msg = 'Занятие удалено'
 
-    except ScheduleSlot.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Занятие не найдено'}, status=404)
+        return JsonResponse({'success': True, 'message': msg})
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
 
+# ... (Keep existing views like today_classes, manage_subjects, etc.) ...
 @login_required
 def schedule_view(request):
     user = request.user

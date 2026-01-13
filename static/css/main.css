@@ -116,32 +116,32 @@ body.dark-mode .table-light {
 }
 
 @keyframes fadeIn {
-    from { 
-        opacity: 0; 
+    from {
+        opacity: 0;
         transform: translateY(30px);
     }
-    to { 
-        opacity: 1; 
+    to {
+        opacity: 1;
         transform: translateY(0);
     }
 }
 
 @keyframes slideIn {
-    from { 
+    from {
         transform: translateX(-100%);
         opacity: 0;
     }
-    to { 
+    to {
         transform: translateX(0);
         opacity: 1;
     }
 }
 
 @keyframes pulse {
-    0%, 100% { 
+    0%, 100% {
         transform: scale(1);
     }
-    50% { 
+    50% {
         transform: scale(1.05);
     }
 }
@@ -172,7 +172,7 @@ body.dark-mode .table-light {
 .card {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    overflow: hidden;/
+    overflow: hidden;
 }
 
 .card::before {
@@ -261,7 +261,6 @@ body.dark-mode .table-light {
     transform: translateX(-50%);
     border-radius: 2px;
 }
-
 
 .nav-link:not(.dropdown-toggle):hover::after {
     width: 80%;
@@ -409,7 +408,7 @@ body.dark-mode .table-light {
         width: 50px;
         height: 50px;
     }
-    
+
     .floating-shape {
         opacity: 0.05;
     }
@@ -495,4 +494,28 @@ select:focus {
 
 .btn-primary:not(.dropdown-toggle):hover {
     animation: glow 2s infinite;
+}
+
+/* Stream slots styles */
+.bg-indigo {
+    background-color: #6610f2 !important;
+    color: white;
+}
+
+.border-indigo {
+    border-color: #6610f2 !important;
+}
+
+.badge.bg-indigo {
+    background-color: #6610f2 !important;
+}
+
+/* Style for Stream subjects in constructor sidebar */
+.subject-item[data-subject-is-stream="true"] {
+    border-left: 4px solid #6610f2;
+    background-color: #f8f0fc;
+}
+
+.subject-item[data-subject-is-stream="true"]:hover {
+    background-color: #e0cffc;
 }
