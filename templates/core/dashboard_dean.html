@@ -1,135 +1,109 @@
 {% extends 'base.html' %}
-{% block title %}Главная{% endblock %}
+
+{% block title %}Панель деканата{% endblock %}
+
 {% block content %}
-<div class="row mt-4">
+<div class="row mt-4 mb-4">
     <div class="col-12">
-        <h2>Добро пожаловать, {{ user.get_full_name }}!</h2>
-        <p class="text-muted">Панель декана</p>
+        {% if faculty %}
+            <h2 class="fw-bold">{{ faculty.name }}</h2>
+            <p class="text-muted">
+                {{ faculty.institute.name }} |
+                Декан: {{ user.get_full_name }}
+            </p>
+        {% else %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                Ваш профиль не привязан к факультету. Обратитесь к администратору.
+            </div>
+        {% endif %}
     </div>
 </div>
 
-<div class="row mt-3">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-people-fill" style="font-size: 3rem; color: var(--primary-blue);"></i>
-                <h5 class="mt-2">Всего студентов</h5>
-                <h3 class="stat-number">{{ total_students }}</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-person-badge" style="font-size: 3rem; color: var(--accent-green);"></i>
-                <h5 class="mt-2">Преподавателей</h5>
-                <h3 class="stat-number">{{ total_teachers }}</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-collection" style="font-size: 3rem; color: var(--accent-amber);"></i>
-                <h5 class="mt-2">Групп</h5>
-                <h3 class="stat-number">{{ total_groups }}</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: #ef4444;"></i>
-                <h5 class="mt-2">Задолженности</h5>
-                <h3>Нету</h3>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-speedometer2"></i> Быстрые действия</div>
+{% if faculty %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-start border-4 border-primary shadow-sm">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <a href="{% url 'accounts:user_management' %}" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-people"></i><br>Управление пользователями
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'schedule:constructor' %}" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-calendar3"></i><br>Конструктор расписания
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'journal:department_report' %}" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-bar-chart"></i><br>Отчет по кафедре
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'news:create' %}" class="btn btn-success w-100 mb-2">
-                            <i class="bi bi-newspaper"></i><br>Создать новость
-                        </a>
-                    </div>
-                </div>
-                <hr>
-                <div class="row">
-                    <div class="col-md-3">
-                        <a href="{% url 'accounts:add_user' %}" class="btn btn-outline-primary w-100 mb-2">
-                            <i class="bi bi-plus-circle"></i><br>Добавить пользователя
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'schedule:manage_academic_week' %}" class="btn btn-outline-primary w-100 mb-2">
-                            <i class="bi bi-calendar-range"></i><br>Учебные недели
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'journal:dean_view' %}" class="btn btn-outline-primary w-100 mb-2">
-                            <i class="bi bi-graph-up"></i><br>Аналитика успеваемости
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'chat:list' %}" class="btn btn-outline-primary w-100 mb-2">
-                            <i class="bi bi-chat-dots"></i><br>Чаты
-                        </a>
-                    </div>
-                </div>
+                <h6 class="text-muted">Студентов</h6>
+                <h3>{{ students_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start border-4 border-success shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Групп</h6>
+                <h3>{{ groups_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start border-4 border-info shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Преподавателей</h6>
+                <h3>{{ teachers_count }}</h3>
             </div>
         </div>
     </div>
 </div>
 
-{% if news_list %}
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-newspaper"></i> Последние новости</span>
-                <div>
-                    <a href="{% url 'news:create' %}" class="btn btn-sm btn-success me-2">
-                        <i class="bi bi-plus-circle"></i> Добавить
-                    </a>
-                    <a href="{% url 'news:list' %}" class="btn btn-sm btn-primary">Все новости</a>
-                </div>
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Кафедры факультета</h5>
             </div>
             <div class="card-body">
-                {% for news in news_list %}
-                    <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
-                        <h6 class="mb-1">
-                            {% if news.is_pinned %}<i class="bi bi-pin-angle-fill text-warning"></i>{% endif %}
-                            <a href="{% url 'news:detail' news.id %}">{{ news.title }}</a>
-                        </h6>
-                        <small class="text-muted">
-                            <i class="bi bi-calendar"></i> {{ news.created_at|date:"d.m.Y H:i" }}
-                            | <span class="badge bg-primary">{{ news.get_category_display }}</span>
-                            | <i class="bi bi-eye"></i> {{ news.views_count }}
-                        </small>
-                        <p class="mb-0 mt-1 text-muted">{{ news.content|truncatewords:20 }}</p>
-                    </div>
-                {% endfor %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Название</th>
+                                <th>Специальностей</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dept in departments %}
+                            <tr>
+                                <td>{{ dept.name }}</td>
+                                <td>
+                                    {% for spec in dept.specialties.all %}
+                                        <span class="badge bg-light text-dark border">{{ spec.code }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted">Кафедры не созданы</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Управление</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action">
+                    <i class="bi bi-plus-lg text-success"></i> Добавить кафедру
+                </a>
+                <a href="{% url 'accounts:add_group' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-collection text-primary"></i> Добавить группу
+                </a>
+                <a href="{% url 'accounts:add_user' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-person-plus text-info"></i> Добавить студента/преподавателя
+                </a>
             </div>
         </div>
     </div>

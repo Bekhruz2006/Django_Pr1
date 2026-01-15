@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Управление структурой{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>
+                {% if is_admin %}
+                    Полная структура университета
+                {% else %}
+                    Структура факультета: {{ faculty.name }}
+                {% endif %}
+            </h3>
+            
+            {% if is_dean %}
+            <div>
+                <a href="{% url 'accounts:add_department' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Добавить кафедру
+                </a>
+                <a href="{% url 'accounts:add_specialty' %}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Добавить специальность
+                </a>
+            </div>
+            {% endif %}
+            
+            {% if is_admin %}
+            <div>
+                <a href="{% url 'accounts:add_institute' %}" class="btn btn-primary">
+                    <i class="bi bi-building-add"></i> Новый Институт
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if is_admin %}
+            {% for institute in institutes %}
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-bank me-2"></i>{{ institute.name }} ({{ institute.abbreviation }})
+                        </h5>
+                        <small class="text-white-50">
+                            Директор: {{ institute.directors.first.user.get_full_name|default:"Не назначен" }}
+                        </small>
+                    </div>
+                    <div>
+                        <a href="{% url 'accounts:add_faculty' %}?institute={{ institute.id }}" class="btn btn-sm btn-light text-primary fw-bold me-2">
+                            <i class="bi bi-plus-circle"></i> Добавить Факультет
+                        </a>
+                        <a href="{% url 'accounts:edit_institute' institute.id %}" class="btn btn-sm btn-light text-primary" title="Редактировать"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'accounts:delete_institute' institute.id %}" class="btn btn-sm btn-light text-danger" title="Удалить"><i class="bi bi-trash"></i></a>
+                    </div>
+                </div>
+                <div class="card-body bg-light">
+                    <div class="accordion" id="inst{{ institute.id }}">
+                        {% for faculty in institute.faculties.all %}
+                        <div class="accordion-item mb-2 shadow-sm">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fac{{ faculty.id }}">
+                                    <span class="fw-bold me-2">{{ faculty.name }}</span>
+                                    <span class="badge bg-secondary me-3">{{ faculty.code }}</span>
+                                    <span class="ms-auto me-3 text-muted small">
+                                        Декан: 
+                                        {# ИСПРАВЛЕНО ЗДЕСЬ: убрали hasattr #}
+                                        {% if faculty.dean_manager %}
+                                            {{ faculty.dean_manager.user.get_full_name }}
+                                        {% else %}
+                                            <span class="text-danger">Не назначен</span>
+                                        {% endif %}
+                                    </span>
+                                </button>
+                            </h2>
+                            <div id="fac{{ faculty.id }}" class="accordion-collapse collapse" data-bs-parent="#inst{{ institute.id }}">
+                                <div class="accordion-body bg-white">
+                                    <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
+                                        <strong>Управление факультетом</strong>
+                                        <div>
+                                            <a href="{% url 'accounts:add_department' %}?faculty={{ faculty.id }}" class="btn btn-sm btn-success me-2">
+                                                <i class="bi bi-plus-lg"></i> Добавить Кафедру
+                                            </a>
+                                            <a href="{% url 'accounts:edit_faculty' faculty.id %}" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
+                                            <a href="{% url 'accounts:delete_faculty' faculty.id %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                                        </div>
+                                    </div>
+                                    
+                                    <h6 class="text-muted text-uppercase small">Кафедры:</h6>
+                                    <ul class="list-group list-group-flush">
+                                        {% for dept in faculty.departments.all %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                            <div>
+                                                <i class="bi bi-diagram-3 me-2 text-info"></i>
+                                                <span class="fw-medium">{{ dept.name }}</span>
+                                                {% if dept.head %}
+                                                    <br><small class="text-muted ms-4">Зав.каф: {{ dept.head.user.get_full_name }}</small>
+                                                {% endif %}
+                                            </div>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-outline-secondary" title="Редактировать кафедру"><i class="bi bi-pencil"></i></a>
+                                                <a href="{% url 'accounts:delete_department' dept.id %}" class="btn btn-outline-danger" title="Удалить кафедру"><i class="bi bi-trash"></i></a>
+                                            </div>
+                                        </li>
+                                        {% empty %}
+                                        <li class="list-group-item text-muted fst-italic">Кафедры не созданы</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                            <div class="alert alert-warning m-0">В этом институте пока нет факультетов.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="text-center my-5">
+                <a href="{% url 'accounts:add_institute' %}" class="btn btn-lg btn-outline-primary px-5">
+                    <i class="bi bi-plus-lg"></i> Добавить еще один Институт
+                </a>
+            </div>
+
+        {% elif is_dean %}
+            {# ... Код для декана остается прежним, он работал ... #}
+            <div class="accordion" id="deptAccordion">
+                {% for dept in departments %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ dept.id }}">
+                            {{ dept.name }}
+                        </button>
+                    </h2>
+                    <div id="collapse{{ dept.id }}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <div class="d-flex justify-content-between mb-3">
+                                <strong>Зав. кафедрой: {{ dept.head.user.get_full_name|default:"Не назначен" }}</strong>
+                                <div>
+                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Редактировать кафедру</a>
+                                    <a href="{% url 'accounts:delete_department' dept.id %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Удалить</a>
+                                </div>
+                            </div>
+                            
+                            <h6>Специальности:</h6>
+                            <ul class="list-group mb-3">
+                                {% for spec in dept.specialties.all %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>{{ spec.code }} - {{ spec.name }} ({{ spec.qualification }})</span>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'accounts:edit_specialty' spec.id %}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                                            <a href="{% url 'accounts:delete_specialty' spec.id %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a>
+                                        </div>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item text-muted">Нет специальностей</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

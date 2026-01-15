@@ -1,4 +1,3 @@
-
 from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher
@@ -6,24 +5,32 @@ from accounts.models import Group, Teacher
 
 class SubjectForm(forms.ModelForm):
     total_credits_calc = forms.IntegerField(
-        min_value=1, max_value=20, required=False, 
+        min_value=1, max_value=20, required=False,
         label="Авто-расчет по кредитам",
         help_text="Введите количество кредитов (напр. 6), чтобы заполнить часы автоматически",
         widget=forms.NumberInput(attrs={'class': 'form-control border-primary', 'id': 'id_total_credits_calc'})
     )
 
+    assign_to_all_groups = forms.BooleanField(
+        required=False,
+        label="Назначить всем группам кафедры",
+        help_text="Автоматически привяжет предмет ко всем группам, относящимся к кафедре преподавателя или выбранной кафедре.",
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
     class Meta:
         model = Subject
         fields = [
-            'name', 'code', 'teacher', 'groups', 
-            'lecture_hours', 'practice_hours', 'control_hours', 
+            'name', 'code', 'department', 'teacher', 'groups',
+            'lecture_hours', 'practice_hours', 'control_hours',
             'independent_work_hours', 'semester_weeks'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
-            'groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
+            'groups': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '8'}),
             'lecture_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_lecture_hours'}),
             'practice_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_practice_hours'}),
             'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
@@ -31,24 +38,34 @@ class SubjectForm(forms.ModelForm):
             'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
         }
 
+    def clean_groups(self):
+        groups = self.cleaned_data.get('groups')
+        if groups and len(groups) > 3:
+            raise forms.ValidationError("Максимальное количество групп для одного предмета (потока) — 3.")
+        return groups
+
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.hours_per_semester = (
-            (instance.lecture_hours or 0) + 
-            (instance.practice_hours or 0) + 
-            (instance.control_hours or 0) + 
+            (instance.lecture_hours or 0) +
+            (instance.practice_hours or 0) +
+            (instance.control_hours or 0) +
             (instance.independent_work_hours or 0)
         )
         instance.credits = round(instance.hours_per_semester / 24, 1)
-        
+
         if commit:
             instance.save()
-            self.save_m2m() 
+            self.save_m2m()
+
+            if self.cleaned_data.get('assign_to_all_groups') and instance.department:
+                dept_groups = Group.objects.filter(specialty__department=instance.department)
+                instance.groups.add(*dept_groups)
+
         return instance
 
 
-
-
+# Остальные формы оставляем без изменений, они рабочие
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
         model = ScheduleSlot
@@ -98,8 +115,6 @@ class SemesterForm(forms.ModelForm):
                 pass
         elif self.instance.pk:
             self.fields['groups'].queryset = Group.objects.filter(course=self.instance.course)
-
-
 
 class ClassroomForm(forms.ModelForm):
     class Meta:

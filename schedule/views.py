@@ -48,8 +48,28 @@ def get_active_semester_for_group(group):
     return semester
 
 @login_required
-@user_passes_test(is_dean)
 def schedule_constructor(request):
+    # ПРОВЕРКА ПРАВ: Декан меняет только свои группы
+    group_id = request.GET.get('group')
+
+    if group_id and request.user.role in ['DEAN', 'VICE_DEAN']:
+        group = get_object_or_404(Group, id=group_id)
+
+        # Получаем факультет пользователя
+        user_faculty = None
+        if hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
+            user_faculty = request.user.dean_profile.faculty
+        elif hasattr(request.user, 'vicedean_profile') and request.user.vicedean_profile.faculty:
+            user_faculty = request.user.vicedean_profile.faculty
+
+        # Проверяем, принадлежит ли группа факультету
+        # Group -> Specialty -> Department -> Faculty
+        group_faculty = group.specialty.department.faculty
+
+        if user_faculty != group_faculty:
+            messages.error(request, "Вы не можете редактировать расписание другого факультета!")
+            return redirect('schedule:constructor')
+
     selected_group_id = request.GET.get('group')
     selected_semester_id = request.GET.get('semester')
 
@@ -111,11 +131,9 @@ def schedule_constructor(request):
             for subject in assigned_subjects:
                 slots_needed = subject.get_weekly_slots_needed()
 
-                # Check if it's a stream (multiple groups)
                 is_stream = subject.groups.count() > 1
                 stream_groups_count = subject.groups.count()
 
-                # --- LECTURES (Can be streams) ---
                 if slots_needed['LECTURE'] > 0:
                     existing_lectures = ScheduleSlot.objects.filter(
                         subject=subject,
@@ -137,7 +155,6 @@ def schedule_constructor(request):
                             'stream_count': stream_groups_count if is_stream else 1
                         })
 
-                # --- PRACTICE (Usually individual) ---
                 if slots_needed['PRACTICE'] > 0:
                     existing_practices = ScheduleSlot.objects.filter(
                         subject=subject,
@@ -158,7 +175,6 @@ def schedule_constructor(request):
                             'is_stream': False
                         })
 
-                # --- SRSP (Usually individual) ---
                 if slots_needed['SRSP'] > 0:
                     existing_control = ScheduleSlot.objects.filter(
                         subject=subject,
@@ -211,6 +227,7 @@ def schedule_constructor(request):
     }
     return render(request, 'schedule/constructor_with_limits.html', context)
 
+
 @login_required
 @user_passes_test(is_dean)
 @require_POST
@@ -219,83 +236,137 @@ def create_schedule_slot(request):
         data = json.loads(request.body)
         force = data.get('force', False)
 
+        # --- НОВАЯ ЛОГИКА: ВОЕННАЯ КАФЕДРА ---
+        if data.get('is_military_day'):
+            group_id = data.get('group')
+            day_of_week = data.get('day_of_week')
+            semester_id = data.get('semester_id')
+
+            group = get_object_or_404(Group, id=group_id)
+            if not group.has_military_training:
+                return JsonResponse({'success': False, 'error': 'У этой группы нет военной кафедры!'}, status=400)
+
+            semester = get_object_or_404(Semester, id=semester_id)
+
+            # Удаляем старые слоты в этот день
+            ScheduleSlot.objects.filter(
+                group=group,
+                semester=semester,
+                day_of_week=day_of_week
+            ).delete()
+
+            # Создаем слоты военной кафедры для всех пар смены
+            time_slots = get_time_slots_for_shift(semester.shift)
+
+            # Создаем фиктивный предмет "Военная кафедра" для связности
+            military_subject, _ = Subject.objects.get_or_create(
+                name="Кафедраи ҳарбӣ",
+                code="MILITARY",
+                defaults={'department_id': 1}  # ID дефолтной кафедры
+            )
+
+            created_count = 0
+            for ts in time_slots:
+                ScheduleSlot.objects.create(
+                    group=group,
+                    subject=military_subject,
+                    semester=semester,
+                    day_of_week=day_of_week,
+                    time_slot=ts,
+                    start_time=ts.start_time,
+                    end_time=ts.end_time,
+                    is_military=True,
+                    lesson_type='PRACTICE'
+                )
+                created_count += 1
+
+            return JsonResponse({'success': True, 'message': f'Военная кафедра установлена на весь день ({created_count} пар)'})
+
+        # --- СТАРАЯ ЛОГИКА: ОБЫЧНЫЙ СЛОТ ---
         group_id = data.get('group')
         subject_id = data.get('subject')
         day_of_week = data.get('day_of_week')
         time_slot_id = data.get('time_slot')
         lesson_type = data.get('lesson_type', 'LECTURE')
+        semester_id = data.get('semester_id')
 
-        group = get_object_or_404(Group, id=group_id)
+        main_group = get_object_or_404(Group, id=group_id)
         subject = get_object_or_404(Subject, id=subject_id)
         time_slot = get_object_or_404(TimeSlot, id=time_slot_id)
 
-        active_semester = get_active_semester_for_group(group)
-        if not active_semester:
-            return JsonResponse({'success': False, 'error': 'Нет активного семестра для этой группы'}, status=400)
+        # 1. Валидация семестра
+        if semester_id:
+            active_semester = get_object_or_404(Semester, id=semester_id)
+        else:
+            active_semester = get_active_semester_for_group(main_group)
 
-        # Check Shift Validity
+        if not active_semester:
+            return JsonResponse({'success': False, 'error': 'Нет активного семестра'}, status=400)
+
+        # 2. Валидация смены
         start_h = time_slot.start_time.hour
         if active_semester.shift == 'MORNING' and start_h >= 13:
-            return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот ДНЕВНОЙ, а группа УТРЕННЯЯ.'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ.'}, status=400)
         if active_semester.shift == 'DAY' and start_h < 13:
-            return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот УТРЕННИЙ, а группа ДНЕВНАЯ.'}, status=400)
+            return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ.'}, status=400)
 
-        # Logic for Streams
-        groups_to_schedule = [group]
+        groups_to_schedule = [main_group]
         is_stream = False
         stream_id = None
 
+        # Логика потоков (Stream Logic)
         if lesson_type == 'LECTURE' and subject.groups.count() > 1:
-            # It's a stream lecture!
-            groups_to_schedule = list(subject.groups.all())
-            is_stream = True
-            stream_id = uuid.uuid4() # Generate unique ID for this batch
+            all_subject_groups = list(subject.groups.all())
 
+            if len(all_subject_groups) > 3:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Слишком большой поток! Предмет привязан к {len(all_subject_groups)} группам. Максимум разрешено 3.'
+                }, status=400)
+
+            groups_to_schedule = all_subject_groups
+            is_stream = True
+            stream_id = uuid.uuid4()
+
+        conflicts = []
+
+        if not force:
+            # Проверка занятости групп
+            for target_group in groups_to_schedule:
+                busy_slot = ScheduleSlot.objects.filter(
+                    group=target_group,
+                    day_of_week=day_of_week,
+                    time_slot=time_slot,
+                    semester=active_semester,
+                    is_active=True
+                ).first()
+
+                if busy_slot:
+                    conflicts.append(f"Группа {target_group.name} уже занята: {busy_slot.subject.name}")
+
+            # Проверка преподавателя
+            if subject.teacher:
+                teacher_slots = ScheduleSlot.objects.filter(
+                    teacher=subject.teacher,
+                    day_of_week=day_of_week,
+                    time_slot=time_slot,
+                    semester=active_semester,
+                    is_active=True
+                )
+                if teacher_slots.exists():
+                    conflicts.append(f"Преподаватель {subject.teacher.user.get_full_name()} уже занят в это время.")
+
+        if conflicts:
+            return JsonResponse({
+                'success': False,
+                'is_conflict': True,
+                'error': "<br>".join(conflicts)
+            }, status=400)
+
+        # Создание записей
         with transaction.atomic():
             created_slots = []
-
             for target_group in groups_to_schedule:
-                # 1. Check Limits (skip if force)
-                if not force:
-                    needed_slots = subject.get_weekly_slots_needed().get(lesson_type, 0)
-                    existing_count = ScheduleSlot.objects.filter(
-                        group=target_group, subject=subject, semester=active_semester,
-                        lesson_type=lesson_type, is_active=True
-                    ).count()
-
-                    if existing_count >= needed_slots:
-                        # Warning if one group in stream is full?
-                        # Ideally, streams are synchronized. We'll proceed but might warn.
-                        # For strictness:
-                        if not is_stream: # Only block strictly for individual
-                             return JsonResponse({'success': False, 'error': f'Лимит занятий "{lesson_type}" исчерпан для {target_group.name}.'}, status=400)
-
-                # 2. Check Group Occupancy
-                if not force:
-                    if ScheduleSlot.objects.filter(group=target_group, day_of_week=day_of_week, time_slot=time_slot, semester=active_semester, is_active=True).exists():
-                         return JsonResponse({
-                            'success': False,
-                            'is_conflict': True,
-                            'error': f'Группа {target_group.name} уже занята в это время!'
-                        }, status=400)
-
-                # 3. Check Teacher Occupancy (Allow if it's the SAME stream we are creating)
-                if subject.teacher and not force:
-                    teacher_busy = ScheduleSlot.objects.filter(
-                        teacher=subject.teacher, day_of_week=day_of_week,
-                        time_slot=time_slot, semester__is_active=True, is_active=True
-                    ).first()
-
-                    if teacher_busy:
-                        # If existing slot is part of the same stream (unlikely during creation) or manual override
-                        # BUT, we are creating a NEW stream. Teacher shouldn't be busy with OTHER subjects.
-                        return JsonResponse({
-                            'success': False,
-                            'is_conflict': True,
-                            'error': f'Преподаватель занят с группой {teacher_busy.group.name}.'
-                        }, status=400)
-
-                # Create Slot
                 new_slot = ScheduleSlot.objects.create(
                     group=target_group,
                     subject=subject,
@@ -310,10 +381,16 @@ def create_schedule_slot(request):
                 )
                 created_slots.append(new_slot)
 
-        return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
+        return JsonResponse({
+            'success': True,
+            'count': len(created_slots),
+            'is_stream': is_stream
+        })
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': f"Ошибка сервера: {str(e)}"}, status=500)
+
+
 
 @login_required
 @require_POST
@@ -321,17 +398,16 @@ def update_schedule_room(request, slot_id):
     try:
         data = json.loads(request.body)
         room_number = data.get('room', '').strip()
+        
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
         classroom = None
         if room_number:
             classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
             if not classroom:
-                return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не существует'}, status=400)
-
-            # Check Room Occupancy
-            # Exclude current slot(s)
-            query = ScheduleSlot.objects.filter(
+                return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не найден в базе'}, status=400)
+            
+            occupants = ScheduleSlot.objects.filter(
                 classroom=classroom,
                 day_of_week=slot.day_of_week,
                 time_slot=slot.time_slot,
@@ -340,22 +416,19 @@ def update_schedule_room(request, slot_id):
             )
 
             if slot.stream_id:
-                query = query.exclude(stream_id=slot.stream_id)
+                occupants = occupants.exclude(stream_id=slot.stream_id)
             else:
-                query = query.exclude(id=slot.id)
+                occupants = occupants.exclude(id=slot.id)
 
-            other_occupant = query.first()
-
-            if other_occupant:
+            if occupants.exists():
+                other = occupants.first()
                 return JsonResponse({
                     'success': False,
-                    'error': f'Кабинет занят группой {other_occupant.group.name} ({other_occupant.subject.name})'
+                    'error': f'Кабинет занят: Группа {other.group.name}, {other.subject.name}'
                 }, status=400)
 
-        # Update Logic (Handle Streams)
         with transaction.atomic():
             if slot.stream_id:
-                # Update all slots in this stream
                 ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(
                     room=room_number if room_number else None,
                     classroom=classroom
@@ -392,7 +465,6 @@ def delete_schedule_slot(request, slot_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
 
-# ... (Keep existing views like today_classes, manage_subjects, etc.) ...
 @login_required
 def schedule_view(request):
     user = request.user
@@ -736,61 +808,176 @@ def export_schedule(request):
 
     group_id = request.GET.get('group')
     group = get_object_or_404(Group, id=group_id)
-
     active_semester = get_active_semester_for_group(group)
+    
     if not active_semester:
-        messages.error(request, 'Активный семестр не найден.')
-        return redirect('schedule:view')
+        return HttpResponse("Нет активного семестра", status=400)
+
+    specialty = group.specialty
+    department = specialty.department
+    faculty = department.faculty
+    institute = faculty.institute
+
+    director = Director.objects.filter(institute=institute).first()
+    director_name = director.user.get_full_name() if director else "________________"
+    
+    vice = ProRector.objects.filter(institute=institute).first()
+    vice_name = vice.user.get_full_name() if vice else "________________"
+    
+    head_edu_name = "Ҷалилов Р.Р." 
 
     doc = Document()
-
+    
     section = doc.sections[0]
-    title = doc.add_heading(f'ҶАДВАЛИ ДАРСӢ', 0)
-    title.alignment = 1
+    section.left_margin = Cm(1.5)
+    section.right_margin = Cm(1.5)
+    section.top_margin = Cm(1.0)
+    section.bottom_margin = Cm(1.0)
 
-    p = doc.add_paragraph()
-    p.alignment = 1
-    run = p.add_run(f'Группа: {group.name} | Курс: {group.course} | Семестр: {active_semester.name}')
+    header_table = doc.add_table(rows=1, cols=2)
+    header_table.autofit = True
+    header_table.width = section.page_width - section.left_margin - section.right_margin
+    
+    c1 = header_table.cell(0, 0)
+    p1 = c1.paragraphs[0]
+    p1.add_run("Мувофиқа карда шуд:\n").bold = True
+    p1.add_run("сардори раёсати таълим\n")
+    p1.add_run(f"________ дотсент {head_edu_name}\n")
+    p1.add_run("«___» _________ 2025с")
+    
+    c2 = header_table.cell(0, 1)
+    p2 = c2.paragraphs[0]
+    p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    p2.add_run("Тасдиқ мекунам:\n").bold = True
+    p2.add_run("муовини ректор оид ба корҳои таълимӣ\n") 
+    p2.add_run(f"________ дотсент {vice_name}\n")
+    p2.add_run("«___»_________ 2025c")
+
+    doc.add_paragraph() # Spacer
+
+    title_p = doc.add_paragraph()
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title_p.add_run("ҶАДВАЛИ ДАРСӢ")
     run.bold = True
+    run.font.size = Pt(14)
+    run.font.name = 'Times New Roman'
+
+    subtitle = doc.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    sem_text = "якуми" if active_semester.number == 1 else "дуюми"
+    year_text = active_semester.academic_year
+    shift_text = "1" if active_semester.shift == "MORNING" else "2"
+    
+    text = f"дар нимсолаи {sem_text} соли таҳсили {year_text} барои донишҷӯёни курси {group.course}-юми " \
+           f"{institute.name}-и Донишгоҳи байналмилаии сайёҳӣ ва соҳибкории Тоҷикистон"
+    
+    run_sub = subtitle.add_run(text)
+    run_sub.font.name = 'Times New Roman'
+    run_sub.font.size = Pt(12)
+    
+    shift_p = doc.add_paragraph(f"(БАСТИ {shift_text})")
+    shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    shift_p.runs[0].bold = True
+
+    table = doc.add_table(rows=1, cols=4)
+    table.style = 'Table Grid'
+    
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = "ҲАФТА"
+    hdr_cells[1].text = "СОАТ"
+    hdr_cells[2].text = f"{specialty.code} – “{specialty.name}” ({group.students.count()} нафар)"
+    hdr_cells[3].text = "АУД"
+    
+    for cell in hdr_cells:
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        for run in cell.paragraphs[0].runs:
+            run.bold = True
+            run.font.size = Pt(10)
 
     time_slots = get_time_slots_for_shift(active_semester.shift)
     days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
 
-    table = doc.add_table(rows=1, cols=3)
-    table.style = 'Table Grid'
-    hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'СОАТ'
-    hdr_cells[1].text = 'ДАРС / УСТОД'
-    hdr_cells[2].text = 'АУД'
-
     for day_num, day_name in days:
-        row = table.add_row()
-        row.cells[0].merge(row.cells[2])
-        row.cells[0].text = day_name
-        row.cells[0].paragraphs[0].runs[0].bold = True
+        is_military_day = ScheduleSlot.objects.filter(
+            group=group, semester=active_semester, day_of_week=day_num, is_military=True
+        ).exists()
 
-        slots = ScheduleSlot.objects.filter(
-            group=group, semester=active_semester,
-            day_of_week=day_num, is_active=True
-        ).select_related('subject', 'teacher__user', 'time_slot')
+        if is_military_day:
+            first_row_idx = len(table.rows)
+            for i, ts in enumerate(time_slots):
+                row = table.add_row()
+                row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
+                
+                if i == 0:
+                    row.cells[0].text = day_name
+                    pass 
+            
+            day_cell = table.rows[first_row_idx].cells[0]
+            day_cell.merge(table.rows[len(table.rows)-1].cells[0])
+            
+            mil_cell_top = table.rows[first_row_idx].cells[2]
+            mil_cell_top.merge(table.rows[first_row_idx].cells[3])
+            mil_cell_top.text = "Кафедраи ҳарбӣ"
+            mil_cell_top.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            mil_cell_top.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            
+            run = mil_cell_top.paragraphs[0].runs[0]
+            run.bold = True
+            run.font.size = Pt(36)
+            
+            mil_cell_top.merge(table.rows[len(table.rows)-1].cells[3]) 
 
-        for ts in time_slots:
-            row = table.add_row()
-            row.cells[0].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
+        else:
+            first_row_idx = len(table.rows)
+            for ts in time_slots:
+                row = table.add_row()
+                row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
+                
+                slot = ScheduleSlot.objects.filter(
+                    group=group, semester=active_semester, day_of_week=day_num, time_slot=ts, is_active=True
+                ).first()
+                
+                if slot:
+                    cell_text = f"{slot.subject.name} ({slot.get_lesson_type_display()})\n"
+                    if slot.teacher:
+                        cell_text += f"{slot.teacher.user.get_full_name()}"
+                    row.cells[2].text = cell_text
+                    row.cells[3].text = slot.room if slot.room else ""
+                
+            day_cell = table.rows[first_row_idx].cells[0]
+            day_cell.text = day_name
+            day_cell.paragraphs[0].runs[0].bold = True
+            day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            day_cell.merge(table.rows[len(table.rows)-1].cells[0])
 
-            slot = slots.filter(time_slot=ts).first()
-            if slot:
-                row.cells[1].text = f'{slot.subject.name} ({slot.get_lesson_type_display()})\n{slot.teacher.user.get_full_name() if slot.teacher else "—"}'
-                row.cells[2].text = slot.room if slot.room else '—'
-            else:
-                row.cells[1].text = '—'
-                row.cells[2].text = '—'
+    doc.add_paragraph().add_run('\n')
+    dean_table = doc.add_table(rows=1, cols=2)
+    dean_table.autofit = True
+    dean_table.width = section.page_width
+    
+    dean_cell = dean_table.cell(0, 0)
+    dean_name = faculty.dean_manager.user.get_full_name() if hasattr(faculty, 'dean_manager') else "________________"
+    p = dean_cell.paragraphs[0]
+    p.add_run(f"Декани факултети\n{faculty.name}").bold = True
+    
+    dean_sign = dean_table.cell(0, 1)
+    p_s = dean_sign.paragraphs[0]
+    p_s.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    p_s.add_run(f"________ {dean_name}").bold = True
 
-    from io import BytesIO
-    target = BytesIO()
-    doc.save(target)
-    target.seek(0)
+    f = BytesIO()
+    doc.save(f)
+    f.seek(0)
+    
+    filename = f"Jadval_{group.name}.docx"
+    response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
-    filename = f"Schedule_{group.name}.docx"
-    from django.http import FileResponse
-    return FileResponse(target, as_attachment=True, filename=filename)
+
+
+
+
+
+

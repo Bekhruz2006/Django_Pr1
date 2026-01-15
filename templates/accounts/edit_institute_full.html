@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактирование института{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-building"></i> Редактирование института: {{ institute.name }}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <h5 class="mb-3 text-primary">Основная информация</h5>
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        <div class="text-danger small">{{ field.errors }}</div>
+                    </div>
+                    {% endfor %}
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="mb-3 text-success"><i class="bi bi-people-fill"></i> Руководство (для документов)</h5>
+                    <div class="alert alert-info small">
+                        Эти данные будут автоматически подставляться в шапку расписания при экспорте.
+                    </div>
+                    
+                    {% for field in mgmt_form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ field.label }}</label>
+                        {{ field }}
+                        <div class="text-danger small">{{ field.errors }}</div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <a href="{% url 'accounts:manage_structure' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="bi bi-check-circle"></i> Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

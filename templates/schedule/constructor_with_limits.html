@@ -51,12 +51,29 @@
     {% if group %}
     <!-- SUBJECTS LIST -->
     <div class="col-lg-3">
+        {% if group.has_military_training %}
+        <div class="card mb-3 border-dark">
+            <div class="card-header bg-dark text-white">
+                <i class="bi bi-shield-shaded"></i> Военная кафедра
+            </div>
+            <div class="card-body p-2">
+                <p class="small text-muted mb-2">Перетащите на любой слот дня, чтобы заполнить весь день.</p>
+                <div class="list-group-item bg-secondary text-white p-2 text-center rounded"
+                     draggable="true"
+                     id="militaryDragItem"
+                     style="cursor: move;">
+                    <strong><i class="bi bi-star-fill"></i> ВОЕННАЯ КАФЕДРА</strong>
+                    <br><small>Весь день</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card sticky-top" style="top: 20px; height: 85vh;">
             <div class="card-header bg-dark text-white">
                 <i class="bi bi-book"></i> Доступные предметы
             </div>
             <div class="card-body p-0" style="max-height: 80vh; overflow-y: auto;">
-
                 {% if lecture_subjects %}
                 <div class="bg-primary bg-opacity-10 p-2 border-bottom border-primary">
                     <strong><i class="bi bi-mortarboard"></i> Лекции</strong>
@@ -208,7 +225,7 @@
                                             </div>
                                             {% endif %}
                                         </td>
-                                        <td class="align-middle text-center bg-light">
+                                        <td class="align-middle text-center bg-light aud-cell">
                                             {% if slot %}
                                             <div class="aud-display badge bg-secondary text-wrap"
                                                  style="cursor: pointer; min-width: 40px;"
@@ -294,9 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function createScheduleSlot(groupId, subjectId, dayOfWeek, timeSlot, lessonType, isForce = false) {
-        lastAttemptData = { groupId, subjectId, dayOfWeek, timeSlot, lessonType };
-
+    // Обновленная функция createSlot
+    function createSlot(group, day, timeSlot, subject, type, semesterId, isForce = false) {
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
             headers: {
@@ -304,46 +320,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': csrftoken
             },
             body: JSON.stringify({
-                group: groupId,
-                subject: subjectId,
-                day_of_week: dayOfWeek,
+                group: group,
+                day_of_week: day,
                 time_slot: timeSlot,
-                lesson_type: lessonType,
+                subject: subject,
+                lesson_type: type,
+                semester_id: semesterId,
                 force: isForce
             })
         })
-        .then(response => response.json().then(data => ({ status: response.status, body: data })))
-        .then(res => {
-            if (res.status === 200 && res.body.success) {
-                if (res.body.is_stream) {
-                    alert('✅ Поток создан! Занятие добавлено для всех групп потока.');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.is_stream) {
+                    console.log('Поток создан');
                 }
                 location.reload();
             } else {
-                if (res.body.is_conflict) {
-                    document.getElementById('conflictMessage').innerHTML = `<strong>${res.body.error}</strong>`;
+                if (data.is_conflict) {
+                    document.getElementById('conflictMessage').innerHTML = data.error;
+                    lastAttemptData = {
+                        groupId: group,
+                        subjectId: subject,
+                        dayOfWeek: day,
+                        timeSlot: timeSlot,
+                        lessonType: type,
+                        semesterId: semesterId
+                    };
                     const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
                     modal.show();
                 } else {
-                    alert('Ошибка: ' + res.body.error);
+                    alert('Ошибка: ' + data.error);
                 }
             }
         })
-        .catch(error => alert('Ошибка соединения: ' + error));
+        .catch(err => alert('Ошибка сети: ' + err));
     }
 
-    document.getElementById('forceSaveBtn').addEventListener('click', function() {
-        if (lastAttemptData) {
-            createScheduleSlot(
-                lastAttemptData.groupId,
-                lastAttemptData.subjectId,
-                lastAttemptData.dayOfWeek,
-                lastAttemptData.timeSlot,
-                lastAttemptData.lessonType,
-                true
-            );
-        }
-    });
+    const forceBtn = document.getElementById('forceSaveBtn');
+    if (forceBtn) {
+        forceBtn.addEventListener('click', function() {
+            if (lastAttemptData) {
+                createSlot(
+                    lastAttemptData.groupId,
+                    lastAttemptData.dayOfWeek,
+                    lastAttemptData.timeSlot,
+                    lastAttemptData.subjectId,
+                    lastAttemptData.lessonType,
+                    lastAttemptData.semesterId,
+                    true
+                );
+                const modalEl = document.getElementById('conflictModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
+            }
+        });
+    }
 
     function attachDragHandlers(el) {
         if (!el) return;
@@ -365,8 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const img = document.createElement('canvas');
                 img.width = img.height = 1;
                 e.dataTransfer.setDragImage(img, 0, 0);
-            } catch (err) {
-            }
+            } catch (err) {}
 
             try { e.dataTransfer.setData('text/plain', JSON.stringify(draggedData)); } catch(e) {}
             e.dataTransfer.effectAllowed = 'copy';
@@ -377,6 +408,21 @@ document.addEventListener('DOMContentLoaded', function() {
             try { this.style.opacity = '1'; } catch(e){}
             draggedData = null;
             stopAutoScroll();
+        });
+    }
+
+    // Добавить обработчик dragstart для военки
+    const milItem = document.getElementById('militaryDragItem');
+    if(milItem) {
+        milItem.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                isMilitary: true
+            }));
+            e.dataTransfer.effectAllowed = 'copy';
+            this.style.opacity = '0.5';
+        });
+        milItem.addEventListener('dragend', function() {
+            this.style.opacity = '1';
         });
     }
 
@@ -404,36 +450,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.editAud = function(el) {
         if (!el) return;
-        const input = el.nextElementSibling;
-        if (!input) return;
+        const cell = el.closest('.aud-cell');
+        const input = cell.querySelector('.aud-input');
+
         el.style.display = 'none';
         input.style.display = 'block';
         input.focus();
-    }
+    };
 
     window.saveAud = function(input, slotId) {
-        if (!input) return;
-        const value = input.value.trim();
-        if (!slotId) return alert('Нет id слота');
-        fetch(`/schedule/constructor/update-room/${slotId}/`, {
+        const val = input.value.trim();
+        const cell = input.closest('.aud-cell');
+        const display = cell.querySelector('.aud-display');
+
+        fetch('/schedule/constructor/update-room/' + slotId + '/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrftoken
             },
-            body: JSON.stringify({ room: value })
+            body: JSON.stringify({room: val})
         })
-        .then(r => safeJson(r))
+        .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                const prev = input.previousElementSibling;
-                if (prev) prev.querySelector('strong').textContent = data.room || '?';
+            if(data.success) {
                 input.style.display = 'none';
-                if (prev) prev.style.display = 'block';
-            } else alert(data.error || 'Ошибка сохранения');
+                if (display) {
+                    display.innerText = data.room || '?';
+                    display.style.display = 'inline-block';
+                }
+            } else {
+                alert('Ошибка: ' + data.error);
+                input.focus();
+            }
         })
-        .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
-    }
+        .catch(err => {
+            alert('Ошибка сети или сервера');
+            console.error(err);
+        });
+    };
 
     let autoScrollState = {
         active: false,
@@ -540,26 +595,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!draggedData) return alert('Не удалось определить перетаскиваемый предмет.');
                 if (parseInt(draggedData.remaining || 0) <= 0) return alert('Достигнут лимит для этого предмета!');
 
+                let data = null;
+                try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch(e){}
+
+                if (data && data.isMilitary) {
+                    if(!confirm('Установить Военную кафедру на ВЕСЬ этот день? Все текущие пары будут удалены.')) return;
+
+                    const groupId = this.dataset.groupId;
+                    const day = this.dataset.day;
+                    const semesterId = document.querySelector('select[name="semester"]').value;
+
+                    fetch('{% url "schedule:create_slot" %}', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
+                        body: JSON.stringify({
+                            is_military_day: true,
+                            group: groupId,
+                            day_of_week: day,
+                            semester_id: semesterId
+                        })
+                    }).then(r => r.json()).then(resp => {
+                        if(resp.success) location.reload();
+                        else alert(resp.error);
+                    });
+                    return;
+                }
+
                 const groupId = this.dataset.groupId;
-                const dayOfWeek = this.dataset.day;
+                const day = this.dataset.day;
                 const timeSlot = this.dataset.timeSlot;
-                if (!groupId || !dayOfWeek || !timeSlot) return alert('Недостаточно данных для размещения предмета.');
+                const semesterSelect = document.querySelector('select[name="semester"]');
+                const semesterId = semesterSelect ? semesterSelect.value : null;
 
-                const prevCursor = document.body.style.cursor;
-                document.body.style.cursor = 'wait';
+                if (this.querySelector('.lesson-card')) {
+                    alert('Ячейка уже занята. Удалите старое занятие.');
+                    return;
+                }
 
-                createScheduleSlot(
-                    groupId,
-                    draggedData.subjectId,
-                    dayOfWeek,
-                    timeSlot,
-                    draggedData.subjectType,
-                    false
-                );
+                createSlot(groupId, day, timeSlot, draggedData.subjectId, draggedData.subjectType, semesterId);
 
             } catch (ex) { console.error(ex); }
             finally {
-                document.body.style.cursor = prevCursor;
                 draggedData = null;
             }
         });

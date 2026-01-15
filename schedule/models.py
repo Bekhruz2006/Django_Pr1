@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from accounts.models import User, Group, Teacher
+from accounts.models import User, Group, Teacher, Department
 from datetime import timedelta, date
 import uuid
 import math
@@ -14,6 +14,10 @@ class Subject(models.Model):
 
     name = models.CharField(max_length=200, verbose_name="Название")
     code = models.CharField(max_length=20, unique=True, verbose_name="Код")
+
+    # ПРИВЯЗКА К КАФЕДРЕ (Уникальные предметы для кафедры)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='subjects', verbose_name="Кафедра")
+
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
@@ -54,7 +58,7 @@ class Subject(models.Model):
         ordering = ['name']
 
     def __str__(self):
-        return f"{self.name} ({self.code})"
+        return f"{self.name} ({self.department.name})"
 
     @property
     def total_auditory_hours(self):
@@ -245,8 +249,11 @@ class ScheduleSlot(models.Model):
     room = models.CharField(max_length=20, blank=True, null=True, verbose_name="Номер кабинета (текст)")
     is_active = models.BooleanField(default=True, verbose_name="Активно")
 
-    # ✅ NEW: Identify streams
+    # Поле для потоков
     stream_id = models.UUIDField(null=True, blank=True, verbose_name="ID Потока")
+
+    # НОВОЕ ПОЛЕ: Является ли это занятие военной кафедрой
+    is_military = models.BooleanField(default=False, verbose_name="Военная кафедра")
 
     class Meta:
         verbose_name = "Занятие"
@@ -254,17 +261,19 @@ class ScheduleSlot(models.Model):
         ordering = ['day_of_week', 'start_time']
 
     def get_color_class(self):
-        # Specific color for streams
+        if self.is_military:
+            return 'dark text-white'  # Черный/Темный для военной кафедры
         if self.stream_id:
-            return 'indigo' # Custom CSS class for streams
-
+            return 'indigo'
         return {
-            'LECTURE': 'primary',   # Blue
-            'PRACTICE': 'success',  # Green
-            'SRSP': 'warning'       # Yellow
+            'LECTURE': 'primary',
+            'PRACTICE': 'success',
+            'SRSP': 'warning'
         }.get(self.lesson_type, 'secondary')
 
     def __str__(self):
+        if self.is_military:
+            return f"{self.group.name} - Военная кафедра"
         stream_mark = " [STREAM]" if self.stream_id else ""
         return f"{self.group.name} - {self.subject.name} ({self.get_lesson_type_display()}){stream_mark}"
 
