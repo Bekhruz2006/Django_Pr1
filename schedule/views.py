@@ -8,17 +8,21 @@ from django.db import transaction
 from datetime import datetime, timedelta
 import json
 import uuid
+from io import BytesIO 
 
 try:
     from docx import Document
-    from docx.shared import Inches, Pt
+    from docx.shared import Inches, Pt, Cm 
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
     DOCX_AVAILABLE = True
 except ImportError:
     DOCX_AVAILABLE = False
 
 from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot
 from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm
-from accounts.models import Group, Student, Teacher, Department 
+from accounts.models import Group, Student, Teacher, Director, ProRector, Department
+
 
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
@@ -31,15 +35,9 @@ def is_student(user):
 
 def get_time_slots_for_shift(shift):
     if shift == 'MORNING':
-        return TimeSlot.objects.filter(
-            start_time__gte='08:00:00',
-            start_time__lt='14:00:00'
-        ).order_by('start_time')
+        return TimeSlot.objects.filter(start_time__gte='08:00:00', start_time__lt='14:00:00').order_by('start_time')
     else:
-        return TimeSlot.objects.filter(
-            start_time__gte='13:00:00',
-            start_time__lt='19:00:00'
-        ).order_by('start_time')
+        return TimeSlot.objects.filter(start_time__gte='13:00:00', start_time__lt='19:00:00').order_by('start_time')
 
 def get_active_semester_for_group(group):
     semester = Semester.objects.filter(groups=group, is_active=True).first()
@@ -234,8 +232,7 @@ def schedule_constructor(request):
 def create_schedule_slot(request):
     try:
         data = json.loads(request.body)
-        force = data.get('force', False)
-
+        
         if data.get('is_military_day'):
             group_id = data.get('group')
             day_of_week = data.get('day_of_week')
@@ -250,23 +247,24 @@ def create_schedule_slot(request):
             else:
                 return JsonResponse({'success': False, 'error': 'Семестр не выбран'}, status=400)
 
-            # Удаляем старые
             ScheduleSlot.objects.filter(
                 group=group, semester=semester, day_of_week=day_of_week
             ).delete()
             
-            # Получаем слоты для смены
             time_slots = get_time_slots_for_shift(semester.shift)
             
-            # ✅ ИСПРАВЛЕНИЕ: Берем кафедру группы для создания предмета
-            # Если у группы нет специальности или кафедры, берем первую попавшуюся (fallback)
-            dept = group.specialty.department if group.specialty else Department.objects.first()
+            if group.specialty and group.specialty.department:
+                dept = group.specialty.department
+            else:
+                dept = Department.objects.first()
+                if not dept:
+                    return JsonResponse({'success': False, 'error': 'В системе нет ни одной кафедры для привязки предмета'}, status=400)
             
             military_subject, _ = Subject.objects.get_or_create(
                 code="MILITARY",
                 defaults={
                     'name': "Кафедраи ҳарбӣ", 
-                    'department': dept, # Обязательно передаем кафедру
+                    'department': dept, 
                     'type': 'PRACTICE'
                 }
             )
@@ -286,6 +284,7 @@ def create_schedule_slot(request):
                     )
             return JsonResponse({'success': True})
 
+        force = data.get('force', False)
         group_id = data.get('group')
         subject_id = data.get('subject')
         day_of_week = data.get('day_of_week')
@@ -301,7 +300,7 @@ def create_schedule_slot(request):
             active_semester = get_object_or_404(Semester, id=semester_id)
         else:
             active_semester = get_active_semester_for_group(main_group)
-
+        
         if not active_semester:
             return JsonResponse({'success': False, 'error': 'Нет активного семестра'}, status=400)
 
@@ -318,16 +317,12 @@ def create_schedule_slot(request):
         if lesson_type == 'LECTURE' and subject.groups.count() > 1:
             all_subject_groups = list(subject.groups.all())
             if len(all_subject_groups) > 3:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'Слишком большой поток! Предмет привязан к {len(all_subject_groups)} группам. Максимум разрешено 3.'
-                }, status=400)
+                return JsonResponse({'success': False, 'error': 'Слишком большой поток! Максимум 3 группы.'}, status=400)
             groups_to_schedule = all_subject_groups
             is_stream = True
             stream_id = uuid.uuid4()
 
         conflicts = []
-
         if not force:
             for target_group in groups_to_schedule:
                 busy_slot = ScheduleSlot.objects.filter(
@@ -338,7 +333,7 @@ def create_schedule_slot(request):
                     is_active=True
                 ).first()
                 if busy_slot:
-                    conflicts.append(f"Группа {target_group.name} уже занята: {busy_slot.subject.name}")
+                    conflicts.append(f"Группа {target_group.name} занята: {busy_slot.subject.name}")
 
             if subject.teacher:
                 teacher_slots = ScheduleSlot.objects.filter(
@@ -349,33 +344,37 @@ def create_schedule_slot(request):
                     is_active=True
                 )
                 if teacher_slots.exists():
-                    conflicts.append(f"Преподаватель {subject.teacher.user.get_full_name()} уже занят в это время.")
+                    conflicts.append(f"Преподаватель {subject.teacher.user.get_full_name()} занят.")
 
         if conflicts:
-            return JsonResponse({
-                'success': False,
-                'is_conflict': True,
-                'error': "<br>".join(conflicts)
-            }, status=400)
+            return JsonResponse({'success': False, 'is_conflict': True, 'error': "<br>".join(conflicts)}, status=400)
 
         with transaction.atomic():
             created_slots = []
             for target_group in groups_to_schedule:
+                if force:
+                    ScheduleSlot.objects.filter(
+                        group=target_group,
+                        day_of_week=day_of_week,
+                        time_slot=time_slot,
+                        semester=active_semester
+                    ).delete()
+
                 new_slot = ScheduleSlot.objects.create(
-                    group=target_group,
-                    subject=subject,
+                    group=target_group, 
+                    subject=subject, 
                     teacher=subject.teacher,
-                    semester=active_semester,
+                    semester=active_semester, 
                     day_of_week=day_of_week,
-                    time_slot=time_slot,
+                    time_slot=time_slot, 
                     lesson_type=lesson_type,
-                    start_time=time_slot.start_time,
+                    start_time=time_slot.start_time, 
                     end_time=time_slot.end_time,
                     stream_id=stream_id if is_stream else None
                 )
                 created_slots.append(new_slot)
 
-        return JsonResponse({'success': False, 'error': 'Неверный запрос'}) 
+        return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': f"Ошибка сервера: {str(e)}"}, status=500)
@@ -848,27 +847,36 @@ def export_schedule(request):
     if not active_semester:
         return HttpResponse("Нет активного семестра", status=400)
 
-    specialty = group.specialty
-    department = specialty.department
-    faculty = department.faculty
-    institute = faculty.institute
+    # --- СБОР ДАННЫХ О РУКОВОДСТВЕ (С ЗАЩИТОЙ) ---
+    try:
+        specialty = group.specialty
+        department = specialty.department
+        faculty = department.faculty
+        institute = faculty.institute
+    except AttributeError:
+        return HttpResponse("Ошибка структуры: Группа не привязана к специальности/кафедре/факультету.", status=400)
 
+    # Директор
     director = Director.objects.filter(institute=institute).first()
     director_name = director.user.get_full_name() if director else "________________"
     
+    # Зам. директора (Муовини ректор/директор)
     vice = ProRector.objects.filter(institute=institute).first()
     vice_name = vice.user.get_full_name() if vice else "________________"
     
+    # Сардори раёсати таълим
     head_edu_name = "Ҷалилов Р.Р." 
 
     doc = Document()
     
+    # Настройка полей
     section = doc.sections[0]
-    section.left_margin = Cm(1.5)
+    section.left_margin = Cm(1.5)  # ✅ Cm теперь определен
     section.right_margin = Cm(1.5)
     section.top_margin = Cm(1.0)
     section.bottom_margin = Cm(1.0)
 
+    # --- ШАПКА (УТВЕРЖДЕНИЕ) ---
     header_table = doc.add_table(rows=1, cols=2)
     header_table.autofit = True
     header_table.width = section.page_width - section.left_margin - section.right_margin
@@ -890,6 +898,7 @@ def export_schedule(request):
 
     doc.add_paragraph() # Spacer
 
+    # --- ЗАГОЛОВОК ---
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = title_p.add_run("ҶАДВАЛИ ДАРСӢ")
@@ -914,6 +923,7 @@ def export_schedule(request):
     shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     shift_p.runs[0].bold = True
 
+    # --- ТАБЛИЦА РАСПИСАНИЯ ---
     table = doc.add_table(rows=1, cols=4)
     table.style = 'Table Grid'
     
@@ -943,25 +953,29 @@ def export_schedule(request):
             for i, ts in enumerate(time_slots):
                 row = table.add_row()
                 row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
-                
-                if i == 0:
-                    row.cells[0].text = day_name
-                    pass 
             
+            # Объединение дня недели
             day_cell = table.rows[first_row_idx].cells[0]
-            day_cell.merge(table.rows[len(table.rows)-1].cells[0])
+            day_cell.text = day_name
+            day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            try:
+                day_cell.merge(table.rows[len(table.rows)-1].cells[0])
+            except: pass
             
+            # Объединение Военной кафедры
             mil_cell_top = table.rows[first_row_idx].cells[2]
-            mil_cell_top.merge(table.rows[first_row_idx].cells[3])
-            mil_cell_top.text = "Кафедраи ҳарбӣ"
-            mil_cell_top.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            mil_cell_top.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            
-            run = mil_cell_top.paragraphs[0].runs[0]
-            run.bold = True
-            run.font.size = Pt(36)
-            
-            mil_cell_top.merge(table.rows[len(table.rows)-1].cells[3]) 
+            try:
+                mil_cell_top.merge(table.rows[first_row_idx].cells[3]) # Горизонтально
+                mil_cell_top.text = "Кафедраи ҳарбӣ"
+                mil_cell_top.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                mil_cell_top.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                
+                run = mil_cell_top.paragraphs[0].runs[0]
+                run.bold = True
+                run.font.size = Pt(36)
+                
+                mil_cell_top.merge(table.rows[len(table.rows)-1].cells[3]) # Вертикально до конца дня
+            except: pass
 
         else:
             first_row_idx = len(table.rows)
@@ -984,7 +998,9 @@ def export_schedule(request):
             day_cell.text = day_name
             day_cell.paragraphs[0].runs[0].bold = True
             day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            day_cell.merge(table.rows[len(table.rows)-1].cells[0])
+            try:
+                day_cell.merge(table.rows[len(table.rows)-1].cells[0])
+            except: pass
 
     doc.add_paragraph().add_run('\n')
     dean_table = doc.add_table(rows=1, cols=2)
@@ -1009,8 +1025,6 @@ def export_schedule(request):
     response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
-
-
 
 
 
