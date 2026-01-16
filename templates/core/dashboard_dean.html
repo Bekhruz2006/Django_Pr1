@@ -23,36 +23,46 @@
 {% if faculty %}
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="card border-start border-4 border-primary shadow-sm">
-            <div class="card-body">
-                <h6 class="text-muted">Студентов</h6>
-                <h3>{{ students_count }}</h3>
+        <a href="{% url 'accounts:user_management' %}?role=STUDENT" class="text-decoration-none">
+            <div class="card border-start border-4 border-primary shadow-sm hover-scale h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Студентов</h6>
+                    <h3>{{ students_count }}</h3>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-4">
-        <div class="card border-start border-4 border-success shadow-sm">
-            <div class="card-body">
-                <h6 class="text-muted">Групп</h6>
-                <h3>{{ groups_count }}</h3>
+        <a href="{% url 'accounts:group_management' %}" class="text-decoration-none">
+            <div class="card border-start border-4 border-success shadow-sm hover-scale h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Групп</h6>
+                    <h3>{{ groups_count }}</h3>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-4">
-        <div class="card border-start border-4 border-info shadow-sm">
-            <div class="card-body">
-                <h6 class="text-muted">Преподавателей</h6>
-                <h3>{{ teachers_count }}</h3>
+        <a href="{% url 'accounts:user_management' %}?role=TEACHER" class="text-decoration-none">
+            <div class="card border-start border-4 border-info shadow-sm hover-scale h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Преподавателей</h6>
+                    <h3>{{ teachers_count }}</h3>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
 <div class="row">
+    <!-- Левая колонка: Кафедры -->
     <div class="col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Кафедры факультета</h5>
+                <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-gear"></i> Управление структурой
+                </a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -60,7 +70,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Название</th>
-                                <th>Специальностей</th>
+                                <th>Зав. кафедрой</th>
+                                <th>Спец.</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -69,18 +80,25 @@
                             <tr>
                                 <td>{{ dept.name }}</td>
                                 <td>
-                                    {% for spec in dept.specialties.all %}
-                                        <span class="badge bg-light text-dark border">{{ spec.code }}</span>
-                                    {% endfor %}
+                                    {% if dept.head %}
+                                        <a href="{% url 'accounts:view_user_profile' dept.head.user.id %}">
+                                            {{ dept.head.user.get_full_name }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">Не назначен</span>
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
+                                    <span class="badge bg-light text-dark border">{{ dept.specialties.count }}</span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary" title="Настройки">
+                                        <i class="bi bi-gear"></i>
+                                    </a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted">Кафедры не созданы</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted">Кафедры не созданы</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -89,24 +107,47 @@
         </div>
     </div>
 
+    <!-- Правая колонка: Быстрые действия -->
     <div class="col-lg-4">
+        <!-- ✅ НОВЫЙ БЛОК: КОНСТРУКТОР РАСПИСАНИЯ -->
+        <div class="card shadow-sm border-primary mb-3">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary"><i class="bi bi-calendar-week"></i> Расписание</h5>
+                <p class="card-text small text-muted">Составление и редактирование расписания занятий для групп.</p>
+                <a href="{% url 'schedule:constructor' %}" class="btn btn-primary w-100">
+                    <i class="bi bi-pencil-square"></i> Открыть конструктор
+                </a>
+            </div>
+        </div>
+
         <div class="card shadow-sm">
             <div class="card-header bg-white">
-                <h5 class="mb-0">Управление</h5>
+                <h5 class="mb-0">Быстрые действия</h5>
             </div>
             <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action">
-                    <i class="bi bi-plus-lg text-success"></i> Добавить кафедру
+                <a href="{% url 'accounts:add_department' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-plus-lg text-success me-2"></i> Добавить кафедру
                 </a>
                 <a href="{% url 'accounts:add_group' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-collection text-primary"></i> Добавить группу
+                    <i class="bi bi-collection text-primary me-2"></i> Добавить группу
                 </a>
                 <a href="{% url 'accounts:add_user' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-plus text-info"></i> Добавить студента/преподавателя
+                    <i class="bi bi-person-plus text-info me-2"></i> Добавить человека
+                </a>
+                <a href="{% url 'schedule:manage_semesters' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-calendar-event text-warning me-2"></i> Семестры
+                </a>
+                <a href="{% url 'journal:dean_view' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-bar-chart text-danger me-2"></i> Отчеты
                 </a>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
+
+<style>
+    .hover-scale { transition: transform 0.2s; }
+    .hover-scale:hover { transform: scale(1.03); }
+</style>
 {% endblock %}

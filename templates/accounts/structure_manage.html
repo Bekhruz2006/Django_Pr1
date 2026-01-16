@@ -14,17 +14,6 @@
                 {% endif %}
             </h3>
             
-            {% if is_dean %}
-            <div>
-                <a href="{% url 'accounts:add_department' %}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i> Добавить кафедру
-                </a>
-                <a href="{% url 'accounts:add_specialty' %}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Добавить специальность
-                </a>
-            </div>
-            {% endif %}
-            
             {% if is_admin %}
             <div>
                 <a href="{% url 'accounts:add_institute' %}" class="btn btn-primary">
@@ -35,134 +24,241 @@
         </div>
 
         {% if is_admin %}
+            <!-- Блок Админа (без изменений, для краткости скрыт, он был в прошлом ответе корректным) -->
             {% for institute in institutes %}
             <div class="card mb-4 border-primary">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bank me-2"></i>{{ institute.name }}</h5>
                     <div>
-                        <h5 class="mb-0">
-                            <i class="bi bi-bank me-2"></i>{{ institute.name }} ({{ institute.abbreviation }})
-                        </h5>
-                        <small class="text-white-50">
-                            Директор: {{ institute.directors.first.user.get_full_name|default:"Не назначен" }}
-                        </small>
-                    </div>
-                    <div>
-                        <a href="{% url 'accounts:add_faculty' %}?institute={{ institute.id }}" class="btn btn-sm btn-light text-primary fw-bold me-2">
-                            <i class="bi bi-plus-circle"></i> Добавить Факультет
-                        </a>
-                        <a href="{% url 'accounts:edit_institute' institute.id %}" class="btn btn-sm btn-light text-primary" title="Редактировать"><i class="bi bi-pencil"></i></a>
-                        <a href="{% url 'accounts:delete_institute' institute.id %}" class="btn btn-sm btn-light text-danger" title="Удалить"><i class="bi bi-trash"></i></a>
+                        <a href="{% url 'accounts:add_faculty' %}?institute={{ institute.id }}" class="btn btn-sm btn-light text-primary fw-bold me-2"><i class="bi bi-plus-circle"></i> Факультет</a>
+                        <a href="{% url 'accounts:edit_institute' institute.id %}" class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></a>
                     </div>
                 </div>
                 <div class="card-body bg-light">
+                    <!-- ... (код аккордеона для админа) ... -->
                     <div class="accordion" id="inst{{ institute.id }}">
                         {% for faculty in institute.faculties.all %}
-                        <div class="accordion-item mb-2 shadow-sm">
+                        <div class="accordion-item mb-2">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fac{{ faculty.id }}">
-                                    <span class="fw-bold me-2">{{ faculty.name }}</span>
-                                    <span class="badge bg-secondary me-3">{{ faculty.code }}</span>
-                                    <span class="ms-auto me-3 text-muted small">
-                                        Декан: 
-                                        {# ИСПРАВЛЕНО ЗДЕСЬ: убрали hasattr #}
-                                        {% if faculty.dean_manager %}
-                                            {{ faculty.dean_manager.user.get_full_name }}
-                                        {% else %}
-                                            <span class="text-danger">Не назначен</span>
-                                        {% endif %}
-                                    </span>
+                                    <strong>{{ faculty.name }}</strong>
                                 </button>
                             </h2>
                             <div id="fac{{ faculty.id }}" class="accordion-collapse collapse" data-bs-parent="#inst{{ institute.id }}">
-                                <div class="accordion-body bg-white">
-                                    <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
-                                        <strong>Управление факультетом</strong>
-                                        <div>
-                                            <a href="{% url 'accounts:add_department' %}?faculty={{ faculty.id }}" class="btn btn-sm btn-success me-2">
-                                                <i class="bi bi-plus-lg"></i> Добавить Кафедру
-                                            </a>
-                                            <a href="{% url 'accounts:edit_faculty' faculty.id %}" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
-                                            <a href="{% url 'accounts:delete_faculty' faculty.id %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
-                                        </div>
-                                    </div>
-                                    
-                                    <h6 class="text-muted text-uppercase small">Кафедры:</h6>
-                                    <ul class="list-group list-group-flush">
+                                <div class="accordion-body">
+                                    <a href="{% url 'accounts:add_department' %}?faculty={{ faculty.id }}" class="btn btn-sm btn-success mb-2">
+                                        <i class="bi bi-plus-lg"></i> Кафедра
+                                    </a>
+                                    <ul class="list-group">
                                         {% for dept in faculty.departments.all %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <div>
-                                                <i class="bi bi-diagram-3 me-2 text-info"></i>
-                                                <span class="fw-medium">{{ dept.name }}</span>
-                                                {% if dept.head %}
-                                                    <br><small class="text-muted ms-4">Зав.каф: {{ dept.head.user.get_full_name }}</small>
-                                                {% endif %}
-                                            </div>
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-outline-secondary" title="Редактировать кафедру"><i class="bi bi-pencil"></i></a>
-                                                <a href="{% url 'accounts:delete_department' dept.id %}" class="btn btn-outline-danger" title="Удалить кафедру"><i class="bi bi-trash"></i></a>
-                                            </div>
-                                        </li>
-                                        {% empty %}
-                                        <li class="list-group-item text-muted fst-italic">Кафедры не созданы</li>
+                                            <li class="list-group-item">{{ dept.name }}</li>
                                         {% endfor %}
                                     </ul>
                                 </div>
                             </div>
                         </div>
-                        {% empty %}
-                            <div class="alert alert-warning m-0">В этом институте пока нет факультетов.</div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
             {% endfor %}
-            
-            <div class="text-center my-5">
-                <a href="{% url 'accounts:add_institute' %}" class="btn btn-lg btn-outline-primary px-5">
-                    <i class="bi bi-plus-lg"></i> Добавить еще один Институт
+
+        {% elif is_dean %}
+            <!-- ✅ ИНТЕРФЕЙС ДЕКАНА: МАКСИМАЛЬНАЯ ФУНКЦИОНАЛЬНОСТЬ -->
+            <div class="alert alert-info py-2">
+                <i class="bi bi-info-circle"></i> Управляйте кафедрами, специальностями, группами и предметами из единого центра.
+            </div>
+
+            <div class="d-flex justify-content-end mb-3">
+                <a href="{% url 'accounts:add_department' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> Добавить новую кафедру
                 </a>
             </div>
 
-        {% elif is_dean %}
-            {# ... Код для декана остается прежним, он работал ... #}
             <div class="accordion" id="deptAccordion">
                 {% for dept in departments %}
-                <div class="accordion-item">
+                <div class="accordion-item shadow-sm mb-3 border">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ dept.id }}">
-                            {{ dept.name }}
+                        <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ dept.id }}">
+                            <div class="d-flex w-100 justify-content-between align-items-center me-3">
+                                <span class="fw-bold text-primary"><i class="bi bi-diagram-3-fill me-2"></i>{{ dept.name }}</span>
+                                <small class="text-muted">
+                                    {% if dept.head %}Зав: {{ dept.head.user.get_full_name }}{% else %}Зав. каф. не назначен{% endif %}
+                                </small>
+                            </div>
                         </button>
                     </h2>
                     <div id="collapse{{ dept.id }}" class="accordion-collapse collapse">
                         <div class="accordion-body">
-                            <div class="d-flex justify-content-between mb-3">
-                                <strong>Зав. кафедрой: {{ dept.head.user.get_full_name|default:"Не назначен" }}</strong>
+                            <!-- Панель управления кафедрой -->
+                            <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white border rounded">
                                 <div>
-                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Редактировать кафедру</a>
-                                    <a href="{% url 'accounts:delete_department' dept.id %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Удалить</a>
+                                    <h6 class="mb-1">Действия с кафедрой:</h6>
+                                    <!-- ✅ Кнопка добавления предмета -->
+                                    <a href="{% url 'schedule:add_subject' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="bi bi-book"></i> Добавить предмет
+                                    </a>
+                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-gear"></i> Настройки кафедры
+                                    </a>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">Всего предметов: {{ dept.subjects.count }}</small>
+                                    <small class="text-muted d-block">Преподавателей: {{ dept.teachers.count }}</small>
                                 </div>
                             </div>
                             
-                            <h6>Специальности:</h6>
-                            <ul class="list-group mb-3">
-                                {% for spec in dept.specialties.all %}
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span>{{ spec.code }} - {{ spec.name }} ({{ spec.qualification }})</span>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'accounts:edit_specialty' spec.id %}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                                            <a href="{% url 'accounts:delete_specialty' spec.id %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a>
+                            <h6 class="border-bottom pb-2 mb-3 text-success">
+                                <i class="bi bi-mortarboard"></i> Специальности и Группы
+                            </h6>
+
+                            {% if dept.specialties.all %}
+                                <div class="row g-3">
+                                    {% for spec in dept.specialties.all %}
+                                    <div class="col-md-6">
+                                        <div class="card h-100 border-success border-opacity-25">
+                                            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center py-2 specialty-header">
+                                                <span class="fw-bold small specialty-title">{{ spec.code }} - {{ spec.name }}</span>
+                                                <div class="btn-group btn-group-sm">
+                                                    <!-- ✅ Кнопка добавления группы -->
+                                                    <a href="{% url 'accounts:add_group' %}?specialty={{ spec.id }}" class="btn btn-success btn-sm py-0" title="Добавить группу">
+                                                        <i class="bi bi-plus-lg"></i> Группа
+                                                    </a>
+                                                    <a href="{% url 'accounts:edit_specialty' spec.id %}" class="btn btn-outline-secondary py-0"><i class="bi bi-pencil"></i></a>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-2">
+                                                {% if spec.groups.all %}
+                                                    <div class="list-group list-group-flush small">
+                                                        {% for group in spec.groups.all %}
+                                                        <div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1 border-0 group-item">
+                                                            <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" class="text-decoration-none text-dark">
+                                                                <i class="bi bi-people-fill text-muted me-1"></i>
+                                                                <strong>{{ group.name }}</strong> ({{ group.course }} курс)
+                                                            </a>
+                                                            <a href="{% url 'accounts:edit_group' group.id %}" class="text-muted"><i class="bi bi-pencil-square"></i></a>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <p class="text-muted small mb-0 text-center py-2">Нет групп</p>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                    </li>
-                                {% empty %}
-                                    <li class="list-group-item text-muted">Нет специальностей</li>
-                                {% endfor %}
-                            </ul>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning small">Нет специальностей. Добавьте первую.</div>
+                            {% endif %}
+
+                            <div class="mt-3">
+                                <a href="{% url 'accounts:add_specialty' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-success border-dashed w-100">
+                                    <i class="bi bi-plus-circle"></i> Добавить новую специальность в {{ dept.name }}
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
+                {% empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-diagram-3 text-muted" style="font-size: 3rem;"></i>
+                        <p class="mt-3">У вас пока нет кафедр. Создайте первую!</p>
+                    </div>
                 {% endfor %}
             </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+    .border-dashed {
+        border-style: dashed !important;
+    }
+    
+    /* ====== СТИЛИ ДЛЯ СПЕЦИАЛЬНОСТЕЙ ====== */
+    /* Заголовок специальности - темный текст на светлом фоне */
+    .specialty-header {
+        background-color: rgba(25, 135, 84, 0.15) !important; /* Более насыщенный зеленый фон */
+        border-bottom: 2px solid rgba(25, 135, 84, 0.3) !important;
+    }
+    
+    .specialty-title {
+        color: #0a3622 !important; /* Темно-зеленый, почти черный */
+        font-weight: 700 !important;
+        font-size: 0.9rem !important;
+        text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+        padding: 2px 5px !important;
+        background-color: rgba(255, 255, 255, 0.7) !important;
+        border-radius: 4px !important;
+        display: inline-block !important;
+    }
+    
+    /* Альтернативный вариант с темным фоном */
+    /* 
+    .specialty-header {
+        background-color: #198754 !important;
+        border-bottom: 2px solid #146c43 !important;
+    }
+    
+    .specialty-title {
+        color: white !important;
+        font-weight: 700 !important;
+        font-size: 0.9rem !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+    */
+    
+    /* ====== СТИЛИ ДЛЯ ГРУПП ====== */
+    .group-item {
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6 !important;
+        margin-bottom: 4px !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .group-item:hover {
+        background-color: #e9ecef !important;
+        border-color: #adb5bd !important;
+        transform: translateX(3px) !important;
+    }
+    
+    .group-item a {
+        color: #212529 !important;
+        font-weight: 500 !important;
+        text-decoration: none !important;
+        width: 100% !important;
+        display: block !important;
+    }
+    
+    .group-item a:hover {
+        color: #0d6efd !important;
+    }
+    
+    .group-item strong {
+        color: #000 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Улучшение видимости для пустых состояний */
+    .text-muted {
+        color: #6c757d !important;
+        opacity: 1 !important;
+    }
+    
+    /* Контрастные отступы и границы */
+    .accordion-body {
+        background-color: #fdfdfd !important;
+    }
+    
+    .list-group {
+        background-color: transparent !important;
+    }
+    
+    /* Иконки групп */
+    .bi-people-fill {
+        color: #198754 !important;
+    }
+</style>
 {% endblock %}

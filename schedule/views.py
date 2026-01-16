@@ -18,7 +18,7 @@ except ImportError:
 
 from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot
 from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm
-from accounts.models import Group, Student, Teacher
+from accounts.models import Group, Student, Teacher, Department 
 
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
@@ -236,53 +236,56 @@ def create_schedule_slot(request):
         data = json.loads(request.body)
         force = data.get('force', False)
 
-        # --- НОВАЯ ЛОГИКА: ВОЕННАЯ КАФЕДРА ---
         if data.get('is_military_day'):
             group_id = data.get('group')
             day_of_week = data.get('day_of_week')
             semester_id = data.get('semester_id')
-
+            
             group = get_object_or_404(Group, id=group_id)
             if not group.has_military_training:
                 return JsonResponse({'success': False, 'error': 'У этой группы нет военной кафедры!'}, status=400)
+            
+            if semester_id:
+                semester = get_object_or_404(Semester, id=semester_id)
+            else:
+                return JsonResponse({'success': False, 'error': 'Семестр не выбран'}, status=400)
 
-            semester = get_object_or_404(Semester, id=semester_id)
-
-            # Удаляем старые слоты в этот день
+            # Удаляем старые
             ScheduleSlot.objects.filter(
-                group=group,
-                semester=semester,
-                day_of_week=day_of_week
+                group=group, semester=semester, day_of_week=day_of_week
             ).delete()
-
-            # Создаем слоты военной кафедры для всех пар смены
+            
+            # Получаем слоты для смены
             time_slots = get_time_slots_for_shift(semester.shift)
-
-            # Создаем фиктивный предмет "Военная кафедра" для связности
+            
+            # ✅ ИСПРАВЛЕНИЕ: Берем кафедру группы для создания предмета
+            # Если у группы нет специальности или кафедры, берем первую попавшуюся (fallback)
+            dept = group.specialty.department if group.specialty else Department.objects.first()
+            
             military_subject, _ = Subject.objects.get_or_create(
-                name="Кафедраи ҳарбӣ",
                 code="MILITARY",
-                defaults={'department_id': 1}  # ID дефолтной кафедры
+                defaults={
+                    'name': "Кафедраи ҳарбӣ", 
+                    'department': dept, # Обязательно передаем кафедру
+                    'type': 'PRACTICE'
+                }
             )
+            
+            with transaction.atomic():
+                for ts in time_slots:
+                    ScheduleSlot.objects.create(
+                        group=group,
+                        subject=military_subject,
+                        semester=semester,
+                        day_of_week=day_of_week,
+                        time_slot=ts,
+                        start_time=ts.start_time,
+                        end_time=ts.end_time,
+                        is_military=True,
+                        lesson_type='PRACTICE'
+                    )
+            return JsonResponse({'success': True})
 
-            created_count = 0
-            for ts in time_slots:
-                ScheduleSlot.objects.create(
-                    group=group,
-                    subject=military_subject,
-                    semester=semester,
-                    day_of_week=day_of_week,
-                    time_slot=ts,
-                    start_time=ts.start_time,
-                    end_time=ts.end_time,
-                    is_military=True,
-                    lesson_type='PRACTICE'
-                )
-                created_count += 1
-
-            return JsonResponse({'success': True, 'message': f'Военная кафедра установлена на весь день ({created_count} пар)'})
-
-        # --- СТАРАЯ ЛОГИКА: ОБЫЧНЫЙ СЛОТ ---
         group_id = data.get('group')
         subject_id = data.get('subject')
         day_of_week = data.get('day_of_week')
@@ -294,7 +297,6 @@ def create_schedule_slot(request):
         subject = get_object_or_404(Subject, id=subject_id)
         time_slot = get_object_or_404(TimeSlot, id=time_slot_id)
 
-        # 1. Валидация семестра
         if semester_id:
             active_semester = get_object_or_404(Semester, id=semester_id)
         else:
@@ -303,7 +305,6 @@ def create_schedule_slot(request):
         if not active_semester:
             return JsonResponse({'success': False, 'error': 'Нет активного семестра'}, status=400)
 
-        # 2. Валидация смены
         start_h = time_slot.start_time.hour
         if active_semester.shift == 'MORNING' and start_h >= 13:
             return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ.'}, status=400)
@@ -314,16 +315,13 @@ def create_schedule_slot(request):
         is_stream = False
         stream_id = None
 
-        # Логика потоков (Stream Logic)
         if lesson_type == 'LECTURE' and subject.groups.count() > 1:
             all_subject_groups = list(subject.groups.all())
-
             if len(all_subject_groups) > 3:
                 return JsonResponse({
                     'success': False,
                     'error': f'Слишком большой поток! Предмет привязан к {len(all_subject_groups)} группам. Максимум разрешено 3.'
                 }, status=400)
-
             groups_to_schedule = all_subject_groups
             is_stream = True
             stream_id = uuid.uuid4()
@@ -331,7 +329,6 @@ def create_schedule_slot(request):
         conflicts = []
 
         if not force:
-            # Проверка занятости групп
             for target_group in groups_to_schedule:
                 busy_slot = ScheduleSlot.objects.filter(
                     group=target_group,
@@ -340,11 +337,9 @@ def create_schedule_slot(request):
                     semester=active_semester,
                     is_active=True
                 ).first()
-
                 if busy_slot:
                     conflicts.append(f"Группа {target_group.name} уже занята: {busy_slot.subject.name}")
 
-            # Проверка преподавателя
             if subject.teacher:
                 teacher_slots = ScheduleSlot.objects.filter(
                     teacher=subject.teacher,
@@ -363,7 +358,6 @@ def create_schedule_slot(request):
                 'error': "<br>".join(conflicts)
             }, status=400)
 
-        # Создание записей
         with transaction.atomic():
             created_slots = []
             for target_group in groups_to_schedule:
@@ -381,15 +375,10 @@ def create_schedule_slot(request):
                 )
                 created_slots.append(new_slot)
 
-        return JsonResponse({
-            'success': True,
-            'count': len(created_slots),
-            'is_stream': is_stream
-        })
+        return JsonResponse({'success': False, 'error': 'Неверный запрос'}) 
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': f"Ошибка сервера: {str(e)}"}, status=500)
-
 
 
 @login_required
@@ -608,14 +597,37 @@ def manage_subjects(request):
 
 @user_passes_test(is_dean)
 def add_subject(request):
+    initial_data = {}
+    
+    dept_id = request.GET.get('department')
+    
+    if dept_id:
+        department = get_object_or_404(Department, id=dept_id)
+        if request.user.role == 'DEAN':
+             if department.faculty != request.user.dean_profile.faculty:
+                 messages.error(request, "Нет доступа к этой кафедре")
+                 return redirect('schedule:manage_subjects')
+        
+        initial_data['department'] = department
+        initial_data['assign_to_all_groups'] = True 
+
     if request.method == 'POST':
         form = SubjectForm(request.POST)
         if form.is_valid():
-            subject = form.save()
-            messages.success(request, f'Предмет "{subject.name}" создан')
+            subject = form.save() 
+            
+            messages.success(request, f'Предмет "{subject.name}" создан и назначен группам')
+            
+            if dept_id:
+                return redirect('accounts:manage_structure')
             return redirect('schedule:manage_subjects')
     else:
-        form = SubjectForm()
+        form = SubjectForm(initial=initial_data)
+        if request.user.role == 'DEAN':
+             faculty = request.user.dean_profile.faculty
+             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
+             form.fields['teacher'].queryset = Teacher.objects.filter(department__faculty=faculty)
+
     return render(request, 'schedule/subject_form.html', {'form': form, 'title': 'Добавить предмет'})
 
 @user_passes_test(is_dean)
@@ -653,26 +665,49 @@ def manage_semesters(request):
 @user_passes_test(is_dean)
 def add_semester(request):
     if request.method == 'POST':
-        form = SemesterForm(request.POST)
+        form = SemesterForm(request.POST, user=request.user)
         if form.is_valid():
-            semester = form.save()
+            semester = form.save(commit=False)
+            semester.save() 
+            
+            dept = form.cleaned_data.get('department_filter')
+            course = form.cleaned_data.get('course')
+            
+            if dept and course:
+                dept_groups = Group.objects.filter(specialty__department=dept, course=course)
+                semester.groups.add(*dept_groups)
+            
+            form.save_m2m()
+            
             messages.success(request, f'Семестр "{semester.name}" создан')
             return redirect('schedule:manage_semesters')
     else:
-        form = SemesterForm()
+        form = SemesterForm(user=request.user)
+        
     return render(request, 'schedule/semester_form.html', {'form': form, 'title': 'Добавить семестр'})
 
 @user_passes_test(is_dean)
 def edit_semester(request, semester_id):
     semester = get_object_or_404(Semester, id=semester_id)
     if request.method == 'POST':
-        form = SemesterForm(request.POST, instance=semester)
+        form = SemesterForm(request.POST, instance=semester, user=request.user)
         if form.is_valid():
-            form.save()
+            semester = form.save(commit=False)
+            semester.save()
+            
+            dept = form.cleaned_data.get('department_filter')
+            course = form.cleaned_data.get('course')
+            
+            if dept and course:
+                dept_groups = Group.objects.filter(specialty__department=dept, course=course)
+                semester.groups.add(*dept_groups)
+                
+            form.save_m2m()
             messages.success(request, 'Семестр обновлен')
             return redirect('schedule:manage_semesters')
     else:
-        form = SemesterForm(instance=semester)
+        form = SemesterForm(instance=semester, user=request.user)
+        
     return render(request, 'schedule/semester_form.html', {'form': form, 'semester': semester, 'title': 'Редактировать семестр'})
 
 @user_passes_test(is_dean)

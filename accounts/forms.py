@@ -38,6 +38,13 @@ class DepartmentCreateForm(forms.ModelForm):
         }
 
 class DepartmentForm(forms.ModelForm):
+    head_of_department = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        label="Заведующий кафедрой",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Department
         fields = ['faculty', 'name']
@@ -45,6 +52,25 @@ class DepartmentForm(forms.ModelForm):
             'faculty': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        faculty = kwargs.pop('faculty_context', None) 
+        super().__init__(*args, **kwargs)
+        
+        if self.instance.pk:
+            if not faculty:
+                faculty = self.instance.faculty
+            
+            if hasattr(self.instance, 'head'):
+                self.fields['head_of_department'].initial = self.instance.head.user
+
+        queryset = User.objects.filter(
+            role__in=['TEACHER', 'HEAD_OF_DEPT']
+        )
+        
+        self.fields['head_of_department'].queryset = queryset
+        self.fields['head_of_department'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.get_role_display()})"
+
 
 class SpecialtyCreateForm(forms.ModelForm):
     class Meta:
@@ -108,10 +134,9 @@ class ProRectorForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Муовини директор оид ба таълим'}),
         }
 
-# --- ФОРМЫ ПОЛЬЗОВАТЕЛЕЙ И ГРУПП ---
 
 class UserCreateForm(forms.ModelForm):
-    role = forms.ChoiceField(choices=User.ROLE_CHOICES, label="Роль", widget=forms.Select(attrs={'class': 'form-select'}))
+    role = forms.ChoiceField(label="Роль", widget=forms.Select(attrs={'class': 'form-select'}))
     first_name = forms.CharField(max_length=150, required=True, label="Имя", widget=forms.TextInput(attrs={'class': 'form-control'}))
     last_name = forms.CharField(max_length=150, required=True, label="Фамилия", widget=forms.TextInput(attrs={'class': 'form-control'}))
     phone = forms.CharField(required=False, label="Телефон", widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -120,6 +145,24 @@ class UserCreateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['role', 'first_name', 'last_name', 'phone', 'photo']
+
+    def __init__(self, *args, **kwargs):
+        creator = kwargs.pop('creator', None)
+        super().__init__(*args, **kwargs)
+        
+        if creator:
+            if creator.role == 'DEAN' or creator.role == 'VICE_DEAN':
+                allowed_roles = [
+                    ('STUDENT', 'Студент'),
+                    ('TEACHER', 'Преподаватель'),
+                    ('HEAD_OF_DEPT', 'Зав. кафедрой'),
+                    ('VICE_DEAN', 'Зам. декана'),
+                ]
+                self.fields['role'].choices = allowed_roles
+            elif creator.is_superuser or creator.role in ['RECTOR', 'DIRECTOR']:
+                self.fields['role'].choices = User.ROLE_CHOICES
+            else:
+                self.fields['role'].choices = []
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -132,9 +175,7 @@ class UserCreateForm(forms.ModelForm):
     def generate_unique_username(self):
         year = datetime.now().year
         base_username = f"{year}502"
-
         last_user = User.objects.filter(username__startswith=base_username).order_by('-username').first()
-
         if last_user:
             try:
                 last_number = int(last_user.username[len(base_username):])
@@ -143,7 +184,6 @@ class UserCreateForm(forms.ModelForm):
                 new_number = 1
         else:
             new_number = 1
-
         return f"{base_username}{new_number:03d}"
 
 class StudentForm(forms.ModelForm):

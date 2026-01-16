@@ -12,6 +12,21 @@
                     <h5 class="mb-0"><i class="bi bi-book-half"></i> {{ title|default:"Добавить предмет" }}</h5>
                 </div>
                 <div class="card-body">
+                    <div class="mb-3 form-check p-3 border rounded bg-light">
+                        {{ form.assign_to_all_groups }}
+                        <label class="form-check-label fw-bold" for="{{ form.assign_to_all_groups.id_for_label }}">
+                            {{ form.assign_to_all_groups.label }}
+                        </label>
+                        <div class="form-text text-muted">
+                            {{ form.assign_to_all_groups.help_text }}
+                        </div>
+                        {% if form.initial.assign_to_all_groups %}
+                            <div class="text-success mt-1">
+                                <i class="bi bi-check-circle-fill"></i> Опция включена автоматически, так как вы добавляете предмет через кафедру.
+                            </div>
+                        {% endif %}
+                    </div>
+
                     <div class="row mb-4">
                         <div class="col-md-6">{{ form.name.label_tag }} {{ form.name }}</div>
                         <div class="col-md-3">{{ form.code.label_tag }} {{ form.code }}</div>
@@ -76,7 +91,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const calcInput = document.getElementById('id_total_credits_calc');
     const weeksInput = document.getElementById('id_semester_weeks');
-    
+
     const lecInput = document.getElementById('id_lecture_hours');
     const pracInput = document.getElementById('id_practice_hours');
     const ctrlInput = document.getElementById('id_control_hours');
@@ -98,14 +113,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (credits <= 0) return;
 
         const totalHours = credits * 24;
-        const kmdHours = Math.round(totalHours / 3); 
-        const auditoryHours = totalHours - kmdHours; 
-        
+        const kmdHours = Math.round(totalHours / 3);
+        const auditoryHours = totalHours - kmdHours;
+
         const part = Math.floor(auditoryHours / 3);
 
         lecInput.value = part;
         pracInput.value = part;
-        ctrlInput.value = auditoryHours - (part * 2); 
+        ctrlInput.value = auditoryHours - (part * 2);
         kmdInput.value = kmdHours;
 
         updateSlotPreview();
@@ -117,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if(calcInput) calcInput.addEventListener('input', runAutoCalculation);
-    
+
     [lecInput, pracInput, ctrlInput, weeksInput].forEach(el => {
         if(el) el.addEventListener('input', updateSlotPreview);
     });

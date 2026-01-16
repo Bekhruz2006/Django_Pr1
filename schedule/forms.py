@@ -1,6 +1,6 @@
 from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
-from accounts.models import Group, Teacher
+from accounts.models import Group, Teacher, Department
 
 
 class SubjectForm(forms.ModelForm):
@@ -56,16 +56,15 @@ class SubjectForm(forms.ModelForm):
 
         if commit:
             instance.save()
-            self.save_m2m()
-
+            self.save_m2m() 
+            
             if self.cleaned_data.get('assign_to_all_groups') and instance.department:
                 dept_groups = Group.objects.filter(specialty__department=instance.department)
                 instance.groups.add(*dept_groups)
-
+                
         return instance
 
 
-# Остальные формы оставляем без изменений, они рабочие
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
         model = ScheduleSlot
@@ -96,6 +95,14 @@ class ScheduleSlotForm(forms.ModelForm):
         return cleaned_data
 
 class SemesterForm(forms.ModelForm):
+    department_filter = forms.ModelChoiceField(
+        queryset=Department.objects.all(),
+        required=False,
+        label="Выбрать кафедру (для фильтрации групп)",
+        help_text="Выберите кафедру, чтобы назначить семестр всем её группам выбранного курса",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Semester
         fields = ['name', 'academic_year', 'number', 'course', 'shift', 'start_date', 'end_date', 'groups', 'is_active']
@@ -103,18 +110,26 @@ class SemesterForm(forms.ModelForm):
             'groups': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '10'}),
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'academic_year': forms.TextInput(attrs={'class': 'form-control'}),
+            'number': forms.Select(attrs={'class': 'form-select'}),
+            'course': forms.Select(attrs={'class': 'form-select'}),
+            'shift': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        if 'course' in self.data:
-            try:
-                course_val = int(self.data.get('course'))
-                self.fields['groups'].queryset = Group.objects.filter(course=course_val)
-            except (ValueError, TypeError):
-                pass
-        elif self.instance.pk:
-            self.fields['groups'].queryset = Group.objects.filter(course=self.instance.course)
+        
+        if user:
+            if user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+                faculty = user.dean_profile.faculty
+                self.fields['department_filter'].queryset = Department.objects.filter(faculty=faculty)
+                self.fields['groups'].queryset = Group.objects.filter(specialty__department__faculty=faculty)
+        
+        if self.instance.pk:
+            pass 
 
 class ClassroomForm(forms.ModelForm):
     class Meta:

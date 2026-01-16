@@ -30,9 +30,22 @@
                         <div class="col-md-6"><label>Дата окончания</label> {{ form.end_date }}</div>
                     </div>
 
+                    <div class="card border-info mb-3">
+                        <div class="card-header bg-info bg-opacity-10 text-dark">
+                            <i class="bi bi-funnel"></i> <b>Быстрое добавление групп</b>
+                        </div>
+                        <div class="card-body">
+                            <label class="form-label">Назначить всем группам кафедры:</label>
+                            {{ form.department_filter }}
+                            <div class="form-text">
+                                Выберите кафедру, и все группы этой кафедры выбранного курса (см. выше) будут автоматически добавлены в семестр.
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card border-primary mb-3">
                         <div class="card-header bg-primary bg-opacity-10 text-primary">
-                            <i class="bi bi-people"></i> <b>Выберите группы для этого семестра</b>
+                            <i class="bi bi-people"></i> <b>Ручной выбор групп</b>
                         </div>
                         <div class="card-body">
                             {{ form.groups }}
@@ -56,19 +69,4 @@
         </div>
     </div>
 </div>
-
-<script>
-// Простая фильтрация групп на лету (по тексту в названии группы)
-document.getElementById('id_course').addEventListener('change', function() {
-    const course = this.value;
-    const groupSelect = document.getElementById('id_groups');
-    const options = groupSelect.options;
-
-    for (let i = 0; i < options.length; i++) {
-        // Если в тексте группы есть упоминание курса или мы просто фильтруем по логике
-        // (Предполагается, что в названии группы есть номер курса или вы хотите видеть всех)
-        // Для идеальной работы лучше использовать AJAX, но для начала можно оставить так.
-    }
-});
-</script>
 {% endblock %}

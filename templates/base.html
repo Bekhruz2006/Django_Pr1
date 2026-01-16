@@ -302,14 +302,23 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><h6 class="dropdown-header">Управление</h6></li>
-                            <li><a class="dropdown-item" href="#">Мои кафедры</a></li>
-                            <li><a class="dropdown-item" href="#">Специальности</a></li>
+                            
+                            <li><a class="dropdown-item" href="{% url 'accounts:manage_structure' %}">Мои кафедры</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:manage_structure' %}">Специальности</a></li>
+                            
                             <li><a class="dropdown-item" href="{% url 'accounts:group_management' %}">Группы</a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:constructor' %}">
+                                <i class="bi bi-calendar-plus me-1"></i> Конструктор расписания
+                            </a></li>                            
                             <li><a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=TEACHER">Преподаватели</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=STUDENT">Студенты</a></li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:manage_semesters' %}">Семестры</a></li>
                         </ul>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'journal:dean_view' %}">
                             <i class="bi bi-graph-up"></i> Успеваемость

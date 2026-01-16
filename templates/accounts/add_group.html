@@ -10,6 +10,16 @@
                 <i class="bi bi-plus-circle"></i> Добавить группу
             </div>
             <div class="card-body">
+                
+                <!-- Блок отображения общих ошибок -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <form method="post">
                     {% csrf_token %}
                     
@@ -17,8 +27,9 @@
                         <label class="form-label">Название группы *</label>
                         {{ form.name }}
                         {% if form.name.errors %}
-                            <div class="text-danger">{{ form.name.errors }}</div>
+                            <div class="text-danger small">{{ form.name.errors.0 }}</div>
                         {% endif %}
+                        <div class="form-text">Имя должно быть уникальным (например: 400101-А)</div>
                     </div>
                     
                     <div class="row">
@@ -26,7 +37,7 @@
                             <label class="form-label">Курс *</label>
                             {{ form.course }}
                             {% if form.course.errors %}
-                                <div class="text-danger">{{ form.course.errors }}</div>
+                                <div class="text-danger small">{{ form.course.errors.0 }}</div>
                             {% endif %}
                         </div>
                         
@@ -34,7 +45,7 @@
                             <label class="form-label">Год обучения *</label>
                             {{ form.academic_year }}
                             {% if form.academic_year.errors %}
-                                <div class="text-danger">{{ form.academic_year.errors }}</div>
+                                <div class="text-danger small">{{ form.academic_year.errors.0 }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -43,15 +54,32 @@
                         <label class="form-label">Специальность *</label>
                         {{ form.specialty }}
                         {% if form.specialty.errors %}
-                            <div class="text-danger">{{ form.specialty.errors }}</div>
+                            <div class="text-danger small">{{ form.specialty.errors.0 }}</div>
                         {% endif %}
+                        {% if form.initial.specialty %}
+                            <div class="form-text text-success">
+                                <i class="bi bi-check-circle"></i> Специальность выбрана автоматически
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Язык обучения</label>
+                        {{ form.language }}
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.has_military_training }}
+                        <label class="form-check-label" for="{{ form.has_military_training.id_for_label }}">
+                            Военная кафедра
+                        </label>
                     </div>
                     
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-circle"></i> Создать группу
                         </button>
-                        <a href="{% url 'accounts:group_management' %}" class="btn btn-secondary">
+                        <a href="{% url 'accounts:manage_structure' %}" class="btn btn-secondary">
                             <i class="bi bi-x-circle"></i> Отмена
                         </a>
                     </div>
@@ -60,13 +88,4 @@
         </div>
     </div>
 </div>
-
-<style>
-    select, input[type="text"], input[type="number"] {
-        width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #ced4da;
-        border-radius: 0.375rem;
-    }
-</style>
 {% endblock %}

@@ -255,45 +255,39 @@ def user_management(request):
 @user_passes_test(is_management)
 def add_user(request):
     if request.method == 'POST':
-        user_form = UserCreateForm(request.POST, request.FILES)
+        user_form = UserCreateForm(request.POST, request.FILES, creator=request.user)
         
         if user_form.is_valid():
             with transaction.atomic():
                 user = user_form.save()
-                
                 role = user_form.cleaned_data['role']
                 
+                if request.user.role == 'DEAN' and role in ['DIRECTOR', 'RECTOR', 'PRO_RECTOR']:
+                    messages.error(request, "У вас нет прав создавать руководство института.")
+                    transaction.set_rollback(True)
+                    return redirect('accounts:add_user')
+
                 try:
                     if role == 'STUDENT':
                         student_id = generate_student_id()
-                        Student.objects.create(
-                            user=user,
-                            student_id=student_id,
-                            course=1,
-                            admission_year=2025
-                        )
-                    elif role == 'TEACHER':
-                        Teacher.objects.get_or_create(user=user)
-                    elif role == 'DEAN':
-                        Dean.objects.get_or_create(user=user)
-                    elif role == 'HEAD_OF_DEPT':
-                        HeadOfDepartment.objects.get_or_create(user=user)
-                    elif role == 'VICE_DEAN':
+                        Student.objects.create(user=user, student_id=student_id, course=1, admission_year=2025)
+                    elif role == 'TEACHER': Teacher.objects.get_or_create(user=user)
+                    elif role == 'DEAN': Dean.objects.get_or_create(user=user)
+                    elif role == 'HEAD_OF_DEPT': HeadOfDepartment.objects.get_or_create(user=user)
+                    elif role == 'VICE_DEAN': 
                         from .models import ViceDean
                         ViceDean.objects.get_or_create(user=user)
-                    elif role == 'DIRECTOR':
-                        Director.objects.get_or_create(user=user)
-                    elif role == 'PRO_RECTOR':
-                        ProRector.objects.get_or_create(user=user, title="Заместитель директора")
+                    elif role == 'DIRECTOR': Director.objects.get_or_create(user=user)
+                    elif role == 'PRO_RECTOR': ProRector.objects.get_or_create(user=user, title="Заместитель директора")
                     
-                    messages.success(request, f'Пользователь {user.username} успешно создан. Временный пароль: password123')
+                    messages.success(request, f'Пользователь {user.username} ({user.get_role_display()}) успешно создан.')
                     return redirect('accounts:user_management')
                     
                 except Exception as e:
                     messages.error(request, f'Ошибка при создании профиля: {str(e)}')
                     raise
     else:
-        user_form = UserCreateForm()
+        user_form = UserCreateForm(creator=request.user)
     
     return render(request, 'accounts/add_user.html', {'form': user_form})
 
@@ -467,28 +461,61 @@ def group_management(request):
 
 @login_required
 def add_group(request):
-    if not is_management(request.user):
+    # Проверка прав
+    if not (request.user.is_superuser or request.user.role in ['DEAN', 'VICE_DEAN']):
         messages.error(request, "Нет доступа")
         return redirect('core:dashboard')
 
-    if request.method == 'POST':
-        form = GroupForm(request.POST)
+    # Получаем параметры из URL
+    specialty_id = request.GET.get('specialty')
+    
+    # Инициализация данных формы
+    initial_data = {}
+    if specialty_id:
+        try:
+            specialty = Specialty.objects.get(id=specialty_id)
+            # Проверка прав декана на эту специальность
+            if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+                if specialty.department.faculty != request.user.dean_profile.faculty:
+                    messages.error(request, "Это специальность чужого факультета")
+                    return redirect('accounts:manage_structure')
+            initial_data['specialty'] = specialty
+        except Specialty.DoesNotExist:
+            pass
+
+    # Функция фильтрации (DRY - Don't Repeat Yourself)
+    def configure_form(form):
         if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
-            dean_faculty = request.user.dean_profile.faculty
-            specialty = form.cleaned_data.get('specialty')
-            if specialty and specialty.department.faculty != dean_faculty:
-                messages.error(request, "Вы можете добавлять группы только для специальностей своего факультета")
-                return redirect('accounts:group_management')
+            faculty = request.user.dean_profile.faculty
+            if faculty:
+                form.fields['specialty'].queryset = Specialty.objects.filter(department__faculty=faculty)
+
+    if request.method == 'POST':
+        form = GroupForm(request.POST, initial=initial_data) # Передаем initial даже в POST для корректной работы виджетов
+        configure_form(form) # Фильтруем выбор ДО валидации
 
         if form.is_valid():
-            group = form.save()
-            messages.success(request, f'Группа {group.name} успешно создана')
-            return redirect('accounts:group_management')
+            try:
+                # Дополнительная проверка безопасности
+                if is_dean(request.user):
+                    spec = form.cleaned_data['specialty']
+                    if spec.department.faculty != request.user.dean_profile.faculty:
+                        raise Exception("Попытка создания группы на чужом факультете")
+
+                group = form.save()
+                messages.success(request, f'Группа {group.name} успешно создана')
+                
+                # Если пришли из структуры - возвращаемся в структуру
+                if specialty_id:
+                    return redirect('accounts:manage_structure')
+                return redirect('accounts:group_management')
+            except Exception as e:
+                messages.error(request, f"Ошибка сохранения: {str(e)}")
+        else:
+            messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
-        form = GroupForm()
-        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
-            faculty = request.user.dean_profile.faculty
-            form.fields['specialty'].queryset = Specialty.objects.filter(department__faculty=faculty)
+        form = GroupForm(initial=initial_data)
+        configure_form(form)
 
     return render(request, 'accounts/add_group.html', {'form': form})
 
@@ -677,24 +704,25 @@ def delete_faculty(request, pk):
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': faculty, 'title': 'Удалить Факультет'})
 
-# --- CRUD ДЛЯ КАФЕДРЫ (Админ + Декан) ---
 @login_required
 def add_department(request):
     if not is_management(request.user):
         return HttpResponseForbidden()
         
     initial = {}
-    # Если это декан, фиксируем факультет
+    faculty_context = None
+
     if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
-        initial['faculty'] = request.user.dean_profile.faculty
+        faculty_context = request.user.dean_profile.faculty
+        initial['faculty'] = faculty_context
     
-    # Если админ нажал кнопку "Добавить кафедру" напротив конкретного факультета
     faculty_id = request.GET.get('faculty')
     if faculty_id and is_admin_or_rector(request.user):
-        initial['faculty'] = get_object_or_404(Faculty, pk=faculty_id)
+        faculty_context = get_object_or_404(Faculty, pk=faculty_id)
+        initial['faculty'] = faculty_context
 
     if request.method == 'POST':
-        form = DepartmentForm(request.POST)
+        form = DepartmentForm(request.POST, faculty_context=faculty_context)
         if form.is_valid():
             if is_dean(request.user):
                 dean_faculty = request.user.dean_profile.faculty
@@ -702,18 +730,30 @@ def add_department(request):
                     messages.error(request, "Вы можете добавлять кафедры только в свой факультет")
                     return redirect('accounts:manage_structure')
             
-            form.save()
-            messages.success(request, "Кафедра создана")
+            with transaction.atomic():
+                dept = form.save()
+                
+                head_user = form.cleaned_data.get('head_of_department')
+                if head_user:
+                    if head_user.role == 'TEACHER':
+                        head_user.role = 'HEAD_OF_DEPT'
+                        head_user.save()
+                    
+                    HeadOfDepartment.objects.update_or_create(
+                        user=head_user,
+                        defaults={'department': dept}
+                    )
+
+            messages.success(request, f"Кафедра {dept.name} создана")
             return redirect('accounts:manage_structure')
     else:
-        form = DepartmentForm(initial=initial)
+        form = DepartmentForm(initial=initial, faculty_context=faculty_context)
         if is_dean(request.user):
+             # Блокируем выбор факультета для декана (он видит только свой)
              faculty = request.user.dean_profile.faculty
              form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
-             form.fields['faculty'].initial = faculty
     
     return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить кафедру'})
-
 
 @login_required
 def edit_department(request, pk):
@@ -721,24 +761,45 @@ def edit_department(request, pk):
     if not is_management(request.user):
         return HttpResponseForbidden()
     
-    # Проверка прав Декана
     if is_dean(request.user):
         if dept.faculty != request.user.dean_profile.faculty:
             return HttpResponseForbidden("Это не ваша кафедра")
 
     if request.method == 'POST':
-        form = DepartmentForm(request.POST, instance=dept)
+        form = DepartmentForm(request.POST, instance=dept, faculty_context=dept.faculty)
         if form.is_valid():
-            form.save()
+            with transaction.atomic():
+                dept = form.save()
+                
+                head_user = form.cleaned_data.get('head_of_department')
+                if head_user:
+                    if hasattr(dept, 'head') and dept.head.user != head_user:
+                        old_head = dept.head
+                        old_head.department = None
+                        old_head.save()
+                    
+                    if head_user.role == 'TEACHER':
+                        head_user.role = 'HEAD_OF_DEPT'
+                        head_user.save()
+
+                    HeadOfDepartment.objects.update_or_create(
+                        user=head_user,
+                        defaults={'department': dept}
+                    )
+                elif not head_user and hasattr(dept, 'head'):
+                    dept.head.delete()
+
             messages.success(request, "Кафедра обновлена")
             return redirect('accounts:manage_structure')
     else:
-        form = DepartmentForm(instance=dept)
+        form = DepartmentForm(instance=dept, faculty_context=dept.faculty)
         if is_dean(request.user):
              faculty = request.user.dean_profile.faculty
              form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
 
     return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Редактировать кафедру'})
+
+
 
 @login_required
 def delete_department(request, pk):
@@ -754,16 +815,19 @@ def delete_department(request, pk):
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': dept, 'title': 'Удалить кафедру'})
 
-# --- CRUD ДЛЯ СПЕЦИАЛЬНОСТИ ---
 @login_required
 def add_specialty(request):
     if not is_management(request.user):
         return HttpResponseForbidden()
     
+    initial = {}
+    dept_id = request.GET.get('department')
+    if dept_id:
+        initial['department'] = get_object_or_404(Department, id=dept_id)
+
     if request.method == 'POST':
         form = SpecialtyForm(request.POST)
         if form.is_valid():
-             # Проверка прав
             if is_dean(request.user):
                 dean_faculty = request.user.dean_profile.faculty
                 if form.cleaned_data['department'].faculty != dean_faculty:
@@ -773,7 +837,7 @@ def add_specialty(request):
             messages.success(request, "Специальность добавлена")
             return redirect('accounts:manage_structure')
     else:
-        form = SpecialtyForm()
+        form = SpecialtyForm(initial=initial)
         if is_dean(request.user):
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
