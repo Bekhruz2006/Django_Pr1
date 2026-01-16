@@ -2,7 +2,6 @@ from django import forms
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
 from accounts.models import Group, Teacher, Department
 
-
 class SubjectForm(forms.ModelForm):
     total_credits_calc = forms.IntegerField(
         min_value=1, max_value=20, required=False,
@@ -24,6 +23,7 @@ class SubjectForm(forms.ModelForm):
             'name', 'code', 'department', 'teacher', 'groups',
             'lecture_hours', 'practice_hours', 'control_hours',
             'independent_work_hours', 'semester_weeks',
+            'is_stream_subject',
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -36,7 +36,7 @@ class SubjectForm(forms.ModelForm):
             'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
             'independent_work_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_work_hours'}),
             'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
-            
+            'is_stream_subject': forms.CheckboxInput(attrs={'class': 'form-check-input'}), 
         }
 
     def clean_groups(self):
@@ -76,8 +76,6 @@ class SubjectForm(forms.ModelForm):
                 instance.save()
 
         return instance
-
-
 
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
@@ -141,9 +139,6 @@ class SemesterForm(forms.ModelForm):
                 faculty = user.dean_profile.faculty
                 self.fields['department_filter'].queryset = Department.objects.filter(faculty=faculty)
                 self.fields['groups'].queryset = Group.objects.filter(specialty__department__faculty=faculty)
-        
-        if self.instance.pk:
-            pass 
 
 class ClassroomForm(forms.ModelForm):
     class Meta:
