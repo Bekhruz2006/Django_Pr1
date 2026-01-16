@@ -5,6 +5,23 @@
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-10 mx-auto">
+
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <h4><i class="bi bi-exclamation-triangle"></i> Ошибка сохранения!</h4>
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         <form method="post" id="subject-form">
             {% csrf_token %}
             <div class="card shadow border-0">
@@ -12,6 +29,7 @@
                     <h5 class="mb-0"><i class="bi bi-book-half"></i> {{ title|default:"Добавить предмет" }}</h5>
                 </div>
                 <div class="card-body">
+
                     <div class="mb-3 form-check p-3 border rounded bg-light">
                         {{ form.assign_to_all_groups }}
                         <label class="form-check-label fw-bold" for="{{ form.assign_to_all_groups.id_for_label }}">
@@ -22,29 +40,59 @@
                         </div>
                         {% if form.initial.assign_to_all_groups %}
                             <div class="text-success mt-1">
-                                <i class="bi bi-check-circle-fill"></i> Опция включена автоматически, так как вы добавляете предмет через кафедру.
+                                <i class="bi bi-check-circle-fill"></i> Опция включена автоматически (добавление через кафедру).
                             </div>
                         {% endif %}
                     </div>
 
+                    <div class="card bg-warning bg-opacity-10 border-warning mb-4">
+                        <div class="card-body py-2">
+                            <div class="form-check">
+                                {{ form.is_stream_subject }}
+                                <label class="form-check-label fw-bold" for="{{ form.is_stream_subject.id_for_label }}">
+                                    Это потоковый предмет (Лекция для всех выбранных групп вместе)
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Если галочка стоит, в расписании группы будут объединены в одну аудиторию.
+                                Если галочка снята, для каждой группы будет создано отдельное занятие (даже если групп много).
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row mb-4">
-                        <div class="col-md-6">{{ form.name.label_tag }} {{ form.name }}</div>
-                        <div class="col-md-3">{{ form.code.label_tag }} {{ form.code }}</div>
-                        <div class="col-md-3">{{ form.semester_weeks.label_tag }} {{ form.semester_weeks }}</div>
+                        <div class="col-md-6">
+                            <label class="form-label">Название *</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Код *</label>
+                            {{ form.code }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Недель</label>
+                            {{ form.semester_weeks }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Кафедра *</label>
+                        {{ form.department }}
+                        {% if form.instance.department or form.initial.department %}
+                            <div class="form-text text-success">Кафедра выбрана автоматически</div>
+                        {% endif %}
                     </div>
 
                     <div class="card bg-light border-0 mb-4">
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-md-4">
-                                    <label class="fw-bold text-primary">Введите количество кредитов:</label>
+                                    <label class="fw-bold text-primary">Кредиты (авто-расчет):</label>
                                     {{ form.total_credits_calc }}
                                 </div>
                                 <div class="col-md-8">
-                                    <div class="alert alert-info mb-0 py-2">
-                                        <i class="bi bi-info-circle"></i>
-                                        <b>Логика:</b> 1 кредит = 24 часа. <br>
-                                        2/3 времени — аудиторные (Л, А, СРСП), 1/3 — самостоятельная работа (КМД).
+                                    <div class="alert alert-info mb-0 py-2 small">
+                                        <i class="bi bi-info-circle"></i> 1 кредит = 24 часа. (2/3 аудиторные, 1/3 КМД).
                                     </div>
                                 </div>
                             </div>
@@ -53,34 +101,40 @@
 
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="small fw-bold">Лекции (Л), ч.</label>
+                            <label class="small fw-bold">Лекции (Л)</label>
                             {{ form.lecture_hours }}
-                            <div class="mt-1 small text-muted">Пар в неделю: <span id="view_l_slots" class="badge bg-primary">0</span></div>
+                            <div class="mt-1 small text-muted">Пар/нед: <span id="view_l_slots" class="badge bg-primary">0</span></div>
                         </div>
                         <div class="col-md-3">
-                            <label class="small fw-bold">Практика (А), ч.</label>
+                            <label class="small fw-bold">Практика (А)</label>
                             {{ form.practice_hours }}
-                            <div class="mt-1 small text-muted">Пар в неделю: <span id="view_p_slots" class="badge bg-success">0</span></div>
+                            <div class="mt-1 small text-muted">Пар/нед: <span id="view_p_slots" class="badge bg-success">0</span></div>
                         </div>
                         <div class="col-md-3">
-                            <label class="small fw-bold">СРСП (КМРО), ч.</label>
+                            <label class="small fw-bold">СРСП</label>
                             {{ form.control_hours }}
-                            <div class="mt-1 small text-muted">Пар в неделю: <span id="view_c_slots" class="badge bg-warning text-dark">0</span></div>
+                            <div class="mt-1 small text-muted">Пар/нед: <span id="view_c_slots" class="badge bg-warning text-dark">0</span></div>
                         </div>
                         <div class="col-md-3">
-                            <label class="small fw-bold">КМД (Самост.), ч.</label>
+                            <label class="small fw-bold">КМД (Сам.)</label>
                             {{ form.independent_work_hours }}
                         </div>
                     </div>
 
                     <div class="row mt-4">
-                        <div class="col-md-6">{{ form.teacher.label_tag }} {{ form.teacher }}</div>
-                        <div class="col-md-6">{{ form.groups.label_tag }} {{ form.groups }}</div>
+                        <div class="col-md-6">
+                            <label class="form-label">Преподаватель</label>
+                            {{ form.teacher }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Группы (ручной выбор)</label>
+                            {{ form.groups }}
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer bg-white py-3">
                     <button type="submit" class="btn btn-success px-5"><i class="bi bi-check-lg"></i> Сохранить предмет</button>
-                    <a href="{% url 'schedule:manage_subjects' %}" class="btn btn-light">Отмена</a>
+                    <a href="javascript:history.back()" class="btn btn-light">Отмена</a>
                 </div>
             </div>
         </form>
@@ -91,53 +145,46 @@
 document.addEventListener('DOMContentLoaded', function() {
     const calcInput = document.getElementById('id_total_credits_calc');
     const weeksInput = document.getElementById('id_semester_weeks');
+    const inputs = {
+        lec: document.getElementById('id_lecture_hours'),
+        prac: document.getElementById('id_practice_hours'),
+        ctrl: document.getElementById('id_control_hours'),
+        kmd: document.getElementById('id_independent_work_hours')
+    };
+    const views = {
+        l: document.getElementById('view_l_slots'),
+        p: document.getElementById('view_p_slots'),
+        c: document.getElementById('view_c_slots')
+    };
 
-    const lecInput = document.getElementById('id_lecture_hours');
-    const pracInput = document.getElementById('id_practice_hours');
-    const ctrlInput = document.getElementById('id_control_hours');
-    const kmdInput = document.getElementById('id_independent_work_hours');
-
-    const viewL = document.getElementById('view_l_slots');
-    const viewP = document.getElementById('view_p_slots');
-    const viewC = document.getElementById('view_c_slots');
-
-    function updateSlotPreview() {
+    function updateView() {
         const weeks = parseInt(weeksInput.value) || 16;
-        viewL.textContent = Math.round((parseInt(lecInput.value) || 0) / weeks);
-        viewP.textContent = Math.round((parseInt(pracInput.value) || 0) / weeks);
-        viewC.textContent = Math.round((parseInt(ctrlInput.value) || 0) / weeks);
+        if(inputs.lec) views.l.textContent = Math.round((parseInt(inputs.lec.value)||0)/weeks);
+        if(inputs.prac) views.p.textContent = Math.round((parseInt(inputs.prac.value)||0)/weeks);
+        if(inputs.ctrl) views.c.textContent = Math.round((parseInt(inputs.ctrl.value)||0)/weeks);
     }
 
-    function runAutoCalculation() {
-        const credits = parseInt(calcInput.value) || 0;
-        if (credits <= 0) return;
+    if(calcInput) {
+        calcInput.addEventListener('input', function() {
+            const credits = parseInt(this.value) || 0;
+            if(credits <= 0) return;
 
-        const totalHours = credits * 24;
-        const kmdHours = Math.round(totalHours / 3);
-        const auditoryHours = totalHours - kmdHours;
+            const total = credits * 24;
+            const kmd = Math.round(total / 3);
+            const auditory = total - kmd;
+            const part = Math.floor(auditory / 3);
 
-        const part = Math.floor(auditoryHours / 3);
+            if(inputs.lec) inputs.lec.value = part;
+            if(inputs.prac) inputs.prac.value = part;
+            if(inputs.ctrl) inputs.ctrl.value = auditory - (part * 2);
+            if(inputs.kmd) inputs.kmd.value = kmd;
 
-        lecInput.value = part;
-        pracInput.value = part;
-        ctrlInput.value = auditoryHours - (part * 2);
-        kmdInput.value = kmdHours;
-
-        updateSlotPreview();
-
-        [lecInput, pracInput, ctrlInput, kmdInput].forEach(el => {
-            el.style.backgroundColor = '#e8f0fe';
-            setTimeout(() => el.style.backgroundColor = '', 1000);
+            updateView();
         });
     }
 
-    if(calcInput) calcInput.addEventListener('input', runAutoCalculation);
-
-    [lecInput, pracInput, ctrlInput, weeksInput].forEach(el => {
-        if(el) el.addEventListener('input', updateSlotPreview);
-    });
-
-    updateSlotPreview();
+    Object.values(inputs).forEach(el => { if(el) el.addEventListener('input', updateView); });
+    if(weeksInput) weeksInput.addEventListener('input', updateView);
 });
 </script>
 {% endblock %}

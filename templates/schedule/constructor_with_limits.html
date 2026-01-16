@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 subjectName: this.dataset.subjectName,
                 subjectType: this.dataset.subjectType,
                 teacherName: this.dataset.teacherName || '',
-                isStream: isStream,
+                isStream: isStream, 
                 remaining: parseInt(this.dataset.remaining || '0')
             };
 
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Добавить обработчик dragstart для военки
+
     const milItem = document.getElementById('militaryDragItem');
     if(milItem) {
         milItem.addEventListener('dragstart', function(e) {

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 import uuid
 from io import BytesIO 
-
+from django.db.models import Q
 try:
     from docx import Document
     from docx.shared import Inches, Pt, Cm 
@@ -47,21 +47,17 @@ def get_active_semester_for_group(group):
 
 @login_required
 def schedule_constructor(request):
-    # ПРОВЕРКА ПРАВ: Декан меняет только свои группы
     group_id = request.GET.get('group')
 
     if group_id and request.user.role in ['DEAN', 'VICE_DEAN']:
         group = get_object_or_404(Group, id=group_id)
 
-        # Получаем факультет пользователя
         user_faculty = None
         if hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
             user_faculty = request.user.dean_profile.faculty
         elif hasattr(request.user, 'vicedean_profile') and request.user.vicedean_profile.faculty:
             user_faculty = request.user.vicedean_profile.faculty
 
-        # Проверяем, принадлежит ли группа факультету
-        # Group -> Specialty -> Department -> Faculty
         group_faculty = group.specialty.department.faculty
 
         if user_faculty != group_faculty:
@@ -129,8 +125,9 @@ def schedule_constructor(request):
             for subject in assigned_subjects:
                 slots_needed = subject.get_weekly_slots_needed()
 
-                is_stream = subject.groups.count() > 1
+                is_stream = subject.is_stream_subject
                 stream_groups_count = subject.groups.count()
+
 
                 if slots_needed['LECTURE'] > 0:
                     existing_lectures = ScheduleSlot.objects.filter(
@@ -149,8 +146,8 @@ def schedule_constructor(request):
                             'remaining': remaining,
                             'needed': slots_needed['LECTURE'],
                             'hours_per_week': subject.lecture_hours_per_week,
-                            'is_stream': is_stream,
-                            'stream_count': stream_groups_count if is_stream else 1
+                            'is_stream': is_stream, # Передаем флаг
+                            'stream_count': stream_groups_count
                         })
 
                 if slots_needed['PRACTICE'] > 0:
@@ -597,37 +594,57 @@ def manage_subjects(request):
 @user_passes_test(is_dean)
 def add_subject(request):
     initial_data = {}
-    
     dept_id = request.GET.get('department')
-    
+
+    target_department = None
     if dept_id:
-        department = get_object_or_404(Department, id=dept_id)
+        target_department = get_object_or_404(Department, id=dept_id)
         if request.user.role == 'DEAN':
-             if department.faculty != request.user.dean_profile.faculty:
-                 messages.error(request, "Нет доступа к этой кафедре")
-                 return redirect('schedule:manage_subjects')
-        
-        initial_data['department'] = department
-        initial_data['assign_to_all_groups'] = True 
+            if target_department.faculty != request.user.dean_profile.faculty:
+                messages.error(request, "Нет доступа к этой кафедре")
+                return redirect('schedule:manage_subjects')
+
+        initial_data['department'] = target_department
+        initial_data['assign_to_all_groups'] = True
 
     if request.method == 'POST':
         form = SubjectForm(request.POST)
         if form.is_valid():
-            subject = form.save() 
-            
-            messages.success(request, f'Предмет "{subject.name}" создан и назначен группам')
-            
+            subject = form.save(commit=False)
+
+            if target_department and not subject.department_id:
+                subject.department = target_department
+
+            subject.save()
+            form.save_m2m()  
+            if form.cleaned_data.get('assign_to_all_groups') and subject.department:
+                dept_groups = Group.objects.filter(specialty__department=subject.department)
+                subject.groups.add(*dept_groups)
+
+            messages.success(request, f'Предмет "{subject.name}" создан')
             if dept_id:
                 return redirect('accounts:manage_structure')
             return redirect('schedule:manage_subjects')
+        else:
+            print("Ошибки формы предмета:", form.errors)
     else:
         form = SubjectForm(initial=initial_data)
-        if request.user.role == 'DEAN':
-             faculty = request.user.dean_profile.faculty
-             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
-             form.fields['teacher'].queryset = Teacher.objects.filter(department__faculty=faculty)
+
+        if target_department:
+            form.fields['teacher'].queryset = Teacher.objects.filter(
+                Q(department=target_department) | Q(additional_departments=target_department)
+            ).distinct()
+            form.fields['department'].queryset = Department.objects.filter(id=target_department.id)
+        elif request.user.role == 'DEAN':
+            faculty = request.user.dean_profile.faculty
+            form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
+            form.fields['teacher'].queryset = Teacher.objects.filter(
+                Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)
+            ).distinct()
 
     return render(request, 'schedule/subject_form.html', {'form': form, 'title': 'Добавить предмет'})
+
+
 
 @user_passes_test(is_dean)
 def edit_subject(request, subject_id):
@@ -847,7 +864,6 @@ def export_schedule(request):
     if not active_semester:
         return HttpResponse("Нет активного семестра", status=400)
 
-    # --- СБОР ДАННЫХ О РУКОВОДСТВЕ (С ЗАЩИТОЙ) ---
     try:
         specialty = group.specialty
         department = specialty.department
@@ -856,27 +872,22 @@ def export_schedule(request):
     except AttributeError:
         return HttpResponse("Ошибка структуры: Группа не привязана к специальности/кафедре/факультету.", status=400)
 
-    # Директор
     director = Director.objects.filter(institute=institute).first()
     director_name = director.user.get_full_name() if director else "________________"
     
-    # Зам. директора (Муовини ректор/директор)
     vice = ProRector.objects.filter(institute=institute).first()
     vice_name = vice.user.get_full_name() if vice else "________________"
     
-    # Сардори раёсати таълим
     head_edu_name = "Ҷалилов Р.Р." 
 
     doc = Document()
     
-    # Настройка полей
     section = doc.sections[0]
-    section.left_margin = Cm(1.5)  # ✅ Cm теперь определен
+    section.left_margin = Cm(1.5)  
     section.right_margin = Cm(1.5)
     section.top_margin = Cm(1.0)
     section.bottom_margin = Cm(1.0)
 
-    # --- ШАПКА (УТВЕРЖДЕНИЕ) ---
     header_table = doc.add_table(rows=1, cols=2)
     header_table.autofit = True
     header_table.width = section.page_width - section.left_margin - section.right_margin
@@ -898,7 +909,6 @@ def export_schedule(request):
 
     doc.add_paragraph() # Spacer
 
-    # --- ЗАГОЛОВОК ---
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = title_p.add_run("ҶАДВАЛИ ДАРСӢ")
@@ -923,7 +933,6 @@ def export_schedule(request):
     shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     shift_p.runs[0].bold = True
 
-    # --- ТАБЛИЦА РАСПИСАНИЯ ---
     table = doc.add_table(rows=1, cols=4)
     table.style = 'Table Grid'
     
@@ -954,7 +963,6 @@ def export_schedule(request):
                 row = table.add_row()
                 row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
             
-            # Объединение дня недели
             day_cell = table.rows[first_row_idx].cells[0]
             day_cell.text = day_name
             day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
@@ -962,7 +970,6 @@ def export_schedule(request):
                 day_cell.merge(table.rows[len(table.rows)-1].cells[0])
             except: pass
             
-            # Объединение Военной кафедры
             mil_cell_top = table.rows[first_row_idx].cells[2]
             try:
                 mil_cell_top.merge(table.rows[first_row_idx].cells[3]) # Горизонтально

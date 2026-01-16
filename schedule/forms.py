@@ -23,7 +23,7 @@ class SubjectForm(forms.ModelForm):
         fields = [
             'name', 'code', 'department', 'teacher', 'groups',
             'lecture_hours', 'practice_hours', 'control_hours',
-            'independent_work_hours', 'semester_weeks'
+            'independent_work_hours', 'semester_weeks',
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -36,6 +36,7 @@ class SubjectForm(forms.ModelForm):
             'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
             'independent_work_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_work_hours'}),
             'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
+            
         }
 
     def clean_groups(self):
@@ -46,6 +47,7 @@ class SubjectForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+
         instance.hours_per_semester = (
             (instance.lecture_hours or 0) +
             (instance.practice_hours or 0) +
@@ -54,15 +56,27 @@ class SubjectForm(forms.ModelForm):
         )
         instance.credits = round(instance.hours_per_semester / 24, 1)
 
+        manual_groups = self.cleaned_data.get('groups')
+        assign_all = self.cleaned_data.get('assign_to_all_groups')
+
+        if assign_all:
+            instance.is_stream_subject = False
+        elif manual_groups and manual_groups.count() > 1:
+            instance.is_stream_subject = True
+        elif manual_groups and manual_groups.count() == 1:
+            instance.is_stream_subject = False
+
         if commit:
             instance.save()
-            self.save_m2m() 
-            
-            if self.cleaned_data.get('assign_to_all_groups') and instance.department:
+            self.save_m2m()  
+            if assign_all and instance.department:
                 dept_groups = Group.objects.filter(specialty__department=instance.department)
                 instance.groups.add(*dept_groups)
-                
+                instance.is_stream_subject = False
+                instance.save()
+
         return instance
+
 
 
 class ScheduleSlotForm(forms.ModelForm):

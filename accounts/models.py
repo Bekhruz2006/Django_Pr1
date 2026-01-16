@@ -142,7 +142,14 @@ class HeadOfDepartment(models.Model):
 class Teacher(models.Model):
     """Преподаватель"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile')
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='teachers', verbose_name="Кафедра")
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='teachers', verbose_name="Основная кафедра")
+
+    additional_departments = models.ManyToManyField(
+        Department, 
+        blank=True, 
+        related_name='affiliated_teachers', 
+        verbose_name="Дополнительные кафедры"
+    )
 
     degree = models.CharField(max_length=100, blank=True, verbose_name="Ученая степень (к.т.н, PhD)")
     title = models.CharField(max_length=100, blank=True, verbose_name="Ученое звание (доцент, профессор)")

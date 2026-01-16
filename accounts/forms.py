@@ -149,7 +149,8 @@ class UserCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         creator = kwargs.pop('creator', None)
         super().__init__(*args, **kwargs)
-        
+        if self.initial.get('role'):
+            pass         
         if creator:
             if creator.role == 'DEAN' or creator.role == 'VICE_DEAN':
                 allowed_roles = [
@@ -217,10 +218,18 @@ class StudentForm(forms.ModelForm):
         }
 
 class TeacherForm(forms.ModelForm):
+    additional_departments = forms.ModelMultipleChoiceField(
+        queryset=Department.objects.none(),
+        required=False,
+        label="Дополнительные кафедры (где может преподавать)",
+        widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '5'})
+    )
     class Meta:
         model = Teacher
+
         fields = [
-            'department', 'degree', 'title', 'biography', 'research_interests',
+            'department', 'additional_departments', # Добавили поле сюда
+            'degree', 'title', 'biography', 'research_interests',
             'consultation_hours', 'telegram', 'contact_email'
         ]
         widgets = {
@@ -233,6 +242,15 @@ class TeacherForm(forms.ModelForm):
             'telegram': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.fields['department'].queryset = Department.objects.all()
+        self.fields['additional_departments'].queryset = Department.objects.all()
+        
+        if self.instance.pk and self.instance.department:
+            self.fields['additional_departments'].queryset = Department.objects.exclude(id=self.instance.department.id)
+
 
 class DeanForm(forms.ModelForm):
     class Meta:

@@ -13,7 +13,7 @@
                     Структура факультета: {{ faculty.name }}
                 {% endif %}
             </h3>
-            
+
             {% if is_admin %}
             <div>
                 <a href="{% url 'accounts:add_institute' %}" class="btn btn-primary">
@@ -24,7 +24,6 @@
         </div>
 
         {% if is_admin %}
-            <!-- Блок Админа (без изменений, для краткости скрыт, он был в прошлом ответе корректным) -->
             {% for institute in institutes %}
             <div class="card mb-4 border-primary">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -35,7 +34,6 @@
                     </div>
                 </div>
                 <div class="card-body bg-light">
-                    <!-- ... (код аккордеона для админа) ... -->
                     <div class="accordion" id="inst{{ institute.id }}">
                         {% for faculty in institute.faculties.all %}
                         <div class="accordion-item mb-2">
@@ -64,7 +62,6 @@
             {% endfor %}
 
         {% elif is_dean %}
-            <!-- ✅ ИНТЕРФЕЙС ДЕКАНА: МАКСИМАЛЬНАЯ ФУНКЦИОНАЛЬНОСТЬ -->
             <div class="alert alert-info py-2">
                 <i class="bi bi-info-circle"></i> Управляйте кафедрами, специальностями, группами и предметами из единого центра.
             </div>
@@ -90,24 +87,74 @@
                     </h2>
                     <div id="collapse{{ dept.id }}" class="accordion-collapse collapse">
                         <div class="accordion-body">
-                            <!-- Панель управления кафедрой -->
                             <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white border rounded">
                                 <div>
-                                    <h6 class="mb-1">Действия с кафедрой:</h6>
-                                    <!-- ✅ Кнопка добавления предмета -->
-                                    <a href="{% url 'schedule:add_subject' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-primary me-2">
+                                    <h6 class="mb-2 fw-bold text-primary">Действия с кафедрой:</h6>
+
+                                    <a href="{% url 'schedule:add_subject' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-primary me-1 mb-1">
                                         <i class="bi bi-book"></i> Добавить предмет
                                     </a>
-                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-gear"></i> Настройки кафедры
+
+                                    <a href="{% url 'accounts:add_user' %}?role=TEACHER&department={{ dept.id }}" class="btn btn-sm btn-outline-success me-1 mb-1">
+                                        <i class="bi bi-person-plus-fill"></i> Добавить преподавателя
+                                    </a>
+
+                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary mb-1">
+                                        <i class="bi bi-gear"></i> Настройки
                                     </a>
                                 </div>
                                 <div class="text-end">
-                                    <small class="text-muted d-block">Всего предметов: {{ dept.subjects.count }}</small>
+                                    <small class="text-muted d-block">Предметов: {{ dept.subjects.count }}</small>
                                     <small class="text-muted d-block">Преподавателей: {{ dept.teachers.count }}</small>
                                 </div>
                             </div>
-                            
+
+                            <div class="card mb-3 border-secondary border-opacity-25">
+                                <div class="card-header bg-secondary bg-opacity-10 d-flex justify-content-between align-items-center py-2">
+                                    <span class="fw-bold text-dark"><i class="bi bi-book me-2"></i>Предметы кафедры</span>
+                                    <span class="badge bg-secondary">{{ dept.subjects.count }}</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                                        {% for subject in dept.subjects.all %}
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>{{ subject.name }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ subject.total_credits }} кр. |
+                                                        {{ subject.teacher.user.get_full_name|default:"Преп. не назначен" }}
+                                                    </small>
+                                                    {% if subject.is_stream_subject %}
+                                                        <span class="badge bg-indigo ms-1" style="font-size: 0.6rem;">ПОТОК</span>
+                                                    {% endif %}
+                                                    <div class="small mt-1">
+                                                        {% for g in subject.groups.all|slice:":3" %}
+                                                            <span class="badge bg-light text-dark border">{{ g.name }}</span>
+                                                        {% endfor %}
+                                                        {% if subject.groups.count > 3 %}
+                                                            <span class="badge bg-light text-dark border">+{{ subject.groups.count|add:"-3" }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-outline-primary" title="Редактировать">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-outline-danger" title="Удалить" onclick="return confirm('Удалить предмет?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        {% empty %}
+                                            <div class="text-center py-3 text-muted">
+                                                <small>Предметов пока нет</small>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
                             <h6 class="border-bottom pb-2 mb-3 text-success">
                                 <i class="bi bi-mortarboard"></i> Специальности и Группы
                             </h6>
@@ -120,7 +167,6 @@
                                             <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center py-2 specialty-header">
                                                 <span class="fw-bold small specialty-title">{{ spec.code }} - {{ spec.name }}</span>
                                                 <div class="btn-group btn-group-sm">
-                                                    <!-- ✅ Кнопка добавления группы -->
                                                     <a href="{% url 'accounts:add_group' %}?specialty={{ spec.id }}" class="btn btn-success btn-sm py-0" title="Добавить группу">
                                                         <i class="bi bi-plus-lg"></i> Группа
                                                     </a>
@@ -175,16 +221,14 @@
     .border-dashed {
         border-style: dashed !important;
     }
-    
-    /* ====== СТИЛИ ДЛЯ СПЕЦИАЛЬНОСТЕЙ ====== */
-    /* Заголовок специальности - темный текст на светлом фоне */
+
     .specialty-header {
-        background-color: rgba(25, 135, 84, 0.15) !important; /* Более насыщенный зеленый фон */
+        background-color: rgba(25, 135, 84, 0.15) !important;
         border-bottom: 2px solid rgba(25, 135, 84, 0.3) !important;
     }
-    
+
     .specialty-title {
-        color: #0a3622 !important; /* Темно-зеленый, почти черный */
+        color: #0a3622 !important;
         font-weight: 700 !important;
         font-size: 0.9rem !important;
         text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8) !important;
@@ -193,23 +237,7 @@
         border-radius: 4px !important;
         display: inline-block !important;
     }
-    
-    /* Альтернативный вариант с темным фоном */
-    /* 
-    .specialty-header {
-        background-color: #198754 !important;
-        border-bottom: 2px solid #146c43 !important;
-    }
-    
-    .specialty-title {
-        color: white !important;
-        font-weight: 700 !important;
-        font-size: 0.9rem !important;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-    }
-    */
-    
-    /* ====== СТИЛИ ДЛЯ ГРУПП ====== */
+
     .group-item {
         background-color: #f8f9fa !important;
         border: 1px solid #dee2e6 !important;
@@ -217,13 +245,13 @@
         border-radius: 6px !important;
         transition: all 0.2s ease !important;
     }
-    
+
     .group-item:hover {
         background-color: #e9ecef !important;
         border-color: #adb5bd !important;
         transform: translateX(3px) !important;
     }
-    
+
     .group-item a {
         color: #212529 !important;
         font-weight: 500 !important;
@@ -231,34 +259,35 @@
         width: 100% !important;
         display: block !important;
     }
-    
+
     .group-item a:hover {
         color: #0d6efd !important;
     }
-    
+
     .group-item strong {
         color: #000 !important;
         font-weight: 600 !important;
     }
-    
-    /* Улучшение видимости для пустых состояний */
+
     .text-muted {
         color: #6c757d !important;
         opacity: 1 !important;
     }
-    
-    /* Контрастные отступы и границы */
+
     .accordion-body {
         background-color: #fdfdfd !important;
     }
-    
+
     .list-group {
         background-color: transparent !important;
     }
-    
-    /* Иконки групп */
+
     .bi-people-fill {
         color: #198754 !important;
+    }
+
+    .bg-indigo {
+        background-color: #6610f2 !important;
     }
 </style>
 {% endblock %}

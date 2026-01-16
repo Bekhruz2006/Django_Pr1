@@ -11,11 +11,9 @@ class Subject(models.Model):
         ('PRACTICE', 'Практика'),
         ('SRSP', 'СРСП (КМРО)'),
     ]
-
     name = models.CharField(max_length=200, verbose_name="Название")
     code = models.CharField(max_length=20, unique=True, verbose_name="Код")
 
-    # ПРИВЯЗКА К КАФЕДРЕ (Уникальные предметы для кафедры)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='subjects', verbose_name="Кафедра")
 
     type = models.CharField(
@@ -31,6 +29,7 @@ class Subject(models.Model):
     independent_work_hours = models.IntegerField(default=0, verbose_name="КМД часов за семестр")
 
     semester_weeks = models.IntegerField(default=16, verbose_name="Недель в семестре")
+    is_stream_subject = models.BooleanField(default=False, verbose_name="Это поток (совместное занятие)")
 
     teacher = models.ForeignKey(
         'accounts.Teacher',
@@ -51,6 +50,8 @@ class Subject(models.Model):
 
     credits = models.IntegerField(default=0, verbose_name="Кредиты (устарело)")
     hours_per_semester = models.IntegerField(default=0, verbose_name="Часов (устарело)")
+
+
 
     class Meta:
         verbose_name = "Предмет"

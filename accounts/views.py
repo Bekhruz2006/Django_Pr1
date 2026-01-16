@@ -254,6 +254,15 @@ def user_management(request):
 
 @user_passes_test(is_management)
 def add_user(request):
+    # Поддержка добавления преподавателя сразу в кафедру
+    department_id = request.GET.get('department')
+    initial_data = {}
+    
+    # Если передана роль в URL (например, ?role=TEACHER)
+    role_param = request.GET.get('role')
+    if role_param:
+        initial_data['role'] = role_param
+
     if request.method == 'POST':
         user_form = UserCreateForm(request.POST, request.FILES, creator=request.user)
         
@@ -269,25 +278,35 @@ def add_user(request):
 
                 try:
                     if role == 'STUDENT':
-                        student_id = generate_student_id()
-                        Student.objects.create(user=user, student_id=student_id, course=1, admission_year=2025)
-                    elif role == 'TEACHER': Teacher.objects.get_or_create(user=user)
-                    elif role == 'DEAN': Dean.objects.get_or_create(user=user)
-                    elif role == 'HEAD_OF_DEPT': HeadOfDepartment.objects.get_or_create(user=user)
-                    elif role == 'VICE_DEAN': 
-                        from .models import ViceDean
-                        ViceDean.objects.get_or_create(user=user)
-                    elif role == 'DIRECTOR': Director.objects.get_or_create(user=user)
-                    elif role == 'PRO_RECTOR': ProRector.objects.get_or_create(user=user, title="Заместитель директора")
+                        student = user.student_profile 
+                        student.student_id = generate_student_id()
+                        student.course = 1
+                        student.admission_year = 2025
+                        student.save()
+                        
+                    elif role == 'TEACHER':
+                        teacher = user.teacher_profile
+                        if department_id:
+                            dept = Department.objects.get(id=department_id)
+                            if request.user.role == 'DEAN' and dept.faculty != request.user.dean_profile.faculty:
+                                pass 
+                            else:
+                                teacher.department = dept
+                                teacher.save()
+                                
                     
                     messages.success(request, f'Пользователь {user.username} ({user.get_role_display()}) успешно создан.')
+                    
+                    if department_id:
+                        return redirect('accounts:manage_structure')
+                        
                     return redirect('accounts:user_management')
                     
                 except Exception as e:
-                    messages.error(request, f'Ошибка при создании профиля: {str(e)}')
-                    raise
+                    messages.error(request, f'Ошибка при настройке профиля: {str(e)}')
+                    print(e)
     else:
-        user_form = UserCreateForm(creator=request.user)
+        user_form = UserCreateForm(creator=request.user, initial=initial_data)
     
     return render(request, 'accounts/add_user.html', {'form': user_form})
 
