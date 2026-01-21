@@ -256,6 +256,7 @@ def user_management(request):
 
 
 
+@login_required
 @user_passes_test(is_management)
 def import_students(request):
     if request.method == 'POST' and request.FILES.get('excel_file'):
@@ -264,7 +265,7 @@ def import_students(request):
         
         if not excel_file.name.endswith('.xlsx'):
             messages.error(request, 'Пожалуйста, загрузите файл .xlsx')
-            return redirect('accounts:user_management')
+            return redirect('accounts:import_students')
 
         try:
             results = StudentImportService.import_from_excel(excel_file, group_id)
@@ -274,7 +275,7 @@ def import_students(request):
         except Exception as e:
             messages.error(request, f"Критическая ошибка импорта: {str(e)}")
             
-        return redirect('accounts:user_management')
+        return redirect('accounts:group_management')
     
     groups = Group.objects.all()
     return render(request, 'accounts/import_students.html', {'groups': groups})

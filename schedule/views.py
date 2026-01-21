@@ -22,7 +22,8 @@ except ImportError:
     DOCX_AVAILABLE = False
 
 from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot, AcademicPlan, PlanDiscipline
-from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm
+from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm, ScheduleImportForm
+from .services import ScheduleImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department
 
 
@@ -1190,5 +1191,33 @@ def generate_subjects_from_rup(request):
         'suggestions': suggestions.values(),
         'semester': active_semester
     })
+
+
+@login_required
+@user_passes_test(lambda u: is_dean(u) or u.is_superuser)
+def import_schedule_view(request):
+    if request.method == 'POST':
+        form = ScheduleImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                importer = ScheduleImporter(
+                    file=request.FILES['file'],
+                    semester=form.cleaned_data['semester'],
+                    default_group=form.cleaned_data['default_group']
+                )
+                result = importer.run()
+                
+                messages.success(request, f"Импорт завершен. Создано предметов: {result['subjects_created']}, Учителей: {result['teachers_created']}")
+                if result['log']:
+                    messages.warning(request, f"Замечания: {'; '.join(result['log'][:5])}...")
+                    
+                return redirect('schedule:view')
+            except Exception as e:
+                messages.error(request, f"Ошибка при импорте: {str(e)}")
+    else:
+        form = ScheduleImportForm()
+        
+    return render(request, 'schedule/import_schedule.html', {'form': form})
+
 
 

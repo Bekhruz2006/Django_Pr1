@@ -216,3 +216,21 @@ class PlanDisciplineForm(forms.ModelForm):
             'independent_hours': forms.NumberInput(attrs={'class': 'form-control'}),
             'control_type': forms.Select(attrs={'class': 'form-select'}),
         }
+
+
+class ScheduleImportForm(forms.Form):
+    file = forms.FileField(label="Файл Excel (.xlsx)", widget=forms.FileInput(attrs={'class': 'form-control'}))
+    
+    semester = forms.ModelChoiceField(
+        queryset=Semester.objects.filter(is_active=True),
+        label="Семестр",
+        empty_label="Выберите семестр",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    default_group = forms.ModelChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        label="Группа (если не указана в файле)",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

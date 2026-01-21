@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.db.models import Count, Avg
 from datetime import datetime
 from accounts.models import Student, Teacher, Group, Institute, Faculty, Department
@@ -31,6 +32,11 @@ def dashboard(request):
         faculty = profile.faculty if profile else None
         context['profile'] = profile
         context['faculty'] = faculty
+
+        # Проверка активного семестра
+        from schedule.models import Semester
+        if not Semester.objects.filter(is_active=True).exists():
+            messages.warning(request, "Внимание! Активный семестр не выбран. Расписание может не работать.")
 
         if faculty:
             # Статистика только по ЭТОМУ факультету

@@ -316,6 +316,12 @@
 
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'schedule:manage_semesters' %}">Семестры</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:import_schedule' %}">
+                                <i class="bi bi-file-excel text-success"></i> Импорт расписания
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:import_students' %}">
+                                <i class="bi bi-people text-info"></i> Импорт студентов
+                            </a></li>
                         </ul>
                     </li>
 

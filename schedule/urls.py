@@ -35,6 +35,8 @@ urlpatterns = [
     
     path('groups/', views.group_list, name='group_list'),
     
+    path('import/', views.import_schedule_view, name='import_schedule'),
+    
     path('plans/', views.manage_plans, name='manage_plans'),
     path('plans/create/', views.create_plan, name='create_plan'),
     path('plans/<int:plan_id>/', views.plan_detail, name='plan_detail'),

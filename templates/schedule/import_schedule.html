@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Импорт расписания{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Импорт расписания из Excel
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Инструкция:</strong><br>
+                    Загрузите файл Excel, структурированный как "Шахматка":<br>
+                    - Дни недели в первой колонке.<br>
+                    - Время пар во второй колонке.<br>
+                    - Названия групп в заголовке таблицы.<br>
+                    - В ячейках формат: <em>Предмет (Тип) Учитель</em><br>
+                    <small>Система автоматически найдет или создаст недостающие предметы и преподавателей.</small>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-upload"></i> Загрузить и обработать
+                        </button>
+                        <a href="{% url 'schedule:view' %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
