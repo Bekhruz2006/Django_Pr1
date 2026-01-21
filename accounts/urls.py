@@ -25,6 +25,9 @@ urlpatterns = [
 
     path('structure/', views.manage_structure, name='manage_structure'),
     
+    path('management/import/', views.import_students, name='import_students'),
+
+
     path('structure/institute/add/', views.add_institute, name='add_institute'),
     path('structure/institute/edit/<int:pk>/', views.edit_institute, name='edit_institute'),
     path('structure/institute/delete/<int:pk>/', views.delete_institute, name='delete_institute'),

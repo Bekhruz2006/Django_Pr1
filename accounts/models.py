@@ -1,14 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from datetime import datetime
-
-# --- СТРУКТУРА УНИВЕРСИТЕТА ---
+from datetime import datetime, date
 
 class Institute(models.Model):
-    """Институт (Верхний уровень)"""
     name = models.CharField(max_length=200, verbose_name="Название института")
     abbreviation = models.CharField(max_length=20, verbose_name="Аббревиатура")
     address = models.TextField(verbose_name="Адрес", blank=True)
@@ -21,7 +18,6 @@ class Institute(models.Model):
         return self.name
 
 class Faculty(models.Model):
-    """Факультет"""
     institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='faculties', verbose_name="Институт")
     name = models.CharField(max_length=200, verbose_name="Название факультета")
     code = models.CharField(max_length=50, unique=True, verbose_name="Код факультета")
@@ -37,9 +33,23 @@ class Faculty(models.Model):
         return f"{self.name} ({self.institute.abbreviation})"
 
 class Department(models.Model):
-    """Кафедра"""
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='departments', verbose_name="Факультет")
     name = models.CharField(max_length=200, verbose_name="Название кафедры")
+    
+    total_wage_rate = models.FloatField(
+        default=0.0, 
+        blank=True, 
+        null=True,  
+        verbose_name="Штатные единицы (ставки)",
+        help_text="Сколько ставок выделено на кафедру"
+    )
+    total_hours_budget = models.IntegerField(
+        default=0, 
+        blank=True, 
+        null=True,
+        verbose_name="Бюджет часов (годовой)",
+        help_text="Общая учебная нагрузка кафедры"
+    )
 
     class Meta:
         verbose_name = "Кафедра"
@@ -51,8 +61,19 @@ class Department(models.Model):
     def __str__(self):
         return self.name
 
+    def get_occupied_hours(self):
+        total = 0
+        for subject in self.subjects.all():
+            total += subject.total_hours
+        return total
+
+    def get_load_percentage(self):
+        budget = self.total_hours_budget or 0
+        if budget > 0:
+            return round((self.get_occupied_hours() / budget) * 100, 1)
+        return 0
+
 class Specialty(models.Model):
-    """Направление (Специальность)"""
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='specialties', verbose_name="Кафедра")
     name = models.CharField(max_length=200, verbose_name="Название направления")
     code = models.CharField(max_length=50, unique=True, verbose_name="Шифр (напр. 400.101.08)")
@@ -68,7 +89,6 @@ class Specialty(models.Model):
     def __str__(self):
         return f"{self.code} - {self.name}"
 
-# --- ПОЛЬЗОВАТЕЛИ ---
 
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -80,10 +100,28 @@ class User(AbstractUser):
         ('PRO_RECTOR', 'Проректор/Зам. директора'),
         ('DIRECTOR', 'Директор/Ректор'),
     ]
+    
+    CATEGORY_CHOICES = [
+        ('PPS', 'ППС (Профессорско-преподавательский)'),
+        ('AUP', 'АУП (Административно-управленческий)'),
+        ('UVP', 'УВП (Учебно-вспомогательный)'),
+        ('BOTH', 'Совместитель (ППС + АУП)'),
+    ]
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='STUDENT', db_index=True)
+    employee_category = models.CharField(
+        max_length=10, 
+        choices=CATEGORY_CHOICES, 
+        default='PPS', 
+        verbose_name="Категория сотрудника",
+        blank=True
+    )
     phone = models.CharField(max_length=20, blank=True)
     photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+
+    birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
+    address = models.TextField(blank=True, verbose_name="Адрес проживания")
+    passport_number = models.CharField(max_length=20, blank=True, verbose_name="Номер паспорта")
 
     def __str__(self):
         return f"{self.get_full_name()} ({self.get_role_display()})"
@@ -92,16 +130,34 @@ class User(AbstractUser):
     def is_management(self):
         return self.role in ['DEAN', 'VICE_DEAN', 'PRO_RECTOR', 'DIRECTOR', 'HEAD_OF_DEPT'] or self.is_superuser
 
+    @property
+    def age(self):
+        if self.birth_date:
+            today = date.today()
+            return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+        return None
+
+    def get_actual_category(self):
+        has_teacher = hasattr(self, 'teacher_profile')
+        has_admin = hasattr(self, 'dean_profile') or hasattr(self, 'vicedean_profile') or hasattr(self, 'director_profile')
+        
+        if has_teacher and has_admin:
+            return 'BOTH'
+        elif has_admin:
+            return 'AUP'
+        elif has_teacher:
+            return 'PPS'
+        return 'UVP'
+
+
 class Director(models.Model):
-    """Директор института или Ректор"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='director_profile')
-    institute = models.ForeignKey(Institute, on_delete=models.SET_NULL, null=True, related_name='directors', verbose_name="Возглавляет")
+    institute = models.ForeignKey('Institute', on_delete=models.SET_NULL, null=True, related_name='directors', verbose_name="Возглавляет")
 
     def __str__(self):
         return f"Директор: {self.user.get_full_name()}"
 
 class ProRector(models.Model):
-    """Проректоры / Заместители директора"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='prorector_profile')
     institute = models.ForeignKey(Institute, on_delete=models.SET_NULL, null=True, related_name='prorectors')
     title = models.CharField(max_length=200, verbose_name="Должность (напр. Зам. по учебной работе)")
@@ -110,7 +166,6 @@ class ProRector(models.Model):
         return f"{self.title}: {self.user.get_full_name()}"
 
 class Dean(models.Model):
-    """Декан факультета"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='dean_profile')
     faculty = models.OneToOneField(Faculty, on_delete=models.SET_NULL, null=True, related_name='dean_manager')
     contact_email = models.EmailField(blank=True)
@@ -121,17 +176,15 @@ class Dean(models.Model):
         return f"Декан: {self.user.get_full_name()}"
 
 class ViceDean(models.Model):
-    """Зам. декана"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vicedean_profile')
     faculty = models.ForeignKey(Faculty, on_delete=models.SET_NULL, null=True, related_name='vice_deans')
     title = models.CharField(max_length=200, default="Муовини декан", verbose_name="Должность для подписи")
-    area_of_responsibility = models.CharField(max_length=200, verbose_name="Область ответственности")
+    area_of_responsibility = models.CharField(max_length=200, blank=True, verbose_name="Область ответственности")
 
     def __str__(self):
         return f"Зам. декана: {self.user.get_full_name()}"
 
 class HeadOfDepartment(models.Model):
-    """Заведующий кафедрой"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='head_of_dept_profile')
     department = models.OneToOneField(Department, on_delete=models.SET_NULL, null=True, related_name='head', verbose_name="Кафедра")
     degree = models.CharField(max_length=100, blank=True, verbose_name="Ученая степень")
@@ -140,14 +193,13 @@ class HeadOfDepartment(models.Model):
         return f"Зав. каф: {self.user.get_full_name()}"
 
 class Teacher(models.Model):
-    """Преподаватель"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='teachers', verbose_name="Основная кафедра")
 
     additional_departments = models.ManyToManyField(
-        Department, 
-        blank=True, 
-        related_name='affiliated_teachers', 
+        Department,
+        blank=True,
+        related_name='affiliated_teachers',
         verbose_name="Дополнительные кафедры"
     )
 
@@ -163,14 +215,11 @@ class Teacher(models.Model):
         return f"{self.user.get_full_name()}"
 
 class Group(models.Model):
-    """Учебная группа"""
-    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, related_name='groups', verbose_name="Направление")
+    specialty = models.ForeignKey(Specialty, on_delete=models.PROTECT, related_name='groups', verbose_name="Направление")
     name = models.CharField(max_length=50, unique=True, verbose_name="Название группы (напр. 400101-А)")
     course = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(6)], verbose_name="Курс")
     academic_year = models.CharField(max_length=20, verbose_name="Учебный год")
     language = models.CharField(max_length=2, choices=[('TJ', 'TJ'), ('RU', 'RU'), ('EN', 'EN')], default='RU', verbose_name="Язык")
-
-    # ✅ НОВОЕ ПОЛЕ
     has_military_training = models.BooleanField(default=False, verbose_name="Военная кафедра")
 
     class Meta:
@@ -184,7 +233,6 @@ class Group(models.Model):
         return f"{self.name} ({self.course} курс)"
 
 class Student(models.Model):
-    """Студент"""
     GENDER_CHOICES = [
         ('M', 'Мужской'),
         ('F', 'Женский'),
@@ -297,7 +345,6 @@ class Student(models.Model):
             return 0
 
 class GroupTransferHistory(models.Model):
-    """История переводов студентов"""
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='transfer_history')
     from_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, related_name='transfers_from')
     to_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, related_name='transfers_to')
@@ -313,7 +360,34 @@ class GroupTransferHistory(models.Model):
     def __str__(self):
         return f"{self.student}: {self.from_group} → {self.to_group}"
 
-# Сигналы создания профилей
+
+class StructureChangeLog(models.Model):
+    """Лог изменений названий и структуры"""
+    OBJECT_TYPES = [
+        ('INSTITUTE', 'Институт'),
+        ('FACULTY', 'Факультет'),
+        ('DEPARTMENT', 'Кафедра'),
+    ]
+    
+    object_type = models.CharField(max_length=20, choices=OBJECT_TYPES)
+    object_id = models.IntegerField()
+    object_name = models.CharField(max_length=200, verbose_name="Текущее название")
+    
+    field_changed = models.CharField(max_length=50, verbose_name="Поле")
+    old_value = models.TextField(verbose_name="Старое значение")
+    new_value = models.TextField(verbose_name="Новое значение")
+    
+    changed_at = models.DateTimeField(auto_now_add=True)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "История структуры"
+        verbose_name_plural = "История структуры"
+        ordering = ['-changed_at']
+
+    def __str__(self):
+        return f"{self.object_type} {self.object_name}: {self.old_value} -> {self.new_value}"
+
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -332,3 +406,39 @@ def create_user_profile(sender, instance, created, **kwargs):
             ProRector.objects.create(user=instance, title="Заместитель директора")
         elif instance.role == 'HEAD_OF_DEPT':
             HeadOfDepartment.objects.create(user=instance)
+
+
+@receiver(pre_save, sender=Faculty)
+def log_faculty_changes(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = Faculty.objects.get(pk=instance.pk)
+            if old_instance.name != instance.name:
+                StructureChangeLog.objects.create(
+                    object_type='FACULTY',
+                    object_id=instance.pk,
+                    object_name=instance.name,
+                    field_changed='name',
+                    old_value=old_instance.name,
+                    new_value=instance.name
+                )
+        except Faculty.DoesNotExist:
+            pass
+
+
+@receiver(pre_save, sender=Department)
+def log_department_changes(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = Department.objects.get(pk=instance.pk)
+            if old_instance.name != instance.name:
+                StructureChangeLog.objects.create(
+                    object_type='DEPARTMENT',
+                    object_id=instance.pk,
+                    object_name=instance.name,
+                    field_changed='name',
+                    old_value=old_instance.name,
+                    new_value=instance.name
+                )
+        except Department.DoesNotExist:
+            pass

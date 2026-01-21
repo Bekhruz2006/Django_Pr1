@@ -12,14 +12,16 @@ from io import BytesIO
 from django.db.models import Q
 try:
     from docx import Document
-    from docx.shared import Inches, Pt, Cm 
+    from docx.shared import Pt, Cm
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
     DOCX_AVAILABLE = True
 except ImportError:
     DOCX_AVAILABLE = False
 
-from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot
+from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot, AcademicPlan, PlanDiscipline
 from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department
 
@@ -854,8 +856,7 @@ def group_list(request):
 @login_required
 def export_schedule(request):
     if not DOCX_AVAILABLE:
-        messages.error(request, 'Библиотека python-docx не установлена.')
-        return redirect('schedule:view')
+        return HttpResponse("Library python-docx not installed", status=500)
 
     group_id = request.GET.get('group')
     group = get_object_or_404(Group, id=group_id)
@@ -870,21 +871,31 @@ def export_schedule(request):
         faculty = department.faculty
         institute = faculty.institute
     except AttributeError:
-        return HttpResponse("Ошибка структуры: Группа не привязана к специальности/кафедре/факультету.", status=400)
+        return HttpResponse("Ошибка структуры: Группа не привязана корректно.", status=400)
 
-    director = Director.objects.filter(institute=institute).first()
-    director_name = director.user.get_full_name() if director else "________________"
+    director_user = None
+    director_obj = Director.objects.filter(institute=institute).first()
+    if director_obj:
+        director_user = director_obj.user
     
-    vice = ProRector.objects.filter(institute=institute).first()
-    vice_name = vice.user.get_full_name() if vice else "________________"
+    vice_user = None
+    vice_obj = ProRector.objects.filter(institute=institute, title__icontains='таълим').first()
+    if not vice_obj:
+        vice_obj = ProRector.objects.filter(institute=institute).first()
+    
+    if vice_obj:
+        vice_user = vice_obj.user
+
+    director_name = director_user.get_full_name() if director_user else "Мирзозода А. Н." # Дефолт из примера
+    vice_name = vice_user.get_full_name() if vice_user else "Ҷовиди Ҷамшед" # Дефолт из примера
     
     head_edu_name = "Ҷалилов Р.Р." 
 
     doc = Document()
     
     section = doc.sections[0]
-    section.left_margin = Cm(1.5)  
-    section.right_margin = Cm(1.5)
+    section.left_margin = Cm(1.0)
+    section.right_margin = Cm(1.0)
     section.top_margin = Cm(1.0)
     section.bottom_margin = Cm(1.0)
 
@@ -895,7 +906,7 @@ def export_schedule(request):
     c1 = header_table.cell(0, 0)
     p1 = c1.paragraphs[0]
     p1.add_run("Мувофиқа карда шуд:\n").bold = True
-    p1.add_run("сардори раёсати таълим\n")
+    p1.add_run("Сардори раёсати таълим\n")
     p1.add_run(f"________ дотсент {head_edu_name}\n")
     p1.add_run("«___» _________ 2025с")
     
@@ -903,24 +914,23 @@ def export_schedule(request):
     p2 = c2.paragraphs[0]
     p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     p2.add_run("Тасдиқ мекунам:\n").bold = True
-    p2.add_run("муовини ректор оид ба корҳои таълимӣ\n") 
+    p2.add_run("Муовини директор\nоид ба корҳои таълимӣ\n").bold = False
     p2.add_run(f"________ дотсент {vice_name}\n")
     p2.add_run("«___»_________ 2025c")
 
-    doc.add_paragraph() # Spacer
+    doc.add_paragraph() 
 
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = title_p.add_run("ҶАДВАЛИ ДАРСӢ")
     run.bold = True
-    run.font.size = Pt(14)
+    run.font.size = Pt(16)
     run.font.name = 'Times New Roman'
 
     subtitle = doc.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
     sem_text = "якуми" if active_semester.number == 1 else "дуюми"
     year_text = active_semester.academic_year
-    shift_text = "1" if active_semester.shift == "MORNING" else "2"
     
     text = f"дар нимсолаи {sem_text} соли таҳсили {year_text} барои донишҷӯёни курси {group.course}-юми " \
            f"{institute.name}-и Донишгоҳи байналмилаии сайёҳӣ ва соҳибкории Тоҷикистон"
@@ -928,10 +938,13 @@ def export_schedule(request):
     run_sub = subtitle.add_run(text)
     run_sub.font.name = 'Times New Roman'
     run_sub.font.size = Pt(12)
+    run_sub.bold = True
     
-    shift_p = doc.add_paragraph(f"(БАСТИ {shift_text})")
+    shift_num = "1" if active_semester.shift == "MORNING" else "2"
+    shift_p = doc.add_paragraph(f"(БАСТИ {shift_num})")
     shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     shift_p.runs[0].bold = True
+    shift_p.runs[0].font.size = Pt(14)
 
     table = doc.add_table(rows=1, cols=4)
     table.style = 'Table Grid'
@@ -939,12 +952,19 @@ def export_schedule(request):
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = "ҲАФТА"
     hdr_cells[1].text = "СОАТ"
+    
     hdr_cells[2].text = f"{specialty.code} – “{specialty.name}” ({group.students.count()} нафар)"
     hdr_cells[3].text = "АУД"
     
     for cell in hdr_cells:
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        shading_elm = OxmlElement('w:shd')
+        shading_elm.set(qn('w:val'), 'clear')
+        shading_elm.set(qn('w:color'), 'auto')
+        shading_elm.set(qn('w:fill'), 'D9D9D9') # Серый цвет
+        cell._tc.get_or_add_tcPr().append(shading_elm)
+        
         for run in cell.paragraphs[0].runs:
             run.bold = True
             run.font.size = Pt(10)
@@ -957,72 +977,84 @@ def export_schedule(request):
             group=group, semester=active_semester, day_of_week=day_num, is_military=True
         ).exists()
 
-        if is_military_day:
-            first_row_idx = len(table.rows)
-            for i, ts in enumerate(time_slots):
-                row = table.add_row()
-                row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
-            
-            day_cell = table.rows[first_row_idx].cells[0]
-            day_cell.text = day_name
-            day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            try:
-                day_cell.merge(table.rows[len(table.rows)-1].cells[0])
-            except: pass
-            
-            mil_cell_top = table.rows[first_row_idx].cells[2]
-            try:
-                mil_cell_top.merge(table.rows[first_row_idx].cells[3]) # Горизонтально
-                mil_cell_top.text = "Кафедраи ҳарбӣ"
-                mil_cell_top.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                mil_cell_top.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-                
-                run = mil_cell_top.paragraphs[0].runs[0]
-                run.bold = True
-                run.font.size = Pt(36)
-                
-                mil_cell_top.merge(table.rows[len(table.rows)-1].cells[3]) # Вертикально до конца дня
-            except: pass
+        first_row_idx = len(table.rows) 
 
-        else:
-            first_row_idx = len(table.rows)
-            for ts in time_slots:
-                row = table.add_row()
-                row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
-                
+        for ts in time_slots:
+            row = table.add_row()
+            row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
+            row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            row.cells[1].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            row.cells[1].paragraphs[0].runs[0].font.bold = True
+            
+            if not is_military_day:
                 slot = ScheduleSlot.objects.filter(
                     group=group, semester=active_semester, day_of_week=day_num, time_slot=ts, is_active=True
                 ).first()
                 
                 if slot:
-                    cell_text = f"{slot.subject.name} ({slot.get_lesson_type_display()})\n"
+                    cell = row.cells[2]
+                    p = cell.paragraphs[0]
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p.add_run(f"{slot.subject.name} ({slot.get_lesson_type_display()})\n")
                     if slot.teacher:
-                        cell_text += f"{slot.teacher.user.get_full_name()}"
-                    row.cells[2].text = cell_text
-                    row.cells[3].text = slot.room if slot.room else ""
-                
-            day_cell = table.rows[first_row_idx].cells[0]
-            day_cell.text = day_name
-            day_cell.paragraphs[0].runs[0].bold = True
-            day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            try:
-                day_cell.merge(table.rows[len(table.rows)-1].cells[0])
-            except: pass
+                        p.add_run(f"{slot.teacher.user.get_full_name()}")
+                    
+                    cell_aud = row.cells[3]
+                    cell_aud.text = slot.room if slot.room else ""
+                    cell_aud.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    cell_aud.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        
+        day_cell = table.rows[first_row_idx].cells[0]
+        day_cell.text = day_name
+        day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        
+        tcPr = day_cell._tc.get_or_add_tcPr()
+        textDirection = OxmlElement('w:textDirection')
+        textDirection.set(qn('w:val'), 'btLr') # Bottom to Top
+        tcPr.append(textDirection)
+        
+        shading_elm = OxmlElement('w:shd')
+        shading_elm.set(qn('w:val'), 'clear')
+        shading_elm.set(qn('w:color'), 'auto')
+        shading_elm.set(qn('w:fill'), 'D9D9D9')
+        tcPr.append(shading_elm)
+
+        last_row_idx = len(table.rows) - 1
+        if last_row_idx > first_row_idx:
+            day_cell.merge(table.rows[last_row_idx].cells[0])
+
+        if is_military_day:
+            mil_cell = table.rows[first_row_idx].cells[2]
+            
+            mil_cell.merge(table.rows[first_row_idx].cells[3])
+            
+            if last_row_idx > first_row_idx:
+                mil_cell.merge(table.rows[last_row_idx].cells[3]) 
+            
+            mil_cell.text = "Кафедраи ҳарбӣ"
+            
+            for paragraph in mil_cell.paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                for run in paragraph.runs:
+                    run.bold = True
+                    run.font.size = Pt(48) 
+                    run.font.name = 'Times New Roman'
+            mil_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
     doc.add_paragraph().add_run('\n')
-    dean_table = doc.add_table(rows=1, cols=2)
-    dean_table.autofit = True
-    dean_table.width = section.page_width
     
-    dean_cell = dean_table.cell(0, 0)
-    dean_name = faculty.dean_manager.user.get_full_name() if hasattr(faculty, 'dean_manager') else "________________"
-    p = dean_cell.paragraphs[0]
-    p.add_run(f"Декани факултети\n{faculty.name}").bold = True
+    footer_table = doc.add_table(rows=1, cols=2)
+    footer_table.autofit = True
+    footer_table.width = section.page_width
     
-    dean_sign = dean_table.cell(0, 1)
-    p_s = dean_sign.paragraphs[0]
-    p_s.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    p_s.add_run(f"________ {dean_name}").bold = True
+    f_c1 = footer_table.cell(0, 0)
+    fp1 = f_c1.paragraphs[0]
+    fp1.add_run("Директор").bold = True
+    
+    f_c2 = footer_table.cell(0, 1)
+    fp2 = f_c2.paragraphs[0]
+    fp2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    fp2.add_run(f"{director_name}").bold = True
 
     f = BytesIO()
     doc.save(f)
@@ -1034,6 +1066,129 @@ def export_schedule(request):
     return response
 
 
+# --- УПРАВЛЕНИЕ РУП ---
 
+@user_passes_test(is_dean)
+def manage_plans(request):
+    plans = AcademicPlan.objects.all().select_related('specialty').order_by('-admission_year')
+    return render(request, 'schedule/plans/manage_plans.html', {'plans': plans})
+
+
+@user_passes_test(is_dean)
+def create_plan(request):
+    from .forms import AcademicPlanForm
+    if request.method == 'POST':
+        form = AcademicPlanForm(request.POST)
+        if form.is_valid():
+            plan = form.save()
+            return redirect('schedule:plan_detail', plan_id=plan.id)
+    else:
+        form = AcademicPlanForm()
+    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Создать РУП'})
+
+
+@user_passes_test(is_dean)
+def plan_detail(request, plan_id):
+    from .forms import PlanDisciplineForm
+    from .models import AcademicPlan, PlanDiscipline
+    plan = get_object_or_404(AcademicPlan, id=plan_id)
+    disciplines = PlanDiscipline.objects.filter(plan=plan).order_by('semester_number', 'subject_template__name')
+    
+    if request.method == 'POST':
+        form = PlanDisciplineForm(request.POST)
+        if form.is_valid():
+            disc = form.save(commit=False)
+            disc.plan = plan
+            disc.save()
+            messages.success(request, "Дисциплина добавлена")
+            return redirect('schedule:plan_detail', plan_id=plan.id)
+    else:
+        form = PlanDisciplineForm()
+    
+    return render(request, 'schedule/plans/plan_detail.html', {
+        'plan': plan, 'disciplines': disciplines, 'form': form
+    })
+
+
+@user_passes_test(is_dean)
+def generate_subjects_from_rup(request):
+    from .models import AcademicPlan, PlanDiscipline
+    active_semester = Semester.objects.filter(is_active=True).first()
+    if not active_semester:
+        messages.error(request, "Нет активного семестра")
+        return redirect('schedule:manage_semesters')
+
+    groups = Group.objects.all()
+    
+    suggestions = {}
+
+    for group in groups:
+        is_autumn = '1' in str(active_semester.number)
+        current_semester_num = (group.course * 2) - 1 if is_autumn else (group.course * 2)
+        
+        plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).first()
+        
+        if not plan:
+            continue
+
+        disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_semester_num)
+
+        for disc in disciplines:
+            exists = Subject.objects.filter(
+                name=disc.subject_template.name,
+                groups=group
+            ).exists()
+            
+            if exists:
+                continue
+
+            key = f"{disc.subject_template.id}_{disc.lecture_hours}_{disc.practice_hours}"
+            
+            if key not in suggestions:
+                suggestions[key] = {
+                    'template': disc.subject_template,
+                    'groups': [],
+                    'data': disc,
+                    'is_stream_candidate': False
+                }
+            
+            suggestions[key]['groups'].append(group)
+            if len(suggestions[key]['groups']) > 1:
+                suggestions[key]['is_stream_candidate'] = True
+
+    if request.method == 'POST':
+        created_count = 0
+        with transaction.atomic():
+            selected_keys = request.POST.getlist('selected_items')
+            for key in selected_keys:
+                if key in suggestions:
+                    item = suggestions[key]
+                    disc_data = item['data']
+                    
+                    subject = Subject.objects.create(
+                        name=disc_data.subject_template.name,
+                        code=f"{disc_data.subject_template.id}-{active_semester.academic_year}",
+                        department=item['groups'][0].specialty.department,
+                        
+                        lecture_hours=disc_data.lecture_hours,
+                        practice_hours=disc_data.practice_hours,
+                        control_hours=disc_data.control_hours,
+                        independent_work_hours=disc_data.independent_hours,
+                        credits=disc_data.credits,
+                        
+                        is_stream_subject=len(item['groups']) > 1
+                    )
+                    
+                    subject.groups.set(item['groups'])
+                    subject.save()
+                    created_count += 1
+        
+        messages.success(request, f"Создано предметов: {created_count}")
+        return redirect('schedule:manage_subjects')
+
+    return render(request, 'schedule/plans/generate_preview.html', {
+        'suggestions': suggestions.values(),
+        'semester': active_semester
+    })
 
 

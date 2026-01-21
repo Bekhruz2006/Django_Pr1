@@ -87,6 +87,27 @@
                     </h2>
                     <div id="collapse{{ dept.id }}" class="accordion-collapse collapse">
                         <div class="accordion-body">
+                            <!-- Блок статистики Штатного расписания -->
+                            <div class="alert alert-light border mb-3">
+                                <div class="row text-center">
+                                    <div class="col-md-4 border-end">
+                                        <small class="text-muted d-block">Штатные ставки</small>
+                                        <strong class="text-primary">{{ dept.total_wage_rate }}</strong>
+                                    </div>
+                                    <div class="col-md-4 border-end">
+                                        <small class="text-muted d-block">Бюджет часов</small>
+                                        <strong>{{ dept.total_hours_budget }}</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Занято часов</small>
+                                        <strong class="{% if dept.get_occupied_hours > dept.total_hours_budget %}text-danger{% else %}text-success{% endif %}">
+                                            {{ dept.get_occupied_hours }}
+                                        </strong>
+                                        <small class="text-muted">({{ dept.get_load_percentage }}%)</small>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white border rounded">
                                 <div>
                                     <h6 class="mb-2 fw-bold text-primary">Действия с кафедрой:</h6>
@@ -98,6 +119,17 @@
                                     <a href="{% url 'accounts:add_user' %}?role=TEACHER&department={{ dept.id }}" class="btn btn-sm btn-outline-success me-1 mb-1">
                                         <i class="bi bi-person-plus-fill"></i> Добавить преподавателя
                                     </a>
+
+                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary mb-1">
+                                        <i class="bi bi-gear"></i> Настройки
+                                    </a>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-sm btn-link text-muted" disabled title="История изменений (в админке)">
+                                        <i class="bi bi-clock-history"></i> История
+                                    </button>
+                                </div>
+                            </div>
 
                                     <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary mb-1">
                                         <i class="bi bi-gear"></i> Настройки

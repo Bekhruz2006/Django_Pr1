@@ -34,4 +34,9 @@ urlpatterns = [
     path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
     
     path('groups/', views.group_list, name='group_list'),
+    
+    path('plans/', views.manage_plans, name='manage_plans'),
+    path('plans/create/', views.create_plan, name='create_plan'),
+    path('plans/<int:plan_id>/', views.plan_detail, name='plan_detail'),
+    path('plans/generate/', views.generate_subjects_from_rup, name='generate_subjects'),
 ]

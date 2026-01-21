@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Импорт студентов{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Массовый импорт студентов
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Формат Excel файла (.xlsx):</strong><br>
+                    Колонка A: Имя<br>
+                    Колонка B: Фамилия<br>
+                    Колонка C: Отчество (необязательно)<br>
+                    Колонка D: Номер зачетки (необязательно, иначе авто)<br>
+                    <em>Первая строка (заголовки) пропускается.</em>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Выберите группу (опционально)</label>
+                        <select name="group_id" class="form-select">
+                            <option value="">-- Без группы --</option>
+                            {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Все импортированные студенты будут добавлены в эту группу.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Файл Excel</label>
+                        <input type="file" name="excel_file" class="form-control" accept=".xlsx" required>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-upload"></i> Начать импорт
+                        </button>
+                        <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

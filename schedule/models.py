@@ -29,8 +29,10 @@ class Subject(models.Model):
     independent_work_hours = models.IntegerField(default=0, verbose_name="КМД часов за семестр")
 
     semester_weeks = models.IntegerField(default=16, verbose_name="Недель в семестре")
-    is_stream_subject = models.BooleanField(default=False, verbose_name="Это поток (совместное занятие)")
-
+    is_stream_subject = models.BooleanField(
+        default=False, 
+        verbose_name="Это поток (совместное занятие)"
+    )
     teacher = models.ForeignKey(
         'accounts.Teacher',
         on_delete=models.SET_NULL,
@@ -50,6 +52,14 @@ class Subject(models.Model):
 
     credits = models.IntegerField(default=0, verbose_name="Кредиты (устарело)")
     hours_per_semester = models.IntegerField(default=0, verbose_name="Часов (устарело)")
+    
+    plan_discipline = models.ForeignKey(
+        'PlanDiscipline',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Основание (из плана)"
+    )
 
 
 
@@ -57,6 +67,10 @@ class Subject(models.Model):
         verbose_name = "Предмет"
         verbose_name_plural = "Предметы"
         ordering = ['name']
+
+
+
+
 
     def __str__(self):
         return f"{self.name} ({self.department.name})"
@@ -333,3 +347,66 @@ class AcademicWeek(models.Model):
         today = date.today()
         delta = today - self.semester.start_date
         return (delta.days // 7) + 1
+
+
+# --- НОВЫЙ БЛОК: УЧЕБНЫЕ ПЛАНЫ (РУП) ---
+
+class SubjectTemplate(models.Model):
+    """Справочник названий дисциплин (чтобы не дублировать названия)"""
+    name = models.CharField(max_length=200, unique=True, verbose_name="Название дисциплины")
+    
+    class Meta:
+        verbose_name = "Шаблон дисциплины"
+        verbose_name_plural = "Справочник дисциплин"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class AcademicPlan(models.Model):
+    """Рабочий учебный план (РУП)"""
+    specialty = models.ForeignKey('accounts.Specialty', on_delete=models.CASCADE, verbose_name="Специальность")
+    admission_year = models.IntegerField(verbose_name="Год набора (поступления)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name="Актуальный")
+
+    class Meta:
+        verbose_name = "Учебный план (РУП)"
+        verbose_name_plural = "Учебные планы"
+        unique_together = ['specialty', 'admission_year']
+
+    def __str__(self):
+        return f"РУП: {self.specialty.name} ({self.admission_year})"
+
+
+class PlanDiscipline(models.Model):
+    """Строка в учебном плане (Предмет в семестре)"""
+    plan = models.ForeignKey(AcademicPlan, on_delete=models.CASCADE, related_name='disciplines')
+    subject_template = models.ForeignKey(SubjectTemplate, on_delete=models.PROTECT, verbose_name="Дисциплина")
+    
+    semester_number = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(8)],
+        verbose_name="Номер семестра (1-8)"
+    )
+    
+    credits = models.IntegerField(verbose_name="Кредиты")
+    lecture_hours = models.IntegerField(default=0, verbose_name="Лекции")
+    practice_hours = models.IntegerField(default=0, verbose_name="Практика")
+    control_hours = models.IntegerField(default=0, verbose_name="СРСП")
+    independent_hours = models.IntegerField(default=0, verbose_name="СРС")
+    
+    control_type = models.CharField(
+        max_length=20, 
+        choices=[('EXAM', 'Экзамен'), ('CREDIT', 'Зачет')],
+        default='EXAM'
+    )
+
+    class Meta:
+        verbose_name = "Дисциплина плана"
+        verbose_name_plural = "Дисциплины плана"
+        ordering = ['semester_number', 'subject_template__name']
+        unique_together = ['plan', 'subject_template', 'semester_number']
+
+    def __str__(self):
+        return f"{self.subject_template.name} ({self.semester_number} сем.)"

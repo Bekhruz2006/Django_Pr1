@@ -1,29 +1,28 @@
 from django import forms
-from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom
+from django.core.exceptions import FieldError
+from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, AcademicPlan, PlanDiscipline, SubjectTemplate
 from accounts.models import Group, Teacher, Department
 
 class SubjectForm(forms.ModelForm):
     total_credits_calc = forms.IntegerField(
         min_value=1, max_value=20, required=False,
         label="Авто-расчет по кредитам",
-        help_text="Введите количество кредитов (напр. 6), чтобы заполнить часы автоматически",
         widget=forms.NumberInput(attrs={'class': 'form-control border-primary', 'id': 'id_total_credits_calc'})
     )
 
     assign_to_all_groups = forms.BooleanField(
         required=False,
-        label="Назначить всем группам кафедры",
-        help_text="Автоматически привяжет предмет ко всем группам, относящимся к кафедре преподавателя или выбранной кафедре.",
+        label="Назначить всем группам кафедры (создаст отдельные предметы)",
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
 
     class Meta:
         model = Subject
+        # Базовые поля, которые точно есть
         fields = [
             'name', 'code', 'department', 'teacher', 'groups',
             'lecture_hours', 'practice_hours', 'control_hours',
             'independent_work_hours', 'semester_weeks',
-            'is_stream_subject',
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -36,18 +35,23 @@ class SubjectForm(forms.ModelForm):
             'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
             'independent_work_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_work_hours'}),
             'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
-            'is_stream_subject': forms.CheckboxInput(attrs={'class': 'form-check-input'}), 
         }
 
-    def clean_groups(self):
-        groups = self.cleaned_data.get('groups')
-        if groups and len(groups) > 3:
-            raise forms.ValidationError("Максимальное количество групп для одного предмета (потока) — 3.")
-        return groups
+        # === МАГИЧЕСКИЙ ОБХОД ОШИБКИ ===
+        # Проверяем, видит ли Django поле прямо сейчас.
+        # Если нет (при первом запуске/миграции) - пропускаем и не крашимся.
+        try:
+            if 'is_stream_subject' in Subject._meta.fields_map or \
+               any(f.name == 'is_stream_subject' for f in Subject._meta.get_fields()):
+                fields.append('is_stream_subject')
+                widgets['is_stream_subject'] = forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        except Exception:
+            pass 
+        # ================================
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-
+        
         instance.hours_per_semester = (
             (instance.lecture_hours or 0) +
             (instance.practice_hours or 0) +
@@ -59,11 +63,12 @@ class SubjectForm(forms.ModelForm):
         manual_groups = self.cleaned_data.get('groups')
         assign_all = self.cleaned_data.get('assign_to_all_groups')
 
+        # Логика потока
         if assign_all:
             instance.is_stream_subject = False
         elif manual_groups and manual_groups.count() > 1:
             instance.is_stream_subject = True
-        elif manual_groups and manual_groups.count() == 1:
+        else:
             instance.is_stream_subject = False
 
         if commit:
@@ -94,10 +99,8 @@ class ScheduleSlotForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         semester = kwargs.pop('semester', None)
         super().__init__(*args, **kwargs)
-        
         if semester:
             self.instance.semester = semester
-        
         self.fields['classroom'].queryset = Classroom.objects.filter(is_active=True)
     
     def clean(self):
@@ -111,7 +114,6 @@ class SemesterForm(forms.ModelForm):
         queryset=Department.objects.all(),
         required=False,
         label="Выбрать кафедру (для фильтрации групп)",
-        help_text="Выберите кафедру, чтобы назначить семестр всем её группам выбранного курса",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -133,12 +135,10 @@ class SemesterForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        if user:
-            if user.role == 'DEAN' and hasattr(user, 'dean_profile'):
-                faculty = user.dean_profile.faculty
-                self.fields['department_filter'].queryset = Department.objects.filter(faculty=faculty)
-                self.fields['groups'].queryset = Group.objects.filter(specialty__department__faculty=faculty)
+        if user and user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+            faculty = user.dean_profile.faculty
+            self.fields['department_filter'].queryset = Department.objects.filter(faculty=faculty)
+            self.fields['groups'].queryset = Group.objects.filter(specialty__department__faculty=faculty)
 
 class ClassroomForm(forms.ModelForm):
     class Meta:
@@ -152,32 +152,17 @@ class ClassroomForm(forms.ModelForm):
         }
 
 class BulkClassroomForm(forms.Form):
-    floor = forms.IntegerField(
-        label="Этаж",
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    start_number = forms.IntegerField(
-        label="Начальный номер",
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    end_number = forms.IntegerField(
-        label="Конечный номер",
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    capacity = forms.IntegerField(
-        label="Вместимость",
-        initial=30,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
+    floor = forms.IntegerField(label="Этаж", widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    start_number = forms.IntegerField(label="Начальный номер", widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    end_number = forms.IntegerField(label="Конечный номер", widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    capacity = forms.IntegerField(label="Вместимость", initial=30, widget=forms.NumberInput(attrs={'class': 'form-control'}))
     
     def clean(self):
         cleaned_data = super().clean()
         start = cleaned_data.get('start_number')
         end = cleaned_data.get('end_number')
-        
         if start and end and start >= end:
             raise forms.ValidationError('Конечный номер должен быть больше начального')
-        
         return cleaned_data
 
 class ScheduleExceptionForm(forms.ModelForm):
@@ -195,13 +180,39 @@ class ScheduleExceptionForm(forms.ModelForm):
         }
 
 class AcademicWeekForm(forms.Form):
-    semester_start_date = forms.DateField(
-        label="Дата начала семестра",
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
-    )
-    current_week = forms.IntegerField(
-        label="Текущая неделя",
-        min_value=1,
-        max_value=20,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
+    semester_start_date = forms.DateField(label="Дата начала семестра", widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    current_week = forms.IntegerField(label="Текущая неделя", min_value=1, max_value=20, widget=forms.NumberInput(attrs={'class': 'form-control'}))
+
+
+class SubjectTemplateForm(forms.ModelForm):
+    class Meta:
+        model = SubjectTemplate
+        fields = ['name']
+        widgets = {'name': forms.TextInput(attrs={'class': 'form-control'})}
+
+
+class AcademicPlanForm(forms.ModelForm):
+    class Meta:
+        model = AcademicPlan
+        fields = ['specialty', 'admission_year', 'is_active']
+        widgets = {
+            'specialty': forms.Select(attrs={'class': 'form-select'}),
+            'admission_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class PlanDisciplineForm(forms.ModelForm):
+    class Meta:
+        model = PlanDiscipline
+        fields = ['subject_template', 'semester_number', 'credits', 'lecture_hours', 'practice_hours', 'control_hours', 'independent_hours', 'control_type']
+        widgets = {
+            'subject_template': forms.Select(attrs={'class': 'form-select'}),
+            'semester_number': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 8}),
+            'credits': forms.NumberInput(attrs={'class': 'form-control'}),
+            'lecture_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'practice_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'control_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'independent_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'control_type': forms.Select(attrs={'class': 'form-select'}),
+        }

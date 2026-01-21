@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Генерация нагрузки{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <h4><i class="bi bi-robot"></i> Генерация нагрузки</h4>
+            <p>Система проанализировала группы и РУПы для семестра <strong>{{ semester }}</strong>.</p>
+            <p>Ниже представлены предметы, которые нужно создать. Если у нескольких групп совпадает предмет, они объединены в <strong>Поток</strong>.</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="table table-bordered bg-white shadow-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="40"><input type="checkbox" id="selectAll" checked></th>
+                            <th>Дисциплина</th>
+                            <th>Тип</th>
+                            <th>Группы (Поток)</th>
+                            <th>Нагрузка (Л/П/КМРО)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in suggestions %}
+                        <tr class="{% if item.is_stream_candidate %}table-warning{% endif %}">
+                            <td class="text-center">
+                                <input type="checkbox" name="selected_items" value="{{ item.data.subject_template.id }}_{{ item.data.lecture_hours }}_{{ item.data.practice_hours }}" checked>
+                            </td>
+                            <td><strong>{{ item.template.name }}</strong></td>
+                            <td>
+                                {% if item.is_stream_candidate %}
+                                    <span class="badge bg-indigo">ПОТОК</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Группа</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for g in item.groups %}
+                                    <span class="badge bg-outline-primary border text-dark">{{ g.name }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {{ item.data.lecture_hours }} / {{ item.data.practice_hours }} / {{ item.data.control_hours }}
+                                ({{ item.data.credits }} кр.)
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="fixed-bottom bg-white p-3 border-top shadow d-flex justify-content-end">
+                <a href="{% url 'schedule:manage_plans' %}" class="btn btn-secondary me-2">Отмена</a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Создать выбранные предметы
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.getElementById('selectAll').addEventListener('change', function() {
+        document.querySelectorAll('input[name="selected_items"]').forEach(cb => cb.checked = this.checked);
+    });
+</script>
+{% endblock %}

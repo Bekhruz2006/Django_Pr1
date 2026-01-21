@@ -278,7 +278,7 @@
                         </a>
                     </li>
 
-                    {# --- МЕНЮ АДМИНИСТРАТОРА / РЕКТОРА --- #}
+                  
                     {% if user.is_superuser or user.role == 'RECTOR' or user.role == 'PRO_RECTOR' %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -302,18 +302,18 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><h6 class="dropdown-header">Управление</h6></li>
-                            
+
                             <li><a class="dropdown-item" href="{% url 'accounts:manage_structure' %}">Мои кафедры</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:manage_structure' %}">Специальности</a></li>
-                            
+
                             <li><a class="dropdown-item" href="{% url 'accounts:group_management' %}">Группы</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'schedule:constructor' %}">
                                 <i class="bi bi-calendar-plus me-1"></i> Конструктор расписания
-                            </a></li>                            
+                            </a></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=TEACHER">Преподаватели</a></li>
                             <li><a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=STUDENT">Студенты</a></li>
-                            
+
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'schedule:manage_semesters' %}">Семестры</a></li>
                         </ul>
@@ -339,7 +339,6 @@
                     </li>
                 </ul>
 
-                <!-- User Dropdown (Справа) -->
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -372,6 +371,26 @@
                 </div>
             </div>
         {% endif %}
+
+        <div class="container-fluid mt-2">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-white p-2 rounded shadow-sm">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}"><i class="bi bi-house"></i> Главная</a></li>
+
+                    {% if request.resolver_match.app_name == 'accounts' %}
+                        <li class="breadcrumb-item active">Управление</li>
+                    {% elif request.resolver_match.app_name == 'schedule' %}
+                        <li class="breadcrumb-item active">Расписание</li>
+                    {% elif request.resolver_match.app_name == 'journal' %}
+                        <li class="breadcrumb-item active">Журнал</li>
+                    {% endif %}
+
+                    <!-- Динамическое определение текущей страницы -->
+                    <li class="breadcrumb-item active" aria-current="page">{% block breadcrumb_title %}{% endblock %}</li>
+
+                </ol>
+            </nav>
+        </div>
 
         {% block content %}{% endblock %}
     </div>

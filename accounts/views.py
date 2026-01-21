@@ -5,9 +5,12 @@ from django.contrib import messages
 from django.db import transaction
 from django.db import models
 from django.http import HttpResponseForbidden
+from .services import StudentImportService
+
+
 from .models import (
     User, Student, Teacher, Dean, Group, GroupTransferHistory,
-    Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector
+    Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector, ViceDean
 )
 from .forms import (
     UserCreateForm, StudentForm, TeacherForm, DeanForm,
@@ -16,8 +19,7 @@ from .forms import (
     InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm
 )
 from django.core.exceptions import ObjectDoesNotExist
-from .forms import InstituteManagementForm
-
+from .forms import InstituteManagementForm, InstituteForm, FacultyFullForm
 
 
 
@@ -252,13 +254,40 @@ def user_management(request):
         'search': search
     })
 
+
+
+@user_passes_test(is_management)
+def import_students(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        group_id = request.POST.get('group_id')
+        
+        if not excel_file.name.endswith('.xlsx'):
+            messages.error(request, 'Пожалуйста, загрузите файл .xlsx')
+            return redirect('accounts:user_management')
+
+        try:
+            results = StudentImportService.import_from_excel(excel_file, group_id)
+            messages.success(request, f"Импортировано: {results['created']} студентов.")
+            if results['errors']:
+                messages.warning(request, f"Ошибки ({len(results['errors'])}): {'; '.join(results['errors'][:3])}...")
+        except Exception as e:
+            messages.error(request, f"Критическая ошибка импорта: {str(e)}")
+            
+        return redirect('accounts:user_management')
+    
+    groups = Group.objects.all()
+    return render(request, 'accounts/import_students.html', {'groups': groups})
+
+
+
+
+
 @user_passes_test(is_management)
 def add_user(request):
-    # Поддержка добавления преподавателя сразу в кафедру
     department_id = request.GET.get('department')
     initial_data = {}
     
-    # Если передана роль в URL (например, ?role=TEACHER)
     role_param = request.GET.get('role')
     if role_param:
         initial_data['role'] = role_param
@@ -480,20 +509,16 @@ def group_management(request):
 
 @login_required
 def add_group(request):
-    # Проверка прав
     if not (request.user.is_superuser or request.user.role in ['DEAN', 'VICE_DEAN']):
         messages.error(request, "Нет доступа")
         return redirect('core:dashboard')
 
-    # Получаем параметры из URL
     specialty_id = request.GET.get('specialty')
     
-    # Инициализация данных формы
     initial_data = {}
     if specialty_id:
         try:
             specialty = Specialty.objects.get(id=specialty_id)
-            # Проверка прав декана на эту специальность
             if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
                 if specialty.department.faculty != request.user.dean_profile.faculty:
                     messages.error(request, "Это специальность чужого факультета")
@@ -502,7 +527,6 @@ def add_group(request):
         except Specialty.DoesNotExist:
             pass
 
-    # Функция фильтрации (DRY - Don't Repeat Yourself)
     def configure_form(form):
         if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
@@ -510,12 +534,11 @@ def add_group(request):
                 form.fields['specialty'].queryset = Specialty.objects.filter(department__faculty=faculty)
 
     if request.method == 'POST':
-        form = GroupForm(request.POST, initial=initial_data) # Передаем initial даже в POST для корректной работы виджетов
-        configure_form(form) # Фильтруем выбор ДО валидации
+        form = GroupForm(request.POST, initial=initial_data) 
+        configure_form(form) 
 
         if form.is_valid():
             try:
-                # Дополнительная проверка безопасности
                 if is_dean(request.user):
                     spec = form.cleaned_data['specialty']
                     if spec.department.faculty != request.user.dean_profile.faculty:
@@ -524,7 +547,6 @@ def add_group(request):
                 group = form.save()
                 messages.success(request, f'Группа {group.name} успешно создана')
                 
-                # Если пришли из структуры - возвращаемся в структуру
                 if specialty_id:
                     return redirect('accounts:manage_structure')
                 return redirect('accounts:group_management')
@@ -564,29 +586,24 @@ def delete_group(request, group_id):
         return redirect('accounts:group_management')
     return render(request, 'accounts/delete_group.html', {'group': group, 'students_count': students_count})
 
-# --- УПРАВЛЕНИЕ СТРУКТУРОЙ ---
 
 @login_required
 def manage_structure(request):
-    """Страница управления структурой. Адаптируется под роль."""
     if not is_management(request.user):
         return redirect('core:dashboard')
         
     context = {}
     
-    # 1. СУПЕРЮЗЕР / РЕКТОР: Видят всё
     if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
-        # !!! ИСПРАВЛЕНИЕ ЗДЕСЬ !!!
         institutes = Institute.objects.prefetch_related(
             'faculties__departments__specialties',
-            'faculties__dean_manager__user', # Чтобы получить имя декана
-            'directors__user' # Исправлено: director_profile -> directors (related_name)
+            'faculties__dean_manager__user', 
+            'directors__user' 
         ).all()
         context['institutes'] = institutes
         context['is_admin'] = True
         return render(request, 'accounts/structure_manage.html', context)
         
-    # 2. ДЕКАН: Видит свой факультет
     elif request.user.role in ['DEAN', 'VICE_DEAN']:
         user_faculty = None
         if hasattr(request.user, 'dean_profile'):
@@ -595,7 +612,6 @@ def manage_structure(request):
             user_faculty = request.user.vicedean_profile.faculty
             
         if user_faculty:
-            # Показываем только этот факультет
             context['faculty'] = user_faculty
             context['departments'] = Department.objects.filter(faculty=user_faculty).prefetch_related('specialties', 'head__user')
             context['is_dean'] = True
@@ -606,7 +622,6 @@ def manage_structure(request):
             
     return redirect('core:dashboard')
 
-# --- CRUD ДЛЯ ИНСТИТУТА (Только Админ) ---
 @user_passes_test(is_admin_or_rector)
 def add_institute(request):
     if request.method == 'POST':
@@ -623,16 +638,13 @@ def add_institute(request):
 def edit_institute(request, pk):
     institute = get_object_or_404(Institute, pk=pk)
     
-    # Получаем текущих руководителей
     current_director = institute.directors.first()
     current_vice = institute.prorectors.filter(title__icontains='таълим').first()
     
     initial_data = {
-        'name': institute.name,
-        'abbreviation': institute.abbreviation,
-        'address': institute.address,
         'director': current_director.user if current_director else None,
         'vice_director_edu': current_vice.user if current_vice else None,
+        'vice_director_edu_title': current_vice.title if current_vice else "Муовини директор оид ба корҳои таълимӣ",
     }
 
     if request.method == 'POST':
@@ -643,23 +655,43 @@ def edit_institute(request, pk):
             with transaction.atomic():
                 form.save()
                 
-                # Обновление Директора
                 new_director_user = mgmt_form.cleaned_data['director']
+                
                 if new_director_user:
-                    Director.objects.update_or_create(
-                        institute=institute,
-                        defaults={'user': new_director_user}
-                    )
+                    if new_director_user.role != 'DIRECTOR' and not new_director_user.is_superuser:
+                        new_director_user.role = 'DIRECTOR'
+                        new_director_user.save()
+
+                    if current_director and current_director.user != new_director_user:
+                        current_director.institute = None
+                        current_director.save()
+
+                    director_profile, created = Director.objects.get_or_create(user=new_director_user)
+                    
+                    director_profile.institute = institute
+                    director_profile.save()
                 
-                # Обновление Зам. директора
+                elif current_director:
+                    current_director.institute = None
+                    current_director.save()
+
                 new_vice_user = mgmt_form.cleaned_data['vice_director_edu']
-                if new_vice_user:
-                    ProRector.objects.update_or_create(
-                        institute=institute,
-                        title="Муовини директор оид ба таълим", # Стандартное название
-                        defaults={'user': new_vice_user}
-                    )
+                title = mgmt_form.cleaned_data['vice_director_edu_title']
                 
+                if new_vice_user:
+                    if new_vice_user.role != 'PRO_RECTOR' and not new_vice_user.is_superuser:
+                        new_vice_user.role = 'PRO_RECTOR'
+                        new_vice_user.save()
+
+                    if current_vice and current_vice.user != new_vice_user:
+                        current_vice.institute = None # Или delete(), если профиль не нужен
+                        current_vice.save()
+
+                    vice_profile, created = ProRector.objects.get_or_create(user=new_vice_user)
+                    vice_profile.institute = institute
+                    vice_profile.title = title
+                    vice_profile.save()
+
             messages.success(request, "Институт и руководство обновлены")
             return redirect('accounts:manage_structure')
     else:
@@ -682,37 +714,109 @@ def delete_institute(request, pk):
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': institute, 'title': 'Удалить Институт'})
 
-# --- CRUD ДЛЯ ФАКУЛЬТЕТА (Только Админ) ---
 @user_passes_test(is_admin_or_rector)
 def add_faculty(request):
-    # Поддержка предзаполнения института из GET-параметра
     initial_data = {}
     institute_id = request.GET.get('institute')
     if institute_id:
         initial_data['institute'] = get_object_or_404(Institute, pk=institute_id)
 
     if request.method == 'POST':
-        form = FacultyForm(request.POST)
+        form = FacultyFullForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Факультет добавлен")
+            with transaction.atomic():
+                faculty = form.save()
+
+                dean_user = form.cleaned_data['dean_user']
+                if dean_user:
+                    if dean_user.role != 'DEAN' and not dean_user.is_superuser:
+                        dean_user.role = 'DEAN'
+                        dean_user.save()
+                    
+                    dean_profile, _ = Dean.objects.get_or_create(user=dean_user)
+                    dean_profile.faculty = faculty
+                    dean_profile.office_location = form.cleaned_data['office_location']
+                    dean_profile.contact_email = form.cleaned_data['contact_email']
+                    dean_profile.save()
+
+                vice_user = form.cleaned_data['vice_dean_user']
+                if vice_user:
+                    if vice_user.role != 'VICE_DEAN' and not vice_user.is_superuser:
+                        vice_user.role = 'VICE_DEAN'
+                        vice_user.save()
+                    
+                    vice_profile, _ = ViceDean.objects.get_or_create(user=vice_user)
+                    vice_profile.faculty = faculty
+                    vice_profile.title = "Муовини декан оид ба таълим" 
+                    vice_profile.save()
+
+            messages.success(request, f"Факультет {faculty.name} успешно создан!")
             return redirect('accounts:manage_structure')
     else:
-        form = FacultyForm(initial=initial_data)
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить Факультет'})
+        form = FacultyFullForm(initial=initial_data)
+    
+    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить Факультет (Расширенный)'})
 
 @user_passes_test(is_admin_or_rector)
 def edit_faculty(request, pk):
     faculty = get_object_or_404(Faculty, pk=pk)
+    
     if request.method == 'POST':
-        form = FacultyForm(request.POST, instance=faculty)
+        form = FacultyFullForm(request.POST, instance=faculty)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Факультет обновлен")
+            with transaction.atomic():
+                form.save()
+                
+                new_dean_user = form.cleaned_data['dean_user']
+                current_dean_profile = getattr(faculty, 'dean_manager', None)
+
+                if new_dean_user:
+                    if current_dean_profile and current_dean_profile.user != new_dean_user:
+                        current_dean_profile.faculty = None # Снимаем полномочия со старого
+                        current_dean_profile.save()
+                    
+                    if new_dean_user.role != 'DEAN' and not new_dean_user.is_superuser:
+                        new_dean_user.role = 'DEAN'
+                        new_dean_user.save()
+
+                    new_profile, _ = Dean.objects.get_or_create(user=new_dean_user)
+                    new_profile.faculty = faculty
+                    new_profile.office_location = form.cleaned_data['office_location']
+                    new_profile.contact_email = form.cleaned_data['contact_email']
+                    new_profile.save()
+                elif current_dean_profile:
+                    current_dean_profile.faculty = None
+                    current_dean_profile.save()
+
+                new_vice_user = form.cleaned_data['vice_dean_user']
+                current_vice_profile = faculty.vice_deans.first()
+
+                if new_vice_user:
+                    if current_vice_profile and current_vice_profile.user != new_vice_user:
+                        current_vice_profile.faculty = None
+                        current_vice_profile.save()
+                    
+                    if new_vice_user.role != 'VICE_DEAN' and not new_vice_user.is_superuser:
+                        new_vice_user.role = 'VICE_DEAN'
+                        new_vice_user.save()
+
+                    new_vice_prof, _ = ViceDean.objects.get_or_create(user=new_vice_user)
+                    new_vice_prof.faculty = faculty
+                    new_vice_prof.save()
+                elif current_vice_profile:
+                    current_vice_profile.faculty = None
+                    current_vice_profile.save()
+
+            messages.success(request, "Факультет и руководство обновлены")
             return redirect('accounts:manage_structure')
     else:
-        form = FacultyForm(instance=faculty)
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Редактировать Факультет'})
+        form = FacultyFullForm(instance=faculty)
+
+    return render(request, 'accounts/edit_institute_full.html', {
+        'form': form, 
+        'institute': faculty.institute, 
+        'title': f'Редактирование факультета: {faculty.name}'
+    })
 
 @user_passes_test(is_admin_or_rector)
 def delete_faculty(request, pk):
