@@ -4,7 +4,6 @@ class LazyLoader {
         this.images = document.querySelectorAll('img[data-src]');
         this.init();
     }
-    
     init() {
         if ('IntersectionObserver' in window) {
             const imageObserver = new IntersectionObserver((entries, observer) => {
@@ -17,7 +16,7 @@ class LazyLoader {
                     }
                 });
             });
-            
+
             this.images.forEach(img => imageObserver.observe(img));
         } else {
             this.images.forEach(img => {
