@@ -120,4 +120,3 @@ class GroupTransferHistoryAdmin(admin.ModelAdmin):
     search_fields = ['student__user__first_name', 'student__user__last_name']
     raw_id_fields = ['student', 'from_group', 'to_group', 'transferred_by']
 
-#да админка регистрация 

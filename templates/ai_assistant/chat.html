@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">
+                <i class="bi bi-robot"></i> AI Помощник Декана (Mistral)
+            </div>
+            <div class="card-body" id="chat-box" style="height: 400px; overflow-y: auto;">
+                <div class="text-center text-muted mt-5">
+                    <p>Привет! Я могу помочь с расписанием, поиском студентов или добавлением предметов.</p>
+                    <p class="small">Пример: "Найди студента Иванов" или "Покажи расписание группы 401"</p>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="input-group">
+                    <input type="text" id="user-input" class="form-control" placeholder="Введите запрос...">
+                    <button class="btn btn-primary" onclick="sendMessage()">Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const box = document.getElementById('chat-box');
+        const text = input.value;
+        if (!text) return;
+
+        // User Msg
+        box.innerHTML += `<div class="text-end mb-2"><span class="badge bg-primary p-2">${text}</span></div>`;
+        input.value = '';
+        
+        // Loading
+        const loadingId = 'loading-' + Date.now();
+        box.innerHTML += `<div id="${loadingId}" class="text-start mb-2"><span class="text-muted">Думаю...</span></div>`;
+        box.scrollTop = box.scrollHeight;
+
+        try {
+            const response = await fetch('{% url "ai_assistant:api" %}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({message: text})
+            });
+            const data = await response.json();
+            
+            document.getElementById(loadingId).remove();
+            box.innerHTML += `<div class="text-start mb-2"><div class="alert alert-secondary d-inline-block p-2">${data.response.replace(/\n/g, '<br>')}</div></div>`;
+        } catch (e) {
+            document.getElementById(loadingId).innerHTML = '<span class="text-danger">Ошибка сети</span>';
+        }
+        box.scrollTop = box.scrollHeight;
+    }
+    
+    document.getElementById('user-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+{% endblock %}

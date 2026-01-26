@@ -1,4 +1,3 @@
-# schedule/management/commands/create_timeslots.py
 from django.core.management.base import BaseCommand
 from schedule.models import TimeSlot
 from datetime import time
@@ -7,7 +6,6 @@ class Command(BaseCommand):
     help = 'Создание стандартных временных слотов'
 
     def handle(self, *args, **options):
-        # Стандартные временные слоты (10 пар)
         slots = [
             (time(8, 0), time(8, 50), '1 пара'),
             (time(9, 0), time(9, 50), '2 пара'),

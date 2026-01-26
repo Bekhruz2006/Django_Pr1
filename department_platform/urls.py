@@ -11,6 +11,9 @@ urlpatterns = [
     path('news/', include('news.urls')),  
     path('chat/', include('chat.urls')),  
     path('', include('core.urls')),
+    path('ai/', include('ai_assistant.urls')),
+    
+
 ]
 
 if settings.DEBUG:

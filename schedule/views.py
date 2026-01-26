@@ -441,7 +441,6 @@ def delete_schedule_slot(request, slot_id):
 
         with transaction.atomic():
             if schedule_slot.stream_id:
-                # Delete entire stream
                 count = ScheduleSlot.objects.filter(stream_id=schedule_slot.stream_id).delete()[0]
                 msg = f'Удален поток ({count} групп)'
             else:
@@ -887,8 +886,8 @@ def export_schedule(request):
     if vice_obj:
         vice_user = vice_obj.user
 
-    director_name = director_user.get_full_name() if director_user else "Мирзозода А. Н." # Дефолт из примера
-    vice_name = vice_user.get_full_name() if vice_user else "Ҷовиди Ҷамшед" # Дефолт из примера
+    director_name = director_user.get_full_name() if director_user else "Мирзозода А. Н." 
+    vice_name = vice_user.get_full_name() if vice_user else "Ҷовиди Ҷамшед" 
     
     head_edu_name = "Ҷалилов Р.Р." 
 
@@ -1067,7 +1066,6 @@ def export_schedule(request):
     return response
 
 
-# --- УПРАВЛЕНИЕ РУП ---
 
 @user_passes_test(is_dean)
 def manage_plans(request):
@@ -1194,30 +1192,69 @@ def generate_subjects_from_rup(request):
 
 
 @login_required
-@user_passes_test(lambda u: is_dean(u) or u.is_superuser)
 def import_schedule_view(request):
-    if request.method == 'POST':
+    if not (request.user.role in ['DEAN', 'VICE_DEAN'] or request.user.is_superuser):
+        messages.error(request, "Доступ запрещен")
+        return redirect('schedule:view')
+
+    if request.method == 'POST' and 'confirm_import' in request.POST:
+        semester_id = request.POST.get('semester_id')
+        semester = Semester.objects.get(id=semester_id)
+
+        all_keys = [k for k in request.POST.keys() if k.startswith('item_') and k.endswith('_group_id')]
+        if not all_keys:
+            messages.error(request, "Нет данных для сохранения")
+            return redirect('schedule:view')
+
+        import_data = []
+
+        for key in all_keys:
+            index = key.split('_')[1]
+            prefix = f'item_{index}_'
+
+            group_id = request.POST.get(f'{prefix}group_id')
+            if not group_id: continue  
+
+            import_data.append({
+                'group_id': group_id,
+                'day': request.POST.get(f'{prefix}day'),
+                'start_time': request.POST.get(f'{prefix}start_time'),
+                'end_time': request.POST.get(f'{prefix}end_time'),
+                'subject': request.POST.get(f'{prefix}subject'),
+                'teacher': request.POST.get(f'{prefix}teacher'),
+                'room': request.POST.get(f'{prefix}room'),
+                'type': request.POST.get(f'{prefix}type'),
+                'is_military': request.POST.get(f'{prefix}is_military'),
+            })
+
+        importer = ScheduleImporter()
+        stats = importer.save_data_from_preview(import_data, semester)
+        messages.success(request, f"✅ Импорт завершен! Слотов: {stats['slots']}, Новых предметов: {stats['subjects']}, Новых учителей: {stats['teachers']}")
+        return redirect('schedule:view')
+
+    elif request.method == 'POST':
         form = ScheduleImportForm(request.POST, request.FILES)
         if form.is_valid():
             try:
-                importer = ScheduleImporter(
-                    file=request.FILES['file'],
-                    semester=form.cleaned_data['semester'],
-                    default_group=form.cleaned_data['default_group']
-                )
-                result = importer.run()
-                
-                messages.success(request, f"Импорт завершен. Создано предметов: {result['subjects_created']}, Учителей: {result['teachers_created']}")
-                if result['log']:
-                    messages.warning(request, f"Замечания: {'; '.join(result['log'][:5])}...")
-                    
-                return redirect('schedule:view')
+                importer = ScheduleImporter(file=request.FILES['file'])
+                preview_data = importer.parse_for_preview(default_group=form.cleaned_data['default_group'])
+
+                if not preview_data:
+                    messages.warning(request, "Данные не найдены в файле или формат некорректен.")
+                    return redirect('schedule:import_schedule')
+
+                context = {
+                    'preview_data': preview_data,
+                    'semester': form.cleaned_data['semester'],
+                    'days_map_rev': {0: 'Понедельник', 1: 'Вторник', 2: 'Среда', 3: 'Четверг', 4: 'Пятница', 5: 'Суббота'}
+                }
+                return render(request, 'schedule/import_preview_edit.html', context)
+
             except Exception as e:
-                messages.error(request, f"Ошибка при импорте: {str(e)}")
+                messages.error(request, f"Ошибка обработки файла: {str(e)}")
+
     else:
         form = ScheduleImportForm()
-        
+
     return render(request, 'schedule/import_schedule.html', {'form': form})
-
-
 

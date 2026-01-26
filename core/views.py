@@ -11,10 +11,8 @@ def dashboard(request):
     user = request.user
     context = {'user': user}
 
-    # Новости для всех
     context['news_list'] = News.objects.filter(is_published=True).order_by('-is_pinned', '-created_at')[:5]
 
-    # 1. СУПЕРПОЛЬЗОВАТЕЛЬ / РЕКТОР / ПРОРЕКТОР
     if user.is_superuser or user.role in ['RECTOR', 'PRO_RECTOR']:
         context.update({
             'total_institutes': Institute.objects.count(),
@@ -26,20 +24,17 @@ def dashboard(request):
         })
         return render(request, 'core/dashboard_admin.html', context)
 
-    # 2. ДЕКАН / ЗАМ. ДЕКАНА
     elif user.role in ['DEAN', 'VICE_DEAN']:
         profile = getattr(user, 'dean_profile', None) or getattr(user, 'vicedean_profile', None)
         faculty = profile.faculty if profile else None
         context['profile'] = profile
         context['faculty'] = faculty
 
-        # Проверка активного семестра
         from schedule.models import Semester
         if not Semester.objects.filter(is_active=True).exists():
             messages.warning(request, "Внимание! Активный семестр не выбран. Расписание может не работать.")
 
         if faculty:
-            # Статистика только по ЭТОМУ факультету
             students_count = Student.objects.filter(group__specialty__department__faculty=faculty).count()
             groups_count = Group.objects.filter(specialty__department__faculty=faculty).count()
             teachers_count = Teacher.objects.filter(department__faculty=faculty).count()
@@ -51,7 +46,6 @@ def dashboard(request):
                 'departments': Department.objects.filter(faculty=faculty).prefetch_related('specialties')
             })
 
-            # Статистика по курсам (только для декана)
             from journal.models import StudentStatistics
             course_stats = []
             for course_num in range(1, 6):
@@ -71,17 +65,14 @@ def dashboard(request):
 
         return render(request, 'core/dashboard_dean.html', context)
 
-    # 3. ПРЕПОДАВАТЕЛЬ
     elif user.role == 'TEACHER':
         context['profile'] = user.teacher_profile
         template = 'core/dashboard_teacher.html'
 
-    # 4. СТУДЕНТ
     elif user.role == 'STUDENT':
         context['profile'] = user.student_profile
         template = 'core/dashboard_student.html'
 
-    # Расписание на сегодня (для преподавателей и студентов)
     try:
         from schedule.models import ScheduleSlot
         today = datetime.now()

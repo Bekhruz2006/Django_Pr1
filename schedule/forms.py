@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import FieldError
+from django.core.validators import FileExtensionValidator
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, AcademicPlan, PlanDiscipline, SubjectTemplate
 from accounts.models import Group, Teacher, Department
 
@@ -18,7 +19,6 @@ class SubjectForm(forms.ModelForm):
 
     class Meta:
         model = Subject
-        # Базовые поля, которые точно есть
         fields = [
             'name', 'code', 'department', 'teacher', 'groups',
             'lecture_hours', 'practice_hours', 'control_hours',
@@ -37,9 +37,6 @@ class SubjectForm(forms.ModelForm):
             'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
         }
 
-        # === МАГИЧЕСКИЙ ОБХОД ОШИБКИ ===
-        # Проверяем, видит ли Django поле прямо сейчас.
-        # Если нет (при первом запуске/миграции) - пропускаем и не крашимся.
         try:
             if 'is_stream_subject' in Subject._meta.fields_map or \
                any(f.name == 'is_stream_subject' for f in Subject._meta.get_fields()):
@@ -47,7 +44,6 @@ class SubjectForm(forms.ModelForm):
                 widgets['is_stream_subject'] = forms.CheckboxInput(attrs={'class': 'form-check-input'})
         except Exception:
             pass 
-        # ================================
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -63,7 +59,6 @@ class SubjectForm(forms.ModelForm):
         manual_groups = self.cleaned_data.get('groups')
         assign_all = self.cleaned_data.get('assign_to_all_groups')
 
-        # Логика потока
         if assign_all:
             instance.is_stream_subject = False
         elif manual_groups and manual_groups.count() > 1:
@@ -219,18 +214,25 @@ class PlanDisciplineForm(forms.ModelForm):
 
 
 class ScheduleImportForm(forms.Form):
-    file = forms.FileField(label="Файл Excel (.xlsx)", widget=forms.FileInput(attrs={'class': 'form-control'}))
+    file = forms.FileField(
+        label="Файл расписания (Excel или PDF)",
+        help_text="Поддерживаются .xlsx и .pdf (табличный вид)",
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls, .pdf'}),
+        validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls', 'pdf'])]
+    )
     
     semester = forms.ModelChoiceField(
         queryset=Semester.objects.filter(is_active=True),
         label="Семестр",
-        empty_label="Выберите семестр",
+        empty_label="-- Выберите активный семестр --",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
     default_group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
         required=False,
-        label="Группа (если не указана в файле)",
+        label="Группа по умолчанию",
+        help_text="Выберите группу, если имя группы не удастся найти в файле автоматически.",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+    

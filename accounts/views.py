@@ -570,6 +570,8 @@ def edit_group(request, group_id):
             form.save()
             messages.success(request, f'Группа {group.name} успешно обновлена')
             return redirect('accounts:group_management')
+        else:
+            print("Ошибки формы:", form.errors) 
     else:
         form = GroupForm(instance=group)
     return render(request, 'accounts/edit_group.html', {'form': form, 'group': group})
@@ -873,7 +875,6 @@ def add_department(request):
     else:
         form = DepartmentForm(initial=initial, faculty_context=faculty_context)
         if is_dean(request.user):
-             # Блокируем выбор факультета для декана (он видит только свой)
              faculty = request.user.dean_profile.faculty
              form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
     

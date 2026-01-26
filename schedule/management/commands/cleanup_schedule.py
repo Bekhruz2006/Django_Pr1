@@ -7,9 +7,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         deleted_count = 0
         
-        # Получаем все активные семестры
         for semester in Semester.objects.all():
-            # Определяем допустимые временные слоты для этой смены
             if semester.shift == 'MORNING':
                 valid_slots = TimeSlot.objects.filter(
                     start_time__gte='08:00:00',
@@ -23,7 +21,6 @@ class Command(BaseCommand):
             
             valid_slot_ids = list(valid_slots.values_list('id', flat=True))
             
-            # Находим записи расписания для этого семестра с неправильными слотами
             invalid_slots = ScheduleSlot.objects.filter(
                 semester=semester
             ).exclude(time_slot_id__in=valid_slot_ids)

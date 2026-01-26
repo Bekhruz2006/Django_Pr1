@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Проверка и редактирование импорта{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-pencil-square"></i> Проверка данных перед импортом</h5>
+                <span class="badge bg-dark">Найдено записей: {{ preview_data|length }}</span>
+            </div>
+            <div class="card-body">
+                <form method="post" id="importForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="confirm_import" value="1">
+                    <input type="hidden" name="semester_id" value="{{ semester.id }}">
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Проверьте таблицу. Исправьте названия предметов (уберите None), имена преподавателей и номера кабинетов. <br>
+                        <strong>Удалите пустые или некорректные строки</strong> с помощью красной кнопки справа.
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                        <table class="table table-sm table-bordered align-middle">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>Группа</th>
+                                    <th>День / Время</th>
+                                    <th>Предмет</th>
+                                    <th>Преподаватель</th>
+                                    <th width="80">Ауд.</th>
+                                    <th width="100">Тип</th>
+                                    <th width="50">Уд.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in preview_data %}
+                                <tr id="row_{{ forloop.counter0 }}">
+                                    <!-- Скрытые технические поля -->
+                                    <input type="hidden" name="item_{{ forloop.counter0 }}_group_id" value="{{ item.group_id }}">
+                                    <input type="hidden" name="item_{{ forloop.counter0 }}_day" value="{{ item.day }}">
+                                    <input type="hidden" name="item_{{ forloop.counter0 }}_start_time" value="{{ item.start_time }}">
+                                    <input type="hidden" name="item_{{ forloop.counter0 }}_end_time" value="{{ item.end_time }}">
+                                    {% if item.is_military %}
+                                    <input type="hidden" name="item_{{ forloop.counter0 }}_is_military" value="on">
+                                    {% endif %}
+
+                                    <td><strong>{{ item.group_name }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {% if item.day == 0 %}ПН{% elif item.day == 1 %}ВТ{% elif item.day == 2 %}СР{% elif item.day == 3 %}ЧТ{% elif item.day == 4 %}ПТ{% elif item.day == 5 %}СБ{% endif %}
+                                        </span>
+                                        <small>{{ item.start_time }}-{{ item.end_time }}</small>
+                                    </td>
+                                    
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm {% if 'Нераспознанный' in item.subject or not item.subject %}border-danger{% endif %}" 
+                                               name="item_{{ forloop.counter0 }}_subject" 
+                                               value="{{ item.subject|default:'' }}" required>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               name="item_{{ forloop.counter0 }}_teacher" 
+                                               value="{{ item.teacher|default:'' }}" placeholder="ФИО">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               name="item_{{ forloop.counter0 }}_room" 
+                                               value="{{ item.room|default:'' }}">
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" name="item_{{ forloop.counter0 }}_type">
+                                            <option value="LECTURE" {% if item.type == 'LECTURE' %}selected{% endif %}>Лекц.</option>
+                                            <option value="PRACTICE" {% if item.type == 'PRACTICE' %}selected{% endif %}>Практ.</option>
+                                            <option value="SRSP" {% if item.type == 'SRSP' %}selected{% endif %}>СРСП</option>
+                                        </select>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-danger btn-sm px-2" onclick="removeRow({{ forloop.counter0 }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3 pb-3">
+                        <a href="{% url 'schedule:import_schedule' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-save"></i> Подтвердить и Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function removeRow(index) {
+        const row = document.getElementById('row_' + index);
+        // Вместо удаления DOM элемента, который сломает индексы в Django при переборе,
+        // мы просто очистим GroupID, и цикл на бэкенде остановится/пропустит его
+        // Но лучше просто удалить поля
+        
+        row.style.opacity = '0.3';
+        row.innerHTML = ''; // Очищаем содержимое
+        
+        // Важно: Чтобы логика в python не сломалась из-за дырок в индексах, 
+        // лучше удалять поля полностью. 
+        // Примечание: В views.py логика построена на `item_{index}_`.
+        // Если мы удалим HTML элементы, то request.POST.get(f'item_{index}_group_id') вернет None.
+        // Моя логика `if not group_id: break` ОСТАНОВИТ цикл при первой дырке. 
+        
+        // РЕШЕНИЕ: Не используйте break при первой пустой строке, а используйте перебор for.
+        // Я исправлю views.py чуть ниже для поддержки "дырок".
+    }
+</script>
+{% endblock %}

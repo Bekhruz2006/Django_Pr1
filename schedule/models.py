@@ -5,6 +5,9 @@ from datetime import timedelta, date
 import uuid
 import math
 
+from django.db import models
+import math
+
 class Subject(models.Model):
     TYPE_CHOICES = [
         ('LECTURE', 'Лекция'),
@@ -14,7 +17,7 @@ class Subject(models.Model):
     name = models.CharField(max_length=200, verbose_name="Название")
     code = models.CharField(max_length=20, unique=True, verbose_name="Код")
 
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='subjects', verbose_name="Кафедра")
+    department = models.ForeignKey('accounts.Department', on_delete=models.CASCADE, related_name='subjects', verbose_name="Кафедра")
 
     type = models.CharField(
         max_length=10,
@@ -29,10 +32,12 @@ class Subject(models.Model):
     independent_work_hours = models.IntegerField(default=0, verbose_name="КМД часов за семестр")
 
     semester_weeks = models.IntegerField(default=16, verbose_name="Недель в семестре")
+    
     is_stream_subject = models.BooleanField(
         default=False, 
         verbose_name="Это поток (совместное занятие)"
     )
+    
     teacher = models.ForeignKey(
         'accounts.Teacher',
         on_delete=models.SET_NULL,
@@ -61,16 +66,10 @@ class Subject(models.Model):
         verbose_name="Основание (из плана)"
     )
 
-
-
     class Meta:
         verbose_name = "Предмет"
         verbose_name_plural = "Предметы"
         ordering = ['name']
-
-
-
-
 
     def __str__(self):
         return f"{self.name} ({self.department.name})"
@@ -138,12 +137,11 @@ class Subject(models.Model):
         }.get(self.type, 'secondary')
 
     def get_stream_groups(self):
-        """Returns all groups assigned to this subject."""
         return self.groups.all()
 
-    def is_stream_subject(self):
-        """Checks if subject is assigned to multiple groups (Stream potential)."""
+    def check_is_multiple_groups(self):
         return self.groups.count() > 1
+    
 
 class TimeSlot(models.Model):
     start_time = models.TimeField(verbose_name="Начало")
@@ -264,10 +262,8 @@ class ScheduleSlot(models.Model):
     room = models.CharField(max_length=20, blank=True, null=True, verbose_name="Номер кабинета (текст)")
     is_active = models.BooleanField(default=True, verbose_name="Активно")
 
-    # Поле для потоков
     stream_id = models.UUIDField(null=True, blank=True, verbose_name="ID Потока")
 
-    # НОВОЕ ПОЛЕ: Является ли это занятие военной кафедрой
     is_military = models.BooleanField(default=False, verbose_name="Военная кафедра")
 
     class Meta:
@@ -277,7 +273,7 @@ class ScheduleSlot(models.Model):
 
     def get_color_class(self):
         if self.is_military:
-            return 'dark text-white'  # Черный/Темный для военной кафедры
+            return 'dark text-white'
         if self.stream_id:
             return 'indigo'
         return {
@@ -349,10 +345,8 @@ class AcademicWeek(models.Model):
         return (delta.days // 7) + 1
 
 
-# --- НОВЫЙ БЛОК: УЧЕБНЫЕ ПЛАНЫ (РУП) ---
 
 class SubjectTemplate(models.Model):
-    """Справочник названий дисциплин (чтобы не дублировать названия)"""
     name = models.CharField(max_length=200, unique=True, verbose_name="Название дисциплины")
     
     class Meta:
@@ -365,7 +359,6 @@ class SubjectTemplate(models.Model):
 
 
 class AcademicPlan(models.Model):
-    """Рабочий учебный план (РУП)"""
     specialty = models.ForeignKey('accounts.Specialty', on_delete=models.CASCADE, verbose_name="Специальность")
     admission_year = models.IntegerField(verbose_name="Год набора (поступления)")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -381,7 +374,6 @@ class AcademicPlan(models.Model):
 
 
 class PlanDiscipline(models.Model):
-    """Строка в учебном плане (Предмет в семестре)"""
     plan = models.ForeignKey(AcademicPlan, on_delete=models.CASCADE, related_name='disciplines')
     subject_template = models.ForeignKey(SubjectTemplate, on_delete=models.PROTECT, verbose_name="Дисциплина")
     

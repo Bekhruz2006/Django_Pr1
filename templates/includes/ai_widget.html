@@ -1,0 +1,183 @@
+<div id="ai-widget-container">
+    <!-- Кнопка открытия -->
+    <button id="ai-toggle-btn" class="ai-float-btn shadow-lg">
+        <i class="bi bi-robot"></i>
+    </button>
+
+    <!-- Окно чата -->
+    <div id="ai-chat-window" class="card shadow-lg ai-chat-window d-none">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-stars"></i> AI Помощник</span>
+            <button type="button" class="btn-close btn-close-white" id="ai-close-btn"></button>
+        </div>
+        
+        <div class="card-body p-0">
+            <div id="ai-messages" class="p-3" style="height: 300px; overflow-y: auto;">
+                <div class="ai-msg-bot mb-2">
+                    <small class="text-muted">Mistral 7B</small>
+                    <div class="p-2 bg-light rounded">
+                        Привет, {{ user.first_name }}! Я могу помочь с расписанием, оценками или созданием данных. Можете прикрепить файл.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-footer p-2">
+            <form id="ai-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Превью файла -->
+                <div id="file-preview" class="small text-primary mb-1 d-none">
+                    <i class="bi bi-file-earmark"></i> <span id="filename-display"></span>
+                    <i class="bi bi-x cursor-pointer" onclick="clearFile()"></i>
+                </div>
+
+                <div class="input-group">
+                    <label class="btn btn-outline-secondary" for="ai-file-input" title="Прикрепить файл">
+                        <i class="bi bi-paperclip"></i>
+                    </label>
+                    <input type="file" id="ai-file-input" name="file" class="d-none" accept=".pdf,.xlsx,.xls,.txt">
+                    
+                    <input type="text" name="message" id="ai-input" class="form-control border-secondary" placeholder="Ваш запрос..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary" id="ai-send-btn">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ai-float-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 100px; /* Слева от переключателя темы */
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        z-index: 1040;
+        transition: transform 0.3s;
+    }
+    .ai-float-btn:hover { transform: scale(1.1); }
+    
+    .ai-chat-window {
+        position: fixed;
+        bottom: 100px;
+        right: 30px;
+        width: 350px;
+        z-index: 1050;
+        border-radius: 15px;
+        overflow: hidden;
+        animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .ai-msg-user { text-align: right; }
+    .ai-msg-user .bg-primary { display: inline-block; text-align: left; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('ai-toggle-btn');
+    const closeBtn = document.getElementById('ai-close-btn');
+    const chatWindow = document.getElementById('ai-chat-window');
+    const form = document.getElementById('ai-form');
+    const msgContainer = document.getElementById('ai-messages');
+    const fileInput = document.getElementById('ai-file-input');
+    const filePreview = document.getElementById('file-preview');
+    const filenameDisplay = document.getElementById('filename-display');
+
+    // Toggle Window
+    toggleBtn.addEventListener('click', () => chatWindow.classList.remove('d-none'));
+    closeBtn.addEventListener('click', () => chatWindow.classList.add('d-none'));
+
+    // File Handling
+    fileInput.addEventListener('change', function() {
+        if (this.files[0]) {
+            filePreview.classList.remove('d-none');
+            filenameDisplay.textContent = this.files[0].name;
+        }
+    });
+
+    window.clearFile = function() {
+        fileInput.value = '';
+        filePreview.classList.add('d-none');
+    }
+
+    // Submit
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('ai-input');
+        const text = input.value.trim();
+        const hasFile = fileInput.files.length > 0;
+
+        if (!text && !hasFile) return;
+
+        // User UI
+        if (text) {
+            msgContainer.innerHTML += `
+                <div class="ai-msg-user mb-2">
+                    <div class="p-2 bg-primary text-white rounded d-inline-block" style="max-width: 85%;">
+                        ${text}
+                    </div>
+                </div>`;
+        }
+        if (hasFile) {
+            msgContainer.innerHTML += `
+                <div class="ai-msg-user mb-2">
+                    <div class="p-2 bg-secondary text-white rounded d-inline-block">
+                        <i class="bi bi-file-earmark"></i> ${fileInput.files[0].name}
+                    </div>
+                </div>`;
+        }
+        
+        // Loading UI
+        const loadingId = 'loading-' + Date.now();
+        msgContainer.innerHTML += `
+            <div id="${loadingId}" class="ai-msg-bot mb-2">
+                <div class="p-2 bg-light rounded d-inline-block text-muted">
+                    <span class="spinner-border spinner-border-sm"></span> Думаю...
+                </div>
+            </div>`;
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+
+        // Prepare Data
+        const formData = new FormData(form);
+
+        // Fetch
+        fetch('{% url "ai_assistant:api" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById(loadingId).remove();
+            msgContainer.innerHTML += `
+                <div class="ai-msg-bot mb-2">
+                    <div class="p-2 bg-light rounded d-inline-block shadow-sm" style="max-width: 90%;">
+                        ${data.response}
+                    </div>
+                </div>`;
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+            input.value = '';
+            clearFile();
+        })
+        .catch(err => {
+            document.getElementById(loadingId).innerHTML = '<span class="text-danger">Ошибка сети</span>';
+        });
+    });
+});
+</script>

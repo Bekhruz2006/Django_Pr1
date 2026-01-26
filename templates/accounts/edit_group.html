@@ -10,6 +10,16 @@
                 <i class="bi bi-pencil"></i> Редактировать группу: {{ group.name }}
             </div>
             <div class="card-body">
+                
+                <!-- ✅ 1. Блок для вывода общих ошибок формы -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <form method="post">
                     {% csrf_token %}
                     
@@ -17,7 +27,7 @@
                         <label class="form-label">Название группы *</label>
                         {{ form.name }}
                         {% if form.name.errors %}
-                            <div class="text-danger">{{ form.name.errors }}</div>
+                            <div class="text-danger">{{ form.name.errors.0 }}</div>
                         {% endif %}
                     </div>
                     
@@ -26,7 +36,7 @@
                             <label class="form-label">Курс *</label>
                             {{ form.course }}
                             {% if form.course.errors %}
-                                <div class="text-danger">{{ form.course.errors }}</div>
+                                <div class="text-danger">{{ form.course.errors.0 }}</div>
                             {% endif %}
                         </div>
                         
@@ -34,7 +44,7 @@
                             <label class="form-label">Год обучения *</label>
                             {{ form.academic_year }}
                             {% if form.academic_year.errors %}
-                                <div class="text-danger">{{ form.academic_year.errors }}</div>
+                                <div class="text-danger">{{ form.academic_year.errors.0 }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -43,7 +53,26 @@
                         <label class="form-label">Специальность *</label>
                         {{ form.specialty }}
                         {% if form.specialty.errors %}
-                            <div class="text-danger">{{ form.specialty.errors }}</div>
+                            <div class="text-danger">{{ form.specialty.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ✅ 2. Добавлены недостающие поля -->
+                    <div class="mb-3">
+                        <label class="form-label">Язык обучения</label>
+                        {{ form.language }}
+                        {% if form.language.errors %}
+                            <div class="text-danger">{{ form.language.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.has_military_training }}
+                        <label class="form-check-label" for="{{ form.has_military_training.id_for_label }}">
+                            Военная кафедра
+                        </label>
+                        {% if form.has_military_training.errors %}
+                            <div class="text-danger">{{ form.has_military_training.errors.0 }}</div>
                         {% endif %}
                     </div>
                     
