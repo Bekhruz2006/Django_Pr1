@@ -118,16 +118,14 @@ const optimizeScroll = () => {
             ticking = true;
         }
     };
-    
     window.addEventListener('scroll', handleScroll, { passive: true });
 };
-
 class LinkPrefetcher {
     constructor() {
         this.prefetched = new Set();
         this.init();
     }
-    
+  
     init() {
         document.addEventListener('mouseover', (e) => {
             const link = e.target.closest('a[href^="/"]');
