@@ -111,7 +111,6 @@ const optimizeScroll = () => {
     const handleScroll = () => {
         if (!ticking) {
             window.requestAnimationFrame(() => {
-                // Ваши действия при скролле
                 document.body.classList.toggle('scrolled', window.pageYOffset > 50);
                 ticking = false;
             });

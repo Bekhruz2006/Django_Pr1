@@ -13,7 +13,7 @@ class Command(BaseCommand):
                     start_time__gte='08:00:00',
                     start_time__lt='14:00:00'
                 )
-            else:  # DAY
+            else:  
                 valid_slots = TimeSlot.objects.filter(
                     start_time__gte='13:00:00',
                     start_time__lt='19:00:00'
