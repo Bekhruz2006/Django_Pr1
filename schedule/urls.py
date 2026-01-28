@@ -32,7 +32,9 @@ urlpatterns = [
     path('classrooms/add/', views.add_classroom, name='add_classroom'),
     path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),
     path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
-    
+
+
+
     path('groups/', views.group_list, name='group_list'),
     
     path('import/', views.import_schedule_view, name='import_schedule'),
@@ -41,4 +43,12 @@ urlpatterns = [
     path('plans/create/', views.create_plan, name='create_plan'),
     path('plans/<int:plan_id>/', views.plan_detail, name='plan_detail'),
     path('plans/generate/', views.generate_subjects_from_rup, name='generate_subjects'),
+
+    path('classrooms/<int:classroom_id>/edit/', views.edit_classroom, name='edit_classroom'),
+    path('classrooms/occupancy/', views.classroom_occupancy, name='classroom_occupancy'),
+    
+    path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),
+    path('classrooms/<int:classroom_id>/delete/', views.delete_classroom, name='delete_classroom'),
+
+    
 ]

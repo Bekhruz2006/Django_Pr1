@@ -126,7 +126,7 @@
                                             <span>{{ dept.head.user.get_full_name }}</span>
                                         </div>
                                     {% else %}
-                                        <span class="badge bg-light text-muted border">Вакантно</span>
+                                        <span class="badge bg-light text-muted border">Свободно</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
@@ -154,6 +154,22 @@
     </div>
 
     <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-building-gear me-2"></i> Управления аудиторий</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Управление кабинетами, вместимостью и их доступностью.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-outline-primary btn-sm">
+                        Список кабинетов
+                    </a>
+                    <a href="{% url 'schedule:bulk_add_classrooms' %}" class="btn btn-outline-secondary btn-sm">
+                        Массовое добавление
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart me-2"></i> Успеваемость по курсам</h5>

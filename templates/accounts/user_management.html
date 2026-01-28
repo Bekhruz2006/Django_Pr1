@@ -63,7 +63,6 @@
                                         {{ user_obj.get_role_display|default:"Не указана" }}
                                     </span>
                                     
-                                    {# ✅ Предупреждение об отсутствии профиля #}
                                     {% if not user_data.has_profile %}
                                         <span class="badge bg-danger" title="Профиль не создан">!</span>
                                     {% endif %}
@@ -96,7 +95,6 @@
                                             <i class="bi bi-key"></i>
                                         </a>
                                         
-                                        {# ✅ ЗАЩИТА: Нельзя заблокировать себя #}
                                         {% if user_obj.id == user.id %}
                                             <button type="button" 
                                                     class="btn btn-outline-secondary" 
@@ -113,7 +111,6 @@
                                             </a>
                                         {% endif %}
                                         
-                                        {# ✅ ИСПРАВЛЕНО: Безопасная проверка профиля студента #}
                                         {% if user_obj.role == 'STUDENT' %}
                                             {% if user_data.has_profile and user_data.profile_id %}
                                                 <a href="{% url 'accounts:transfer_student' user_data.profile_id %}" 

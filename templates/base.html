@@ -33,6 +33,9 @@
             background-color: var(--bg-light);
             color: var(--text-light);
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         body.dark-mode {
@@ -57,6 +60,27 @@
 
         .navbar-brand, .nav-link {
             color: white !important;
+        }
+
+        #sidebarToggle {
+            background: transparent;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        #sidebarToggle:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        #sidebarToggle:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        #sidebarToggle:active {
+            background-color: rgba(255, 255, 255, 0.25);
         }
 
         #sidebar {
@@ -95,8 +119,9 @@
             margin-left: var(--sidebar-width);
             margin-top: var(--navbar-height);
             padding: 24px;
-            min-height: calc(100vh - var(--navbar-height));
+            flex: 1 0 auto;
             transition: margin-left 0.3s ease;
+            padding-bottom: 60px;
         }
 
         .sidebar-header {
@@ -174,27 +199,141 @@
             padding: 12px 16px;
         }
 
+        .footer {
+            flex-shrink: 0;
+            width: calc(100% - var(--sidebar-width));
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+            margin-top: auto;
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease, width 0.3s ease;
+        }
+
+        body.dark-mode .footer {
+            background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            border-top-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .footer.no-sidebar {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px 24px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-section h5 {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-section p,
+        .footer-section a {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            text-decoration: none;
+            display: block;
+            transition: color 0.2s;
+        }
+
+        .footer-section a:hover {
+            color: #60a5fa;
+        }
+
+        .footer-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .footer-contact-item i {
+            color: #60a5fa;
+            font-size: 1.1rem;
+            width: 20px;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .footer-social a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: #cbd5e1;
+            transition: all 0.2s;
+        }
+
+        .footer-social a:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .footer-bottom {
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
         .theme-toggle {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 48px;
-            height: 48px;
+            bottom: 24px;
+            right: 24px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary-blue), #60a5fa);
             border: none;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
         }
 
         body.dark-mode .theme-toggle {
             background: linear-gradient(135deg, #334155, #475569);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark-mode .theme-toggle:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
         }
 
         @media (max-width: 768px) {
@@ -208,12 +347,29 @@
 
             #main-content {
                 margin-left: 0;
+                padding: 16px;
+            }
+
+            .footer {
+                margin-left: 0;
+                width: 100%;
             }
 
             .theme-toggle {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
+                width: 44px;
+                height: 44px;
+                font-size: 1.1rem;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .footer-content {
+                padding: 24px 16px 20px;
             }
         }
 
@@ -246,7 +402,7 @@
             transition-duration: 0.15s !important;
         }
 
-        .navbar, .sidebar-link, .card, .theme-toggle {
+        .navbar, .sidebar-link, .card, .theme-toggle, .footer-social a {
             transition-duration: 0.2s !important;
         }
     </style>
@@ -255,7 +411,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <button class="btn btn-link text-white me-2" id="sidebarToggle" type="button">
+            <button class="btn text-white me-2" id="sidebarToggle" type="button">
                 <i class="bi bi-list fs-4"></i>
             </button>
             <a class="navbar-brand" href="{% url 'core:dashboard' %}">
@@ -308,6 +464,9 @@
         </a>
         <a class="sidebar-link" href="{% url 'accounts:user_management' %}">
             <i class="bi bi-people-fill"></i>Студенты
+        </a>
+        <a class="sidebar-link" href="{% url 'schedule:manage_classrooms' %}">
+            <i class="bi bi-door-open"></i>Кабинеты
         </a>
         <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}">
             <i class="bi bi-book"></i>Предметы
@@ -366,13 +525,62 @@
         {% block content %}{% endblock %}
     </main>
 
-    <button class="theme-toggle" id="themeToggle">
+    <footer class="footer {% if not user.is_authenticated %}no-sidebar{% endif %}">
+        <div class="footer-content">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h5>О платформе</h5>
+                    <p>Современная образовательная платформа для эффективного управления учебным процессом и взаимодействия между студентами и преподавателями.</p>
+                </div>
+
+                <div class="footer-section">
+                    <h5>Быстрые ссылки</h5>
+                    <a href="{% url 'core:dashboard' %}">Панель управления</a>
+                    <a href="{% url 'news:list' %}">Новости</a>
+                    <a href="{% url 'chat:list' %}">Сообщения</a>
+                </div>
+
+                <div class="footer-section">
+                    <h5>Контакты</h5>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-telephone-fill"></i>
+                        <a href="tel:+992900000000">+992 (900) 00-00-00</a>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-envelope-fill"></i>
+                        <a href="mailto:support@univer.tj">support@univer.tj</a>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span>г. Душанбе, ул. Студенческая 1</span>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h5>Мы в соцсетях</h5>
+                    <div class="footer-social">
+                        <a href="#" aria-label="Telegram"><i class="bi bi-telegram"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                        <a href="#" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2026 Университетская Платформа. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
         <i class="bi bi-moon-fill"></i>
     </button>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+        document.getElementById('sidebarToggle')?.addEventListener('click', function(e) {
+            e.stopPropagation();
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('show');
         });
@@ -396,7 +604,7 @@
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
-            if (window.innerWidth <= 768 && sidebar.classList.contains('show')) {
+            if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('show')) {
                 if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
                     sidebar.classList.remove('show');
                 }

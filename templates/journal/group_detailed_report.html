@@ -40,7 +40,6 @@
                             {% for item in students_data %}
                                 <tr {% if item.is_at_risk %}class="table-danger"{% endif %}>
                                     <td>
-                                        {# ✅ ИСПРАВЛЕНО: Правильная ссылка на профиль студента #}
                                         <a href="{% url 'accounts:view_user_profile' item.student.user.id %}">
                                             <strong>{{ item.student.user.get_full_name }}</strong>
                                         </a><br>
@@ -57,7 +56,6 @@
                                         </strong>
                                     </td>
                                     <td class="text-center">
-                                        {# ✅ НОВОЕ: Показываем прогулы #}
                                         <strong class="{% if item.stats.total_absent <= 5 %}text-success{% elif item.stats.total_absent <= 10 %}text-warning{% else %}text-danger{% endif %}">
                                             {{ item.stats.total_absent }}
                                         </strong>

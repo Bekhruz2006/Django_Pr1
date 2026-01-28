@@ -20,7 +20,7 @@ class JournalEntryForm(forms.ModelForm):
                 'class': 'form-select form-select-sm'
             }),
         }
-    
+
     def clean(self):
         cleaned_data = super().clean()
         grade = cleaned_data.get('grade')

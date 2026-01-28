@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load schedule_filters %}
+
+{% block title %}Занятость аудиторий{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-grid-3x3"></i> Занятость аудиторий</span>
+                <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Назад
+                </a>
+            </div>
+            <div class="card-body">
+                
+                <form method="get" class="mb-4">
+                    <div class="btn-group" role="group">
+                        {% for day_num, day_name in days %}
+                            <button type="submit" name="day" value="{{ day_num }}" 
+                                    class="btn {% if selected_day == day_num %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                {{ day_name }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center align-middle">
+                        <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
+                            <tr>
+                                <th style="width: 80px;">Ауд.</th>
+                                <th style="width: 60px;">Мест</th>
+                                {% for ts in time_slots %}
+                                    <th>{{ ts.start_time|time:"H:i" }}<br><small class="text-muted">{{ ts.end_time|time:"H:i" }}</small></th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for classroom in classrooms %}
+                            <tr>
+                                <td class="fw-bold bg-light">{{ classroom.number }}</td>
+                                <td class="small text-muted">{{ classroom.capacity }}</td>
+                                
+                                {% for ts in time_slots %}
+                                    {% with slot=occupancy|get_slot:classroom.id|get_slot:ts.id %}
+                                        <td class="{% if slot %}bg-success bg-opacity-10{% endif %}">
+                                            {% if slot %}
+                                                <div class="small fw-bold text-dark">{{ slot.group.name }}</div>
+                                                <div style="font-size: 0.7rem;" class="text-muted" title="{{ slot.subject.name }}">
+                                                    {{ slot.subject.name|truncatechars:15 }}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted opacity-25">-</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3 small text-muted">
+                    <i class="bi bi-info-circle"></i> Отображается расписание только для активного семестра.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

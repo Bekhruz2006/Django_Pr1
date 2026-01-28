@@ -309,7 +309,7 @@ def create_schedule_slot(request):
             return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ.'}, status=400)
         if active_semester.shift == 'DAY' and start_h < 13:
             return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ.'}, status=400)
-
+    
         groups_to_schedule = [main_group]
         is_stream = False
         stream_id = None
@@ -334,7 +334,7 @@ def create_schedule_slot(request):
                 ).first()
                 if busy_slot:
                     conflicts.append(f"Группа {target_group.name} занята: {busy_slot.subject.name}")
-
+            
             if subject.teacher:
                 teacher_slots = ScheduleSlot.objects.filter(
                     teacher=subject.teacher,
@@ -386,6 +386,7 @@ def update_schedule_room(request, slot_id):
     try:
         data = json.loads(request.body)
         room_number = data.get('room', '').strip()
+        force = data.get('force', False) # НОВЫЙ ПАРАМЕТР
         
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
@@ -393,7 +394,7 @@ def update_schedule_room(request, slot_id):
         if room_number:
             classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
             if not classroom:
-                return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не найден в базе'}, status=400)
+                return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не найден'}, status=400)
             
             occupants = ScheduleSlot.objects.filter(
                 classroom=classroom,
@@ -408,12 +409,29 @@ def update_schedule_room(request, slot_id):
             else:
                 occupants = occupants.exclude(id=slot.id)
 
-            if occupants.exists():
+            if occupants.exists() and not force:
                 other = occupants.first()
                 return JsonResponse({
                     'success': False,
-                    'error': f'Кабинет занят: Группа {other.group.name}, {other.subject.name}'
+                    'is_conflict': True, 
+                    'error': f'Кабинет занят: {other.group.name}, {other.subject.name}'
                 }, status=400)
+
+            if not force:
+                total_students = 0
+                if slot.stream_id:
+                    stream_slots = ScheduleSlot.objects.filter(stream_id=slot.stream_id)
+                    for s in stream_slots:
+                        total_students += s.group.students.count()
+                else:
+                    total_students = slot.group.students.count()
+
+                if total_students > classroom.capacity:
+                    return JsonResponse({
+                        'success': False,
+                        'is_capacity_warning': True, 
+                        'error': f'Вместимость кабинета ({classroom.capacity}) меньше количества студентов ({total_students}). Продолжить?'
+                    }, status=400)
 
         with transaction.atomic():
             if slot.stream_id:
@@ -1188,6 +1206,62 @@ def generate_subjects_from_rup(request):
     return render(request, 'schedule/plans/generate_preview.html', {
         'suggestions': suggestions.values(),
         'semester': active_semester
+    })
+
+@user_passes_test(is_dean)
+def edit_classroom(request, classroom_id):
+    classroom = get_object_or_404(Classroom, id=classroom_id)
+    if request.method == 'POST':
+        form = ClassroomForm(request.POST, instance=classroom)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Кабинет {classroom.number} обновлен')
+            return redirect('schedule:manage_classrooms')
+    else:
+        form = ClassroomForm(instance=classroom)
+    return render(request, 'schedule/classroom_form.html', {
+        'form': form, 
+        'title': f'Редактировать кабинет {classroom.number}'
+    })
+
+@user_passes_test(is_dean)
+def classroom_occupancy(request):
+    day = int(request.GET.get('day', 0)) 
+    active_semester = Semester.objects.filter(is_active=True).first()
+    
+    if not active_semester:
+        messages.error(request, "Нет активного семестра")
+        return redirect('schedule:manage_classrooms')
+
+    classrooms = Classroom.objects.filter(is_active=True).order_by('floor', 'number')
+    time_slots = TimeSlot.objects.all().order_by('start_time')
+    
+    days = [
+        (0, 'Понедельник'), (1, 'Вторник'), (2, 'Среда'),
+        (3, 'Четверг'), (4, 'Пятница'), (5, 'Суббота')
+    ]
+
+    slots = ScheduleSlot.objects.filter(
+        semester=active_semester,
+        day_of_week=day,
+        is_active=True,
+        classroom__isnull=False
+    ).select_related('classroom', 'group', 'subject', 'time_slot')
+
+    occupancy = {}
+    for slot in slots:
+        c_id = slot.classroom.id
+        t_id = slot.time_slot.id
+        if c_id not in occupancy:
+            occupancy[c_id] = {}
+        occupancy[c_id][t_id] = slot
+
+    return render(request, 'schedule/classroom_occupancy.html', {
+        'classrooms': classrooms,
+        'time_slots': time_slots,
+        'occupancy': occupancy,
+        'selected_day': day,
+        'days': days
     })
 
 

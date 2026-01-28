@@ -6,6 +6,10 @@ from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+
+
 from .models import JournalEntry, JournalChangeLog, StudentStatistics
 from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLogFilterForm
 from accounts.models import Student, Teacher, Group
@@ -451,3 +455,73 @@ def group_detailed_report(request, group_id):
     return render(request, 'journal/group_detailed_report.html', {
         'group': group, 'students_data': students_data, 'subjects': subjects
     })
+
+
+
+
+@login_required
+@user_passes_test(is_teacher)
+@require_POST
+def update_journal_cell(request):
+    try:
+        data = json.loads(request.body)
+        entry_id = data.get('entry_id')
+        value = str(data.get('value', '')).strip().lower()
+        
+        entry = get_object_or_404(JournalEntry, id=entry_id)
+        teacher = request.user.teacher_profile
+
+        if entry.is_locked():
+            return JsonResponse({'success': False, 'error': 'Запись заблокирована (прошло 24 часа)'}, status=403)
+        if entry.subject.teacher != teacher:
+            return JsonResponse({'success': False, 'error': 'Это не ваш предмет'}, status=403)
+
+        old_grade = entry.grade
+        old_attendance = entry.attendance_status
+        
+        response_data = {}
+
+        with transaction.atomic():
+            if value == '' or value == '-':
+                entry.grade = None
+                entry.attendance_status = 'PRESENT'
+                response_data['display'] = ''
+                
+            elif value.isdigit():
+                grade = int(value)
+                if 1 <= grade <= 12:
+                    entry.grade = grade
+                    entry.attendance_status = 'PRESENT'
+                    response_data['display'] = str(grade)
+                    response_data['type'] = 'grade'
+                else:
+                    return JsonResponse({'success': False, 'error': 'Оценка должна быть от 1 до 12'}, status=400)
+            
+            elif value in ['н', 'нб', 'nb', 'n', 'abs']:
+                entry.grade = None
+                entry.attendance_status = 'ABSENT_INVALID' 
+                response_data['display'] = 'НБ'
+                response_data['type'] = 'absent'
+            
+            else:
+                return JsonResponse({'success': False, 'error': 'Введите число (оценка) или "нб" (прогул)'}, status=400)
+
+            entry.modified_by = teacher
+            entry.save()
+
+            if old_grade != entry.grade or old_attendance != entry.attendance_status:
+                JournalChangeLog.objects.create(
+                    entry=entry, changed_by=teacher,
+                    old_grade=old_grade, old_attendance=old_attendance,
+                    new_grade=entry.grade, new_attendance=entry.attendance_status,
+                    comment="Быстрый ввод"
+                )
+                
+            stats, _ = StudentStatistics.objects.get_or_create(student=entry.student)
+            stats.recalculate()
+
+        response_data['success'] = True
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

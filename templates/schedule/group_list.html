@@ -105,35 +105,27 @@ function sortTable(header, columnIndex) {
     const tbody = table.querySelector('tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     
-    // Определяем направление сортировки
     const isAscending = header.classList.contains('asc');
     
-    // Удаляем классы сортировки со всех заголовков
     table.querySelectorAll('th').forEach(th => {
         th.classList.remove('asc', 'desc');
     });
     
-    // Добавляем класс к текущему заголовку
     header.classList.add(isAscending ? 'desc' : 'asc');
     
-    // Сортируем строки
     rows.sort((a, b) => {
         const aValue = a.cells[columnIndex].textContent.trim();
         const bValue = b.cells[columnIndex].textContent.trim();
         
-        // Попытка преобразовать в число
         const aNum = parseFloat(aValue.replace(/[^0-9.-]/g, ''));
         const bNum = parseFloat(bValue.replace(/[^0-9.-]/g, ''));
         
         if (!isNaN(aNum) && !isNaN(bNum)) {
             return isAscending ? bNum - aNum : aNum - bNum;
         }
-        
-        // Сортировка как строки
         return isAscending ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
     });
     
-    // Обновляем таблицу
     rows.forEach(row => tbody.appendChild(row));
 }
 </script>

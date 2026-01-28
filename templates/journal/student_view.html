@@ -29,7 +29,6 @@
                             <h2 class="text-success">{{ stats.attendance_percentage|floatformat:0 }}%</h2>
                         </div>
                     </div>
-                    <!-- 🆕 ПРОГУЛЫ -->
                     <div class="col-md-2">
                         <div class="text-center">
                             <h6 class="text-muted">НБ-Болезнь</h6>
@@ -50,7 +49,6 @@
                     </div>
                 </div>
                 
-                <!-- 🆕 Общий итог -->
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="alert {% if stats.total_absent > 10 %}alert-danger{% elif stats.total_absent > 5 %}alert-warning{% else %}alert-success{% endif %}">
@@ -62,7 +60,6 @@
             </div>
         </div>
         
-        <!-- Остальные таблицы по предметам без изменений -->
         {% for subject_data in subjects_data %}
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">

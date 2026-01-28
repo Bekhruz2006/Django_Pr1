@@ -37,7 +37,6 @@
                             <tbody>
                                 {% for item in preview_data %}
                                 <tr id="row_{{ forloop.counter0 }}">
-                                    <!-- Скрытые технические поля -->
                                     <input type="hidden" name="item_{{ forloop.counter0 }}_group_id" value="{{ item.group_id }}">
                                     <input type="hidden" name="item_{{ forloop.counter0 }}_day" value="{{ item.day }}">
                                     <input type="hidden" name="item_{{ forloop.counter0 }}_start_time" value="{{ item.start_time }}">
@@ -102,21 +101,10 @@
 <script>
     function removeRow(index) {
         const row = document.getElementById('row_' + index);
-        // Вместо удаления DOM элемента, который сломает индексы в Django при переборе,
-        // мы просто очистим GroupID, и цикл на бэкенде остановится/пропустит его
-        // Но лучше просто удалить поля
         
         row.style.opacity = '0.3';
-        row.innerHTML = ''; // Очищаем содержимое
+        row.innerHTML = ''; 
         
-        // Важно: Чтобы логика в python не сломалась из-за дырок в индексах, 
-        // лучше удалять поля полностью. 
-        // Примечание: В views.py логика построена на `item_{index}_`.
-        // Если мы удалим HTML элементы, то request.POST.get(f'item_{index}_group_id') вернет None.
-        // Моя логика `if not group_id: break` ОСТАНОВИТ цикл при первой дырке. 
-        
-        // РЕШЕНИЕ: Не используйте break при первой пустой строке, а используйте перебор for.
-        // Я исправлю views.py чуть ниже для поддержки "дырок".
     }
 </script>
 {% endblock %}

@@ -29,11 +29,9 @@
         const text = input.value;
         if (!text) return;
 
-        // User Msg
         box.innerHTML += `<div class="text-end mb-2"><span class="badge bg-primary p-2">${text}</span></div>`;
         input.value = '';
         
-        // Loading
         const loadingId = 'loading-' + Date.now();
         box.innerHTML += `<div id="${loadingId}" class="text-start mb-2"><span class="text-muted">Думаю...</span></div>`;
         box.scrollTop = box.scrollHeight;

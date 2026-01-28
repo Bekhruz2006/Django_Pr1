@@ -11,7 +11,7 @@ urlpatterns = [
     path('changelog/', views.change_log_view, name='change_log'),
 
     path('student/', views.student_journal_view, name='student_view'),
-
+    path('api/update-cell/', views.update_journal_cell, name='update_journal_cell'),
     path('dean/', views.dean_journal_view, name='dean_view'),
     path('report/', views.department_report, name='department_report'),  
     path('report/group/<int:group_id>/', views.group_detailed_report, name='group_detail'),  

@@ -6,7 +6,6 @@
 
 {% block content %}
 <div class="row mt-4">
-    <!-- Group Selection -->
     <div class="col-12">
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
@@ -49,7 +48,6 @@
     </div>
 
     {% if group %}
-    <!-- SUBJECTS LIST -->
     <div class="col-lg-3">
         {% if group.has_military_training %}
         <div class="card mb-3 border-dark">
@@ -113,7 +111,6 @@
                 </div>
                 {% endif %}
 
-                <!-- Practice and SRSP sections similar to above, just usually not streams -->
                 {% if practice_subjects %}
                 <div class="bg-success bg-opacity-10 p-2 mt-2 border-bottom border-success">
                     <strong><i class="bi bi-gear"></i> Практики</strong>
@@ -163,7 +160,6 @@
         </div>
     </div>
 
-    <!-- SCHEDULE GRID -->
     <div class="col-lg-9">
         <div class="card shadow">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
@@ -261,7 +257,6 @@
     {% endif %}
 </div>
 
-<!-- Conflict Modal -->
 <div class="modal fade" id="conflictModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -283,7 +278,6 @@
     </div>
 </div>
 
-<!-- Scripts (Drag & Drop Logic) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     function getCookie(name) {
@@ -457,18 +451,21 @@ document.addEventListener('DOMContentLoaded', function() {
         input.focus();
     };
 
-    window.saveAud = function(input, slotId) {
+    window.saveAud = function(input, slotId, isForce = false) {
         const val = input.value.trim();
         const cell = input.closest('.aud-cell');
         const display = cell.querySelector('.aud-display');
 
-        fetch('/schedule/constructor/update-room/' + slotId + '/', {
+        fetch(`/schedule/constructor/update-room/${slotId}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
+                'X-CSRFToken': getCookie('csrftoken') 
             },
-            body: JSON.stringify({room: val})
+            body: JSON.stringify({
+                room: val,
+                force: isForce
+            })
         })
         .then(res => res.json())
         .then(data => {
@@ -477,17 +474,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (display) {
                     display.innerText = data.room || '?';
                     display.style.display = 'inline-block';
+                    display.classList.add('bg-success', 'text-white');
+                    setTimeout(() => display.classList.remove('bg-success', 'text-white'), 1000);
                 }
             } else {
-                alert('Ошибка: ' + data.error);
-                input.focus();
+                if (data.is_capacity_warning || data.is_conflict) {
+                    if (confirm(data.error + "\n\nНажмите ОК, чтобы назначить принудительно.")) {
+                        saveAud(input, slotId, true);
+                    } else {
+                        input.focus();
+                    }
+                } else {
+                    alert('Ошибка: ' + data.error);
+                    input.focus();
+                }
             }
         })
         .catch(err => {
-            alert('Ошибка сети или сервера');
+            alert('Ошибка сети');
             console.error(err);
         });
     };
+
 
     let autoScrollState = {
         active: false,

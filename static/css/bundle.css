@@ -398,3 +398,88 @@ body.dark-mode .sidebar-link.active {
         page-break-inside: avoid;
     }
 }
+
+.footer {
+    width: 100%;
+    margin-top: auto;
+    background-color: #1e293b;
+    color: #94a3b8;
+    border-top: 1px solid #334155;
+    z-index: 1040;
+    position: relative;
+}
+
+body.dark-mode .footer {
+    background-color: #0f172a;
+    border-top: 1px solid #1e293b;
+}
+
+body.dark-mode .accordion-button {
+    background-color: var(--card-dark);
+    color: var(--text-dark);
+}
+
+body.dark-mode .accordion-button:not(.collapsed) {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: var(--primary-blue);
+}
+
+body.dark-mode .accordion-button::after {
+    filter: invert(1);
+}
+
+body.dark-mode .accordion-body {
+    background-color: var(--bg-dark) !important;
+    color: var(--text-dark);
+}
+
+body.dark-mode .list-group-item {
+    background-color: var(--card-dark);
+    color: var(--text-dark);
+    border-color: #475569;
+}
+
+body.dark-mode .stat-box {
+    background-color: var(--card-dark) !important;
+    border-color: #475569 !important;
+}
+
+body.dark-mode .action-panel {
+    background-color: var(--card-dark) !important;
+    border-color: #475569 !important;
+}
+
+body.dark-mode .specialty-header {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    border-bottom: 1px solid #475569 !important;
+}
+
+body.dark-mode .specialty-title {
+    background-color: var(--bg-dark) !important;
+    color: var(--accent-green) !important;
+}
+
+body.dark-mode .group-item {
+    background-color: var(--bg-dark) !important;
+    border-color: #475569 !important;
+}
+
+body.dark-mode .group-item a {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .text-muted {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .bg-light {
+    background-color: var(--bg-dark) !important;
+}
+
+body.dark-mode .card-header.bg-secondary.bg-opacity-10 {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+body.dark-mode .card-header.bg-secondary.bg-opacity-10 span {
+    color: #e2e8f0 !important;
+}

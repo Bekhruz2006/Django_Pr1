@@ -103,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastMessageId = {% if messages %}{{ messages.last.id }}{% else %}0{% endif %};
     const processedMessages = new Set();
     
-    // Инициализация: добавляем все существующие сообщения в Set
     document.querySelectorAll('[data-message-id]').forEach(el => {
         const msgId = parseInt(el.getAttribute('data-message-id'));
         processedMessages.add(msgId);
@@ -150,7 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Ошибка загрузки сообщений:', error));
     }
     
-    // Задержка первого обновления после отправки формы для предотвращения дублирования
     setTimeout(() => {
         setInterval(fetchNewMessages, 3000);
     }, 1000);

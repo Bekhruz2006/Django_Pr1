@@ -3,280 +3,180 @@
 {% block title %}Журнал - {{ subject.name }}{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>
-                    <i class="bi bi-journal-text"></i> 
-                    Журнал: {{ group.name }} - {{ subject.name }}
-                    <span class="badge bg-info ms-2">Неделя {{ week_num }}</span>
-                </span>
-                <div>
-                    <a href="{% url 'journal:change_log' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-info btn-sm me-2">
-                        <i class="bi bi-clock-history"></i> История изменений
-                    </a>
-                    <a href="{% url 'journal:journal_view' %}" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-arrow-left"></i> Выбрать другую группу
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-                
-                <div class="mb-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" 
-                           class="btn btn-outline-primary btn-sm {% if week_num <= 1 %}disabled{% endif %}">
-                            <i class="bi bi-chevron-left"></i> Предыдущая неделя
-                        </a>
-                        <span class="mx-3"><strong>Неделя {{ week_num }}</strong></span>
-                        <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'1' }}" 
-                           class="btn btn-outline-primary btn-sm {% if week_num >= 20 %}disabled{% endif %}">
-                            Следующая неделя <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </div>
-                </div>
-
-                {# ========== РАЗДЕЛ 1: БАЛЛЫ ЗА НЕДЕЛЮ ========== #}
-                <div class="card mb-4 border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <i class="bi bi-star"></i> Баллы за неделю {{ week_num }}
-                        <small class="ms-2">(Оценки выставляются один раз за всю неделю)</small>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 200px;">Студент</th>
-                                        <th style="width: 150px;" class="text-center">Балл за неделю (1-12)</th>
-                                        <th>Комментарий</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in journal_data %}
-                                    <tr>
-                                        <td>
-                                            <strong>{{ row.student.user.get_full_name }}</strong><br>
-                                            <small class="text-muted">{{ row.student.student_id }}</small>
-                                        </td>
-                                        <td class="text-center">
-                                            {# Берем первую запись недели для хранения балла #}
-                                            {% with entry=row.entries.0.entry %}
-                                            <form method="post" action="{% url 'journal:update_entry' entry.id %}" class="d-inline">
-                                                {% csrf_token %}
-                                                <input type="number" 
-                                                       name="grade" 
-                                                       value="{{ entry.grade|default:'' }}"
-                                                       min="1" max="12" 
-                                                       class="form-control form-control-sm d-inline w-auto"
-                                                       placeholder="1-12"
-                                                       style="max-width: 80px;"
-                                                       onchange="this.form.submit()">
-                                            </form>
-                                            {% if entry.grade %}
-                                                <span class="badge bg-success ms-2">✓</span>
-                                            {% endif %}
-                                            {% endwith %}
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">Автоматически сохраняется при вводе</small>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="alert alert-info mt-2">
-                            <i class="bi bi-info-circle"></i> 
-                            <strong>Как это работает:</strong> Балл выставляется один раз за всю неделю и отображается для всех дней недели.
-                        </div>
-                    </div>
-                </div>
-
-                {# ========== РАЗДЕЛ 2: ПОСЕЩАЕМОСТЬ (НБ) ПО ДНЯМ ========== #}
-                <div class="card border-warning">
-                    <div class="card-header bg-warning">
-                        <i class="bi bi-calendar-check"></i> Посещаемость по дням (НБ)
-                        <button type="button" class="btn btn-sm btn-success float-end" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal">
-                            <i class="bi bi-check-all"></i> Массовое заполнение НБ
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered journal-table">
-                                <thead>
-                                    <tr class="table-light">
-                                        <th style="width: 200px;">Студент</th>
-                                        {% for day in days_with_lessons %}
-                                            <th class="text-center" style="min-width: 120px;">
-                                                {{ day.day_name }}<br>
-                                                <small class="text-muted">{{ day.date|date:"d.m" }}</small><br>
-                                                <small>{{ day.time|time:"H:i" }}</small>
-                                            </th>
-                                        {% endfor %}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in journal_data %}
-                                    <tr>
-                                        <td>
-                                            <strong>{{ row.student.user.get_full_name }}</strong><br>
-                                            <small class="text-muted">{{ row.student.student_id }}</small>
-                                        </td>
-                                        {% for entry_data in row.entries %}
-                                            <td class="text-center {% if entry_data.is_locked %}bg-secondary bg-opacity-10{% endif %}">
-                                                <form method="post" action="{% url 'journal:update_entry' entry_data.entry.id %}">
-                                                    {% csrf_token %}
-                                                    
-                                                    {% if entry_data.is_locked %}
-                                                        <div class="locked-cell">
-                                                            <i class="bi bi-lock-fill text-muted"></i>
-                                                            <div class="mt-1">
-                                                                <span class="badge {% if entry_data.entry.attendance_status == 'PRESENT' %}bg-success{% else %}bg-danger{% endif %}">
-                                                                    {{ entry_data.entry.get_attendance_status_display }}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    {% else %}
-                                                        <select name="attendance_status"
-                                                                class="form-select form-select-sm"
-                                                                onchange="this.form.submit()">
-                                                            {% for value, label in entry_data.form.fields.attendance_status.choices %}
-                                                                <option value="{{ value }}" 
-                                                                        {% if entry_data.entry.attendance_status == value %}selected{% endif %}>
-                                                                    {{ label }}
-                                                                </option>
-                                                            {% endfor %}
-                                                        </select>
-                                                    {% endif %}
-                                                </form>
-                                            </td>
-                                        {% endfor %}
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="alert alert-warning mt-2">
-                            <i class="bi bi-exclamation-triangle"></i> 
-                            <strong>Важно:</strong> НБ отмечается отдельно для каждого дня. Баллы выставляются один раз за неделю выше.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="alert alert-info mt-3">
-                    <h6><i class="bi bi-info-circle"></i> Правила работы с журналом:</h6>
-                    <ul class="mb-0">
-                        <li>✓ Баллы выставляются <strong>один раз за всю неделю</strong> в верхней таблице</li>
-                        <li>✓ НБ (неявки) отмечаются <strong>отдельно для каждого дня</strong> в нижней таблице</li>
-                        <li>🔒 Записи блокируются через <strong>24 часа</strong> после начала занятия</li>
-                        <li>📝 Все изменения логируются автоматически</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# Модальное окно для массового заполнения НБ #}
-<div class="modal fade" id="bulkUpdateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Массовое заполнение НБ</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" action="{% url 'journal:bulk_update' %}">
-                {% csrf_token %}
-                <input type="hidden" name="group_id" value="{{ group.id }}">
-                <input type="hidden" name="subject_id" value="{{ subject.id }}">
-                
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Выберите день</label>
-                        <select name="lesson_date" class="form-select" id="bulkDaySelect" required>
-                            <option value="">-- Выберите день --</option>
-                            {% for day in days_with_lessons %}
-                                <option value="{{ day.date|date:'Y-m-d' }}" data-time="{{ day.time|time:'H:i:s' }}">
-                                    {{ day.day_name }} ({{ day.date|date:"d.m" }})
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <input type="hidden" name="lesson_time" id="bulkTimeInput">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Выберите студентов</label>
-                        <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="selectAll">
-                                <label class="form-check-label" for="selectAll">
-                                    <strong>Выбрать всех</strong>
-                                </label>
-                            </div>
-                            <hr>
-                            {% for row in journal_data %}
-                                <div class="form-check">
-                                    <input class="form-check-input student-checkbox" 
-                                           type="checkbox" 
-                                           name="students" 
-                                           value="{{ row.student.id }}"
-                                           id="student_{{ row.student.id }}">
-                                    <label class="form-check-label" for="student_{{ row.student.id }}">
-                                        {{ row.student.user.get_full_name }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Статус НБ</label>
-                        <select name="attendance_status" class="form-select" required>
-                            <option value="">-- Выберите статус --</option>
-                            <option value="PRESENT">Присутствовал</option>
-                            <option value="ABSENT_ILLNESS">НБ-Болезнь</option>
-                            <option value="ABSENT_VALID">НБ-Уважительная</option>
-                            <option value="ABSENT_INVALID">НБ-Неуважительная</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Применить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <style>
-    .journal-table {
-        font-size: 0.9rem;
+    .journal-grid input {
+        border: none;
+        background: transparent;
+        width: 100%;
+        text-align: center;
+        font-weight: 500;
+        outline: none;
     }
-    
-    .journal-table td {
+    .journal-grid input:focus {
+        background-color: #e8f0fe;
+        box-shadow: inset 0 0 0 2px #2563eb;
+    }
+    .journal-grid td {
+        padding: 0 !important; 
+        height: 40px;
         vertical-align: middle;
-        padding: 0.5rem;
+        position: relative;
     }
+    .cell-locked {
+        background-color: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+    .val-grade { color: #2563eb; font-weight: bold; }
+    .val-absent { color: #dc2626; font-weight: bold; }
 </style>
 
-<script>
-// Выбрать всех студентов
-document.getElementById('selectAll').addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.student-checkbox');
-    checkboxes.forEach(cb => cb.checked = this.checked);
-});
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-journal-bookmark-fill"></i> 
+                    {{ group.name }} | {{ subject.name }}
+                </h5>
+                <div>
+                    <span class="badge bg-light text-dark border me-2">Неделя {{ week_num }}</span>
+                    <a href="{% url 'journal:journal_view' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="d-flex justify-content-between bg-light p-2 border-bottom">
+                    <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" class="btn btn-sm btn-link text-decoration-none">&larr; Пред. неделя</a>
+                    
+                    <small class="text-muted align-self-center">
+                        Вводите <b>1-12</b> для оценки или <b>нб</b> для прогула. Tab для перемещения.
+                    </small>
+                    
+                    <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'1' }}" class="btn btn-sm btn-link text-decoration-none">След. неделя &rarr;</a>
+                </div>
 
-// Автозаполнение времени при выборе дня
-document.getElementById('bulkDaySelect').addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    const time = selectedOption.getAttribute('data-time');
-    document.getElementById('bulkTimeInput').value = time;
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 journal-grid table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 250px;" class="ps-3 align-middle">ФИО Студента</th>
+                                {% for day in days_with_lessons %}
+                                    <th class="text-center" style="width: 80px;">
+                                        <div style="font-size: 0.8rem;">{{ day.day_name|slice:":2" }}</div>
+                                        <div style="font-size: 0.7rem;" class="text-muted">{{ day.date|date:"d.m" }}</div>
+                                        <div style="font-size: 0.65rem; color: #aaa;">{{ day.time|time:"H:i" }}</div>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in journal_data %}
+                            <tr>
+                                <td class="ps-3 py-2">
+                                    <span class="fw-medium">{{ row.student.user.last_name }} {{ row.student.user.first_name|slice:":1" }}.</span>
+                                </td>
+                                {% for entry_data in row.entries %}
+                                    <td>
+                                        {% if entry_data.is_locked %}
+                                            <div class="cell-locked" title="Заблокировано (время истекло)">
+                                                {{ entry_data.entry.get_display_value }}
+                                                {% if entry_data.entry.attendance_status != 'PRESENT' and not entry_data.entry.grade %}
+                                                    <small>НБ</small>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <input type="text" 
+                                                   value="{% if entry_data.entry.grade %}{{ entry_data.entry.grade }}{% elif entry_data.entry.attendance_status != 'PRESENT' %}нб{% endif %}" 
+                                                   class="journal-input {% if entry_data.entry.grade %}val-grade{% elif entry_data.entry.attendance_status != 'PRESENT' %}val-absent{% endif %}"
+                                                   data-entry-id="{{ entry_data.entry.id }}"
+                                                   autocomplete="off">
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('.journal-input');
+
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.dataset.oldValue = this.value;
+            this.select();
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                this.blur(); 
+                
+                const currentTd = this.parentElement;
+                const currentTr = currentTd.parentElement;
+                const cellIndex = Array.from(currentTr.children).indexOf(currentTd);
+                const nextTr = currentTr.nextElementSibling;
+                
+                if (nextTr) {
+                    const nextInput = nextTr.children[cellIndex]?.querySelector('input');
+                    if (nextInput) nextInput.focus();
+                }
+            }
+        });
+
+        input.addEventListener('change', function() {
+            const newVal = this.value.trim();
+            const entryId = this.dataset.entryId;
+            
+            if (newVal === this.dataset.oldValue) return;
+
+            this.style.opacity = '0.5';
+
+            fetch('{% url "journal:update_journal_cell" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    entry_id: entryId,
+                    value: newVal
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.style.opacity = '1';
+                if (data.success) {
+                    this.value = data.display;
+                    this.classList.remove('val-grade', 'val-absent');
+                    
+                    if (data.type === 'grade') this.classList.add('val-grade');
+                    if (data.type === 'absent') this.classList.add('val-absent');
+                    
+                    this.dataset.oldValue = data.display;
+                } else {
+                    alert(data.error);
+                    this.value = this.dataset.oldValue;
+                    this.focus();
+                }
+            })
+            .catch(err => {
+                alert('Ошибка соединения');
+                this.style.opacity = '1';
+                this.value = this.dataset.oldValue;
+            });
+        });
+    });
 });
 </script>
 {% endblock %}

@@ -11,7 +11,6 @@
             </div>
             <div class="card-body">
                 
-                <!-- ✅ 1. Блок для вывода общих ошибок формы -->
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger">
                         {% for error in form.non_field_errors %}
@@ -57,7 +56,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- ✅ 2. Добавлены недостающие поля -->
                     <div class="mb-3">
                         <label class="form-label">Язык обучения</label>
                         {{ form.language }}
