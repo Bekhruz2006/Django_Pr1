@@ -3,215 +3,354 @@
 {% block title %}Панель деканата{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        {% if faculty %}
-            <h2 class="fw-bold mb-0 text-primary">{{ faculty.name }}</h2>
-            <p class="text-muted mb-0">Институт: {{ faculty.institute.name }}</p>
-        {% else %}
-            <h2 class="fw-bold text-danger">Факультет не привязан</h2>
-        {% endif %}
-    </div>
-    <div class="text-end">
-        <span class="text-muted d-block small">Сегодня</span>
-        <span class="fs-5 fw-bold">{% now "d E Y" %}</span>
-    </div>
-</div>
-
-{% if faculty %}
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-primary bg-gradient text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="text-white-50 text-uppercase small">Студентов</h6>
-                        <h2 class="mb-0 fw-bold">{{ students_count }}</h2>
-                    </div>
-                    <i class="bi bi-people fs-1 text-white-50"></i>
-                </div>
-            </div>
-            <a href="{% url 'accounts:user_management' %}?role=STUDENT" class="card-footer bg-transparent border-0 text-white-50 small text-decoration-none">
-                Подробнее <i class="bi bi-arrow-right ms-1"></i>
-            </a>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-success bg-gradient text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="text-white-50 text-uppercase small">Групп</h6>
-                        <h2 class="mb-0 fw-bold">{{ groups_count }}</h2>
-                    </div>
-                    <i class="bi bi-collection fs-1 text-white-50"></i>
-                </div>
-            </div>
-            <a href="{% url 'accounts:group_management' %}" class="card-footer bg-transparent border-0 text-white-50 small text-decoration-none">
-                Управление группами <i class="bi bi-arrow-right ms-1"></i>
-            </a>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-info bg-gradient text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="text-white-50 text-uppercase small">Преподавателей</h6>
-                        <h2 class="mb-0 fw-bold">{{ teachers_count }}</h2>
-                    </div>
-                    <i class="bi bi-person-badge fs-1 text-white-50"></i>
-                </div>
-            </div>
-            <a href="{% url 'accounts:user_management' %}?role=TEACHER" class="card-footer bg-transparent border-0 text-white-50 small text-decoration-none">
-                Список преподавателей <i class="bi bi-arrow-right ms-1"></i>
-            </a>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-warning bg-gradient text-dark">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="text-dark-50 text-uppercase small">Средний балл</h6>
-                        <h2 class="mb-0 fw-bold">
-                            {% if course_stats %}
-                                {{ course_stats.0.avg_gpa|floatformat:1 }}
-                            {% else %}
-                                -
-                            {% endif %}
+<div class="container-fluid">
+    <div class="row mb-4 animate-fade-in">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    {% if faculty %}
+                        <h2 class="mb-0 fw-bold text-primary">
+                            <i class="bi bi-building me-2"></i>{{ faculty.name }}
                         </h2>
-                    </div>
-                    <i class="bi bi-bar-chart fs-1 text-dark-50"></i>
+                        <p class="text-muted mb-0 mt-1">
+                            <i class="bi bi-bank me-1"></i>Институт: {{ faculty.institute.name }}
+                        </p>
+                    {% else %}
+                        <h2 class="fw-bold text-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Факультет не привязан
+                        </h2>
+                    {% endif %}
+                </div>
+                <div class="text-end">
+                    <span class="text-muted d-block small">Сегодня</span>
+                    <span class="fs-5 fw-bold text-primary">{% now "d E Y" %}</span>
                 </div>
             </div>
-            <a href="{% url 'journal:dean_view' %}" class="card-footer bg-transparent border-0 text-dark-50 small text-decoration-none">
-                Аналитика <i class="bi bi-arrow-right ms-1"></i>
-            </a>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-diagram-3 me-2"></i> Структура факультета</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Кафедра</th>
-                                <th>Заведующий</th>
-                                <th class="text-center">Специальностей</th>
-                                <th class="text-end pe-4">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for dept in departments %}
-                            <tr>
-                                <td class="ps-4 fw-medium">{{ dept.name }}</td>
-                                <td>
-                                    {% if dept.head %}
-                                        <div class="d-flex align-items-center">
-                                            {% if dept.head.user.photo %}
-                                                <img src="{{ dept.head.user.photo.url }}" class="rounded-circle me-2" width="30" height="30" style="object-fit: cover;">
-                                            {% else %}
-                                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px; font-size: 12px;">
-                                                    {{ dept.head.user.first_name|first }}
-                                                </div>
-                                            {% endif %}
-                                            <span>{{ dept.head.user.get_full_name }}</span>
-                                        </div>
-                                    {% else %}
-                                        <span class="badge bg-light text-muted border">Свободно</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-info bg-opacity-10 text-info">{{ dept.specialties.count }}</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-light text-primary" title="Настройки">
-                                        <i class="bi bi-gear"></i>
+    {% if faculty %}
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3 animate-slide-in">
+            <div class="stat-card-modern card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="stat-icon-wrapper bg-primary-soft">
+                            <i class="bi bi-people fs-2 text-primary"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=STUDENT">
+                                        <i class="bi bi-eye me-2"></i>Просмотр
                                     </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4" class="text-center py-4 text-muted">Кафедры еще не созданы</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 fw-bold">{{ students_count }}</h3>
+                    <p class="text-muted mb-0 small">Всего студентов</p>
+                    <div class="progress mt-3" style="height: 4px;">
+                        <div class="progress-bar bg-primary" style="width: 100%"></div>
+                    </div>
                 </div>
             </div>
-            <div class="card-footer bg-white border-top text-center py-3">
-                <a href="{% url 'accounts:manage_structure' %}" class="btn btn-outline-primary btn-sm">
-                    Управление структурой
-                </a>
+        </div>
+
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.1s;">
+            <div class="stat-card-modern card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="stat-icon-wrapper bg-success-soft">
+                            <i class="bi bi-collection fs-2 text-success"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:group_management' %}">
+                                        <i class="bi bi-eye me-2"></i>Управление
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 fw-bold">{{ groups_count }}</h3>
+                    <p class="text-muted mb-0 small">Учебных групп</p>
+                    <div class="progress mt-3" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.2s;">
+            <div class="stat-card-modern card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="stat-icon-wrapper bg-info-soft">
+                            <i class="bi bi-person-badge fs-2 text-info"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=TEACHER">
+                                        <i class="bi bi-eye me-2"></i>Список
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 fw-bold">{{ teachers_count }}</h3>
+                    <p class="text-muted mb-0 small">Преподавателей</p>
+                    <div class="progress mt-3" style="height: 4px;">
+                        <div class="progress-bar bg-info" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.3s;">
+            <div class="stat-card-modern card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="stat-icon-wrapper bg-warning-soft">
+                            <i class="bi bi-bar-chart fs-2 text-warning"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'journal:dean_view' %}">
+                                        <i class="bi bi-graph-up me-2"></i>Аналитика
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 fw-bold">
+                        {% if course_stats %}
+                            {{ course_stats.0.avg_gpa|floatformat:1 }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-0 small">Средний балл</p>
+                    <div class="progress mt-3" style="height: 4px;">
+                        <div class="progress-bar bg-warning" style="width: {% if course_stats %}{% widthratio course_stats.0.avg_gpa 1 8.33 %}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-building-gear me-2"></i> Управления аудиторий</h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted small">Управление кабинетами, вместимостью и их доступностью.</p>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-outline-primary btn-sm">
-                        Список кабинетов
-                    </a>
-                    <a href="{% url 'schedule:bulk_add_classrooms' %}" class="btn btn-outline-secondary btn-sm">
-                        Массовое добавление
-                    </a>
+    <div class="row g-4">
+        <div class="col-lg-8 animate-slide-in" style="animation-delay: 0.4s;">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold text-primary">
+                            <i class="bi bi-diagram-3 me-2"></i>Структура факультета
+                        </h5>
+                        <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil me-1"></i>Управление
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0 ps-4">Кафедра</th>
+                                    <th class="border-0">Заведующий</th>
+                                    <th class="border-0 text-center">Специальностей</th>
+                                    <th class="border-0 text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dept in departments %}
+                                <tr>
+                                    <td class="ps-4 fw-medium">
+                                        <i class="bi bi-diagram-3-fill text-primary me-2"></i>
+                                        {{ dept.name }}
+                                    </td>
+                                    <td>
+                                        {% if dept.head %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    <i class="bi bi-person text-primary"></i>
+                                                </div>
+                                                <span>{{ dept.head.user.get_full_name }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted">Свободно</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info bg-opacity-10 text-info">
+                                            {{ dept.specialties.count }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'accounts:edit_department' dept.id %}" 
+                                           class="btn btn-sm btn-light">
+                                            <i class="bi bi-gear"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                        Кафедры еще не созданы
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart me-2"></i> Успеваемость по курсам</h5>
-            </div>
-            <div class="card-body">
-                {% if course_stats %}
-                    {% for stat in course_stats %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold">{{ stat.course }} курс</span>
-                            <span class="text-muted small">{{ stat.students_count }} студ.</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <small class="text-muted">GPA: <span class="text-dark fw-bold">{{ stat.avg_gpa|floatformat:2 }}</span></small>
-                            <small class="text-muted">Посещ: <span class="text-dark fw-bold">{{ stat.avg_attendance|floatformat:0 }}%</span></small>
-                        </div>
-                        <div class="progress" style="height: 6px;">
-                            <div class="progress-bar bg-success" style="width: {{ stat.avg_attendance }}%"></div>
-                        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4 animate-slide-in" style="animation-delay: 0.5s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-lightning-charge me-2 text-warning"></i>Быстрые действия
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'schedule:constructor' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
+                            <div class="icon-wrapper bg-primary-soft me-3">
+                                <i class="bi bi-calendar-week text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-medium">Конструктор расписания</div>
+                                <small class="text-muted">Управление расписанием групп</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'schedule:manage_classrooms' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
+                            <div class="icon-wrapper bg-success-soft me-3">
+                                <i class="bi bi-door-open text-success"></i>
+                            </div>
+                            <div>
+                                <div class="fw-medium">Управление аудиториями</div>
+                                <small class="text-muted">Кабинеты и вместимость</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'journal:dean_view' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
+                            <div class="icon-wrapper bg-info-soft me-3">
+                                <i class="bi bi-graph-up text-info"></i>
+                            </div>
+                            <div>
+                                <div class="fw-medium">Аналитика</div>
+                                <small class="text-muted">Успеваемость студентов</small>
+                            </div>
+                        </a>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-center text-muted py-3">Нет данных для отображения</p>
-                {% endif %}
+                </div>
             </div>
-            <div class="card-footer bg-white border-top">
-                <a href="{% url 'journal:dean_view' %}" class="btn btn-primary w-100 btn-sm">
-                    Подробная аналитика
-                </a>
-            </div>
-        </div>
-        <div class="card shadow-sm border-0 bg-primary text-white">
-            <div class="card-body text-center p-4">
-                <i class="bi bi-calendar-week fs-1 mb-3"></i>
-                <h5>Расписание занятий</h5>
-                <p class="small text-white-50">Управление расписанием групп и потоков</p>
-                <a href="{% url 'schedule:constructor' %}" class="btn btn-light text-primary w-100 fw-bold shadow-sm">
-                    Перейти в конструктор
-                </a>
+            <div class="card border-0 shadow-sm animate-slide-in" style="animation-delay: 0.6s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-pie-chart me-2 text-primary"></i>Успеваемость по курсам
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if course_stats %}
+                        {% for stat in course_stats %}
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold">{{ stat.course }} курс</span>
+                                <span class="text-muted small">{{ stat.students_count }} студ.</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">
+                                    GPA: <span class="fw-bold text-dark">{{ stat.avg_gpa|floatformat:2 }}</span>
+                                </small>
+                                <small class="text-muted">
+                                    Посещ: <span class="fw-bold text-dark">{{ stat.avg_attendance|floatformat:0 }}%</span>
+                                </small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-gradient" 
+                                     style="width: {{ stat.avg_attendance }}%; 
+                                            background: linear-gradient(90deg, #10b981, #3b82f6);">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <a href="{% url 'journal:dean_view' %}" class="btn btn-primary w-100 btn-sm mt-3">
+                            <i class="bi bi-arrow-right me-1"></i>Подробная аналитика
+                        </a>
+                    {% else %}
+                        <p class="text-center text-muted py-3 mb-0">
+                            <i class="bi bi-inbox d-block fs-1 mb-2"></i>
+                            Нет данных
+                        </p>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
-{% endif %}
+
+<style>
+    .stat-card-modern {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent !important;
+    }
+
+    .stat-card-modern:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+        border-left-color: var(--primary-blue) !important;
+    }
+
+    .stat-icon-wrapper {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+
+    .bg-primary-soft { background-color: rgba(37, 99, 235, 0.1); }
+    .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); }
+    .bg-info-soft { background-color: rgba(59, 130, 246, 0.1); }
+    .bg-warning-soft { background-color: rgba(245, 158, 11, 0.1); }
+
+    .icon-wrapper {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8fafc;
+    }
+</style>
 {% endblock %}

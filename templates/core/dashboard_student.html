@@ -2,132 +2,222 @@
 {% load static %}
 {% block title %}Главная{% endblock %}
 {% block content %}
-<div class="row mt-4">
-    <div class="col-12">
-        <h2>Добро пожаловать, {{ user.get_full_name }}!</h2>
-        <p class="text-muted">Студент {{ profile.course }} курса, группа {{ profile.group|default:"не назначена" }}</p>
+<div class="container-fluid">
+    <div class="row mb-4 animate-fade-in">
+        <div class="col-12">
+            <div class="welcome-card p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h2 class="mb-2">Добро пожаловать, {{ user.first_name }}! 👋</h2>
+                <p class="mb-0 opacity-75">Студент {{ profile.course }} курса, группа {{ profile.group|default:"не назначена" }}</p>
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="row mt-3">
-    <div class="col-md-3">
-        <div class="card stat-card">
-            <div class="card-body text-center">
-                <i class="bi bi-journal-check" style="font-size: 3rem; color: var(--accent-green);"></i>
-                <h5 class="mt-2">Средний балл</h5>
-                <h2 class="stat-number">{{ profile.get_average_grade|floatformat:2|default:"0.00" }}</h2>
-                <div class="progress mt-2" style="height: 8px;">
-                    <div class="progress-bar bg-success" role="progressbar" 
-                         style="width: {% widthratio profile.get_average_grade 1 8.33 %}%">
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3 animate-slide-in">
+            <div class="stat-card card h-100 border-0 shadow-sm" style="border-left: 4px solid #10b981 !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Средний балл</p>
+                            <h2 class="mb-0 fw-bold" style="color: #10b981;">{{ profile.get_average_grade|floatformat:2|default:"0.00" }}</h2>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-journal-check fs-1" style="color: #10b981; opacity: 0.2;"></i>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 8px; background-color: #e8f5e9;">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {% widthratio profile.get_average_grade 1 8.33 %}%; background-color: #10b981;">
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">из 12 баллов</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.1s;">
+            <div class="stat-card card h-100 border-0 shadow-sm" style="border-left: 4px solid #f59e0b !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Рейтинг в группе</p>
+                            <h2 class="mb-0 fw-bold" style="color: #f59e0b;">
+                                {% if profile.get_group_rank > 0 %}
+                                    #{{ profile.get_group_rank }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </h2>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-trophy fs-1" style="color: #f59e0b; opacity: 0.2;"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        {% if profile.get_group_rank == 1 %}
+                            <span class="badge bg-warning text-dark">🥇 Лучший в группе!</span>
+                        {% elif profile.get_group_rank <= 3 %}
+                            <span class="badge bg-warning text-dark">🥈 В тройке лидеров!</span>
+                        {% else %}
+                            <span class="badge bg-light text-muted">Продолжай стараться!</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.2s;">
+            <div class="stat-card card h-100 border-0 shadow-sm" style="border-left: 4px solid #2563eb !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Посещаемость</p>
+                            <h2 class="mb-0 fw-bold" style="color: #2563eb;">{{ profile.get_attendance_percentage|floatformat:0|default:"0" }}%</h2>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-calendar2-check fs-1" style="color: #2563eb; opacity: 0.2;"></i>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 8px; background-color: #eff6ff;">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ profile.get_attendance_percentage|default:0 }}%; 
+                                    background-color: {% if profile.get_attendance_percentage >= 90 %}#10b981{% elif profile.get_attendance_percentage >= 75 %}#f59e0b{% else %}#ef4444{% endif %};">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.3s;">
+            <div class="stat-card card h-100 border-0 shadow-sm" style="border-left: 4px solid {% if profile.get_total_absent > 10 %}#ef4444{% elif profile.get_total_absent > 5 %}#f59e0b{% else %}#10b981{% endif %} !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Прогулов (НБ)</p>
+                            <h2 class="mb-0 fw-bold" style="color: {% if profile.get_total_absent > 10 %}#ef4444{% elif profile.get_total_absent > 5 %}#f59e0b{% else %}#10b981{% endif %};">
+                                {{ profile.get_total_absent }}
+                            </h2>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="bi bi-exclamation-triangle fs-1" style="color: {% if profile.get_total_absent > 10 %}#ef4444{% elif profile.get_total_absent > 5 %}#f59e0b{% else %}#10b981{% endif %}; opacity: 0.2;"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">
+                        {% if profile.get_total_absent == 0 %}✅ Отлично!
+                        {% elif profile.get_total_absent <= 5 %}⚠️ Будь внимательнее
+                        {% else %}❌ Требует внимания!{% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8 animate-slide-in" style="animation-delay: 0.4s;">
+            {% include 'schedule/today_widget.html' %}
+        </div>
+
+        <div class="col-lg-4 animate-slide-in" style="animation-delay: 0.5s;">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-gradient-primary text-white">
+                    <i class="bi bi-link-45deg me-2"></i>Быстрый доступ
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-calendar-week me-2"></i> Мое расписание
+                        </a>
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-person me-2"></i> Мой профиль
+                        </a>
+                        <a href="{% url 'journal:student_view' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-journal me-2"></i> Мои оценки
+                        </a>
+                        <a href="{% url 'chat:list' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-chat-dots me-2"></i> Чаты
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
-        <div class="card stat-card">
-            <div class="card-body text-center">
-                <i class="bi bi-trophy" style="font-size: 3rem; color: var(--accent-amber);"></i>
-                <h5 class="mt-2">Рейтинг в группе</h5>
-                <h2 class="stat-number">{{ profile.get_group_rank|default:"—" }}</h2>
-                <small class="text-muted">
-                    {% if profile.get_group_rank == 1 %}🥇 Лучший в группе!
-                    {% elif profile.get_group_rank <= 3 %}🥈 В тройке лидеров!
-                    {% else %}Продолжай стараться!{% endif %}
-                </small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card stat-card">
-            <div class="card-body text-center">
-                <i class="bi bi-calendar2-check" style="font-size: 3rem; color: var(--primary-blue);"></i>
-                <h5 class="mt-2">Посещаемость</h5>
-                <h2 class="stat-number">{{ profile.get_attendance_percentage|floatformat:0|default:"0" }}%</h2>
-                <div class="progress mt-2" style="height: 8px;">
-                    <div class="progress-bar {% if profile.get_attendance_percentage >= 90 %}bg-success{% elif profile.get_attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %}" 
-                         role="progressbar" style="width: {{ profile.get_attendance_percentage|default:0 }}%">
+
+    {% if news_list %}
+    <div class="row mt-4 animate-fade-in" style="animation-delay: 0.6s;">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-newspaper me-2"></i>Последние новости</h5>
+                    <a href="{% url 'news:list' %}" class="btn btn-sm btn-primary">Все новости</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for news in news_list %}
+                            <a href="{% url 'news:detail' news.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-2">
+                                            {% if news.is_pinned %}<i class="bi bi-pin-angle-fill text-warning me-1"></i>{% endif %}
+                                            {{ news.title }}
+                                        </h6>
+                                        <p class="mb-2 text-muted small">{{ news.content|truncatewords:20 }}</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar me-1"></i>{{ news.created_at|date:"d.m.Y H:i" }}
+                                            <span class="badge bg-primary ms-2">{{ news.get_category_display }}</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
-        <div class="card stat-card">
-            <div class="card-body text-center">
-                <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: {% if profile.get_total_absent > 10 %}#ef4444{% elif profile.get_total_absent > 5 %}var(--accent-amber){% else %}var(--accent-green){% endif %};"></i>
-                <h5 class="mt-2">Прогулов (НБ)</h5>
-                <h2 class="stat-number {% if profile.get_total_absent > 10 %}text-danger{% elif profile.get_total_absent > 5 %}text-warning{% else %}text-success{% endif %}">
-                    {{ profile.get_total_absent }}
-                </h2>
-                <small class="text-muted">
-                    {% if profile.get_total_absent == 0 %}✅ Отлично!
-                    {% elif profile.get_total_absent <= 5 %}⚠️ Будь внимательнее
-                    {% else %}❌ Требует внимания!{% endif %}
-                </small>
-            </div>
-        </div>
-    </div>
+    {% endif %}
 </div>
 
-<div class="row mt-3">
-    <div class="col-lg-6">
-        {% include 'schedule/today_widget.html' %}
-    </div>
+<style>
+    .stat-card {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
 
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-link-45deg"></i> Быстрый доступ
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-calendar-week"></i> Мое расписание
-                    </a>
-                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-person"></i> Мой профиль
-                    </a>
-                    <a href="{% url 'journal:student_view' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-journal"></i> Мои оценки
-                    </a>
-                    <a href="{% url 'chat:list' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-chat-dots"></i> Чаты
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+    }
 
-{% if news_list %}
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-newspaper"></i> Последние новости</span>
-                <a href="{% url 'news:list' %}" class="btn btn-sm btn-primary">Все новости</a>
-            </div>
-            <div class="card-body">
-                {% for news in news_list %}
-                    <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
-                        <h6 class="mb-1">
-                            {% if news.is_pinned %}<i class="bi bi-pin-angle-fill text-warning"></i>{% endif %}
-                            <a href="{% url 'news:detail' news.id %}">{{ news.title }}</a>
-                        </h6>
-                        <small class="text-muted">
-                            <i class="bi bi-calendar"></i> {{ news.created_at|date:"d.m.Y H:i" }}
-                            | <span class="badge bg-primary">{{ news.get_category_display }}</span>
-                        </small>
-                        <p class="mb-0 mt-1 text-muted">{{ news.content|truncatewords:20 }}</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
+    .stat-icon {
+        position: absolute;
+        right: 15px;
+        top: 15px;
+    }
+
+    .welcome-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .welcome-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, #3b82f6 100%);
+    }
+</style>
 {% endblock %}

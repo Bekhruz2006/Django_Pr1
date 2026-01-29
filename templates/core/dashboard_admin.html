@@ -3,165 +3,241 @@
 {% block title %}Административная панель{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-12">
-        <h2 class="fw-bold">Административная панель</h2>
-        <p class="text-muted">Глобальное управление структурой университета</p>
+<div class="container-fluid">
+    <div class="row mb-4 animate-fade-in">
+        <div class="col-12">
+            <div class="welcome-card p-4 rounded-3 shadow-sm" 
+                 style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">
+                <h2 class="mb-2">
+                    <i class="bi bi-shield-lock-fill me-2"></i>Административная панель
+                </h2>
+                <p class="mb-0 opacity-75">Глобальное управление структурой университета</p>
+            </div>
+        </div>
     </div>
-</div>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3 animate-slide-in">
+            <div class="admin-stat-card card border-0 shadow-sm h-100" style="border-top: 4px solid #2563eb !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-bank fs-3 text-primary"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-0 fw-bold">{{ total_institutes }}</h2>
+                            <p class="text-muted mb-0 small">Институтов</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-arrow-right me-1"></i>Управление
+                    </a>
+                </div>
+            </div>
+        </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <a href="{% url 'accounts:manage_structure' %}" class="text-decoration-none">
-            <div class="card bg-primary text-white h-100 shadow-sm hover-scale">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">Институтов</h6>
-                            <h2 class="mb-0">{{ total_institutes }}</h2>
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.1s;">
+            <div class="admin-stat-card card border-0 shadow-sm h-100" style="border-top: 4px solid #10b981 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-success bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-building fs-3 text-success"></i>
                         </div>
-                        <i class="bi bi-bank fs-1 opacity-50"></i>
+                        <div>
+                            <h2 class="mb-0 fw-bold">{{ total_faculties }}</h2>
+                            <p class="text-muted mb-0 small">Факультетов</p>
+                        </div>
                     </div>
-                    <small class="text-white-50">Нажмите для управления</small>
+                    <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-outline-success w-100">
+                        <i class="bi bi-arrow-right me-1"></i>Управление
+                    </a>
                 </div>
             </div>
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a href="{% url 'accounts:manage_structure' %}" class="text-decoration-none">
-            <div class="card bg-success text-white h-100 shadow-sm hover-scale">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">Факультетов</h6>
-                            <h2 class="mb-0">{{ total_faculties }}</h2>
-                        </div>
-                        <i class="bi bi-building fs-1 opacity-50"></i>
-                    </div>
-                    <small class="text-white-50">Нажмите для управления</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a href="{% url 'accounts:user_management' %}?role=STUDENT" class="text-decoration-none">
-            <div class="card bg-warning text-dark h-100 shadow-sm hover-scale">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">Студентов</h6>
-                            <h2 class="mb-0">{{ total_students }}</h2>
-                        </div>
-                        <i class="bi bi-people fs-1 opacity-50"></i>
-                    </div>
-                    <small class="text-dark-50">Перейти к списку</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a href="{% url 'accounts:user_management' %}?role=TEACHER" class="text-decoration-none">
-            <div class="card bg-info text-white h-100 shadow-sm hover-scale">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">Преподавателей</h6>
-                            <h2 class="mb-0">{{ total_teachers }}</h2>
-                        </div>
-                        <i class="bi bi-person-badge fs-1 opacity-50"></i>
-                    </div>
-                    <small class="text-white-50">Перейти к списку</small>
-                </div>
-            </div>
-        </a>
-    </div>
-</div>
+        </div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Обзор структуры</h5>
-                <a href="{% url 'accounts:manage_structure' %}" class="btn btn-primary">
-                    <i class="bi bi-pencil-square"></i> Полное управление структурой
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="accordion" id="instituteAccordion">
-                    {% for institute in institutes %}
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading{{ institute.id }}">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ institute.id }}">
-                                <strong>{{ institute.name }}</strong>
-                            </button>
-                        </h2>
-                        <div id="collapse{{ institute.id }}" class="accordion-collapse collapse" data-bs-parent="#instituteAccordion">
-                            <div class="accordion-body">
-                                <ul class="list-group list-group-flush">
-                                    {% for faculty in institute.faculties.all %}
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            {{ faculty.name }} <span class="badge bg-secondary rounded-pill ms-2">{{ faculty.code }}</span>
-                                        </div>
-                                    </li>
-                                    {% empty %}
-                                    <li class="list-group-item text-muted">Нет факультетов</li>
-                                    {% endfor %}
-                                </ul>
-                                <div class="mt-3 text-end">
-                                    <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-outline-secondary">
-                                        Перейти к редактированию
-                                    </a>
-                                </div>
-                            </div>
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.2s;">
+            <div class="admin-stat-card card border-0 shadow-sm h-100" style="border-top: 4px solid #f59e0b !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-people fs-3 text-warning"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-0 fw-bold">{{ total_students }}</h2>
+                            <p class="text-muted mb-0 small">Студентов</p>
                         </div>
                     </div>
-                    {% endfor %}
+                    <a href="{% url 'accounts:user_management' %}?role=STUDENT" class="btn btn-sm btn-outline-warning w-100">
+                        <i class="bi bi-arrow-right me-1"></i>К списку
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3 animate-slide-in" style="animation-delay: 0.3s;">
+            <div class="admin-stat-card card border-0 shadow-sm h-100" style="border-top: 4px solid #06b6d4 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-info bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-person-badge fs-3 text-info"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-0 fw-bold">{{ total_teachers }}</h2>
+                            <p class="text-muted mb-0 small">Преподавателей</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:user_management' %}?role=TEACHER" class="btn btn-sm btn-outline-info w-100">
+                        <i class="bi bi-arrow-right me-1"></i>К списку
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-lg-4">
-        <div class="card shadow">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Быстрые действия</h5>
+
+    <div class="row g-4">
+        <div class="col-lg-8 animate-slide-in" style="animation-delay: 0.4s;">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold text-primary">
+                            <i class="bi bi-diagram-3 me-2"></i>Обзор структуры
+                        </h5>
+                        <a href="{% url 'accounts:manage_structure' %}" class="btn btn-primary">
+                            <i class="bi bi-pencil-square me-1"></i>Полное управление
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="accordion accordion-flush" id="instituteAccordion">
+                        {% for institute in institutes %}
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} bg-light" 
+                                        type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse{{ institute.id }}">
+                                    <i class="bi bi-bank me-3 text-primary fs-5"></i>
+                                    <strong>{{ institute.name }}</strong>
+                                    <span class="badge bg-primary ms-auto me-2">
+                                        {{ institute.faculties.count }} факультетов
+                                    </span>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ institute.id }}" 
+                                 class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                                 data-bs-parent="#instituteAccordion">
+                                <div class="accordion-body bg-light bg-opacity-50">
+                                    <div class="list-group">
+                                        {% for faculty in institute.faculties.all %}
+                                        <div class="list-group-item border-start border-3 border-primary mb-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1">
+                                                        <i class="bi bi-building me-2"></i>{{ faculty.name }}
+                                                    </h6>
+                                                    <small class="text-muted">
+                                                        <span class="badge bg-secondary">{{ faculty.code }}</span>
+                                                    </small>
+                                                </div>
+                                                <a href="{% url 'accounts:manage_structure' %}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="bi bi-inbox"></i> Нет факультетов
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-            <div class="list-group list-group-flush">
-                <a href="{% url 'accounts:add_institute' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-building text-success me-2"></i> Добавить Институт
-                </a>
-                <a href="{% url 'accounts:add_faculty' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-diagram-2 text-success me-2"></i> Добавить Факультет
-                </a>
-                <a href="{% url 'accounts:add_department' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-diagram-3 text-success me-2"></i> Добавить Кафедру
-                </a>
-                <div class="list-group-item bg-light text-muted small fw-bold">ПОЛЬЗОВАТЕЛИ</div>
-                <a href="{% url 'accounts:add_user' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-plus text-primary me-2"></i> Создать пользователя
-                </a>
-                <a href="{% url 'accounts:user_management' %}?role=DEAN" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-badge text-info me-2"></i> Управление деканами
-                </a>
-                 <a href="{% url 'accounts:user_management' %}?role=HEAD_OF_DEPT" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-workspace text-info me-2"></i> Заведующие кафедрами
-                </a>
-                <div class="list-group-item bg-light text-muted small fw-bold">УЧЕБНЫЙ ПРОЦЕСС</div>
-                <a href="{% url 'schedule:manage_semesters' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-calendar-event text-warning me-2"></i> Управление семестрами
-                </a>
+        </div>
+        <div class="col-lg-4 animate-slide-in" style="animation-delay: 0.5s;">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-lightning-charge me-2 text-warning"></i>Быстрые действия
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item bg-light border-0 py-2">
+                            <small class="text-muted fw-bold text-uppercase">Структура</small>
+                        </div>
+                        <a href="{% url 'accounts:add_institute' %}" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-building text-success me-2"></i>
+                            Добавить Институт
+                        </a>
+                        <a href="{% url 'accounts:add_faculty' %}" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-diagram-2 text-success me-2"></i>
+                            Добавить Факультет
+                        </a>
+                        <a href="{% url 'accounts:add_department' %}" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-diagram-3 text-success me-2"></i>
+                            Добавить Кафедру
+                        </a>
+                        
+                        <div class="list-group-item bg-light border-0 py-2 mt-2">
+                            <small class="text-muted fw-bold text-uppercase">Пользователи</small>
+                        </div>
+                        <a href="{% url 'accounts:add_user' %}" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-person-plus text-primary me-2"></i>
+                            Создать пользователя
+                        </a>
+                        <a href="{% url 'accounts:user_management' %}?role=DEAN" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-person-badge text-info me-2"></i>
+                            Управление деканами
+                        </a>
+                        <a href="{% url 'accounts:user_management' %}?role=HEAD_OF_DEPT" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-person-workspace text-info me-2"></i>
+                            Заведующие кафедрами
+                        </a>
+                        
+                        <div class="list-group-item bg-light border-0 py-2 mt-2">
+                            <small class="text-muted fw-bold text-uppercase">Учебный процесс</small>
+                        </div>
+                        <a href="{% url 'schedule:manage_semesters' %}" class="list-group-item list-group-item-action border-0 py-3">
+                            <i class="bi bi-calendar-event text-warning me-2"></i>
+                            Управление семестрами
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .hover-scale {
-        transition: transform 0.2s;
+    .admin-stat-card {
+        transition: all 0.3s ease;
     }
-    .hover-scale:hover {
-        transform: scale(1.03);
+
+    .admin-stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    }
+
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #f8fafc;
+        color: var(--primary-blue);
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
     }
 </style>
 {% endblock %}
