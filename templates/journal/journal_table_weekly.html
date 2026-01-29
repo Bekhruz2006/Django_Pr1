@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.select();
         });
 
+
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 this.blur(); 
@@ -156,6 +157,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 this.style.opacity = '1';
+
+
                 if (data.success) {
                     this.value = data.display;
                     this.classList.remove('val-grade', 'val-absent');
@@ -170,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.focus();
                 }
             })
+            
             .catch(err => {
                 alert('Ошибка соединения');
                 this.style.opacity = '1';
