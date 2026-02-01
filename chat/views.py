@@ -40,7 +40,6 @@ def chat_room(request, room_id):
             message.room = room
             message.sender = request.user
             message.save()
-
             room.save()
             
             return redirect('chat:room', room_id=room_id)
@@ -119,3 +118,15 @@ def get_new_messages(request, room_id):
         })
     
     return JsonResponse({'messages': messages_data})
+
+
+@login_required
+def mark_as_read(request, room_id):
+    room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
+    room.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    return JsonResponse({'status': 'ok'})
+@login_required
+def mark_read_api(request, room_id):
+    room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
+    room.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    return JsonResponse({'status': 'ok'})

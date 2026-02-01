@@ -65,10 +65,6 @@ class FacultyFullForm(forms.ModelForm):
         self.fields['vice_dean_user'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.get_role_display()})"
 
 
-
-
-
-
 class InstituteForm(forms.ModelForm):
     class Meta:
         model = Institute

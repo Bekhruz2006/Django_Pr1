@@ -203,7 +203,7 @@
                                         </span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{% url 'accounts:edit_department' dept.id %}" 
+                                        <a href="{% url 'accounts:edit_department' dept.id %}"
                                            class="btn btn-sm btn-light">
                                             <i class="bi bi-gear"></i>
                                         </a>
@@ -286,8 +286,8 @@
                                 </small>
                             </div>
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-gradient" 
-                                     style="width: {{ stat.avg_attendance }}%; 
+                                <div class="progress-bar bg-gradient"
+                                     style="width: {{ stat.avg_attendance }}%;
                                             background: linear-gradient(90deg, #10b981, #3b82f6);">
                                 </div>
                             </div>
@@ -306,8 +306,112 @@
             </div>
         </div>
     </div>
+
+    <div class="row mt-4 animate-slide-in" style="animation-delay: 0.7s;">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-activity me-2 text-primary"></i>Динамика по курсам
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="chartToggle" id="btnGpa" autocomplete="off" checked onclick="updateMainChart('gpa')">
+                        <label class="btn btn-outline-primary btn-sm" for="btnGpa">Успеваемость (GPA)</label>
+
+                        <input type="radio" class="btn-check" name="chartToggle" id="btnAtt" autocomplete="off" onclick="updateMainChart('attendance')">
+                        <label class="btn btn-outline-success btn-sm" for="btnAtt">Посещаемость (%)</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="height: 350px; width: 100%;">
+                        <canvas id="dashboardMainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const coursesLabels = {{ json_courses|safe }};
+        const dataGPA = {{ json_gpa|safe }};
+        const dataAttendance = {{ json_attendance|safe }};
+
+        const ctxDash = document.getElementById('dashboardMainChart').getContext('2d');
+
+        let gradientGPA = ctxDash.createLinearGradient(0, 0, 0, 400);
+        gradientGPA.addColorStop(0, 'rgba(37, 99, 235, 0.7)');
+        gradientGPA.addColorStop(1, 'rgba(37, 99, 235, 0.1)');
+
+        let gradientAtt = ctxDash.createLinearGradient(0, 0, 0, 400);
+        gradientAtt.addColorStop(0, 'rgba(16, 185, 129, 0.7)');
+        gradientAtt.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
+
+        let dashboardChart = new Chart(ctxDash, {
+            type: 'bar',
+            data: {
+                labels: coursesLabels,
+                datasets: [{
+                    label: 'Средний балл (GPA)',
+                    data: dataGPA,
+                    backgroundColor: gradientGPA,
+                    borderColor: '#2563eb',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    barPercentage: 0.5,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                        padding: 12,
+                        cornerRadius: 8,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 14 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [5, 5], color: '#e2e8f0' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        function updateMainChart(type) {
+            if (type === 'gpa') {
+                dashboardChart.data.datasets[0].label = 'Средний балл (GPA)';
+                dashboardChart.data.datasets[0].data = dataGPA;
+                dashboardChart.data.datasets[0].backgroundColor = gradientGPA;
+                dashboardChart.data.datasets[0].borderColor = '#2563eb';
+                dashboardChart.data.datasets[0].type = 'bar';
+                dashboardChart.options.scales.y.max = 5;
+            } else {
+                dashboardChart.data.datasets[0].label = 'Посещаемость (%)';
+                dashboardChart.data.datasets[0].data = dataAttendance;
+                dashboardChart.data.datasets[0].backgroundColor = gradientAtt;
+                dashboardChart.data.datasets[0].borderColor = '#10b981';
+                dashboardChart.data.datasets[0].type = 'line';
+                dashboardChart.data.datasets[0].tension = 0.4;
+                dashboardChart.data.datasets[0].pointRadius = 6;
+                dashboardChart.data.datasets[0].pointBackgroundColor = '#fff';
+                dashboardChart.data.datasets[0].pointBorderWidth = 2;
+                dashboardChart.options.scales.y.max = 100;
+            }
+            dashboardChart.update();
+        }
+    </script>
     {% endif %}
-</div>
+{% endblock %}
 
 <style>
     .stat-card-modern {
@@ -353,4 +457,3 @@
         background-color: #f8fafc;
     }
 </style>
-{% endblock %}

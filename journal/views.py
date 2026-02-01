@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
-
+import json
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
@@ -358,34 +358,57 @@ def dean_journal_view(request):
 @login_required
 @user_passes_test(is_dean)
 def department_report(request):
+    import json
     sort_by = request.GET.get('sort', 'group')
     groups = Group.objects.all()
     groups_data = []
-    
+
+    chart_labels = []
+    chart_gpa = []
+    chart_attendance = []
+    chart_absent_breakdown = {
+        'illness': [],
+        'valid': [],
+        'invalid': []
+    }
+
     for group in groups:
         students = Student.objects.filter(group=group)
         if not students.exists():
             continue
-        
+
         group_stats = []
-        total_gpa = total_attendance = total_absent = count = 0
-        
+        total_gpa = 0
+        total_attendance = 0
+        total_absent = 0
+
+        g_illness = 0
+        g_valid = 0
+        g_invalid = 0
+
+        count = 0
+
         for student in students:
             stats, _ = StudentStatistics.objects.get_or_create(student=student)
             stats.recalculate()
             group_stats.append({
                 'student': student, 'stats': stats,
-                'is_at_risk': stats.overall_gpa < 4.0 or stats.attendance_percentage < 60
+                'is_at_risk': stats.overall_gpa < 3.0 or stats.attendance_percentage < 60
             })
             total_gpa += stats.overall_gpa
             total_attendance += stats.attendance_percentage
             total_absent += stats.total_absent
+
+            g_illness += stats.absent_illness
+            g_valid += stats.absent_valid
+            g_invalid += stats.absent_invalid
+
             count += 1
-        
-        avg_gpa = total_gpa / count if count > 0 else 0
-        avg_attendance = total_attendance / count if count > 0 else 0
-        avg_absent = total_absent / count if count > 0 else 0
-        
+
+        avg_gpa = round(total_gpa / count, 2) if count > 0 else 0
+        avg_attendance = round(total_attendance / count, 1) if count > 0 else 0
+        avg_absent = round(total_absent / count, 1) if count > 0 else 0
+
         groups_data.append({
             'group': group, 'students_count': count,
             'avg_gpa': avg_gpa, 'avg_attendance': avg_attendance,
@@ -393,7 +416,14 @@ def department_report(request):
             'students': sorted(group_stats, key=lambda x: x['stats'].overall_gpa, reverse=True),
             'at_risk_count': sum(1 for s in group_stats if s['is_at_risk'])
         })
-    
+
+        chart_labels.append(group.name)
+        chart_gpa.append(avg_gpa)
+        chart_attendance.append(avg_attendance)
+        chart_absent_breakdown['illness'].append(g_illness)
+        chart_absent_breakdown['valid'].append(g_valid)
+        chart_absent_breakdown['invalid'].append(g_invalid)
+
     if sort_by == 'gpa':
         groups_data.sort(key=lambda x: x['avg_gpa'], reverse=True)
     elif sort_by == 'attendance':
@@ -402,19 +432,46 @@ def department_report(request):
         groups_data.sort(key=lambda x: x['avg_absent'], reverse=True)
     else:
         groups_data.sort(key=lambda x: x['group'].name)
-    
+
+    risk_data_raw = []
+    for item in groups_data:
+        risk_data_raw.append({'name': item['group'].name, 'count': item['at_risk_count']})
+
+    risk_data_raw.sort(key=lambda x: x['count'], reverse=True)
+
+    chart_risk_labels = [x['name'] for x in risk_data_raw[:10]]
+    chart_risk_values = [x['count'] for x in risk_data_raw[:10]]
+
     total_students = sum(g['students_count'] for g in groups_data)
     total_at_risk = sum(g['at_risk_count'] for g in groups_data)
-    overall_gpa = sum(g['avg_gpa'] * g['students_count'] for g in groups_data) / total_students if total_students > 0 else 0
-    overall_attendance = sum(g['avg_attendance'] * g['students_count'] for g in groups_data) / total_students if total_students > 0 else 0
+
+    overall_gpa = 0
+    overall_attendance = 0
+    if total_students > 0:
+        overall_gpa = sum(g['avg_gpa'] * g['students_count'] for g in groups_data) / total_students
+        overall_attendance = sum(g['avg_attendance'] * g['students_count'] for g in groups_data) / total_students
+
     overall_absent = sum(g['total_absent'] for g in groups_data)
-    
-    return render(request, 'journal/department_report.html', {
-        'groups_data': groups_data, 'total_students': total_students,
-        'total_at_risk': total_at_risk, 'overall_gpa': overall_gpa,
-        'overall_attendance': overall_attendance, 'overall_absent': overall_absent,
-        'sort_by': sort_by
-    })
+
+    context = {
+        'groups_data': groups_data,
+        'total_students': total_students,
+        'total_at_risk': total_at_risk,
+        'overall_gpa': overall_gpa,
+        'overall_attendance': overall_attendance,
+        'overall_absent': overall_absent,
+        'sort_by': sort_by,
+        'chart_labels': json.dumps(chart_labels),
+        'chart_gpa': json.dumps(chart_gpa),
+        'chart_attendance': json.dumps(chart_attendance),
+        'chart_illness': json.dumps(chart_absent_breakdown['illness']),
+        'chart_valid': json.dumps(chart_absent_breakdown['valid']),
+        'chart_invalid': json.dumps(chart_absent_breakdown['invalid']),
+        'chart_risk_labels': json.dumps(chart_risk_labels),
+        'chart_risk_values': json.dumps(chart_risk_values),
+    }
+
+    return render(request, 'journal/department_report.html', context)
 
 @login_required
 @user_passes_test(is_dean)

@@ -82,11 +82,59 @@ def profile_view(request):
     
     if user.role == 'STUDENT':
         profile = get_object_or_404(Student, user=user)
-        from journal.models import StudentStatistics
+        from journal.models import StudentStatistics, JournalEntry
+        
         stats, _ = StudentStatistics.objects.get_or_create(student=profile)
         stats.recalculate()
         profile.statistics = stats
+        
+        monthly_data = JournalEntry.objects.filter(student=profile).annotate(
+            month=TruncMonth('lesson_date')
+        ).values('month').annotate(
+            avg_grade=Avg('grade'),
+            total_lessons=Count('id'),
+            attended=Count('id', filter=Q(attendance_status='PRESENT'))
+        ).order_by('month')
+
+        chart_labels = []
+        chart_gpa = []
+        chart_attendance = []
+
+        if monthly_data:
+            for entry in monthly_data:
+                if entry['month']:
+                    month_name = entry['month'].strftime('%b') # Jan, Feb...
+                    chart_labels.append(month_name)
+                    chart_gpa.append(round(entry['avg_grade'] or 0, 2))
+                    att_pct = (entry['attended'] / entry['total_lessons'] * 100) if entry['total_lessons'] > 0 else 0
+                    chart_attendance.append(round(att_pct, 1))
+        else:
+            today = timezone.now()
+            chart_labels = [today.strftime('%b')] 
+            chart_gpa = [0]
+            chart_attendance = [0]
+
+        donut_data = [
+            stats.attended_lessons,
+            stats.absent_illness,
+            stats.absent_valid,
+            stats.absent_invalid
+        ]
+        
+        if sum(donut_data) == 0:
+            donut_data = [1, 0, 0, 0] 
+            donut_empty = True
+        else:
+            donut_empty = False
+
         context['profile'] = profile
+        
+        context['chart_labels'] = json.dumps(chart_labels)
+        context['chart_gpa'] = json.dumps(chart_gpa)
+        context['chart_attendance'] = json.dumps(chart_attendance)
+        
+        context['donut_data'] = json.dumps(donut_data)
+        context['donut_empty'] = json.dumps(donut_empty)
         
     elif user.role == 'TEACHER':
         profile = get_object_or_404(Teacher, user=user)

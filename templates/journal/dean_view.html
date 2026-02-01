@@ -10,7 +10,7 @@
                 <i class="bi bi-graph-up"></i> Аналитика успеваемости
             </div>
             <div class="card-body">
-                
+
                 <form method="get" class="mb-4">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -33,14 +33,14 @@
                         </div>
                     </div>
                 </form>
-                
+
                 {% if not selected_group %}
                     <div class="alert alert-info text-center">
                         <i class="bi bi-info-circle"></i> Выберите группу для просмотра аналитики
                     </div>
                 {% else %}
                     {% if view_type == 'summary' %}
-                        
+
                         <div class="row mb-4">
                             <div class="col-md-4">
                                 <div class="card bg-primary bg-opacity-10">
@@ -70,36 +70,63 @@
 
                         <h5 class="mb-3">Статистика по предметам</h5>
                         <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead class="table-light">
+                            <table class="table table-hover align-middle">
+                                <thead class="bg-light">
                                     <tr>
-                                        <th>Предмет</th>
-                                        <th>Преподаватель</th>
-                                        <th>Средний балл</th>
-                                        <th>Посещаемость</th>
-                                        <th>Диаграмма</th>
+                                        <th class="ps-3 border-0">Предмет / Преподаватель</th>
+                                        <th class="text-center border-0" style="width: 100px;">Показатели</th>
+                                        <th class="border-0 text-center" style="width: 180px;">График эффективности</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for subject in group_stats.subjects %}
                                     <tr>
-                                        <td><strong>{{ subject.name }}</strong></td>
-                                        <td><i class="bi bi-person"></i> {{ subject.teacher_name }}</td>
-                                        <td>
-                                            <span class="badge {% if subject.avg_grade >= 7 %}bg-success{% elif subject.avg_grade >= 4 %}bg-warning{% else %}bg-danger{% endif %}">
-                                                {{ subject.avg_grade }}
-                                            </span>
+                                        <td class="ps-3">
+                                            <div class="fw-bold text-dark mb-1">{{ subject.name }}</div>
+                                            <div class="text-muted small d-flex align-items-center">
+                                                <i class="bi bi-person-circle me-2 text-secondary"></i>
+                                                {{ subject.teacher_name }}
+                                            </div>
                                         </td>
-                                        <td>
-                                            <span class="badge {% if subject.attendance_pct >= 80 %}bg-success{% elif subject.attendance_pct >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
-                                                {{ subject.attendance_pct|floatformat:0 }}%
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="progress" style="height: 25px;">
-                                                <div class="progress-bar bg-primary" style="width: {% widthratio subject.avg_grade 1 8.33 %}%">
-                                                    {{ subject.avg_grade }}
+
+                                        <td class="text-center">
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="d-flex justify-content-between align-items-center px-2 py-1 bg-light rounded border">
+                                                    <span class="text-muted small" style="font-size: 0.65rem;">GPA</span>
+                                                    <span class="fw-bold {% if subject.avg_grade < 3 %}text-danger{% else %}text-primary{% endif %}">
+                                                        {{ subject.avg_grade|floatformat:1 }}
+                                                    </span>
                                                 </div>
+                                                <div class="d-flex justify-content-between align-items-center px-2 py-1 bg-light rounded border">
+                                                    <span class="text-muted small" style="font-size: 0.65rem;">ATT</span>
+                                                    <span class="fw-bold {% if subject.attendance_pct < 60 %}text-danger{% else %}text-success{% endif %}">
+                                                        {{ subject.attendance_pct|floatformat:0 }}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <td class="pe-3">
+                                            <div class="mini-chart-container" title="Наведите для точных значений">
+
+                                                <div class="target-line"></div>
+
+                                                <div class="chart-bar-group">
+                                                    <div class="chart-value">{{ subject.avg_grade|floatformat:1 }}</div>
+                                                    <div class="chart-bar {% if subject.avg_grade < 3 %}bar-danger{% else %}bar-gpa{% endif %}"
+                                                         style="height: {% widthratio subject.avg_grade 1 20 %}%;"></div>
+                                                </div>
+
+                                                <div class="chart-bar-group">
+                                                    <div class="chart-value">{{ subject.attendance_pct|floatformat:0 }}%</div>
+                                                    <div class="chart-bar {% if subject.attendance_pct < 60 %}bar-danger{% else %}bar-att{% endif %}"
+                                                         style="height: {{ subject.attendance_pct|floatformat:0 }}%;"></div>
+                                                </div>
+
+                                            </div>
+                                            <div class="d-flex justify-content-around px-1">
+                                                <span class="chart-label">Балл</span>
+                                                <span class="chart-label">Посещ.</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -107,14 +134,14 @@
                                 </tbody>
                             </table>
                         </div>
-                        
+
                     {% elif view_type == 'at_risk' %}
-                        
+
                         <h5 class="mb-3">
-                            <i class="bi bi-exclamation-triangle text-danger"></i> 
+                            <i class="bi bi-exclamation-triangle text-danger"></i>
                             Студенты под угрозой (балл < 4 или посещаемость < 60%)
                         </h5>
-                        
+
                         {% if at_risk_students %}
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover">
@@ -158,7 +185,7 @@
                         </div>
                         {% else %}
                         <div class="alert alert-success text-center">
-                            <i class="bi bi-check-circle"></i> 
+                            <i class="bi bi-check-circle"></i>
                             <strong>Отлично!</strong> В группе нет студентов под угрозой
                         </div>
                         {% endif %}
@@ -170,10 +197,77 @@
 </div>
 
 <style>
-    .card-body h2 {
-        font-size: 2.5rem;
+    .mini-chart-container {
+        position: relative;
+        height: 60px;
+        width: 100%;
+        min-width: 120px;
+        border-bottom: 1px solid #cbd5e1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        padding-bottom: 1px;
+        background-color: rgba(248, 250, 252, 0.5);
+        border-radius: 4px;
+    }
+
+    .target-line {
+        position: absolute;
+        bottom: 60%;
+        left: 0;
+        right: 0;
+        border-top: 1px dashed rgba(239, 68, 68, 0.4);
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .chart-bar-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        height: 100%;
+        width: 35%;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s ease;
+    }
+
+    .chart-bar {
+        width: 100%;
+        border-radius: 3px 3px 0 0;
+        transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        min-height: 2px;
+    }
+
+    .chart-value {
+        font-size: 0.7rem;
         font-weight: bold;
-        margin-bottom: 0;
+        margin-bottom: 2px;
+        color: #475569;
+        opacity: 0;
+        transform: translateY(5px);
+        transition: all 0.2s ease;
+    }
+
+    .mini-chart-container:hover .chart-value {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .bar-gpa { background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%); }
+    .bar-att { background: linear-gradient(180deg, #10b981 0%, #059669 100%); }
+
+    .bar-danger { background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important; }
+
+    .chart-label {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        margin-top: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 </style>
+
 {% endblock %}

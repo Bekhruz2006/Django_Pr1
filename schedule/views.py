@@ -1195,7 +1195,7 @@ def generate_subjects_from_rup(request):
                         
                         is_stream_subject=len(item['groups']) > 1
                     )
-                    
+                    #subject.teacher.__str__ = "Назначить"
                     subject.groups.set(item['groups'])
                     subject.save()
                     created_count += 1

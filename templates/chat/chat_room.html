@@ -75,7 +75,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const messageForm = document.getElementById('messageForm');
     const textarea = document.querySelector('textarea[name="content"]');
     const sendButton = document.getElementById('sendButton');
-    
+    function markAsRead() {
+        fetch('{% url "chat:mark_read_api" room.id %}') 
+            .catch(err => console.error("Error marking read", err));
+    }
+
+    markAsRead();
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            markAsRead();
+            fetchNewMessages(); 
+        }
+    });
+
+
     function scrollToBottom() {
         container.scrollTop = container.scrollHeight;
     }

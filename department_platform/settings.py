@@ -20,13 +20,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ai_assistant',
     'accounts.apps.AccountsConfig',      
-    'journal.apps.JournalConfig',       
+    'journal.apps.JournalConfig',  
     'schedule.apps.ScheduleConfig',      
     'news.apps.NewsConfig',             
     'chat.apps.ChatConfig',             
-    'core.apps.CoreConfig',            
+    #'chat.apps.ForCongig',
+    'core.apps.CoreConfig',          
+    
 ]
 
 MIDDLEWARE = [
