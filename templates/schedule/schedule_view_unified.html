@@ -3,7 +3,9 @@
 {% load schedule_filters %}
 
 {% block title %}Расписание{% endblock %}
-
+{% block breadcrumbs %}
+    <li class="breadcrumb-item active">Расписание занятий</li>
+{% endblock %}
 {% block content %}
 <div class="row mt-4">
     {% if groups %}

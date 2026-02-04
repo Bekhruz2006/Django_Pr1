@@ -534,16 +534,20 @@
             <i class="bi bi-chevron-down toggle-icon"></i>
         </div>
         <div class="sidebar-menu-group" id="academic-menu">
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:constructor' %}">
+            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_plans' %}">
+                <i class="bi bi-journal-richtext"></i>Учебные планы (РУП)
+            </a>
+
+            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:constructor' %}" style="animation-delay: 0.05s">
                 <i class="bi bi-calendar-week"></i>Расписание
             </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_semesters' %}" style="animation-delay: 0.05s">
+            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_semesters' %}" style="animation-delay: 0.1s">
                 <i class="bi bi-calendar-range"></i>Семестры
             </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'journal:dean_view' %}" style="animation-delay: 0.1s">
+            <a class="sidebar-link animate-slide-in" href="{% url 'journal:dean_view' %}" style="animation-delay: 0.15s">
                 <i class="bi bi-graph-up"></i>Успеваемость
             </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'journal:department_report' %}" style="animation-delay: 0.15s">
+            <a class="sidebar-link animate-slide-in" href="{% url 'journal:department_report' %}" style="animation-delay: 0.2s">
                 <i class="bi bi-file-earmark-bar-graph"></i>Отчеты
             </a>
         </div>
@@ -568,7 +572,6 @@
         {% endif %}
 
         {% if user.role == 'STUDENT' %}
-        <!-- Учеба -->
         <div class="sidebar-section-header" data-target="study-menu">
             <span><i class="bi bi-book me-2"></i>УЧЕБА</span>
             <i class="bi bi-chevron-down toggle-icon"></i>
@@ -594,6 +597,20 @@
                 </div>
             {% endfor %}
         {% endif %}
+        
+        {% block breadcrumb_container %}
+        <nav aria-label="breadcrumb" class="breadcrumb-area animate-fade-in">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'core:dashboard' %}">
+                        <i class="bi bi-house-door-fill breadcrumb-home-icon"></i>
+                        <span class="d-none d-sm-inline">Главная</span>
+                    </a>
+                </li>
+                {% block breadcrumbs %}{% endblock %}
+            </ol>
+        </nav>
+        {% endblock %}
 
         {% block content %}{% endblock %}
     </main>
@@ -691,6 +708,7 @@
             </div>
         </div>
     </footer>
+    
     <style>
         .footer {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -718,6 +736,7 @@
             position: absolute;
             bottom: 0;
             left: 0;
+            
             width: 50px;
             height: 3px;
             background: var(--primary-blue);
@@ -775,7 +794,7 @@
             header.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target');
                 const targetMenu = document.getElementById(targetId);
-                
+
                 document.querySelectorAll('.sidebar-menu-group').forEach(menu => {
                     if (menu.id !== targetId) {
                         menu.classList.remove('active');
@@ -783,7 +802,7 @@
                         if (otherHeader) otherHeader.classList.remove('active');
                     }
                 });
-                
+
                 targetMenu.classList.toggle('active');
                 this.classList.toggle('active');
             });
@@ -815,8 +834,6 @@
             }
         });
     </script>
-
-
 
     {% block extra_js %}{% endblock %}
 </body>

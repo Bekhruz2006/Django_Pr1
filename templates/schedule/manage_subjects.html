@@ -1,75 +1,73 @@
 {% extends 'base.html' %}
-
-{% block title %}Управление предметами{% endblock %}
+{% block breadcrumbs %}
+    <li class="breadcrumb-item active">Предметы</li>
+{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-book"></i> Управление предметами</span>
-                <a href="{% url 'schedule:add_subject' %}" class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-circle"></i> Добавить предмет
-                </a>
-            </div>
-            <div class="card-body">
-                <form method="get" class="mb-3">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <input type="text" class="form-control" name="search" placeholder="Поиск по названию или коду..." value="{{ search }}">
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-search"></i> Найти
-                            </button>
-                        </div>
-                    </div>
-                </form>
-                
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="bi bi-book"></i> Предметы семестра</h3>
+            <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning">
+                <i class="bi bi-magic"></i> Генерировать из РУП
+            </a>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="bg-light">
                             <tr>
-                                <th>Код</th>
-                                <th>Название</th>
-                                <th>Кредиты</th>
+                                <th class="ps-4">Предмет</th>
+                                <th>Тип</th>
                                 <th>Преподаватель</th>
-                                <th>Распределение</th>
-                                <th>Действия</th>
+                                <th>Группы</th>
+                                <th class="text-end pe-4">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for subject in subjects %}
                             <tr>
-                                <td><code>{{ subject.code }}</code></td>
-                                <td><strong>{{ subject.name }}</strong></td>
-                                <td><span class="badge bg-primary">{{ subject.credits }}</span></td>
-                                <td>{{ subject.teacher.user.get_full_name|default:'Не назначен' }}</td>
-                                <td>
-                                    {% with dist=subject.get_credits_distribution %}
-                                    <small>
-                                        Лекция: {{ dist.LECTURE }} | 
-                                        Практика: {{ dist.PRACTICE }} | 
-                                        СРСП: {{ dist.SRSP }}
-                                    </small>
-                                    {% endwith %}
+                                <td class="ps-4">
+                                    <strong>{{ subject.name }}</strong>
+                                    {% if subject.plan_discipline %}
+                                        <br><small class="text-muted">из РУП: {{ subject.plan_discipline.plan.specialty.code }}</small>
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-outline-primary" title="Редактировать">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-outline-danger" 
-                                           onclick="return confirm('Удалить предмет?')" title="Удалить">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </div>
+                                    {% if subject.is_stream_subject %}
+                                        <span class="badge bg-indigo">ПОТОК</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Группа</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if subject.teacher %}
+                                        {{ subject.teacher.user.get_full_name }}
+                                    {% else %}
+                                        <span class="text-danger small">Не назначен</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>
+                                        {% for g in subject.groups.all|slice:":3" %}
+                                            {{ g.name }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                        {% if subject.groups.count > 3 %}...{% endif %}
+                                    </small>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-sm btn-light text-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-sm btn-light text-danger" onclick="return confirm('Удалить?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">Предметы не найдены</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center py-4 text-muted">Предметы не найдены. Сгенерируйте их из РУП.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

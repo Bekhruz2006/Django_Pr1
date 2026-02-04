@@ -49,116 +49,67 @@
 
     {% if group %}
     <div class="col-lg-3">
-        {% if group.has_military_training %}
-        <div class="card mb-3 border-dark">
-            <div class="card-header bg-dark text-white">
-                <i class="bi bi-shield-shaded"></i> Военная кафедра
-            </div>
-            <div class="card-body p-2">
-                <p class="small text-muted mb-2">Перетащите на любой слот дня, чтобы заполнить весь день.</p>
-                <div class="list-group-item bg-secondary text-white p-2 text-center rounded"
-                     draggable="true"
-                     id="militaryDragItem"
-                     style="cursor: move;">
-                    <strong><i class="bi bi-star-fill"></i> ВОЕННАЯ КАФЕДРА</strong>
-                    <br><small>Весь день</small>
+            {% if group.has_military_training %}
+            <div class="card mb-3 border-dark shadow-sm">
+                <div class="card-body p-2 text-center bg-dark text-white rounded">
+                    <div draggable="true" id="militaryDragItem" style="cursor: move;">
+                        <i class="bi bi-shield-shaded mb-1"></i> ВОЕННАЯ КАФЕДРА
+                        <br><small style="font-size: 0.7rem;">Перетащите на день</small>
+                    </div>
                 </div>
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        <div class="card sticky-top" style="top: 20px; height: 85vh;">
-            <div class="card-header bg-dark text-white">
-                <i class="bi bi-book"></i> Доступные предметы
-            </div>
-            <div class="card-body p-0" style="max-height: 80vh; overflow-y: auto;">
-                {% if lecture_subjects %}
-                <div class="bg-primary bg-opacity-10 p-2 border-bottom border-primary">
-                    <strong><i class="bi bi-mortarboard"></i> Лекции</strong>
+            <div class="card shadow-sm sticky-top" style="top: 20px; max-height: 85vh;">
+                <div class="card-header bg-white py-2">
+                    <h6 class="mb-0 fw-bold text-muted text-uppercase small">Нераспределенные часы</h6>
                 </div>
-                <div class="list-group list-group-flush">
-                    {% for item in lecture_subjects %}
-                        <div class="list-group-item subject-item p-2"
-                             draggable="true"
-                             data-subject-id="{{ item.subject.id }}"
-                             data-subject-name="{{ item.subject.name }}"
-                             data-subject-type="LECTURE"
-                             data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
-                             data-remaining="{{ item.remaining }}"
-                             data-subject-is-stream="{{ item.is_stream|yesno:'true,false' }}"
-                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
-
-                            <div class="d-flex justify-content-between">
-                                <strong>{{ item.subject.name }}</strong>
-                                {% if item.is_stream %}
-                                    <span class="badge bg-indigo" title="Поток: {{ item.stream_count }} групп">Поток ({{ item.stream_count }})</span>
-                                {% else %}
-                                    <span class="badge bg-primary">Лекция</span>
+                <div class="card-body p-0 overflow-auto">
+                    <div class="list-group list-group-flush">
+                        {% for item in subjects_to_schedule %}
+                            <div class="list-group-item subject-item p-3 border-bottom"
+                                draggable="true"
+                                data-subject-id="{{ item.obj.id }}"
+                                data-subject-name="{{ item.obj.name }}"
+                                data-subject-type="{{ item.type }}"
+                                data-teacher-name="{{ item.obj.teacher.user.get_full_name|default:'Не назначен' }}"
+                                data-remaining="{{ item.remaining }}"
+                                data-subject-is-stream="{{ item.obj.is_stream_subject|yesno:'true,false' }}"
+                                style="cursor: move;">
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-dark">{{ item.obj.name }}</span>
+                                    <span class="badge bg-{{ item.color }}">{{ item.label }}</span>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person"></i> {{ item.obj.teacher.user.get_full_name|default:'-' }}
+                                    </small>
+                                    <span class="fw-bold text-{{ item.color }}">
+                                        {{ item.remaining }} ч.
+                                    </span>
+                                </div>
+                                
+                                {% if item.obj.is_stream_subject %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-indigo w-100" style="font-size: 0.65rem;">
+                                            <i class="bi bi-diagram-3"></i> ПОТОК ({{ item.obj.groups.count }} групп)
+                                        </span>
+                                    </div>
                                 {% endif %}
                             </div>
-
-                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'Преподаватель не назначен' }}</small><br>
-                            <small class="text-muted">{{ item.hours_per_week }} ч/нед</small>
-                            <div class="progress mt-1" style="height: 4px;">
-                                <div class="progress-bar {% if item.remaining > 0 %}bg-success{% else %}bg-secondary{% endif %}"
-                                     style="width: 100%"></div>
+                        {% empty %}
+                            <div class="p-4 text-center text-muted">
+                                <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
+                                <p class="mt-2 small mb-0">Все часы распределены!</p>
                             </div>
-                            <small class="d-block text-end mt-1 {% if item.remaining > 0 %}text-success{% else %}text-danger{% endif %}">
-                                Осталось: {{ item.remaining }} / {{ item.needed }}
-                            </small>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
-                {% endif %}
-
-                {% if practice_subjects %}
-                <div class="bg-success bg-opacity-10 p-2 mt-2 border-bottom border-success">
-                    <strong><i class="bi bi-gear"></i> Практики</strong>
-                </div>
-                <div class="list-group list-group-flush">
-                    {% for item in practice_subjects %}
-                        <div class="list-group-item subject-item p-2"
-                             draggable="true"
-                             data-subject-id="{{ item.subject.id }}"
-                             data-subject-name="{{ item.subject.name }}"
-                             data-subject-type="PRACTICE"
-                             data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
-                             data-remaining="{{ item.remaining }}"
-                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
-                            <strong>{{ item.subject.name }}</strong><br>
-                            <span class="badge bg-success">Практика</span><br>
-                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'-' }}</small>
-                            <small class="d-block text-end mt-1 text-success">Ост: {{ item.remaining }}</small>
-                        </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                {% if control_subjects %}
-                <div class="bg-warning bg-opacity-10 p-2 mt-2 border-bottom border-warning">
-                    <strong><i class="bi bi-pencil-square"></i> СРСП</strong>
-                </div>
-                <div class="list-group list-group-flush">
-                    {% for item in control_subjects %}
-                        <div class="list-group-item subject-item p-2"
-                             draggable="true"
-                             data-subject-id="{{ item.subject.id }}"
-                             data-subject-name="{{ item.subject.name }}"
-                             data-subject-type="SRSP"
-                             data-teacher-name="{{ item.subject.teacher.user.get_full_name|default:'Не назначен' }}"
-                             data-remaining="{{ item.remaining }}"
-                             style="cursor: move; font-size: 0.85rem; {% if item.remaining == 0 %}opacity: 0.4; pointer-events: none;{% endif %}">
-                            <strong>{{ item.subject.name }}</strong><br>
-                            <span class="badge bg-warning text-dark">СРСП</span><br>
-                            <small class="text-muted">{{ item.subject.teacher.user.get_full_name|default:'-' }}</small>
-                            <small class="d-block text-end mt-1 text-warning">Ост: {{ item.remaining }}</small>
-                        </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
             </div>
         </div>
-    </div>
+
 
     <div class="col-lg-9">
         <div class="card shadow">

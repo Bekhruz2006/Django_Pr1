@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}Административная панель{% endblock %}
-
+{% block breadcrumb_container %}{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4 animate-fade-in">
@@ -218,10 +218,7 @@
         transition: all 0.3s ease;
     }
 
-    .admin-stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
-    }
+
 
     .stat-icon {
         width: 70px;

@@ -358,6 +358,7 @@ class SubjectTemplate(models.Model):
         return self.name
 
 
+
 class AcademicPlan(models.Model):
     specialty = models.ForeignKey('accounts.Specialty', on_delete=models.CASCADE, verbose_name="Специальность")
     admission_year = models.IntegerField(verbose_name="Год набора (поступления)")
@@ -373,32 +374,56 @@ class AcademicPlan(models.Model):
         return f"РУП: {self.specialty.name} ({self.admission_year})"
 
 
+
+
 class PlanDiscipline(models.Model):
+    CONTROL_CHOICES = [
+        ('EXAM', 'Экзамен'),
+        ('CREDIT', 'Зачет'),
+        ('DIFF_CREDIT', 'Дифф. зачет'),
+        ('COURSE_WORK', 'Курсовая работа'),
+    ]
+
+    TYPE_CHOICES = [
+        ('REQUIRED', 'Обязательная'),
+        ('ELECTIVE', 'Элективная (по выбору)'),
+        ('PRACTICE', 'Практика'),
+    ]
+
     plan = models.ForeignKey(AcademicPlan, on_delete=models.CASCADE, related_name='disciplines')
     subject_template = models.ForeignKey(SubjectTemplate, on_delete=models.PROTECT, verbose_name="Дисциплина")
     
     semester_number = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(8)],
+        validators=[MinValueValidator(1), MaxValueValidator(12)],
         verbose_name="Номер семестра (1-8)"
     )
     
-    credits = models.IntegerField(verbose_name="Кредиты")
+    discipline_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='REQUIRED', verbose_name="Тип блока")
+
+    credits = models.IntegerField(verbose_name="Кредиты (ECTS)")
+    
     lecture_hours = models.IntegerField(default=0, verbose_name="Лекции")
-    practice_hours = models.IntegerField(default=0, verbose_name="Практика")
-    control_hours = models.IntegerField(default=0, verbose_name="СРСП")
-    independent_hours = models.IntegerField(default=0, verbose_name="СРС")
+    practice_hours = models.IntegerField(default=0, verbose_name="Практика (Семинары)")
+    lab_hours = models.IntegerField(default=0, verbose_name="Лабораторные")
+    control_hours = models.IntegerField(default=0, verbose_name="СРСП (Контактная)")
+    independent_hours = models.IntegerField(default=0, verbose_name="СРС (Самостоятельная)")
     
     control_type = models.CharField(
         max_length=20, 
-        choices=[('EXAM', 'Экзамен'), ('CREDIT', 'Зачет')],
-        default='EXAM'
+        choices=CONTROL_CHOICES,
+        default='EXAM',
+        verbose_name="Форма контроля"
     )
 
     class Meta:
         verbose_name = "Дисциплина плана"
         verbose_name_plural = "Дисциплины плана"
-        ordering = ['semester_number', 'subject_template__name']
+        ordering = ['semester_number', 'discipline_type', 'subject_template__name']
         unique_together = ['plan', 'subject_template', 'semester_number']
 
     def __str__(self):
         return f"{self.subject_template.name} ({self.semester_number} сем.)"
+    
+    @property
+    def total_auditory_hours(self):
+        return self.lecture_hours + self.practice_hours + self.lab_hours + self.control_hours

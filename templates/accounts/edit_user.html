@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 
 {% block title %}Редактировать пользователя{% endblock %}
-
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'accounts:user_management' %}">Пользователи</a></li>
+    <li class="breadcrumb-item active">Редактирование: {{ user_obj.username }}</li>
+{% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-10 mx-auto">

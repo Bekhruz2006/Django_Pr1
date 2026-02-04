@@ -1,69 +1,102 @@
 {% extends 'base.html' %}
-
-{% block title %}Генерация нагрузки{% endblock %}
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'schedule:manage_plans' %}">Планы</a></li>
+    <li class="breadcrumb-item active">Генерация нагрузки</li>
+{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="alert alert-info">
-            <h4><i class="bi bi-robot"></i> Генерация нагрузки</h4>
-            <p>Система проанализировала группы и РУПы для семестра <strong>{{ semester }}</strong>.</p>
-            <p>Ниже представлены предметы, которые нужно создать. Если у нескольких групп совпадает предмет, они объединены в <strong>Поток</strong>.</p>
+        <div class="alert alert-info shadow-sm border-info">
+            <h4 class="alert-heading"><i class="bi bi-robot"></i> Генерация нагрузки на семестр</h4>
+            <p>Активный семестр: <strong>{{ semester.name }} ({{ semester.academic_year }})</strong></p>
+            <hr>
+            <p class="mb-0 small">Система нашла следующие дисциплины в РУПах, которые соответствуют курсу групп в текущем семестре. Выберите те, которые нужно добавить в расписание.</p>
         </div>
 
         <form method="post">
             {% csrf_token %}
-            <div class="table-responsive">
-                <table class="table table-bordered bg-white shadow-sm">
-                    <thead class="table-light">
-                        <tr>
-                            <th width="40"><input type="checkbox" id="selectAll" checked></th>
-                            <th>Дисциплина</th>
-                            <th>Тип</th>
-                            <th>Группы (Поток)</th>
-                            <th>Нагрузка (Л/П/КМРО)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in suggestions %}
-                        <tr class="{% if item.is_stream_candidate %}table-warning{% endif %}">
-                            <td class="text-center">
-                                <input type="checkbox" name="selected_items" value="{{ item.data.subject_template.id }}_{{ item.data.lecture_hours }}_{{ item.data.practice_hours }}" checked>
-                            </td>
-                            <td><strong>{{ item.template.name }}</strong></td>
-                            <td>
-                                {% if item.is_stream_candidate %}
-                                    <span class="badge bg-indigo">ПОТОК</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Группа</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% for g in item.groups %}
-                                    <span class="badge bg-outline-primary border text-dark">{{ g.name }}</span>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                {{ item.data.lecture_hours }} / {{ item.data.practice_hours }} / {{ item.data.control_hours }}
-                                ({{ item.data.credits }} кр.)
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            
+            {% if not suggestions %}
+                <div class="card p-5 text-center">
+                    <div class="display-1 text-muted mb-3"><i class="bi bi-check2-circle"></i></div>
+                    <h3>Всё актуально!</h3>
+                    <p class="text-muted">Для всех групп уже созданы предметы согласно их учебным планам на этот семестр.</p>
+                    <a href="{% url 'schedule:manage_subjects' %}" class="btn btn-primary mt-3">Перейти к предметам</a>
+                </div>
+            {% else %}
+            
+            <div class="card shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40" class="text-center"><input type="checkbox" id="selectAll" checked></th>
+                                <th>Дисциплина (из РУП)</th>
+                                <th>Нагрузка (Л/П/Лб/К)</th>
+                                <th>Группы (Курс)</th>
+                                <th>Настройки создания</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in suggestions %}
+                            {% with key=item.discipline.subject_template.id|stringformat:"s"|add:"_"|add:item.discipline.id|stringformat:"s" %}
+                            <tr class="{% if item.groups|length > 1 %}table-warning bg-opacity-10{% endif %}">
+                                <td class="text-center">
+                                    <input type="checkbox" name="selected_items" value="{{ key }}" checked class="form-check-input">
+                                </td>
+                                <td>
+                                    <strong>{{ item.template.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ item.discipline.get_discipline_type_display }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ item.hours }}</span>
+                                    <br>
+                                    <small class="text-muted">{{ item.discipline.credits }} ECTS</small>
+                                </td>
+                                <td>
+                                    {% for g in item.groups %}
+                                        <span class="badge bg-outline-primary border text-dark mb-1">{{ g.name }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if item.groups|length > 1 %}
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="make_stream_{{ key }}" id="stream_{{ key }}" checked>
+                                            <label class="form-check-label" for="stream_{{ key }}">
+                                                Объединить в <strong>Поток</strong>
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Будет создан 1 предмет для {{ item.groups|length }} групп</small>
+                                    {% else %}
+                                        <span class="text-muted small">Индивидуально</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             
-            <div class="fixed-bottom bg-white p-3 border-top shadow d-flex justify-content-end">
+            <div class="fixed-bottom bg-white p-3 border-top shadow-lg d-flex justify-content-end align-items-center">
+                <div class="me-auto ms-4 text-muted">
+                    <small><i class="bi bi-info-circle"></i> Выбрано дисциплин для генерации: <span id="countDisplay">{{ suggestions|length }}</span></small>
+                </div>
                 <a href="{% url 'schedule:manage_plans' %}" class="btn btn-secondary me-2">Отмена</a>
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-check-circle"></i> Создать выбранные предметы
+                <button type="submit" class="btn btn-success px-4 fw-bold">
+                    <i class="bi bi-lightning-charge-fill"></i> Создать предметы
                 </button>
             </div>
+            {% endif %}
         </form>
     </div>
 </div>
+
 <script>
-    document.getElementById('selectAll').addEventListener('change', function() {
+    document.getElementById('selectAll')?.addEventListener('change', function() {
         document.querySelectorAll('input[name="selected_items"]').forEach(cb => cb.checked = this.checked);
     });
 </script>

@@ -21,8 +21,11 @@ try:
 except ImportError:
     DOCX_AVAILABLE = False
 
+
+
+
 from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot, AcademicPlan, PlanDiscipline
-from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm, ScheduleImportForm
+from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm
 from .services import ScheduleImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department
 
@@ -50,180 +53,97 @@ def get_active_semester_for_group(group):
 
 @login_required
 def schedule_constructor(request):
-    group_id = request.GET.get('group')
+    if request.user.role not in ['DEAN', 'VICE_DEAN', 'superuser']:
+         messages.error(request, "Доступ запрещен")
+         return redirect('core:dashboard')
 
-    if group_id and request.user.role in ['DEAN', 'VICE_DEAN']:
-        group = get_object_or_404(Group, id=group_id)
-
-        user_faculty = None
-        if hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
-            user_faculty = request.user.dean_profile.faculty
-        elif hasattr(request.user, 'vicedean_profile') and request.user.vicedean_profile.faculty:
-            user_faculty = request.user.vicedean_profile.faculty
-
-        group_faculty = group.specialty.department.faculty
-
-        if user_faculty != group_faculty:
-            messages.error(request, "Вы не можете редактировать расписание другого факультета!")
-            return redirect('schedule:constructor')
-
-    selected_group_id = request.GET.get('group')
-    selected_semester_id = request.GET.get('semester')
-
-    groups = Group.objects.all().order_by('name')
-    if selected_group_id:
-        try:
-            group = Group.objects.get(id=selected_group_id)
-            semesters = Semester.objects.filter(course=group.course).order_by('-start_date')
-        except Group.DoesNotExist:
-            semesters = Semester.objects.all().order_by('-start_date')
-    else:
-        semesters = Semester.objects.all().order_by('-start_date')
-
-    schedule_data = {}
-    selected_group = None
-    selected_semester = None
-    time_slots = []
-    days = []
-
-    lecture_subjects = []
-    practice_subjects = []
-    control_subjects = []
-
-    if not selected_semester_id:
-        if selected_group_id:
-            group = Group.objects.get(id=selected_group_id)
-            selected_semester = get_active_semester_for_group(group)
-        else:
-            selected_semester = Semester.objects.filter(is_active=True).first()
-    else:
-        try:
-            selected_semester = Semester.objects.get(id=selected_semester_id)
-            if selected_group_id:
-                group = Group.objects.get(id=selected_group_id)
-                if selected_semester.course != group.course:
-                    messages.error(request, f'Семестр для {selected_semester.course} курса, а группа {group.name} на {group.course} курсе!')
-                    selected_semester = get_active_semester_for_group(group)
-        except Semester.DoesNotExist:
-            selected_semester = Semester.objects.filter(is_active=True).first()
-
-    if not selected_semester:
-        messages.error(request, 'Сначала создайте и активируйте семестр для этого курса')
+    active_semester = Semester.objects.filter(is_active=True).first()
+    if not active_semester:
+        messages.error(request, 'Нет активного семестра. Создайте его в разделе "Семестры".')
         return redirect('schedule:manage_semesters')
 
+    groups = Group.objects.all().order_by('name')
+    if request.user.role == 'DEAN':
+        faculty = request.user.dean_profile.faculty
+        groups = groups.filter(specialty__department__faculty=faculty)
+
+    selected_group_id = request.GET.get('group')
+    selected_group = None
+    
     if selected_group_id:
-        try:
-            selected_group = Group.objects.get(id=selected_group_id)
-            time_slots = get_time_slots_for_shift(selected_semester.shift)
+        selected_group = get_object_or_404(Group, id=selected_group_id)
+        if request.user.role == 'DEAN' and selected_group not in groups:
+             return redirect('schedule:constructor')
 
-            days = [
-                (0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'),
-                (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ'),
-            ]
+    time_slots = get_time_slots_for_shift(active_semester.shift)
+    days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
+    
+    schedule_data = {}
+    subjects_to_schedule = []
 
-            assigned_subjects = Subject.objects.filter(
-                groups=selected_group
-            ).select_related('teacher__user')
+    if selected_group:
+        slots = ScheduleSlot.objects.filter(
+            group=selected_group,
+            semester=active_semester,
+            is_active=True
+        ).select_related('subject', 'teacher__user', 'time_slot', 'classroom')
 
-            for subject in assigned_subjects:
-                slots_needed = subject.get_weekly_slots_needed()
+        schedule_data[selected_group.id] = {}
+        for slot in slots:
+            if slot.day_of_week not in schedule_data[selected_group.id]:
+                schedule_data[selected_group.id][slot.day_of_week] = {}
+            schedule_data[selected_group.id][slot.day_of_week][slot.time_slot.id] = slot
 
-                is_stream = subject.is_stream_subject
-                stream_groups_count = subject.groups.count()
+        assigned_subjects = selected_group.assigned_subjects.select_related('teacher__user').all()
 
+        for subject in assigned_subjects:
+            needed = subject.get_weekly_slots_needed()
+            
+            if needed['LECTURE'] > 0:
+                scheduled = slots.filter(subject=subject, lesson_type='LECTURE').count()
+                remaining = max(0, needed['LECTURE'] - scheduled)
+                if remaining > 0:
+                    subjects_to_schedule.append({
+                        'obj': subject,
+                        'type': 'LECTURE',
+                        'label': 'Лекция',
+                        'remaining': remaining,
+                        'color': 'primary'
+                    })
 
-                if slots_needed['LECTURE'] > 0:
-                    existing_lectures = ScheduleSlot.objects.filter(
-                        subject=subject,
-                        group=selected_group,
-                        semester=selected_semester,
-                        lesson_type='LECTURE',
-                        is_active=True
-                    ).count()
+            if needed['PRACTICE'] > 0:
+                scheduled = slots.filter(subject=subject, lesson_type='PRACTICE').count()
+                remaining = max(0, needed['PRACTICE'] - scheduled)
+                if remaining > 0:
+                    subjects_to_schedule.append({
+                        'obj': subject,
+                        'type': 'PRACTICE',
+                        'label': 'Практика',
+                        'remaining': remaining,
+                        'color': 'success'
+                    })
+            
+            if needed['SRSP'] > 0:
+                scheduled = slots.filter(subject=subject, lesson_type='SRSP').count()
+                remaining = max(0, needed['SRSP'] - scheduled)
+                if remaining > 0:
+                    subjects_to_schedule.append({
+                        'obj': subject,
+                        'type': 'SRSP',
+                        'label': 'СРСП',
+                        'remaining': remaining,
+                        'color': 'warning'
+                    })
 
-                    remaining = max(0, slots_needed['LECTURE'] - existing_lectures)
-
-                    if remaining > 0:
-                        lecture_subjects.append({
-                            'subject': subject,
-                            'remaining': remaining,
-                            'needed': slots_needed['LECTURE'],
-                            'hours_per_week': subject.lecture_hours_per_week,
-                            'is_stream': is_stream, # Передаем флаг
-                            'stream_count': stream_groups_count
-                        })
-
-                if slots_needed['PRACTICE'] > 0:
-                    existing_practices = ScheduleSlot.objects.filter(
-                        subject=subject,
-                        group=selected_group,
-                        semester=selected_semester,
-                        lesson_type='PRACTICE',
-                        is_active=True
-                    ).count()
-
-                    remaining = max(0, slots_needed['PRACTICE'] - existing_practices)
-
-                    if remaining > 0:
-                        practice_subjects.append({
-                            'subject': subject,
-                            'remaining': remaining,
-                            'needed': slots_needed['PRACTICE'],
-                            'hours_per_week': subject.practice_hours_per_week,
-                            'is_stream': False
-                        })
-
-                if slots_needed['SRSP'] > 0:
-                    existing_control = ScheduleSlot.objects.filter(
-                        subject=subject,
-                        group=selected_group,
-                        semester=selected_semester,
-                        lesson_type='SRSP',
-                        is_active=True
-                    ).count()
-
-                    remaining = max(0, slots_needed['SRSP'] - existing_control)
-
-                    if remaining > 0:
-                        control_subjects.append({
-                            'subject': subject,
-                            'remaining': remaining,
-                            'needed': slots_needed['SRSP'],
-                            'hours_per_week': subject.control_hours_per_week,
-                            'is_stream': False
-                        })
-
-            valid_slot_ids = list(time_slots.values_list('id', flat=True))
-
-            schedule_slots = ScheduleSlot.objects.filter(
-                group=selected_group,
-                semester=selected_semester,
-                time_slot_id__in=valid_slot_ids,
-                is_active=True
-            ).select_related('subject', 'teacher__user', 'time_slot')
-
-            schedule_data[selected_group.id] = {}
-            for slot in schedule_slots:
-                if slot.day_of_week not in schedule_data[selected_group.id]:
-                    schedule_data[selected_group.id][slot.day_of_week] = {}
-                schedule_data[selected_group.id][slot.day_of_week][slot.time_slot.id] = slot
-
-        except Group.DoesNotExist:
-            pass
-
-    context = {
+    return render(request, 'schedule/constructor_with_limits.html', {
         'groups': groups,
-        'semesters': semesters,
         'group': selected_group,
-        'semester': selected_semester,
+        'semester': active_semester,
         'time_slots': time_slots,
-        'lecture_subjects': lecture_subjects,
-        'practice_subjects': practice_subjects,
-        'control_subjects': control_subjects,
         'days': days,
         'schedule_data': schedule_data,
-    }
-    return render(request, 'schedule/constructor_with_limits.html', context)
+        'subjects_to_schedule': subjects_to_schedule, 
+    })
 
 
 @login_required
@@ -1087,7 +1007,12 @@ def export_schedule(request):
 
 @user_passes_test(is_dean)
 def manage_plans(request):
-    plans = AcademicPlan.objects.all().select_related('specialty').order_by('-admission_year')
+    plans = AcademicPlan.objects.all().select_related('specialty')
+    
+    if request.user.role == 'DEAN':
+        faculty = request.user.dean_profile.faculty
+        plans = plans.filter(specialty__department__faculty=faculty)
+        
     return render(request, 'schedule/plans/manage_plans.html', {'plans': plans})
 
 
@@ -1106,10 +1031,14 @@ def create_plan(request):
 
 @user_passes_test(is_dean)
 def plan_detail(request, plan_id):
-    from .forms import PlanDisciplineForm
-    from .models import AcademicPlan, PlanDiscipline
     plan = get_object_or_404(AcademicPlan, id=plan_id)
-    disciplines = PlanDiscipline.objects.filter(plan=plan).order_by('semester_number', 'subject_template__name')
+    
+    if request.user.role == 'DEAN':
+        if plan.specialty.department.faculty != request.user.dean_profile.faculty:
+            messages.error(request, "Нет доступа к этому плану")
+            return redirect('schedule:manage_plans')
+
+    disciplines = PlanDiscipline.objects.filter(plan=plan).order_by('semester_number', 'discipline_type')
     
     if request.method == 'POST':
         form = PlanDisciplineForm(request.POST)
@@ -1123,27 +1052,31 @@ def plan_detail(request, plan_id):
         form = PlanDisciplineForm()
     
     return render(request, 'schedule/plans/plan_detail.html', {
-        'plan': plan, 'disciplines': disciplines, 'form': form
+        'plan': plan, 
+        'disciplines': disciplines, 
+        'form': form,
+        'semesters_range': range(1, 9) 
     })
+
 
 
 @user_passes_test(is_dean)
 def generate_subjects_from_rup(request):
-    from .models import AcademicPlan, PlanDiscipline
     active_semester = Semester.objects.filter(is_active=True).first()
     if not active_semester:
-        messages.error(request, "Нет активного семестра")
+        messages.error(request, "Нет активного семестра! Сначала активируйте семестр.")
         return redirect('schedule:manage_semesters')
 
     groups = Group.objects.all()
-    
-    suggestions = {}
+    if request.user.role == 'DEAN':
+        groups = groups.filter(specialty__department__faculty=request.user.dean_profile.faculty)
+
+    suggestions = {} 
 
     for group in groups:
-        is_autumn = '1' in str(active_semester.number)
-        current_semester_num = (group.course * 2) - 1 if is_autumn else (group.course * 2)
+        current_semester_num = (group.course - 1) * 2 + active_semester.number
         
-        plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).first()
+        plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
         
         if not plan:
             continue
@@ -1152,53 +1085,71 @@ def generate_subjects_from_rup(request):
 
         for disc in disciplines:
             exists = Subject.objects.filter(
-                name=disc.subject_template.name,
+                plan_discipline=disc,
                 groups=group
             ).exists()
             
             if exists:
                 continue
 
-            key = f"{disc.subject_template.id}_{disc.lecture_hours}_{disc.practice_hours}"
+            key = f"{disc.subject_template.id}_{disc.id}"
             
             if key not in suggestions:
                 suggestions[key] = {
                     'template': disc.subject_template,
+                    'discipline': disc,
                     'groups': [],
-                    'data': disc,
-                    'is_stream_candidate': False
+                    'hours': f"{disc.lecture_hours}/{disc.practice_hours}/{disc.control_hours}"
                 }
             
             suggestions[key]['groups'].append(group)
-            if len(suggestions[key]['groups']) > 1:
-                suggestions[key]['is_stream_candidate'] = True
 
     if request.method == 'POST':
         created_count = 0
         with transaction.atomic():
             selected_keys = request.POST.getlist('selected_items')
+            
             for key in selected_keys:
                 if key in suggestions:
                     item = suggestions[key]
-                    disc_data = item['data']
+                    disc = item['discipline']
+                    group_list = item['groups']
                     
-                    subject = Subject.objects.create(
-                        name=disc_data.subject_template.name,
-                        code=f"{disc_data.subject_template.id}-{active_semester.academic_year}",
-                        department=item['groups'][0].specialty.department,
-                        
-                        lecture_hours=disc_data.lecture_hours,
-                        practice_hours=disc_data.practice_hours,
-                        control_hours=disc_data.control_hours,
-                        independent_work_hours=disc_data.independent_hours,
-                        credits=disc_data.credits,
-                        
-                        is_stream_subject=len(item['groups']) > 1
-                    )
-                    #subject.teacher.__str__ = "Назначить"
-                    subject.groups.set(item['groups'])
-                    subject.save()
-                    created_count += 1
+                    is_stream = len(group_list) > 1 and request.POST.get(f'make_stream_{key}') == 'on'
+                    
+                    if is_stream:
+                        subject = Subject.objects.create(
+                            name=disc.subject_template.name,
+                            code=f"{disc.subject_template.id}-{active_semester.academic_year}-STREAM",
+                            department=group_list[0].specialty.department, 
+                            type='LECTURE', 
+                            lecture_hours=disc.lecture_hours,
+                            practice_hours=disc.practice_hours,
+                            control_hours=disc.control_hours,
+                            independent_work_hours=disc.independent_hours,
+                            credits=disc.credits,
+                            plan_discipline=disc,
+                            is_stream_subject=True
+                        )
+                        subject.groups.set(group_list)
+                        created_count += 1
+                    else:
+                        for grp in group_list:
+                            subject = Subject.objects.create(
+                                name=disc.subject_template.name,
+                                code=f"{disc.subject_template.id}-{grp.name}-{active_semester.academic_year}",
+                                department=grp.specialty.department,
+                                type='LECTURE',
+                                lecture_hours=disc.lecture_hours,
+                                practice_hours=disc.practice_hours,
+                                control_hours=disc.control_hours,
+                                independent_work_hours=disc.independent_hours,
+                                credits=disc.credits,
+                                plan_discipline=disc,
+                                is_stream_subject=False
+                            )
+                            subject.groups.add(grp)
+                            created_count += 1
         
         messages.success(request, f"Создано предметов: {created_count}")
         return redirect('schedule:manage_subjects')
@@ -1288,7 +1239,6 @@ def import_schedule_view(request):
 
             group_id = request.POST.get(f'{prefix}group_id')
             if not group_id: continue  
-
             import_data.append({
                 'group_id': group_id,
                 'day': request.POST.get(f'{prefix}day'),
@@ -1331,4 +1281,31 @@ def import_schedule_view(request):
         form = ScheduleImportForm()
 
     return render(request, 'schedule/import_schedule.html', {'form': form})
+
+@login_required
+@require_POST
+def api_create_subject_template(request):
+    
+    import json
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Название не может быть пустым'})
+            
+        if SubjectTemplate.objects.filter(name__iexact=name).exists():
+            return JsonResponse({'success': False, 'error': 'Такая дисциплина уже существует'})
+            
+        template = SubjectTemplate.objects.create(name=name)
+        
+        return JsonResponse({
+            'success': True,
+            'id': template.id,
+            'name': template.name
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
 

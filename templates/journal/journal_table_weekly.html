@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 
 {% block title %}Журнал - {{ subject.name }}{% endblock %}
-
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'journal:journal_view' %}">Выбор журнала</a></li>
+    <li class="breadcrumb-item active">{{ group.name }} — {{ subject.name }}</li>
+{% endblock %}
 {% block content %}
 <style>
     .journal-grid input {

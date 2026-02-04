@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}Панель деканата{% endblock %}
-
+{% block breadcrumb_container %}{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4 animate-fade-in">
@@ -233,6 +233,16 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
+                        <a href="{% url 'schedule:manage_plans' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
+                            <div class="icon-wrapper bg-indigo-soft me-3"> <!-- Используем indigo или purple -->
+                                <i class="bi bi-journal-text text-indigo"></i>
+                            </div>
+                            <div>
+                                <div class="fw-medium">Учебные планы (РУП)</div>
+                                <small class="text-muted">Создание нагрузки и дисциплин</small>
+                            </div>
+                        </a>
+
                         <a href="{% url 'schedule:constructor' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
                             <div class="icon-wrapper bg-primary-soft me-3">
                                 <i class="bi bi-calendar-week text-primary"></i>
@@ -424,6 +434,9 @@
         box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
         border-left-color: var(--primary-blue) !important;
     }
+
+    .bg-indigo-soft { background-color: rgba(102, 16, 242, 0.1); }
+    .text-indigo { color: #6610f2; }
 
     .stat-icon-wrapper {
         width: 56px;

@@ -19,22 +19,11 @@ class SubjectForm(forms.ModelForm):
 
     class Meta:
         model = Subject
-        fields = [
-            'name', 'code', 'department', 'teacher', 'groups',
-            'lecture_hours', 'practice_hours', 'control_hours',
-            'independent_work_hours', 'semester_weeks',
-        ]
+        fields = ['name', 'teacher', 'description'] # Убрали часы, коды и прочий шум
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
-            'department': forms.Select(attrs={'class': 'form-select'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
-            'groups': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '8'}),
-            'lecture_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_lecture_hours'}),
-            'practice_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_practice_hours'}),
-            'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
-            'independent_work_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_work_hours'}),
-            'semester_weeks': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_semester_weeks'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
         try:
@@ -192,25 +181,39 @@ class AcademicPlanForm(forms.ModelForm):
         fields = ['specialty', 'admission_year', 'is_active']
         widgets = {
             'specialty': forms.Select(attrs={'class': 'form-select'}),
-            'admission_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'admission_year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '2025'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user and user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+            self.fields['specialty'].queryset = Specialty.objects.filter(
+                department__faculty=user.dean_profile.faculty
+            )
 
 
 class PlanDisciplineForm(forms.ModelForm):
     class Meta:
         model = PlanDiscipline
-        fields = ['subject_template', 'semester_number', 'credits', 'lecture_hours', 'practice_hours', 'control_hours', 'independent_hours', 'control_type']
+        fields = [
+            'subject_template', 'semester_number', 'discipline_type',
+            'credits', 'control_type',
+            'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours'
+        ]
         widgets = {
-            'subject_template': forms.Select(attrs={'class': 'form-select'}),
-            'semester_number': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 8}),
+            'subject_template': forms.Select(attrs={'class': 'form-select select2'}),
+            'semester_number': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 12}),
+            'discipline_type': forms.Select(attrs={'class': 'form-select'}),
             'credits': forms.NumberInput(attrs={'class': 'form-control'}),
+            'control_type': forms.Select(attrs={'class': 'form-select'}),
             'lecture_hours': forms.NumberInput(attrs={'class': 'form-control'}),
             'practice_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            'lab_hours': forms.NumberInput(attrs={'class': 'form-control'}),
             'control_hours': forms.NumberInput(attrs={'class': 'form-control'}),
             'independent_hours': forms.NumberInput(attrs={'class': 'form-control'}),
-            'control_type': forms.Select(attrs={'class': 'form-select'}),
         }
+
 
 
 class ScheduleImportForm(forms.Form):

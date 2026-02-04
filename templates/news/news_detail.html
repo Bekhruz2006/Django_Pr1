@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
-{% load news_filters %}
-
+{% load news_filters %}  
 {% block title %}{{ news.title }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'news:list' %}">Новости</a></li>
+    <li class="breadcrumb-item active" title="{{ news.title }}">{{ news.title }}</li>
+{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
