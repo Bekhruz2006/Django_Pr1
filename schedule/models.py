@@ -414,6 +414,10 @@ class PlanDiscipline(models.Model):
         default='EXAM',
         verbose_name="Форма контроля"
     )
+    has_course_work = models.BooleanField(
+        default=False,
+        verbose_name="Есть курсовая работа (КР)"
+    )
 
     class Meta:
         verbose_name = "Дисциплина плана"

@@ -207,12 +207,24 @@ class PlanDisciplineForm(forms.ModelForm):
             'discipline_type': forms.Select(attrs={'class': 'form-select'}),
             'credits': forms.NumberInput(attrs={'class': 'form-control'}),
             'control_type': forms.Select(attrs={'class': 'form-select'}),
-            'lecture_hours': forms.NumberInput(attrs={'class': 'form-control'}),
-            'practice_hours': forms.NumberInput(attrs={'class': 'form-control'}),
-            'lab_hours': forms.NumberInput(attrs={'class': 'form-control'}),
-            'control_hours': forms.NumberInput(attrs={'class': 'form-control'}),
-            'independent_hours': forms.NumberInput(attrs={'class': 'form-control'}),
+            
+            'lecture_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'practice_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'lab_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'value': 0}),
+            'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'independent_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'has_course_work': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['lecture_hours'].required = False
+        self.fields['practice_hours'].required = False
+        self.fields['lab_hours'].required = False  
+        self.fields['control_hours'].required = False
+        self.fields['independent_hours'].required = False
+        
+        self.fields['lab_hours'].initial = 0
 
 
 

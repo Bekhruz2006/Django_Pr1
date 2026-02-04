@@ -17,6 +17,22 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="alert alert-danger p-2 small">
+                            <strong>Ошибка сохранения:</strong>
+                            <ul class="mb-0 ps-3">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted text-uppercase">Дисциплина</label>
                         <div class="input-group">
@@ -47,6 +63,21 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold text-muted text-uppercase">Контроль</label>
                             {{ form.control_type }}
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Контроль</label>
+                            {{ form.control_type }}
+                        </div>
+                        <div class="col-6 d-flex align-items-end">
+                            <div class="form-check mb-2">
+                                {{ form.has_course_work }}
+                                <label class="form-check-label small" for="{{ form.has_course_work.id_for_label }}">
+                                    + Курсовая
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -89,7 +120,7 @@
                     <div>
                         <h5 class="mb-1 text-dark fw-bold">{{ plan.specialty.name }}</h5>
                         <p class="mb-0 text-muted small">
-                            Год набора: <strong>{{ plan.admission_year }}</strong> | 
+                            Год набора: <strong>{{ plan.admission_year }}</strong> |
                             Код: {{ plan.specialty.code }}
                         </p>
                     </div>
@@ -99,7 +130,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="card-body p-0">
                 {% if not disciplines %}
                     <div class="text-center py-5">
@@ -108,14 +139,22 @@
                     </div>
                 {% else %}
                     {% regroup disciplines by semester_number as semester_list %}
-                    
+
                     <div class="accordion accordion-flush" id="planAccordion">
                     {% for group in semester_list %}
                         <div class="accordion-item">
                             <h2 class="accordion-header">
                                 <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#sem{{ group.grouper }}">
-                                    <span class="fw-bold me-3">{{ group.grouper }} Семестр</span>
-                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ group.list|length }} предм.</span>
+                                    <div class="bg-light p-2 border-top border-bottom d-flex justify-content-between align-items-center ps-3 pe-3">
+                                        <span class="fw-bold text-dark"><i class="bi bi-calendar3"></i> {{ group.grouper }} Семестр</span>
+
+                                        {% widthratio 0 1 0 as sem_credits %}
+                                        {% for d in group.list %}{% widthratio d.credits 1 1 as val %}{% endfor %}
+
+                                        <span class="badge bg-secondary">
+                                            Всего дисциплин: {{ group.list|length }}
+                                        </span>
+                                    </div>
                                 </button>
                             </h2>
                             <div id="sem{{ group.grouper }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#planAccordion">
@@ -128,6 +167,7 @@
                                                 <th class="text-center">Кредиты</th>
                                                 <th class="text-center">Часы (Л/П/К/С)</th>
                                                 <th>Контроль</th>
+                                                <th style="width: 50px;"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -149,10 +189,22 @@
                                                 </td>
                                                 <td>
                                                     {% if disc.control_type == 'EXAM' %}
-                                                        <span class="text-danger fw-bold small">Экзамен</span>
+                                                        <span class="text-danger small fw-bold">Экзамен</span>
                                                     {% else %}
                                                         <span class="text-success small">Зачет</span>
                                                     {% endif %}
+
+                                                    {% if disc.has_course_work %}
+                                                        <br><span class="badge bg-warning text-dark" style="font-size: 0.65rem;">+ Курсовая</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="{% url 'schedule:delete_plan_discipline' disc.id %}"
+                                                       class="btn btn-sm btn-link text-danger p-0"
+                                                       onclick="return confirm('Удалить {{ disc.subject_template.name }} из плана?')"
+                                                       title="Удалить">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </a>
                                                 </td>
                                             </tr>
                                             {% endfor %}
@@ -197,7 +249,7 @@ function createSubjectTemplate() {
     const nameInput = document.getElementById('newSubjectName');
     const errorDiv = document.getElementById('modalError');
     const name = nameInput.value.trim();
-    
+
     if (!name) {
         errorDiv.textContent = 'Введите название!';
         errorDiv.style.display = 'block';
@@ -218,7 +270,7 @@ function createSubjectTemplate() {
             const select = document.getElementById('id_subject_template');
             const option = new Option(data.name, data.id, true, true);
             select.add(option);
-            
+
             const modalEl = document.getElementById('addTemplateModal');
             const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
@@ -234,5 +286,33 @@ function createSubjectTemplate() {
         errorDiv.style.display = 'block';
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const creditsInput = document.getElementById('id_credits');
+
+    const lecInput = document.getElementById('id_lecture_hours');
+    const pracInput = document.getElementById('id_practice_hours');
+    const labInput = document.getElementById('id_lab_hours');
+    const srspInput = document.getElementById('id_control_hours');
+    const srsInput = document.getElementById('id_independent_hours');
+
+    if (creditsInput) {
+        creditsInput.addEventListener('input', function() {
+            const credits = parseInt(this.value) || 0;
+            if (credits <= 0) return;
+            const totalHours = credits * 24;
+            const srs = Math.round(totalHours / 3);
+            const auditory = totalHours - srs;
+            const part = Math.floor(auditory / 3);
+            const remainder = auditory % 3;
+
+            if(srsInput) srsInput.value = srs;
+            if(srspInput) srspInput.value = part;
+            if(lecInput) lecInput.value = part + remainder;
+            if(pracInput) pracInput.value = part;
+            if(labInput) labInput.value = 0;
+        });
+    }
+});
 </script>
 {% endblock %}

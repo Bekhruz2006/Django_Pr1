@@ -6,6 +6,8 @@ from django.db import transaction
 from django.db import models
 from django.http import HttpResponseForbidden
 from .services import StudentImportService
+from schedule.models import Semester, Subject, AcademicPlan
+from django.db.models import Prefetch
 
 
 from .models import (
@@ -644,16 +646,16 @@ def manage_structure(request):
         return redirect('core:dashboard')
         
     context = {}
+    active_semester = Semester.objects.filter(is_active=True).first()
     
     if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
         institutes = Institute.objects.prefetch_related(
-            'faculties__departments__specialties',
+            'faculties__departments',
             'faculties__dean_manager__user', 
             'directors__user' 
         ).all()
         context['institutes'] = institutes
         context['is_admin'] = True
-        return render(request, 'accounts/structure_manage.html', context)
         
     elif request.user.role in ['DEAN', 'VICE_DEAN']:
         user_faculty = None
@@ -663,15 +665,52 @@ def manage_structure(request):
             user_faculty = request.user.vicedean_profile.faculty
             
         if user_faculty:
+            departments = Department.objects.filter(faculty=user_faculty).prefetch_related(
+                'specialties__groups',
+                'specialties__academicplan_set', # Обратная связь с планами
+                'head__user'
+            )
+            
+            dept_data = []
+            for dept in departments:
+                current_subjects = Subject.objects.filter(department=dept)
+                
+                if active_semester:
+                    current_subjects = current_subjects.filter(
+                        groups__assigned_semesters=active_semester
+                    ).distinct()
+
+                total_hours = sum(s.total_auditory_hours for s in current_subjects)
+                budget = dept.total_hours_budget or 1 
+                load_percent = round((total_hours / budget) * 100, 1) if dept.total_hours_budget else 0
+                
+                specs_data = []
+                for spec in dept.specialties.all():
+                    last_plan = spec.academicplan_set.filter(is_active=True).order_by('-admission_year').first()
+                    specs_data.append({
+                        'obj': spec,
+                        'groups': spec.groups.all(),
+                        'plan': last_plan
+                    })
+
+                dept_data.append({
+                    'obj': dept,
+                    'total_hours': total_hours,
+                    'load_percent': load_percent,
+                    'subjects_count': current_subjects.count(),
+                    'teachers_count': dept.teachers.count(),
+                    'specialties_data': specs_data
+                })
+
             context['faculty'] = user_faculty
-            context['departments'] = Department.objects.filter(faculty=user_faculty).prefetch_related('specialties', 'head__user')
+            context['dept_data'] = dept_data
             context['is_dean'] = True
-            return render(request, 'accounts/structure_manage.html', context)
+            context['active_semester'] = active_semester
         else:
             messages.error(request, "Ваш профиль не привязан к факультету")
             return redirect('core:dashboard')
             
-    return redirect('core:dashboard')
+    return render(request, 'accounts/structure_manage.html', context)
 
 @user_passes_test(is_admin_or_rector)
 def add_institute(request):

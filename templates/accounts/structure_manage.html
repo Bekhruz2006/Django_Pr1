@@ -2,236 +2,171 @@
 
 {% block title %}Управление структурой{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item active">Структура университета</li>
+    <li class="breadcrumb-item active">Структура и Планирование</li>
 {% endblock %}
+
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3>
-                {% if is_admin %}
-                    Полная структура университета
-                {% else %}
-                    Структура факультета: {{ faculty.name }}
-                {% endif %}
-            </h3>
-
-            {% if is_admin %}
             <div>
-                <a href="{% url 'accounts:add_institute' %}" class="btn btn-primary">
-                    <i class="bi bi-building-add"></i> Новый Институт
-                </a>
+                <h3 class="mb-0">
+                    {% if is_admin %}Структура университета{% else %}Факультет: {{ faculty.name }}{% endif %}
+                </h3>
+                <p class="text-muted small mb-0">Центр управления кафедрами, планами (РУП) и группами</p>
             </div>
+            
+            {% if is_dean %}
+                <div class="text-end">
+                    {% if active_semester %}
+                        <span class="badge bg-success p-2">
+                            <i class="bi bi-calendar-check"></i> Активный семестр: {{ active_semester.name }}
+                        </span>
+                    {% else %}
+                        <a href="{% url 'schedule:manage_semesters' %}" class="btn btn-danger btn-sm">
+                            <i class="bi bi-exclamation-triangle"></i> Семестр не выбран! Настроить
+                        </a>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
 
-        {% if is_admin %}
-            {% for institute in institutes %}
-            <div class="card mb-4 border-primary shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-bank me-2"></i>{{ institute.name }}</h5>
-                    <div>
-                        <a href="{% url 'accounts:add_faculty' %}?institute={{ institute.id }}" class="btn btn-sm btn-light text-primary fw-bold me-2"><i class="bi bi-plus-circle"></i> Факультет</a>
-                        <a href="{% url 'accounts:edit_institute' institute.id %}" class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="accordion" id="inst{{ institute.id }}">
-                        {% for faculty in institute.faculties.all %}
-                        <div class="accordion-item mb-2">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fac{{ faculty.id }}">
-                                    <strong>{{ faculty.name }}</strong>
-                                </button>
-                            </h2>
-                            <div id="fac{{ faculty.id }}" class="accordion-collapse collapse" data-bs-parent="#inst{{ institute.id }}">
-                                <div class="accordion-body">
-                                    <a href="{% url 'accounts:add_department' %}?faculty={{ faculty.id }}" class="btn btn-sm btn-success mb-2">
-                                        <i class="bi bi-plus-lg"></i> Кафедра
-                                    </a>
-                                    <ul class="list-group">
-                                        {% for dept in faculty.departments.all %}
-                                            <li class="list-group-item">{{ dept.name }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-
-        {% elif is_dean %}
-            <div class="alert alert-info py-2">
-                <i class="bi bi-info-circle"></i> Управляйте кафедрами, специальностями, группами и предметами из единого центра.
-            </div>
-
+        {% if is_dean %}
             <div class="d-flex justify-content-end mb-3">
-                <a href="{% url 'accounts:add_department' %}" class="btn btn-primary">
-                    <i class="bi bi-plus-lg"></i> Добавить новую кафедру
+                <a href="{% url 'accounts:add_department' %}" class="btn btn-primary shadow-sm">
+                    <i class="bi bi-plus-lg"></i> Новая кафедра
                 </a>
             </div>
 
             <div class="accordion" id="deptAccordion">
-                {% for dept in departments %}
-                <div class="accordion-item shadow-sm mb-3 border">
+                {% for item in dept_data %}
+                <div class="accordion-item shadow-sm mb-3 border-0">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ dept.id }}">
+                        <button class="accordion-button collapsed bg-white rounded" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ item.obj.id }}">
                             <div class="d-flex w-100 justify-content-between align-items-center me-3">
-                                <span class="fw-bold"><i class="bi bi-diagram-3-fill me-2"></i>{{ dept.name }}</span>
-                                <small class="text-muted">
-                                    {% if dept.head %}Зав: {{ dept.head.user.get_full_name }}{% else %}Зав. каф. не назначен{% endif %}
-                                </small>
+                                <div>
+                                    <span class="fw-bold fs-5 text-dark">
+                                        <i class="bi bi-diagram-3-fill me-2 text-primary"></i>{{ item.obj.name }}
+                                    </span>
+                                    <div class="small text-muted mt-1">
+                                        <i class="bi bi-person-badge"></i> Зав: {{ item.obj.head.user.get_full_name|default:"Не назначен" }}
+                                    </div>
+                                </div>
+                                <div class="text-end d-none d-md-block">
+                                    <small class="text-muted d-block">Нагрузка семестра</small>
+                                    <div class="progress" style="width: 100px; height: 6px;">
+                                        <div class="progress-bar {% if item.load_percent > 100 %}bg-danger{% else %}bg-success{% endif %}" 
+                                             role="progressbar" style="width: {{ item.load_percent }}%"></div>
+                                    </div>
+                                    <small class="fw-bold">{{ item.load_percent }}%</small>
+                                </div>
                             </div>
                         </button>
                     </h2>
-                    <div id="collapse{{ dept.id }}" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="alert alert-light border mb-3 stat-box">
-                                <div class="row text-center">
-                                    <div class="col-md-4 border-end">
-                                        <small class="text-muted d-block">Штатные ставки</small>
-                                        <strong class="text-primary">{{ dept.total_wage_rate }}</strong>
-                                    </div>
-                                    <div class="col-md-4 border-end">
-                                        <small class="text-muted d-block">Бюджет часов</small>
-                                        <strong>{{ dept.total_hours_budget }}</strong>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small class="text-muted d-block">Занято часов</small>
-                                        <strong class="{% if dept.get_occupied_hours > dept.total_hours_budget %}text-danger{% else %}text-success{% endif %}">
-                                            {{ dept.get_occupied_hours }}
-                                        </strong>
-                                        <small class="text-muted">({{ dept.get_load_percentage }}%)</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center mb-4 p-3 border rounded action-panel">
-                                <div>
-                                    <h6 class="mb-2 fw-bold text-primary">Действия с кафедрой:</h6>
-
-                                    <a href="{% url 'schedule:add_subject' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-primary me-1 mb-1">
-                                        <i class="bi bi-book"></i> Добавить предмет
-                                    </a>
-
-                                    <a href="{% url 'accounts:add_user' %}?role=TEACHER&department={{ dept.id }}" class="btn btn-sm btn-outline-success me-1 mb-1">
-                                        <i class="bi bi-person-plus-fill"></i> Добавить преподавателя
-                                    </a>
-
-                                    <a href="{% url 'accounts:edit_department' dept.id %}" class="btn btn-sm btn-outline-secondary mb-1">
-                                        <i class="bi bi-gear"></i> Настройки
-                                    </a>
-                                </div>
-                                <div class="text-end">
-                                    <small class="text-muted d-block">Предметов: {{ dept.subjects.count }}</small>
-                                    <small class="text-muted d-block">Преподавателей: {{ dept.teachers.count }}</small>
-                                </div>
-                            </div>
-
-                            <div class="card mb-3 border-secondary border-opacity-25">
-                                <div class="card-header bg-secondary bg-opacity-10 d-flex justify-content-between align-items-center py-2">
-                                    <span class="fw-bold"><i class="bi bi-book me-2"></i>Предметы кафедры</span>
-                                    <span class="badge bg-secondary">{{ dept.subjects.count }}</span>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
-                                        {% for subject in dept.subjects.all %}
-                                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>{{ subject.name }}</strong>
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        {{ subject.total_credits }} кр. |
-                                                        {{ subject.teacher.user.get_full_name|default:"Преп. не назначен" }}
-                                                    </small>
-                                                    {% if subject.is_stream_subject %}
-                                                        <span class="badge bg-indigo ms-1" style="font-size: 0.6rem;">ПОТОК</span>
-                                                    {% endif %}
-                                                    <div class="small mt-1">
-                                                        {% for g in subject.groups.all|slice:":3" %}
-                                                            <span class="badge bg-light text-dark border">{{ g.name }}</span>
-                                                        {% endfor %}
-                                                        {% if subject.groups.count > 3 %}
-                                                            <span class="badge bg-light text-dark border">+{{ subject.groups.count|add:"-3" }}</span>
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-outline-primary" title="Редактировать">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                    <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-outline-danger" title="Удалить" onclick="return confirm('Удалить предмет?')">
-                                                        <i class="bi bi-trash"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        {% empty %}
-                                            <div class="text-center py-3 text-muted">
-                                                <small>Предметов пока нет</small>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <h6 class="border-bottom pb-2 mb-3 text-success">
-                                <i class="bi bi-mortarboard"></i> Специальности и Группы
-                            </h6>
-
-                            {% if dept.specialties.all %}
-                                <div class="row g-3">
-                                    {% for spec in dept.specialties.all %}
-                                    <div class="col-md-6">
-                                        <div class="card h-100 border-success border-opacity-25">
-                                            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center py-2 specialty-header">
-                                                <span class="fw-bold small specialty-title">{{ spec.code }} - {{ spec.name }}</span>
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="{% url 'accounts:add_group' %}?specialty={{ spec.id }}" class="btn btn-success btn-sm py-0" title="Добавить группу">
-                                                        <i class="bi bi-plus-lg"></i> Группа
-                                                    </a>
-                                                    <a href="{% url 'accounts:edit_specialty' spec.id %}" class="btn btn-outline-secondary py-0"><i class="bi bi-pencil"></i></a>
-                                                </div>
-                                            </div>
-                                            <div class="card-body p-2">
-                                                {% if spec.groups.all %}
-                                                    <div class="list-group list-group-flush small">
-                                                        {% for group in spec.groups.all %}
-                                                        <div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1 border-0 group-item">
-                                                            <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" class="text-decoration-none">
-                                                                <i class="bi bi-people-fill text-muted me-1"></i>
-                                                                <strong>{{ group.name }}</strong> ({{ group.course }} курс)
-                                                            </a>
-                                                            <a href="{% url 'accounts:edit_group' group.id %}" class="text-muted"><i class="bi bi-pencil-square"></i></a>
-                                                        </div>
-                                                        {% endfor %}
-                                                    </div>
-                                                {% else %}
-                                                    <p class="text-muted small mb-0 text-center py-2">Нет групп</p>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="alert alert-warning small">Нет специальностей. Добавьте первую.</div>
-                            {% endif %}
-
-                            <div class="mt-3">
-                                <a href="{% url 'accounts:add_specialty' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-success border-dashed w-100">
-                                    <i class="bi bi-plus-circle"></i> Добавить новую специальность в {{ dept.name }}
+                    
+                    <div id="collapse{{ item.obj.id }}" class="accordion-collapse collapse">
+                        <div class="accordion-body bg-light">
+                            
+                            <div class="d-flex gap-2 mb-4 p-3 bg-white rounded border">
+                                <a href="{% url 'accounts:add_specialty' %}?department={{ item.obj.id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-mortarboard-plus"></i> Добавить специальность
+                                </a>
+                                <a href="{% url 'accounts:add_user' %}?role=TEACHER&department={{ item.obj.id }}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-person-plus"></i> Добавить преподавателя
+                                </a>
+                                <a href="{% url 'accounts:edit_department' item.obj.id %}" class="btn btn-sm btn-outline-secondary ms-auto">
+                                    <i class="bi bi-gear"></i> Настройки
                                 </a>
                             </div>
+
+                            <h6 class="text-uppercase text-muted fw-bold mb-3 small ps-1">Специальности, Планы и Группы</h6>
+                            
+                            <div class="row g-3">
+                                {% for spec_data in item.specialties_data %}
+                                <div class="col-lg-6">
+                                    <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong class="text-primary">{{ spec_data.obj.code }}</strong>
+                                                <span class="d-block small text-muted lh-1">{{ spec_data.obj.name|truncatechars:35 }}</span>
+                                            </div>
+                                            
+                                            <div>
+                                                {% if spec_data.plan %}
+                                                    <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" 
+                                                       class="btn btn-xs btn-outline-success" 
+                                                       title="Редактировать РУП {{ spec_data.plan.admission_year }}">
+                                                        <i class="bi bi-journal-check"></i> РУП {{ spec_data.plan.admission_year }}
+                                                    </a>
+                                                {% else %}
+                                                    <a href="{% url 'schedule:create_plan' %}?specialty={{ spec_data.obj.id }}" 
+                                                       class="btn btn-xs btn-outline-warning" 
+                                                       title="Создать учебный план">
+                                                        <i class="bi bi-journal-plus"></i> Создать РУП
+                                                    </a>
+                                                {% endif %}
+                                                <a href="{% url 'accounts:edit_specialty' spec_data.obj.id %}" class="btn btn-xs btn-link text-muted"><i class="bi bi-pencil"></i></a>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-body p-2">
+                                            {% if spec_data.groups %}
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    {% for group in spec_data.groups %}
+                                                        <div class="group-badge-container">
+                                                            <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" 
+                                                               class="btn btn-sm btn-light border d-flex align-items-center justify-content-between w-100"
+                                                               title="Редактировать расписание">
+                                                                <span class="fw-bold me-2">{{ group.name }}</span>
+                                                                <span class="badge bg-secondary rounded-pill" style="font-size: 0.6rem;">{{ group.course }} курс</span>
+                                                            </a>
+                                                            <div class="group-actions text-center mt-1">
+                                                                <a href="{% url 'accounts:edit_group' group.id %}" class="text-muted small me-2" title="Настройки"><i class="bi bi-gear"></i></a>
+                                                                <a href="{% url 'journal:dean_view' %}?group={{ group.id }}" class="text-muted small" title="Успеваемость"><i class="bi bi-graph-up"></i></a>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="text-center py-2">
+                                                    <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="btn btn-sm btn-dashed w-100 text-muted">
+                                                        <i class="bi bi-plus-circle"></i> Добавить группу
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if spec_data.groups %}
+                                        <div class="card-footer bg-white p-1 text-center">
+                                            <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="small text-decoration-none text-muted">
+                                                + Добавить группу
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            {% if not item.specialties_data %}
+                                <div class="alert alert-warning mt-3">
+                                    <i class="bi bi-info-circle"></i> Нет специальностей. Добавьте первую, чтобы создавать группы и планы.
+                                </div>
+                            {% endif %}
+
                         </div>
                     </div>
                 </div>
                 {% empty %}
                     <div class="text-center py-5">
-                        <i class="bi bi-diagram-3 text-muted" style="font-size: 3rem;"></i>
-                        <p class="mt-3">У вас пока нет кафедр. Создайте первую!</p>
+                        <div class="mb-3">
+                            <i class="bi bi-building-dash text-muted" style="font-size: 4rem;"></i>
+                        </div>
+                        <h4>Кафедр пока нет</h4>
+                        <p class="text-muted">Начните с создания структуры вашего факультета.</p>
+                        <a href="{% url 'accounts:add_department' %}" class="btn btn-primary btn-lg mt-2">
+                            <i class="bi bi-plus-lg"></i> Создать первую кафедру
+                        </a>
                     </div>
                 {% endfor %}
             </div>
@@ -240,11 +175,20 @@
 </div>
 
 <style>
-    .border-dashed {
-        border-style: dashed !important;
+    .btn-xs {
+        padding: 0.15rem 0.4rem;
+        font-size: 0.75rem;
     }
-    .bg-indigo {
-        background-color: #6610f2 !important;
+    .btn-dashed {
+        border: 1px dashed #ced4da;
+    }
+    .btn-dashed:hover {
+        background-color: #f8f9fa;
+        border-color: #adb5bd;
+    }
+    .group-badge-container {
+        min-width: 140px;
+        flex: 1;
     }
 </style>
 {% endblock %}

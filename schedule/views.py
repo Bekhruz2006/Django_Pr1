@@ -24,7 +24,7 @@ except ImportError:
 
 
 
-from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot, AcademicPlan, PlanDiscipline
+from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, TimeSlot, AcademicPlan, PlanDiscipline, SubjectTemplate  
 from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, AcademicWeekForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm
 from .services import ScheduleImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department
@@ -155,17 +155,12 @@ def create_schedule_slot(request):
         
         if data.get('is_military_day'):
             group_id = data.get('group')
-            day_of_week = data.get('day_of_week')
+            day_of_week = int(data.get('day_of_week'))
             semester_id = data.get('semester_id')
             
             group = get_object_or_404(Group, id=group_id)
-            if not group.has_military_training:
-                return JsonResponse({'success': False, 'error': 'У этой группы нет военной кафедры!'}, status=400)
             
-            if semester_id:
-                semester = get_object_or_404(Semester, id=semester_id)
-            else:
-                return JsonResponse({'success': False, 'error': 'Семестр не выбран'}, status=400)
+            semester = get_object_or_404(Semester, id=semester_id)
 
             ScheduleSlot.objects.filter(
                 group=group, semester=semester, day_of_week=day_of_week
@@ -173,22 +168,17 @@ def create_schedule_slot(request):
             
             time_slots = get_time_slots_for_shift(semester.shift)
             
-            if group.specialty and group.specialty.department:
-                dept = group.specialty.department
-            else:
-                dept = Department.objects.first()
-                if not dept:
-                    return JsonResponse({'success': False, 'error': 'В системе нет ни одной кафедры для привязки предмета'}, status=400)
-            
+            military_dept = group.specialty.department if group.specialty else Department.objects.first()
             military_subject, _ = Subject.objects.get_or_create(
                 code="MILITARY",
                 defaults={
-                    'name': "Кафедраи ҳарбӣ", 
-                    'department': dept, 
+                    'name': "Кафедраи ҳарбӣ (Военная кафедра)", 
+                    'department': military_dept, 
                     'type': 'PRACTICE'
                 }
             )
             
+            created_count = 0
             with transaction.atomic():
                 for ts in time_slots:
                     ScheduleSlot.objects.create(
@@ -200,9 +190,13 @@ def create_schedule_slot(request):
                         start_time=ts.start_time,
                         end_time=ts.end_time,
                         is_military=True,
-                        lesson_type='PRACTICE'
+                        lesson_type='PRACTICE',
+                        classroom=None, # Важно! Нет кабинета - нет конфликта
+                        room="Воен. каф" # Просто текст для отображения
                     )
-            return JsonResponse({'success': True})
+                    created_count += 1
+            
+            return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
 
         force = data.get('force', False)
         group_id = data.get('group')
@@ -1071,13 +1065,13 @@ def generate_subjects_from_rup(request):
     if request.user.role == 'DEAN':
         groups = groups.filter(specialty__department__faculty=request.user.dean_profile.faculty)
 
-    suggestions = {} 
+    suggestions = {}
 
     for group in groups:
         current_semester_num = (group.course - 1) * 2 + active_semester.number
-        
+
         plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
-        
+
         if not plan:
             continue
 
@@ -1088,12 +1082,12 @@ def generate_subjects_from_rup(request):
                 plan_discipline=disc,
                 groups=group
             ).exists()
-            
+
             if exists:
                 continue
 
             key = f"{disc.subject_template.id}_{disc.id}"
-            
+
             if key not in suggestions:
                 suggestions[key] = {
                     'template': disc.subject_template,
@@ -1101,28 +1095,28 @@ def generate_subjects_from_rup(request):
                     'groups': [],
                     'hours': f"{disc.lecture_hours}/{disc.practice_hours}/{disc.control_hours}"
                 }
-            
+
             suggestions[key]['groups'].append(group)
 
     if request.method == 'POST':
         created_count = 0
         with transaction.atomic():
             selected_keys = request.POST.getlist('selected_items')
-            
+
             for key in selected_keys:
                 if key in suggestions:
                     item = suggestions[key]
                     disc = item['discipline']
                     group_list = item['groups']
-                    
+
                     is_stream = len(group_list) > 1 and request.POST.get(f'make_stream_{key}') == 'on'
-                    
+
                     if is_stream:
                         subject = Subject.objects.create(
                             name=disc.subject_template.name,
                             code=f"{disc.subject_template.id}-{active_semester.academic_year}-STREAM",
-                            department=group_list[0].specialty.department, 
-                            type='LECTURE', 
+                            department=group_list[0].specialty.department,
+                            type='LECTURE',
                             lecture_hours=disc.lecture_hours,
                             practice_hours=disc.practice_hours,
                             control_hours=disc.control_hours,
@@ -1150,7 +1144,7 @@ def generate_subjects_from_rup(request):
                             )
                             subject.groups.add(grp)
                             created_count += 1
-        
+
         messages.success(request, f"Создано предметов: {created_count}")
         return redirect('schedule:manage_subjects')
 
@@ -1158,6 +1152,8 @@ def generate_subjects_from_rup(request):
         'suggestions': suggestions.values(),
         'semester': active_semester
     })
+
+
 
 @user_passes_test(is_dean)
 def edit_classroom(request, classroom_id):
@@ -1306,6 +1302,58 @@ def api_create_subject_template(request):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@user_passes_test(is_dean)
+def copy_plan(request, plan_id):
+    original_plan = get_object_or_404(AcademicPlan, id=plan_id)
+    
+    if request.method == 'POST':
+        new_year = request.POST.get('new_year')
+        if not new_year:
+            messages.error(request, "Укажите новый год")
+            return redirect('schedule:manage_plans')
+            
+        if AcademicPlan.objects.filter(specialty=original_plan.specialty, admission_year=new_year).exists():
+            messages.error(request, f"План для {original_plan.specialty.code} на {new_year} год уже существует!")
+            return redirect('schedule:manage_plans')
+
+        with transaction.atomic():
+            new_plan = AcademicPlan.objects.create(
+                specialty=original_plan.specialty,
+                admission_year=new_year,
+                is_active=True
+            )
+            
+            disciplines = original_plan.disciplines.all()
+            new_disciplines = []
+            for disc in disciplines:
+                disc.pk = None 
+                disc.plan = new_plan
+                new_disciplines.append(disc)
+            
+            PlanDiscipline.objects.bulk_create(new_disciplines)
+            
+        messages.success(request, f"План успешно скопирован на {new_year} год!")
+        return redirect('schedule:plan_detail', plan_id=new_plan.id)
+        
+    return redirect('schedule:manage_plans')
+
+
+
+@user_passes_test(is_dean)
+def delete_plan_discipline(request, discipline_id):
+    discipline = get_object_or_404(PlanDiscipline, id=discipline_id)
+    plan_id = discipline.plan.id
+    
+    if request.user.role == 'DEAN':
+        if discipline.plan.specialty.department.faculty != request.user.dean_profile.faculty:
+            messages.error(request, "Нет прав на удаление")
+            return redirect('schedule:plan_detail', plan_id=plan_id)
+
+    discipline.delete()
+    messages.success(request, "Дисциплина удалена из плана")
+    return redirect('schedule:plan_detail', plan_id=plan_id)
 
 
 

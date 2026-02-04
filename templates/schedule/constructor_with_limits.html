@@ -30,7 +30,10 @@
                             <select class="form-select" name="semester">
                                 {% for sem in semesters %}
                                     <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
-                                        {{ sem.name }} ({{ sem.get_shift_display }}) {% if sem.is_active %}[Активен]{% endif %}
+                                        {{ sem.name }} 
+                                        (Курс {{ sem.course }} | 
+                                        {% if sem.shift == 'MORNING' %}☀️ Басти 1{% else %}🌙 Басти 2{% endif %})
+                                        {% if sem.is_active %} ✅{% endif %}
                                     </option>
                                 {% endfor %}
                             </select>

@@ -17,26 +17,52 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="list-group shadow-sm">
             {% for plan in plans %}
                 <a href="{% url 'schedule:plan_detail' plan.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
                     <div>
                         <h5 class="mb-1 fw-bold text-primary">{{ plan.specialty.name }}</h5>
                         <div class="text-muted small">
-                            <i class="bi bi-calendar-event"></i> Год набора: {{ plan.admission_year }} | 
+                            <i class="bi bi-calendar-event"></i> Год набора: {{ plan.admission_year }} |
                             <i class="bi bi-code-slash"></i> Код: {{ plan.specialty.code }}
                         </div>
                     </div>
-                    <div class="text-end">
+                    <div class="text-end d-flex align-items-center gap-2">
                         <span class="badge bg-primary rounded-pill">{{ plan.disciplines.count }} дисциплин</span>
                         {% if plan.is_active %}
                             <span class="badge bg-success">Актуален</span>
                         {% else %}
                             <span class="badge bg-secondary">Архив</span>
                         {% endif %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#copyPlanModal{{ plan.id }}" title="Копировать план">
+                            <i class="bi bi-files"></i>
+                        </button>
                     </div>
                 </a>
+
+                <div class="modal fade" id="copyPlanModal{{ plan.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="{% url 'schedule:copy_plan' plan.id %}" method="post">
+                                {% csrf_token %}
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Копировать РУП {{ plan.admission_year }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Создать копию плана специальности <strong>{{ plan.specialty.name }}</strong>.</p>
+                                    <label class="form-label">Новый год набора:</label>
+                                    <input type="number" name="new_year" class="form-control" value="{{ plan.admission_year|add:1 }}" required>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-primary">Копировать</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             {% empty %}
                 <div class="text-center py-5 text-muted">
                     <i class="bi bi-folder2-open display-4"></i>

@@ -16,7 +16,7 @@ urlpatterns = [
     path('subjects/', views.manage_subjects, name='manage_subjects'),
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
     path('subjects/<int:subject_id>/delete/', views.delete_subject, name='delete_subject'),
-
+    
     path('semesters/', views.manage_semesters, name='manage_semesters'),
     path('semesters/add/', views.add_semester, name='add_semester'),
     path('semesters/<int:semester_id>/edit/', views.edit_semester, name='edit_semester'),
@@ -37,6 +37,7 @@ urlpatterns = [
     path('plans/create/', views.create_plan, name='create_plan'),
     path('plans/<int:plan_id>/', views.plan_detail, name='plan_detail'),
     path('plans/generate/', views.generate_subjects_from_rup, name='generate_subjects'),
-    
+    path('plans/<int:plan_id>/copy/', views.copy_plan, name='copy_plan'),
+    path('plans/discipline/<int:discipline_id>/delete/', views.delete_plan_discipline, name='delete_plan_discipline'),
     path('api/subject-template/create/', views.api_create_subject_template, name='api_create_subject_template'),
 ]
