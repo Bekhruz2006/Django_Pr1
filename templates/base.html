@@ -1,12 +1,17 @@
+{% load static %}
+{% load i18n %}
+
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
-    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Платформа деканата{% endblock %}</title>
+    <title>{% block title %}University Platform{% endblock %}</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/bundle.css' %}">
+    
     <style>
         :root {
             --sidebar-width: 280px;
@@ -91,6 +96,31 @@
             transform: scale(1.05);
         }
 
+        .lang-switcher .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 5px 30px 5px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lang-switcher .form-select:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .lang-switcher .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .lang-switcher .form-select option {
+            color: #000;
+            background: white;
+        }
+
         #sidebar {
             position: fixed;
             top: var(--navbar-height);
@@ -122,6 +152,28 @@
 
         body.dark-mode #sidebar::-webkit-scrollbar-thumb {
             background: #475569;
+        }
+
+        .admin-menu-header {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            padding: 10px 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        body.dark-mode .admin-menu-header {
+            color: #9ca3af;
+        }
+
+        .sidebar-divider {
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin: 10px 20px;
+        }
+
+        body.dark-mode .sidebar-divider {
+            border-top-color: rgba(255,255,255,0.1);
         }
 
         .sidebar-section-header {
@@ -456,141 +508,152 @@
                 <i class="bi bi-list fs-4"></i>
             </button>
             <a class="navbar-brand" href="{% url 'core:dashboard' %}">
-                <i class="bi bi-mortarboard-fill me-2"></i>Деканат
+                <i class="bi bi-mortarboard-fill me-2"></i>{% trans "Система Деканат" %}
             </a>
-            <ul class="navbar-nav ms-auto">
+            
+            <div class="d-flex align-items-center ms-auto">
+                <form action="{% url 'set_language' %}" method="post" class="me-3 lang-switcher">
+                    {% csrf_token %}
+                    <input name="next" type="hidden" value="{{ redirect_to }}">
+                    <select name="language" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto;">
+                        {% get_current_language as LANGUAGE_CODE %}
+                        {% get_available_languages as LANGUAGES %}
+                        {% get_language_info_list for LANGUAGES as languages %}
+                        {% for language in languages %}
+                            <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                                {{ language.name_local }} ({{ language.code|upper }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+
                 {% if user.is_authenticated %}
-                <li class="nav-item dropdown">
+                <div class="dropdown">
                     <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle me-2 fs-5"></i>
                         <span>{{ user.first_name }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Профиль</a></li>
+                        <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>{% trans "Профиль" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Выход</a></li>
+                        <li>
+                            <form action="{% url 'accounts:logout' %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>{% trans "Выход" %}</button>
+                            </form>
+                        </li>
                     </ul>
-                </li>
+                </div>
                 {% endif %}
-            </ul>
+            </div>
         </div>
     </nav>
 
     {% if user.is_authenticated %}
-        <aside id="sidebar">
-            <div class="sidebar-section-header active" data-target="databank-menu">
-                <span><i class="bi bi-database me-2"></i>БОНКИ МАЪЛУМОТҲО</span>
+    <aside id="sidebar">
+        {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
+            <div class="admin-menu-header">{% trans "Администрирование" %}</div>
+            
+            <div class="sidebar-section-header" data-target="structure-menu">
+                <span><i class="bi bi-building-gear me-2"></i>{% trans "Структура ВУЗа" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
-            <div class="sidebar-menu-group active" id="databank-menu">
-                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:user_management' %}?role=STUDENT">
-                    <i class="bi bi-people"></i>Контингент студентов
+            <div class="sidebar-menu-group" id="structure-menu">
+                <a class="sidebar-link" href="{% url 'accounts:manage_structure' %}">
+                    <i class="bi bi-diagram-3"></i> {% trans "Обзор структуры" %}
                 </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:manage_structure' %}">
-                    <i class="bi bi-diagram-3"></i>Структура (Ихтисосҳо)
+                <a class="sidebar-link" href="{% url 'accounts:add_institute' %}">
+                    <i class="bi bi-plus-lg"></i> {% trans "Добавить Институт" %}
                 </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:import_students' %}">
-                    <i class="bi bi-file-earmark-spreadsheet"></i>Прием (Импорт Excel)
+                <a class="sidebar-link" href="{% url 'accounts:add_faculty' %}">
+                    <i class="bi bi-plus-lg"></i> {% trans "Добавить Факультет" %}
                 </a>
             </div>
 
-            <div class="sidebar-section-header" data-target="journal-menu">
-                <span><i class="bi bi-journal-bookmark me-2"></i>ЖУРНАЛИ ЭЛЕКТРОНӢ</span>
+            <div class="sidebar-section-header" data-target="users-menu">
+                <span><i class="bi bi-people-fill me-2"></i>{% trans "Пользователи" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
-            <div class="sidebar-menu-group" id="journal-menu">
-                {% if user.role == 'TEACHER' %}
-                <a class="sidebar-link animate-slide-in" href="{% url 'journal:journal_view' %}">
-                    <i class="bi bi-journal-check"></i>Журнал (Қайди холҳо)
+            <div class="sidebar-menu-group" id="users-menu">
+                <a class="sidebar-link" href="{% url 'accounts:user_management' %}">
+                    <i class="bi bi-list-ul"></i> {% trans "Все пользователи" %}
                 </a>
-                {% endif %}
-
-                {% if user.role == 'DEAN' or user.is_superuser %}
-                <a class="sidebar-link animate-slide-in" href="{% url 'journal:dean_view' %}">
-                    <i class="bi bi-graph-up"></i>Мониторинг успеваемости
+                <a class="sidebar-link" href="{% url 'accounts:add_user' %}">
+                    <i class="bi bi-person-plus"></i> {% trans "Создать пользователя" %}
                 </a>
-                {% endif %}
-
-                <a class="sidebar-link animate-slide-in" href="{% url 'news:list' %}">
-                    <i class="bi bi-newspaper"></i>Хабару эълонҳо
+                <a class="sidebar-link" href="{% url 'accounts:import_students' %}">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Импорт студентов" %}
                 </a>
-
-                {% if user.role == 'DEAN' or user.is_superuser %}
-                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:payment_list' %}">
-                    <i class="bi bi-cash-coin"></i>Оплата (Шартнома)
-                </a>
-                {% endif %}
             </div>
+        {% endif %}
 
-            {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
-            <div class="sidebar-section-header" data-target="edu-dept-menu">
-                <span><i class="bi bi-mortarboard me-2"></i>РАЁСАТИ ТАЪЛИМ</span>
+        {% if user.is_superuser or user.role in 'DEAN,VICE_DEAN,RECTOR' %}
+            <div class="sidebar-divider"></div>
+            <div class="admin-menu-header">{% trans "Учебный процесс" %}</div>
+
+            <div class="sidebar-section-header" data-target="study-mgmt-menu">
+                <span><i class="bi bi-mortarboard me-2"></i>{% trans "Управление" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
-            <div class="sidebar-menu-group" id="edu-dept-menu">
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_plans' %}">
-                    <i class="bi bi-journal-richtext"></i>Нақшаҳои таълим (РУП)
+            <div class="sidebar-menu-group" id="study-mgmt-menu">
+                <a class="sidebar-link" href="{% url 'schedule:manage_semesters' %}">
+                    <i class="bi bi-calendar-range"></i> {% trans "Семестры" %}
                 </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:teacher_load_report' %}">
-                    <i class="bi bi-speedometer2"></i>Сарбории омӯзгорон
+                <a class="sidebar-link" href="{% url 'schedule:manage_plans' %}">
+                    <i class="bi bi-journal-richtext"></i> {% trans "Учебные планы (РУП)" %}
                 </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:constructor' %}">
-                    <i class="bi bi-calendar-week"></i>Ҷадвали дарсҳо
+                <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}">
+                    <i class="bi bi-book"></i> {% trans "Дисциплины" %}
                 </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_semesters' %}">
-                    <i class="bi bi-gear"></i>Настройки семестра
+                <a class="sidebar-link" href="{% url 'accounts:group_management' %}">
+                    <i class="bi bi-collection"></i> {% trans "Группы" %}
                 </a>
             </div>
-            {% endif %}
+        {% endif %}
 
-            {% if user.is_superuser or user.role == 'RECTOR' %}
-            <div class="sidebar-section-header" data-target="hr-menu">
-                <span><i class="bi bi-person-badge me-2"></i>ШУЪБАИ КАДРҲО</span>
-                <i class="bi bi-chevron-down toggle-icon"></i>
-            </div>
-            <div class="sidebar-menu-group" id="hr-menu">
-                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:user_management' %}?role=TEACHER">
-                    <i class="bi bi-people-fill"></i>Рӯйхати кормандон
-                </a>
-            </div>
-            {% endif %}
+        <div class="sidebar-divider"></div>
+        <div class="admin-menu-header">{% trans "Меню" %}</div>
 
-            {% if user.role == 'STUDENT' %}
-            <div class="sidebar-section-header" data-target="study-menu">
-                <span><i class="bi bi-book me-2"></i>ТАҲСИЛ</span>
-                <i class="bi bi-chevron-down toggle-icon"></i>
-            </div>
-            <div class="sidebar-menu-group" id="study-menu">
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:view' %}">
-                    <i class="bi bi-calendar3"></i>Расписание
-                </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'journal:student_view' %}" style="animation-delay: 0.05s">
-                    <i class="bi bi-journal-text"></i>Оценки
-                </a>
-            </div>
-            {% endif %}
+        <a class="sidebar-link" href="{% url 'schedule:view' %}">
+            <i class="bi bi-calendar-week"></i> {% trans "Расписание" %}
+        </a>
+        
+        {% if user.role == 'TEACHER' %}
+            <a class="sidebar-link" href="{% url 'journal:journal_view' %}">
+                <i class="bi bi-journal-check"></i> {% trans "Журнал" %}
+            </a>
+        {% endif %}
+        
+        {% if user.role == 'STUDENT' %}
+            <a class="sidebar-link" href="{% url 'journal:student_view' %}">
+                <i class="bi bi-journal-text"></i> {% trans "Оценки" %}
+            </a>
+        {% endif %}
 
-            {% if user.role == 'TEACHER' %}
-            <div class="sidebar-section-header" data-target="teaching-menu">
-                <span><i class="bi bi-person-workspace me-2"></i>ПРЕПОДАВАНИЕ</span>
-                <i class="bi bi-chevron-down toggle-icon"></i>
-            </div>
-            <div class="sidebar-menu-group" id="teaching-menu">
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:view' %}">
-                    <i class="bi bi-calendar-check"></i>Расписание
-                </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'journal:journal_view' %}" style="animation-delay: 0.05s">
-                    <i class="bi bi-journal-check"></i>Журнал
-                </a>
-                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:group_list' %}" style="animation-delay: 0.1s">
-                    <i class="bi bi-people"></i>Группы
-                </a>
-            </div>
-            {% endif %}
-        </aside>
+        <a class="sidebar-link" href="{% url 'news:list' %}">
+            <i class="bi bi-newspaper"></i> {% trans "Новости" %}
+        </a>
+        <a class="sidebar-link" href="{% url 'chat:list' %}">
+            <i class="bi bi-chat-dots"></i> {% trans "Сообщения" %}
+        </a>
+    </aside>
     {% endif %}
 
     <main id="main-content">
+        {% block breadcrumb_container %}
+        <nav aria-label="breadcrumb" class="breadcrumb-area animate-fade-in">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'core:dashboard' %}">
+                        <i class="bi bi-house-door-fill breadcrumb-home-icon"></i>
+                        <span class="d-none d-sm-inline">{% trans "Главная" %}</span>
+                    </a>
+                </li>
+                {% block breadcrumbs %}{% endblock %}
+            </ol>
+        </nav>
+        {% endblock %}
+        
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show animate-fade-in" role="alert">
@@ -600,20 +663,6 @@
             {% endfor %}
         {% endif %}
 
-        {% block breadcrumb_container %}
-        <nav aria-label="breadcrumb" class="breadcrumb-area animate-fade-in">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="{% url 'core:dashboard' %}">
-                        <i class="bi bi-house-door-fill breadcrumb-home-icon"></i>
-                        <span class="d-none d-sm-inline">Главная</span>
-                    </a>
-                </li>
-                {% block breadcrumbs %}{% endblock %}
-            </ol>
-        </nav>
-        {% endblock %}
-
         {% block content %}{% endblock %}
     </main>
 
@@ -622,30 +671,30 @@
             <div class="row g-4">
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
-                        <i class="bi bi-mortarboard-fill me-2"></i>О платформе
+                        <i class="bi bi-mortarboard-fill me-2"></i>{% trans "О платформе" %}
                     </h5>
                     <p class="text-white-50 small">
-                        Современная образовательная платформа для эффективного управления учебным процессом и взаимодействия между студентами и преподавателями.
+                        {% trans "Современная образовательная платформа для эффективного управления учебным процессом и взаимодействия между студентами и преподавателями." %}
                     </p>
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
-                        <i class="bi bi-link-45deg me-2"></i>Быстрые ссылки
+                        <i class="bi bi-link-45deg me-2"></i>{% trans "Быстрые ссылки" %}
                     </h5>
                     <ul class="list-unstyled">
                         <li class="mb-2">
                             <a href="{% url 'core:dashboard' %}" class="text-white-50 text-decoration-none d-flex align-items-center hover-link">
-                                <i class="bi bi-chevron-right me-2 small"></i>Панель управления
+                                <i class="bi bi-chevron-right me-2 small"></i>{% trans "Панель управления" %}
                             </a>
                         </li>
                         <li class="mb-2">
                             <a href="{% url 'news:list' %}" class="text-white-50 text-decoration-none d-flex align-items-center hover-link">
-                                <i class="bi bi-chevron-right me-2 small"></i>Новости
+                                <i class="bi bi-chevron-right me-2 small"></i>{% trans "Новости" %}
                             </a>
                         </li>
                         <li class="mb-2">
                             <a href="{% url 'chat:list' %}" class="text-white-50 text-decoration-none d-flex align-items-center hover-link">
-                                <i class="bi bi-chevron-right me-2 small"></i>Сообщения
+                                <i class="bi bi-chevron-right me-2 small"></i>{% trans "Сообщения" %}
                             </a>
                         </li>
                     </ul>
@@ -653,7 +702,7 @@
 
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
-                        <i class="bi bi-telephone-fill me-2"></i>Контакты
+                        <i class="bi bi-telephone-fill me-2"></i>{% trans "Контакты" %}
                     </h5>
                     <ul class="list-unstyled">
                         <li class="mb-3 d-flex align-items-center">
@@ -670,14 +719,14 @@
                         </li>
                         <li class="d-flex align-items-start">
                             <i class="bi bi-geo-alt text-primary me-3 fs-5"></i>
-                            <span class="text-white-50 small">г. Душанбе, ул. Студенческая 1</span>
+                            <span class="text-white-50 small">{% trans "г. Душанбе, ул. Студенческая 1" %}</span>
                         </li>
                     </ul>
                 </div>
 
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
-                        <i class="bi bi-share me-2"></i>Мы в соцсетях
+                        <i class="bi bi-share me-2"></i>{% trans "Мы в соцсетях" %}
                     </h5>
                     <div class="d-flex gap-2">
                         <a href="#" class="social-link" aria-label="Telegram" title="Telegram">
@@ -694,7 +743,7 @@
                         </a>
                     </div>
                     <p class="text-white-50 small mt-3 mb-0">
-                        Следите за новостями и обновлениями в наших социальных сетях
+                        {% trans "Следите за новостями и обновлениями в наших социальных сетях" %}
                     </p>
                 </div>
             </div>
@@ -704,7 +753,7 @@
                 <div class="col-12 text-center">
                     <p class="text-white-50 small mb-0">
                         <i class="bi bi-c-circle me-1"></i>
-                        2026 Университетская Платформа. Все права защищены.
+                        2026 {% trans "Университетская Платформа. Все права защищены." %}
                     </p>
                 </div>
             </div>
@@ -738,7 +787,6 @@
             position: absolute;
             bottom: 0;
             left: 0;
-
             width: 50px;
             height: 3px;
             background: var(--primary-blue);
@@ -780,11 +828,12 @@
         }
     </style>
 
-    <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+    <button class="theme-toggle" id="themeToggle" aria-label="{% trans 'Переключить тему' %}">
         <i class="bi bi-moon-fill"></i>
     </button>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/main.js' %}"></script>
     <script>
         document.getElementById('sidebarToggle')?.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -796,14 +845,6 @@
             header.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target');
                 const targetMenu = document.getElementById(targetId);
-
-                document.querySelectorAll('.sidebar-menu-group').forEach(menu => {
-                    if (menu.id !== targetId) {
-                        menu.classList.remove('active');
-                        const otherHeader = document.querySelector(`[data-target="${menu.id}"]`);
-                        if (otherHeader) otherHeader.classList.remove('active');
-                    }
-                });
 
                 targetMenu.classList.toggle('active');
                 this.classList.toggle('active');
