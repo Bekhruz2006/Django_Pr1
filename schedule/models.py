@@ -54,6 +54,12 @@ class Subject(models.Model):
     )
 
     description = models.TextField(blank=True, verbose_name="Описание")
+    syllabus_file = models.FileField(
+        upload_to='syllabus/', 
+        blank=True, 
+        null=True, 
+        verbose_name="Силлабус (PDF/Word)"
+    )
 
     credits = models.IntegerField(default=0, verbose_name="Кредиты (устарело)")
     hours_per_semester = models.IntegerField(default=0, verbose_name="Часов (устарело)")
@@ -365,13 +371,23 @@ class AcademicPlan(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, verbose_name="Актуальный")
 
+    group = models.ForeignKey(
+        'accounts.Group', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='academic_plans',
+        verbose_name="Группа (для индивидуального плана)"
+    )
+
     class Meta:
         verbose_name = "Учебный план (РУП)"
         verbose_name_plural = "Учебные планы"
-        unique_together = ['specialty', 'admission_year']
-
+        unique_together = ['specialty', 'admission_year', 'group']
     def __str__(self):
-        return f"РУП: {self.specialty.name} ({self.admission_year})"
+        if self.group:
+            return f"РУП Группы: {self.group.name} ({self.admission_year})"
+        return f"РУП Специальности: {self.specialty.name} ({self.admission_year})"
 
 
 
@@ -431,3 +447,18 @@ class PlanDiscipline(models.Model):
     @property
     def total_auditory_hours(self):
         return self.lecture_hours + self.practice_hours + self.lab_hours + self.control_hours
+
+
+class SubjectMaterial(models.Model):
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='materials', verbose_name="Предмет")
+    title = models.CharField(max_length=255, verbose_name="Название материала")
+    file = models.FileField(upload_to='materials/%Y/%m/', verbose_name="Файл")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
+    
+    class Meta:
+        verbose_name = "Учебный материал"
+        verbose_name_plural = "Учебные материалы"
+
+    def __str__(self):
+        return self.title
+

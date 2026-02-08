@@ -88,6 +88,9 @@
                                             {% if slot %}
                                             <div>
                                                 <strong style="font-size: 0.9rem;">{{ slot.subject.name }}</strong>
+                                                <a href="{% url 'schedule:subject_materials' slot.subject.id %}" class="text-primary ms-1" title="Материалы">
+                                                    <i class="bi bi-folder"></i>
+                                                </a>
                                                 <span class="badge bg-{{ slot.get_color_class }} ms-1">
                                                     {{ slot.get_lesson_type_display }}
                                                 </span>

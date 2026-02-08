@@ -23,7 +23,11 @@ def dashboard(request):
             'total_departments': Department.objects.count(),
             'total_students': Student.objects.count(),
             'total_teachers': Teacher.objects.count(),
-            'institutes': Institute.objects.prefetch_related('faculties').all(),
+            'institutes_list': Institute.objects.prefetch_related(
+                'faculties__departments'
+            ).annotate(
+                fac_count=Count('faculties', distinct=True)
+            ).all(),
         })
         return render(request, 'core/dashboard_admin.html', context)
 

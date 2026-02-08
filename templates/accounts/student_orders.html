@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Приказы: {{ student.user.get_full_name }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Создание приказа <strong>автоматически изменит статус</strong> студента (отчислит, выпустит и т.д.).
+                </div>
+
+                <form method="post" enctype="multipart/form-data" class="mb-4">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label>Номер приказа</label>
+                            {{ form.number }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Дата</label>
+                            {{ form.date }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Тип действия</label>
+                            {{ form.order_type }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Причина / Основание</label>
+                        {{ form.reason }}
+                    </div>
+                    <div class="mb-3">
+                        <label>Скан файла (опционально)</label>
+                        {{ form.file }}
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">Издать приказ</button>
+                </form>
+
+                <h6 class="border-bottom pb-2">История приказов</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Дата</th>
+                                <th>Тип</th>
+                                <th>Файл</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.number }}</td>
+                                <td>{{ order.date|date:"d.m.Y" }}</td>
+                                <td><span class="badge bg-secondary">{{ order.get_order_type_display }}</span></td>
+                                <td>
+                                    {% if order.file %}
+                                    <a href="{{ order.file.url }}" target="_blank"><i class="bi bi-paperclip"></i></a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted">Приказов нет</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

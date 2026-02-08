@@ -2,8 +2,8 @@ from django import forms
 from django.core.exceptions import FieldError
 from django.core.validators import FileExtensionValidator
 from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, AcademicPlan, PlanDiscipline, SubjectTemplate
-from accounts.models import Group, Teacher, Department
-
+from accounts.models import Group, Teacher, Department, Specialty 
+from .models import SubjectMaterial
 class SubjectForm(forms.ModelForm):
     total_credits_calc = forms.IntegerField(
         min_value=1, max_value=20, required=False,
@@ -19,7 +19,7 @@ class SubjectForm(forms.ModelForm):
 
     class Meta:
         model = Subject
-        fields = ['name', 'teacher', 'description'] # Убрали часы, коды и прочий шум
+        fields = ['name', 'teacher', 'description'] 
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
@@ -178,7 +178,7 @@ class SubjectTemplateForm(forms.ModelForm):
 class AcademicPlanForm(forms.ModelForm):
     class Meta:
         model = AcademicPlan
-        fields = ['specialty', 'admission_year', 'is_active']
+        fields = ['specialty', 'group', 'admission_year', 'is_active']
         widgets = {
             'specialty': forms.Select(attrs={'class': 'form-select'}),
             'admission_year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '2025'}),
@@ -186,11 +186,26 @@ class AcademicPlanForm(forms.ModelForm):
         }
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
+        initial_specialty = kwargs.get('initial', {}).get('specialty')
+        
         super().__init__(*args, **kwargs)
+        
+        self.fields['group'].required = False
+        self.fields['group'].empty_label = "-- Общий план для всей специальности --"
+
         if user and user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+            faculty = user.dean_profile.faculty
             self.fields['specialty'].queryset = Specialty.objects.filter(
-                department__faculty=user.dean_profile.faculty
+                department__faculty=faculty
             )
+            self.fields['group'].queryset = Group.objects.filter(
+                specialty__department__faculty=faculty
+            )
+            
+            if self.instance.pk and self.instance.specialty:
+                 self.fields['group'].queryset = self.fields['group'].queryset.filter(specialty=self.instance.specialty)
+            elif initial_specialty:
+                 self.fields['group'].queryset = self.fields['group'].queryset.filter(specialty=initial_specialty)
 
 
 class PlanDisciplineForm(forms.ModelForm):
@@ -250,4 +265,13 @@ class ScheduleImportForm(forms.Form):
         help_text="Выберите группу, если имя группы не удастся найти в файле автоматически.",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    
+
+
+class MaterialUploadForm(forms.ModelForm):
+    class Meta:
+        model = SubjectMaterial
+        fields = ['title', 'file']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: Лекция 1. Введение'}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }

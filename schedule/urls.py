@@ -40,4 +40,7 @@ urlpatterns = [
     path('plans/<int:plan_id>/copy/', views.copy_plan, name='copy_plan'),
     path('plans/discipline/<int:discipline_id>/delete/', views.delete_plan_discipline, name='delete_plan_discipline'),
     path('api/subject-template/create/', views.api_create_subject_template, name='api_create_subject_template'),
+    path('reports/teacher-load/', views.teacher_load_report, name='teacher_load_report'),
+    path('subject/<int:subject_id>/materials/', views.subject_materials, name='subject_materials'),
+    path('material/<int:material_id>/delete/', views.delete_material, name='delete_material'),
 ]

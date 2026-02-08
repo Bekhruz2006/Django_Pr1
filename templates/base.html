@@ -477,115 +477,117 @@
     </nav>
 
     {% if user.is_authenticated %}
-    <aside id="sidebar">
-        <div class="sidebar-section-header active" data-target="main-menu">
-            <span><i class="bi bi-house-door me-2"></i>ГЛАВНОЕ</span>
-            <i class="bi bi-chevron-down toggle-icon"></i>
-        </div>
-        <div class="sidebar-menu-group active" id="main-menu">
-            <a class="sidebar-link animate-slide-in {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
-                <i class="bi bi-speedometer2"></i>Панель
-            </a>
-            <a class="sidebar-link animate-slide-in {% if 'news' in request.path %}active{% endif %}" href="{% url 'news:list' %}" style="animation-delay: 0.05s">
-                <i class="bi bi-newspaper"></i>Новости
-            </a>
-            <a class="sidebar-link animate-slide-in {% if 'chat' in request.path %}active{% endif %}" href="{% url 'chat:list' %}" style="animation-delay: 0.1s">
-                <i class="bi bi-chat-dots"></i>Сообщения
-            </a>
-        </div>
+        <aside id="sidebar">
+            <div class="sidebar-section-header active" data-target="databank-menu">
+                <span><i class="bi bi-database me-2"></i>БОНКИ МАЪЛУМОТҲО</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group active" id="databank-menu">
+                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:user_management' %}?role=STUDENT">
+                    <i class="bi bi-people"></i>Контингент студентов
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:manage_structure' %}">
+                    <i class="bi bi-diagram-3"></i>Структура (Ихтисосҳо)
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:import_students' %}">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>Прием (Импорт Excel)
+                </a>
+            </div>
 
-        {% if user.is_superuser or user.role == 'RECTOR' or user.role == 'PRO_RECTOR' %}
-        <div class="sidebar-section-header" data-target="admin-menu">
-            <span><i class="bi bi-shield-lock me-2"></i>АДМИНИСТРИРОВАНИЕ</span>
-            <i class="bi bi-chevron-down toggle-icon"></i>
-        </div>
-        <div class="sidebar-menu-group" id="admin-menu">
-            <a class="sidebar-link animate-slide-in" href="{% url 'accounts:manage_structure' %}">
-                <i class="bi bi-building"></i>Структура ВУЗа
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'accounts:user_management' %}" style="animation-delay: 0.05s">
-                <i class="bi bi-people"></i>Пользователи
-            </a>
-        </div>
-        {% endif %}
+            <div class="sidebar-section-header" data-target="journal-menu">
+                <span><i class="bi bi-journal-bookmark me-2"></i>ЖУРНАЛИ ЭЛЕКТРОНӢ</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="journal-menu">
+                {% if user.role == 'TEACHER' %}
+                <a class="sidebar-link animate-slide-in" href="{% url 'journal:journal_view' %}">
+                    <i class="bi bi-journal-check"></i>Журнал (Қайди холҳо)
+                </a>
+                {% endif %}
 
-        {% if user.role == 'DEAN' or user.role == 'VICE_DEAN' %}
-        <div class="sidebar-section-header" data-target="faculty-menu">
-            <span><i class="bi bi-diagram-3 me-2"></i>ФАКУЛЬТЕТ</span>
-            <i class="bi bi-chevron-down toggle-icon"></i>
-        </div>
-        <div class="sidebar-menu-group" id="faculty-menu">
-            <a class="sidebar-link animate-slide-in" href="{% url 'accounts:manage_structure' %}">
-                <i class="bi bi-diagram-3"></i>Кафедры и Группы
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'accounts:user_management' %}" style="animation-delay: 0.05s">
-                <i class="bi bi-people-fill"></i>Студенты
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_classrooms' %}" style="animation-delay: 0.1s">
-                <i class="bi bi-door-open"></i>Кабинеты
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_subjects' %}" style="animation-delay: 0.15s">
-                <i class="bi bi-book"></i>Предметы
-            </a>
-        </div>
+                {% if user.role == 'DEAN' or user.is_superuser %}
+                <a class="sidebar-link animate-slide-in" href="{% url 'journal:dean_view' %}">
+                    <i class="bi bi-graph-up"></i>Мониторинг успеваемости
+                </a>
+                {% endif %}
 
-        <div class="sidebar-section-header" data-target="academic-menu">
-            <span><i class="bi bi-journal-bookmark me-2"></i>УЧЕБНЫЙ ПРОЦЕСС</span>
-            <i class="bi bi-chevron-down toggle-icon"></i>
-        </div>
-        <div class="sidebar-menu-group" id="academic-menu">
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_plans' %}">
-                <i class="bi bi-journal-richtext"></i>Учебные планы (РУП)
-            </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'news:list' %}">
+                    <i class="bi bi-newspaper"></i>Хабару эълонҳо
+                </a>
 
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:constructor' %}" style="animation-delay: 0.05s">
-                <i class="bi bi-calendar-week"></i>Расписание
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_semesters' %}" style="animation-delay: 0.1s">
-                <i class="bi bi-calendar-range"></i>Семестры
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'journal:dean_view' %}" style="animation-delay: 0.15s">
-                <i class="bi bi-graph-up"></i>Успеваемость
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'journal:department_report' %}" style="animation-delay: 0.2s">
-                <i class="bi bi-file-earmark-bar-graph"></i>Отчеты
-            </a>
-        </div>
-        {% endif %}
+                {% if user.role == 'DEAN' or user.is_superuser %}
+                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:payment_list' %}">
+                    <i class="bi bi-cash-coin"></i>Оплата (Шартнома)
+                </a>
+                {% endif %}
+            </div>
 
-        {% if user.role == 'TEACHER' %}
-        <div class="sidebar-section-header" data-target="teaching-menu">
-            <span><i class="bi bi-person-workspace me-2"></i>ПРЕПОДАВАНИЕ</span>
-            <i class="bi bi-chevron-down toggle-icon"></i>
-        </div>
-        <div class="sidebar-menu-group" id="teaching-menu">
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:view' %}">
-                <i class="bi bi-calendar-check"></i>Расписание
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'journal:journal_view' %}" style="animation-delay: 0.05s">
-                <i class="bi bi-journal-check"></i>Журнал
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:group_list' %}" style="animation-delay: 0.1s">
-                <i class="bi bi-people"></i>Группы
-            </a>
-        </div>
-        {% endif %}
+            {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
+            <div class="sidebar-section-header" data-target="edu-dept-menu">
+                <span><i class="bi bi-mortarboard me-2"></i>РАЁСАТИ ТАЪЛИМ</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="edu-dept-menu">
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_plans' %}">
+                    <i class="bi bi-journal-richtext"></i>Нақшаҳои таълим (РУП)
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:teacher_load_report' %}">
+                    <i class="bi bi-speedometer2"></i>Сарбории омӯзгорон
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:constructor' %}">
+                    <i class="bi bi-calendar-week"></i>Ҷадвали дарсҳо
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:manage_semesters' %}">
+                    <i class="bi bi-gear"></i>Настройки семестра
+                </a>
+            </div>
+            {% endif %}
 
-        {% if user.role == 'STUDENT' %}
-        <div class="sidebar-section-header" data-target="study-menu">
-            <span><i class="bi bi-book me-2"></i>УЧЕБА</span>
-            <i class="bi bi-chevron-down toggle-icon"></i>
-        </div>
-        <div class="sidebar-menu-group" id="study-menu">
-            <a class="sidebar-link animate-slide-in" href="{% url 'schedule:view' %}">
-                <i class="bi bi-calendar3"></i>Расписание
-            </a>
-            <a class="sidebar-link animate-slide-in" href="{% url 'journal:student_view' %}" style="animation-delay: 0.05s">
-                <i class="bi bi-journal-text"></i>Оценки
-            </a>
-        </div>
-        {% endif %}
-    </aside>
+            {% if user.is_superuser or user.role == 'RECTOR' %}
+            <div class="sidebar-section-header" data-target="hr-menu">
+                <span><i class="bi bi-person-badge me-2"></i>ШУЪБАИ КАДРҲО</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="hr-menu">
+                <a class="sidebar-link animate-slide-in" href="{% url 'accounts:user_management' %}?role=TEACHER">
+                    <i class="bi bi-people-fill"></i>Рӯйхати кормандон
+                </a>
+            </div>
+            {% endif %}
+
+            {% if user.role == 'STUDENT' %}
+            <div class="sidebar-section-header" data-target="study-menu">
+                <span><i class="bi bi-book me-2"></i>ТАҲСИЛ</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="study-menu">
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:view' %}">
+                    <i class="bi bi-calendar3"></i>Расписание
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'journal:student_view' %}" style="animation-delay: 0.05s">
+                    <i class="bi bi-journal-text"></i>Оценки
+                </a>
+            </div>
+            {% endif %}
+
+            {% if user.role == 'TEACHER' %}
+            <div class="sidebar-section-header" data-target="teaching-menu">
+                <span><i class="bi bi-person-workspace me-2"></i>ПРЕПОДАВАНИЕ</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="teaching-menu">
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:view' %}">
+                    <i class="bi bi-calendar-check"></i>Расписание
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'journal:journal_view' %}" style="animation-delay: 0.05s">
+                    <i class="bi bi-journal-check"></i>Журнал
+                </a>
+                <a class="sidebar-link animate-slide-in" href="{% url 'schedule:group_list' %}" style="animation-delay: 0.1s">
+                    <i class="bi bi-people"></i>Группы
+                </a>
+            </div>
+            {% endif %}
+        </aside>
     {% endif %}
 
     <main id="main-content">
@@ -597,7 +599,7 @@
                 </div>
             {% endfor %}
         {% endif %}
-        
+
         {% block breadcrumb_container %}
         <nav aria-label="breadcrumb" class="breadcrumb-area animate-fade-in">
             <ol class="breadcrumb">
@@ -708,7 +710,7 @@
             </div>
         </div>
     </footer>
-    
+
     <style>
         .footer {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -736,7 +738,7 @@
             position: absolute;
             bottom: 0;
             left: 0;
-            
+
             width: 50px;
             height: 3px;
             background: var(--primary-blue);

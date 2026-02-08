@@ -9,28 +9,54 @@
 
 {% block content %}
 <div class="row mt-4">
+    <div class="col-12 mb-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body d-flex justify-content-between align-items-center bg-white rounded">
+                <div>
+                    <h4 class="mb-1 text-dark fw-bold">{{ plan.specialty.name }} ({{ plan.specialty.code }})</h4>
+                    <p class="mb-0 text-secondary">
+                        {% if plan.group %}
+                            <span class="badge bg-info text-dark me-2"><i class="bi bi-people-fill"></i> Группа: {{ plan.group.name }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary me-2">Общий план специальности</span>
+                        {% endif %}
+                        Год набора: <strong class="text-dark">{{ plan.admission_year }}</strong>
+                    </p>
+                </div>
+                <div class="text-end">
+                    <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning text-dark">
+                        <i class="bi bi-magic"></i> Создать нагрузку
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 mb-3">
+        <ul class="nav nav-pills bg-white p-2 rounded shadow-sm gap-2" id="semesterTabs">
+            {% for i in semesters_range %}
+            <li class="nav-item">
+                <a class="nav-link {% if i == current_sem_num %}active bg-primary text-white{% else %}bg-light text-dark border{% endif %}" 
+                   href="?semester={{ i }}">
+                   {{ i }} Семестр
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
     <div class="col-md-4">
-        <div class="card shadow-sm sticky-top" style="top: 80px;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Наполнение плана</h6>
+        <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Добавить в {{ current_sem_num }} семестр</h6>
             </div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
+                    {{ form.semester_number }} 
+                    
                     {% if form.errors %}
-                        <div class="alert alert-danger p-2 small">
-                            <strong>Ошибка сохранения:</strong>
-                            <ul class="mb-0 ps-3">
-                            {% for field in form %}
-                                {% for error in field.errors %}
-                                    <li>{{ field.label }}: {{ error }}</li>
-                                {% endfor %}
-                            {% endfor %}
-                            {% for error in form.non_field_errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                            </ul>
-                        </div>
+                        <div class="alert alert-danger p-2 small mb-3">Ошибка заполнения формы</div>
                     {% endif %}
 
                     <div class="mb-3">
@@ -41,28 +67,40 @@
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
-                        <div class="form-text small">Выберите из списка или создайте новую</div>
                     </div>
 
                     <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Семестр (1-8)</label>
-                            {{ form.semester_number }}
-                        </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold text-muted text-uppercase">Тип блока</label>
                             {{ form.discipline_type }}
                         </div>
-                    </div>
-
-                    <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Кредиты (ECTS)</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">Кредиты</label>
                             {{ form.credits }}
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Контроль</label>
-                            {{ form.control_type }}
+                    </div>
+
+                    <div class="card bg-light border-0 mb-3">
+                        <div class="card-body p-2">
+                            <label class="form-label small fw-bold text-dark mb-2 text-center w-100">Часы (Авто-расчет)</label>
+                            <div class="row g-1">
+                                <div class="col-3">
+                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">Лекц</small>
+                                    {{ form.lecture_hours }}
+                                </div>
+                                <div class="col-3">
+                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">Прак</small>
+                                    {{ form.practice_hours }}
+                                </div>
+                                <div class="col-3">
+                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">СРСП</small>
+                                    {{ form.control_hours }}
+                                </div>
+                                <div class="col-3">
+                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">СРС</small>
+                                    {{ form.independent_hours }}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -81,32 +119,8 @@
                         </div>
                     </div>
 
-                    <div class="card bg-light border-0 mb-3">
-                        <div class="card-body p-2">
-                            <label class="form-label small fw-bold text-primary mb-2">Часы (Аудиторные / СРС)</label>
-                            <div class="row g-1">
-                                <div class="col-3">
-                                    <small class="d-block text-center" style="font-size: 0.7rem;">Лекц</small>
-                                    {{ form.lecture_hours }}
-                                </div>
-                                <div class="col-3">
-                                    <small class="d-block text-center" style="font-size: 0.7rem;">Прак</small>
-                                    {{ form.practice_hours }}
-                                </div>
-                                <div class="col-3">
-                                    <small class="d-block text-center" style="font-size: 0.7rem;">СРСП</small>
-                                    {{ form.control_hours }}
-                                </div>
-                                <div class="col-3">
-                                    <small class="d-block text-center" style="font-size: 0.7rem;">СРС</small>
-                                    {{ form.independent_hours }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <button type="submit" class="btn btn-success w-100 fw-bold">
-                        <i class="bi bi-save me-2"></i> Добавить в план
+                        <i class="bi bi-save me-2"></i> Сохранить
                     </button>
                 </form>
             </div>
@@ -115,130 +129,77 @@
 
     <div class="col-md-8">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-1 text-dark fw-bold">{{ plan.specialty.name }}</h5>
-                        <p class="mb-0 text-muted small">
-                            Год набора: <strong>{{ plan.admission_year }}</strong> |
-                            Код: {{ plan.specialty.code }}
-                        </p>
-                    </div>
-                    <div class="text-end">
-                        <div class="display-6 text-primary fw-bold">{{ disciplines.count }}</div>
-                        <small class="text-muted text-uppercase">Дисциплин</small>
-                    </div>
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-dark">Дисциплины {{ current_sem_num }}-го семестра</h5>
+                <div class="d-flex gap-3 text-muted small">
+                    <span>Кредитов: <b class="text-dark">{{ stats.credits }}</b></span>
+                    <span>Экзаменов: <b class="text-dark">{{ stats.exams }}</b></span>
+                    <span>Зачетов: <b class="text-dark">{{ stats.offsets }}</b></span>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 {% if not disciplines %}
                     <div class="text-center py-5">
-                        <i class="bi bi-journal-plus text-muted" style="font-size: 3rem;"></i>
-                        <p class="mt-3 text-muted">План пуст. Добавьте первую дисциплину слева.</p>
+                        <i class="bi bi-journal-plus text-muted opacity-50" style="font-size: 3rem;"></i>
+                        <p class="mt-3 text-muted">Семестр пуст. Добавьте дисциплины.</p>
                     </div>
                 {% else %}
-                    {% regroup disciplines by semester_number as semester_list %}
-
-                    <div class="accordion accordion-flush" id="planAccordion">
-                    {% for group in semester_list %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#sem{{ group.grouper }}">
-                                    <div class="bg-light p-2 border-top border-bottom d-flex justify-content-between align-items-center ps-3 pe-3">
-                                        <span class="fw-bold text-dark"><i class="bi bi-calendar3"></i> {{ group.grouper }} Семестр</span>
-
-                                        {% widthratio 0 1 0 as sem_credits %}
-                                        {% for d in group.list %}{% widthratio d.credits 1 1 as val %}{% endfor %}
-
-                                        <span class="badge bg-secondary">
-                                            Всего дисциплин: {{ group.list|length }}
-                                        </span>
-                                    </div>
-                                </button>
-                            </h2>
-                            <div id="sem{{ group.grouper }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#planAccordion">
-                                <div class="accordion-body p-0">
-                                    <table class="table table-hover mb-0" style="font-size: 0.9rem;">
-                                        <thead class="text-muted bg-light bg-opacity-50">
-                                            <tr>
-                                                <th class="ps-4">Дисциплина</th>
-                                                <th>Тип</th>
-                                                <th class="text-center">Кредиты</th>
-                                                <th class="text-center">Часы (Л/П/К/С)</th>
-                                                <th>Контроль</th>
-                                                <th style="width: 50px;"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for disc in group.list %}
-                                            <tr>
-                                                <td class="ps-4 fw-medium">{{ disc.subject_template.name }}</td>
-                                                <td>
-                                                    {% if disc.discipline_type == 'REQUIRED' %}
-                                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">Обяз.</span>
-                                                    {% elif disc.discipline_type == 'ELECTIVE' %}
-                                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Выбор</span>
-                                                    {% else %}
-                                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Практ.</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-center fw-bold">{{ disc.credits }}</td>
-                                                <td class="text-center text-muted">
-                                                    {{ disc.lecture_hours }} / {{ disc.practice_hours }} / {{ disc.control_hours }} / {{ disc.independent_hours }}
-                                                </td>
-                                                <td>
-                                                    {% if disc.control_type == 'EXAM' %}
-                                                        <span class="text-danger small fw-bold">Экзамен</span>
-                                                    {% else %}
-                                                        <span class="text-success small">Зачет</span>
-                                                    {% endif %}
-
-                                                    {% if disc.has_course_work %}
-                                                        <br><span class="badge bg-warning text-dark" style="font-size: 0.65rem;">+ Курсовая</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">
-                                                    <a href="{% url 'schedule:delete_plan_discipline' disc.id %}"
-                                                       class="btn btn-sm btn-link text-danger p-0"
-                                                       onclick="return confirm('Удалить {{ disc.subject_template.name }} из плана?')"
-                                                       title="Удалить">
-                                                        <i class="bi bi-x-lg"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-dark small text-uppercase">
+                                <tr>
+                                    <th class="ps-4">Название</th>
+                                    <th>Тип</th>
+                                    <th class="text-center">Кредиты</th>
+                                    <th class="text-center">Л / П / СРСП / СРС</th>
+                                    <th>Контроль</th>
+                                    <th class="text-end pe-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for disc in disciplines %}
+                                <tr>
+                                    <td class="ps-4 fw-medium text-dark">{{ disc.subject_template.name }}</td>
+                                    <td>
+                                        {% if disc.discipline_type == 'REQUIRED' %}
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10">Обяз.</span>
+                                        {% elif disc.discipline_type == 'ELECTIVE' %}
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10">Выбор</span>
+                                        {% else %}
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-10">Практ.</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center fw-bold text-dark">{{ disc.credits }}</td>
+                                    <td class="text-center text-muted small">
+                                        <span class="text-dark fw-bold">{{ disc.lecture_hours }}</span> / 
+                                        <span class="text-dark fw-bold">{{ disc.practice_hours }}</span> / 
+                                        {{ disc.control_hours }} / {{ disc.independent_hours }}
+                                    </td>
+                                    <td>
+                                        {% if disc.control_type == 'EXAM' %}
+                                            <span class="text-danger small fw-bold">Экзамен</span>
+                                        {% else %}
+                                            <span class="text-success small">Зачет</span>
+                                        {% endif %}
+                                        {% if disc.has_course_work %}
+                                            <div class="badge bg-secondary text-white" style="font-size: 0.6rem;">КР</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'schedule:delete_plan_discipline' disc.id %}"
+                                           class="btn btn-sm btn-link text-danger p-0"
+                                           onclick="return confirm('Удалить дисциплину?')"
+                                           title="Удалить">
+                                            <i class="bi bi-x-lg"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="addTemplateModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Создать новую дисциплину</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Название дисциплины</label>
-                    <input type="text" id="newSubjectName" class="form-control" placeholder="Например: Высшая математика">
-                    <div class="form-text">Это название сохранится в справочник и будет доступно для других планов.</div>
-                </div>
-                <div id="modalError" class="text-danger small mb-2" style="display: none;"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="createSubjectTemplate()">Создать и выбрать</button>
             </div>
         </div>
     </div>
@@ -270,9 +231,7 @@ function createSubjectTemplate() {
             const select = document.getElementById('id_subject_template');
             const option = new Option(data.name, data.id, true, true);
             select.add(option);
-
-            const modalEl = document.getElementById('addTemplateModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addTemplateModal'));
             modal.hide();
             nameInput.value = '';
             errorDiv.style.display = 'none';
@@ -289,10 +248,8 @@ function createSubjectTemplate() {
 
 document.addEventListener('DOMContentLoaded', function() {
     const creditsInput = document.getElementById('id_credits');
-
     const lecInput = document.getElementById('id_lecture_hours');
     const pracInput = document.getElementById('id_practice_hours');
-    const labInput = document.getElementById('id_lab_hours');
     const srspInput = document.getElementById('id_control_hours');
     const srsInput = document.getElementById('id_independent_hours');
 
@@ -300,17 +257,19 @@ document.addEventListener('DOMContentLoaded', function() {
         creditsInput.addEventListener('input', function() {
             const credits = parseInt(this.value) || 0;
             if (credits <= 0) return;
-            const totalHours = credits * 24;
-            const srs = Math.round(totalHours / 3);
+            
+            const totalHours = credits * 24; 
+            const srs = Math.floor(totalHours * 0.4); 
             const auditory = totalHours - srs;
-            const part = Math.floor(auditory / 3);
-            const remainder = auditory % 3;
+            
+            const lec = Math.floor(auditory * 0.4);
+            const prac = Math.floor(auditory * 0.4);
+            const srsp = auditory - lec - prac;
 
             if(srsInput) srsInput.value = srs;
-            if(srspInput) srspInput.value = part;
-            if(lecInput) lecInput.value = part + remainder;
-            if(pracInput) pracInput.value = part;
-            if(labInput) labInput.value = 0;
+            if(lecInput) lecInput.value = lec;
+            if(pracInput) pracInput.value = prac;
+            if(srspInput) srspInput.value = srsp;
         });
     }
 });

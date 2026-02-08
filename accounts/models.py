@@ -281,10 +281,27 @@ class Student(models.Model):
     passport_issue_date = models.DateField(null=True)
     registration_address = models.TextField(default='')
     residence_address = models.TextField(default='')
+    contract_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Сумма контракта")
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Оплачено")
 
     sponsor_name = models.CharField(max_length=200, blank=True, verbose_name="ФИО спонсора")
     sponsor_phone = models.CharField(max_length=20, blank=True, verbose_name="Телефон спонсора")
     sponsor_relation = models.CharField(max_length=50, blank=True, verbose_name="Отношение спонсора")
+
+
+    def get_debt(self):
+        return self.contract_amount - self.paid_amount
+    
+    def payment_status(self):
+        if self.financing_type == 'BUDGET':
+            return 'Бюджет'
+        debt = self.get_debt()
+        if debt <= 0:
+            return 'Оплачено'
+        if self.paid_amount == 0:
+            return 'Не оплачено'
+        return 'Частично'
+
 
     class Meta:
         verbose_name = "Студент"
@@ -362,7 +379,6 @@ class GroupTransferHistory(models.Model):
 
 
 class StructureChangeLog(models.Model):
-    """Лог изменений названий и структуры"""
     OBJECT_TYPES = [
         ('INSTITUTE', 'Институт'),
         ('FACULTY', 'Факультет'),
@@ -442,3 +458,49 @@ def log_department_changes(sender, instance, **kwargs):
                 )
         except Department.DoesNotExist:
             pass
+
+
+
+
+class StudentOrder(models.Model):
+    ORDER_TYPES = [
+        ('EXPEL', 'Отчисление (Хориҷ)'),
+        ('ACADEMIC_LEAVE', 'Академический отпуск'),
+        ('RESTORE', 'Восстановление'),
+        ('GRADUATE', 'Выпуск (Хатм)'),
+    ]
+
+    number = models.CharField(max_length=50, verbose_name="Номер приказа")
+    date = models.DateField(default=datetime.now, verbose_name="Дата приказа")
+    order_type = models.CharField(max_length=20, choices=ORDER_TYPES, verbose_name="Тип приказа")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='orders', verbose_name="Студент")
+    reason = models.TextField(verbose_name="Причина/Основание")
+    file = models.FileField(upload_to='orders/', blank=True, null=True, verbose_name="Скан приказа")
+    
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Приказ по студенту"
+        verbose_name_plural = "Приказы (Фармонҳо)"
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Приказ №{self.number} от {self.date} ({self.get_order_type_display()})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.order_type == 'EXPEL':
+            self.student.status = 'EXPELLED'
+            self.student.group = None 
+        elif self.order_type == 'ACADEMIC_LEAVE':
+            self.student.status = 'ACADEMIC_LEAVE'
+        elif self.order_type == 'GRADUATE':
+            self.student.status = 'GRADUATED' 
+            self.student.group = None
+        elif self.order_type == 'RESTORE':
+            self.student.status = 'ACTIVE'
+        
+        self.student.save()
+
+

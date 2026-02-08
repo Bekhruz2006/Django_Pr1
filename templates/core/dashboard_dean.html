@@ -159,8 +159,8 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0 py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="bi bi-diagram-3 me-2"></i>Структура факультета
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="bi bi-diagram-3 me-2 text-primary"></i>Структура факультета
                         </h5>
                         <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil me-1"></i>Управление
@@ -170,19 +170,18 @@
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="bg-light">
+                            <thead class="bg-light text-dark border-bottom">
                                 <tr>
-                                    <th class="border-0 ps-4">Кафедра</th>
-                                    <th class="border-0">Заведующий</th>
-                                    <th class="border-0 text-center">Специальностей</th>
-                                    <th class="border-0 text-end pe-4">Действия</th>
+                                    <th class="border-0 ps-4 py-3">Кафедра</th>
+                                    <th class="border-0 py-3">Заведующий</th>
+                                    <th class="border-0 text-center py-3">Специальностей</th>
+                                    <th class="border-0 text-end pe-4 py-3">Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for dept in departments %}
                                 <tr>
                                     <td class="ps-4 fw-medium">
-                                        <i class="bi bi-diagram-3-fill text-primary me-2"></i>
                                         {{ dept.name }}
                                     </td>
                                     <td>
@@ -234,7 +233,7 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         <a href="{% url 'schedule:manage_plans' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
-                            <div class="icon-wrapper bg-indigo-soft me-3"> <!-- Используем indigo или purple -->
+                            <div class="icon-wrapper bg-indigo-soft me-3">
                                 <i class="bi bi-journal-text text-indigo"></i>
                             </div>
                             <div>

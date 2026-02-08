@@ -43,4 +43,6 @@ urlpatterns = [
     path('structure/specialty/add/', views.add_specialty, name='add_specialty'),
     path('structure/specialty/edit/<int:pk>/', views.edit_specialty, name='edit_specialty'),
     path('structure/specialty/delete/<int:pk>/', views.delete_specialty, name='delete_specialty'),
+    path('payment/', views.payment_list, name='payment_list'),
+    path('student/<int:student_id>/orders/', views.student_orders, name='student_orders'),
 ]

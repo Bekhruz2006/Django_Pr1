@@ -64,7 +64,7 @@
                                         {% else %}bg-warning{% endif %}">
                                         {{ user_obj.get_role_display|default:"Не указана" }}
                                     </span>
-                                    
+
                                     {% if not user_data.has_profile %}
                                         <span class="badge bg-danger" title="Профиль не создан">!</span>
                                     {% endif %}
@@ -79,51 +79,54 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'accounts:view_user_profile' user_obj.id %}" 
-                                           class="btn btn-outline-info" 
+                                        <a href="{% url 'accounts:view_user_profile' user_obj.id %}"
+                                           class="btn btn-outline-info"
                                            title="Просмотр профиля">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        
-                                        <a href="{% url 'accounts:edit_user' user_obj.id %}" 
-                                           class="btn btn-outline-primary" 
+
+                                        <a href="{% url 'accounts:edit_user' user_obj.id %}"
+                                           class="btn btn-outline-primary"
                                            title="Редактировать">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        
-                                        <a href="{% url 'accounts:reset_password' user_obj.id %}" 
-                                           class="btn btn-outline-warning" 
+
+                                        <a href="{% url 'accounts:reset_password' user_obj.id %}"
+                                           class="btn btn-outline-warning"
                                            title="Сбросить пароль">
                                             <i class="bi bi-key"></i>
                                         </a>
-                                        
+
                                         {% if user_obj.id == user.id %}
-                                            <button type="button" 
-                                                    class="btn btn-outline-secondary" 
-                                                    title="Нельзя заблокировать себя" 
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    title="Нельзя заблокировать себя"
                                                     disabled>
                                                 <i class="bi bi-shield-lock"></i>
                                             </button>
                                         {% else %}
-                                            <a href="{% url 'accounts:toggle_user_active' user_obj.id %}" 
-                                               class="btn btn-outline-danger" 
+                                            <a href="{% url 'accounts:toggle_user_active' user_obj.id %}"
+                                               class="btn btn-outline-danger"
                                                onclick="return confirm('{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %} пользователя {{ user_obj.username }}?')"
                                                title="{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %}">
                                                 <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
                                             </a>
                                         {% endif %}
-                                        
+
                                         {% if user_obj.role == 'STUDENT' %}
+                                            <a href="{% url 'accounts:student_orders' user_data.profile_id %}" class="btn btn-outline-danger" title="Приказы (Отчисление/Выпуск)">
+                                                <i class="bi bi-file-earmark-text"></i>
+                                            </a>
                                             {% if user_data.has_profile and user_data.profile_id %}
-                                                <a href="{% url 'accounts:transfer_student' user_data.profile_id %}" 
-                                                   class="btn btn-outline-info" 
+                                                <a href="{% url 'accounts:transfer_student' user_data.profile_id %}"
+                                                   class="btn btn-outline-info"
                                                    title="Перевести в другую группу">
                                                     <i class="bi bi-arrow-left-right"></i>
                                                 </a>
                                             {% else %}
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary" 
-                                                        title="Профиль студента не создан" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary"
+                                                        title="Профиль студента не создан"
                                                         disabled>
                                                     <i class="bi bi-exclamation-triangle"></i>
                                                 </button>

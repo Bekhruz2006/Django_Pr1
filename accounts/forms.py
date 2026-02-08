@@ -7,7 +7,7 @@ from .models import (
 from datetime import datetime
 from core.validators import validate_image_only
 
-
+from .models import StudentOrder
 
 class FacultyFullForm(forms.ModelForm):
     name = forms.CharField(label="Название факультета", widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -444,3 +444,14 @@ class GroupTransferForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         required=False
     )
+class StudentOrderForm(forms.ModelForm):
+    class Meta:
+        model = StudentOrder
+        fields = ['number', 'date', 'order_type', 'reason', 'file']
+        widgets = {
+            'number': forms.TextInput(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'order_type': forms.Select(attrs={'class': 'form-select'}),
+            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }

@@ -2,48 +2,46 @@
 {% load static %}
 {% load schedule_filters %}
 
-{% block title %}Конструктор расписания (Потоки){% endblock %}
+{% block title %}Конструктор расписания{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card mb-3">
-            <div class="card-header bg-primary text-white">
-                <i class="bi bi-people"></i> Выбор группы и семестра
+        <div class="card mb-3 shadow-sm border-primary">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-week"></i> Конструктор расписания</span>
             </div>
-            <div class="card-body">
-                <form method="get" id="groupSelectionForm">
-                    <div class="row g-3">
-                        <div class="col-md-5">
-                            <label class="form-label">Группа</label>
-                            <select class="form-select" name="group" required>
-                                <option value="">Выберите группу...</option>
-                                {% for g in groups %}
-                                    <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>
-                                        {{ g.name }} - {{ g.specialty|truncatewords:5 }} ({{ g.students.count }} чел.)
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label">Семестр</label>
-                            <select class="form-select" name="semester">
-                                {% for sem in semesters %}
-                                    <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
-                                        {{ sem.name }} 
-                                        (Курс {{ sem.course }} | 
-                                        {% if sem.shift == 'MORNING' %}☀️ Басти 1{% else %}🌙 Басти 2{% endif %})
-                                        {% if sem.is_active %} ✅{% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">&nbsp;</label>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-arrow-clockwise"></i> Загрузить
-                            </button>
-                        </div>
+            <div class="card-body bg-light">
+                <form method="get" id="groupSelectionForm" class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Группа</label>
+                        <select class="form-select border-primary" name="group" required>
+                            <option value="">-- Выберите группу --</option>
+                            {% for g in groups %}
+                                <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>
+                                    {{ g.name }} ({{ g.course }} курс)
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Семестр и Смена</label>
+                        <select class="form-select border-primary" name="semester">
+                            {% for sem in all_semesters %}
+                                <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
+                                    {{ sem.academic_year }} | {{ sem.name }}
+                                    {% if sem.shift == 'MORNING' %}☀️ 1-я смена (Утро){% else %}🌙 2-я смена (День){% endif %}
+                                    {% if sem.is_active %}(Активный){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">
+                            <i class="bi bi-arrow-clockwise"></i> Загрузить
+                        </button>
                     </div>
                 </form>
             </div>
@@ -52,67 +50,66 @@
 
     {% if group %}
     <div class="col-lg-3">
-            {% if group.has_military_training %}
-            <div class="card mb-3 border-dark shadow-sm">
-                <div class="card-body p-2 text-center bg-dark text-white rounded">
-                    <div draggable="true" id="militaryDragItem" style="cursor: move;">
-                        <i class="bi bi-shield-shaded mb-1"></i> ВОЕННАЯ КАФЕДРА
-                        <br><small style="font-size: 0.7rem;">Перетащите на день</small>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="card shadow-sm sticky-top" style="top: 20px; max-height: 85vh;">
-                <div class="card-header bg-white py-2">
-                    <h6 class="mb-0 fw-bold text-muted text-uppercase small">Нераспределенные часы</h6>
-                </div>
-                <div class="card-body p-0 overflow-auto">
-                    <div class="list-group list-group-flush">
-                        {% for item in subjects_to_schedule %}
-                            <div class="list-group-item subject-item p-3 border-bottom"
-                                draggable="true"
-                                data-subject-id="{{ item.obj.id }}"
-                                data-subject-name="{{ item.obj.name }}"
-                                data-subject-type="{{ item.type }}"
-                                data-teacher-name="{{ item.obj.teacher.user.get_full_name|default:'Не назначен' }}"
-                                data-remaining="{{ item.remaining }}"
-                                data-subject-is-stream="{{ item.obj.is_stream_subject|yesno:'true,false' }}"
-                                style="cursor: move;">
-                                
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="fw-bold text-dark">{{ item.obj.name }}</span>
-                                    <span class="badge bg-{{ item.color }}">{{ item.label }}</span>
-                                </div>
-                                
-                                <div class="d-flex justify-content-between align-items-end">
-                                    <small class="text-muted">
-                                        <i class="bi bi-person"></i> {{ item.obj.teacher.user.get_full_name|default:'-' }}
-                                    </small>
-                                    <span class="fw-bold text-{{ item.color }}">
-                                        {{ item.remaining }} ч.
-                                    </span>
-                                </div>
-                                
-                                {% if item.obj.is_stream_subject %}
-                                    <div class="mt-1">
-                                        <span class="badge bg-indigo w-100" style="font-size: 0.65rem;">
-                                            <i class="bi bi-diagram-3"></i> ПОТОК ({{ item.obj.groups.count }} групп)
-                                        </span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% empty %}
-                            <div class="p-4 text-center text-muted">
-                                <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
-                                <p class="mt-2 small mb-0">Все часы распределены!</p>
-                            </div>
-                        {% endfor %}
-                    </div>
+        {% if group.has_military_training %}
+        <div class="card mb-3 border-dark shadow-sm">
+            <div class="card-body p-2 text-center bg-dark text-white rounded">
+                <div draggable="true" id="militaryDragItem" style="cursor: move;">
+                    <i class="bi bi-shield-shaded mb-1"></i> ВОЕННАЯ КАФЕДРА
+                    <br><small style="font-size: 0.7rem;">Перетащите на день</small>
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        <div class="card shadow-sm sticky-top" style="top: 20px; max-height: 85vh;">
+            <div class="card-header bg-white py-2">
+                <h6 class="mb-0 fw-bold text-muted text-uppercase small">Нераспределенные часы</h6>
+            </div>
+            <div class="card-body p-0 overflow-auto">
+                <div class="list-group list-group-flush">
+                    {% for item in subjects_to_schedule %}
+                    <div class="list-group-item subject-item p-3 border-bottom"
+                        draggable="true"
+                        data-subject-id="{{ item.obj.id }}"
+                        data-subject-name="{{ item.obj.name }}"
+                        data-subject-type="{{ item.type }}"
+                        data-teacher-name="{{ item.obj.teacher.user.get_full_name|default:'Не назначен' }}"
+                        data-remaining="{{ item.remaining }}"
+                        data-subject-is-stream="{{ item.obj.is_stream_subject|yesno:'true,false' }}"
+                        style="cursor: move;">
+
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-dark">{{ item.obj.name }}</span>
+                            <span class="badge bg-{{ item.color }}">{{ item.label }}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-end">
+                            <small class="text-muted">
+                                <i class="bi bi-person"></i> {{ item.obj.teacher.user.get_full_name|default:'-' }}
+                            </small>
+                            <span class="fw-bold text-{{ item.color }}">
+                                {{ item.remaining }} ч.
+                            </span>
+                        </div>
+
+                        {% if item.obj.is_stream_subject %}
+                        <div class="mt-1">
+                            <span class="badge bg-indigo w-100" style="font-size: 0.65rem;">
+                                <i class="bi bi-diagram-3"></i> ПОТОК ({{ item.obj.groups.count }} групп)
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
+                        <p class="mt-2 small mb-0">Все часы распределены!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="col-lg-9">
         <div class="card shadow">
@@ -134,65 +131,65 @@
                         </thead>
                         <tbody>
                             {% for day_num, day_name in days %}
-                                <tr class="table-secondary border-bottom-0">
-                                    <td colspan="3" class="fw-bold ps-3 text-uppercase text-secondary" style="letter-spacing: 1px;">
-                                        {{ day_name }}
-                                    </td>
-                                </tr>
+                            <tr class="table-secondary border-bottom-0">
+                                <td colspan="3" class="fw-bold ps-3 text-uppercase text-secondary" style="letter-spacing: 1px;">
+                                    {{ day_name }}
+                                </td>
+                            </tr>
 
-                                {% for time_slot in time_slots %}
-                                    <tr>
-                                        <td class="text-center align-middle time-cell text-muted">
-                                            {{ time_slot.start_time|time:"H:i" }}<br>
-                                            <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
-                                        </td>
+                            {% for time_slot in time_slots %}
+                            <tr>
+                                <td class="text-center align-middle time-cell text-muted">
+                                    {{ time_slot.start_time|time:"H:i" }}<br>
+                                    <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
+                                </td>
 
-                                        {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
-                                        <td class="schedule-drop-zone p-1 align-middle"
-                                            data-group-id="{{ group.id }}"
-                                            data-day="{{ day_num }}"
-                                            data-time-slot="{{ time_slot.id }}">
-                                            {% if slot %}
-                                            <div class="lesson-card p-2 rounded shadow-sm h-100 position-relative border-start border-4 border-{{ slot.get_color_class }}" style="background-color: #fff;">
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="badge bg-{{ slot.get_color_class }} mb-1">
-                                                        {{ slot.get_lesson_type_display }}
-                                                        {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
-                                                    </span>
-                                                    <button class="btn btn-link text-danger p-0 delete-slot"
-                                                            data-slot-id="{{ slot.id }}"
-                                                            title="Удалить"
-                                                            style="line-height: 1;">
-                                                        <i class="bi bi-x-circle-fill"></i>
-                                                    </button>
-                                                </div>
-                                                <div class="fw-bold text-dark">{{ slot.subject.name }}</div>
-                                                <div class="small text-muted">{{ slot.teacher.user.get_full_name|default:'Преподаватель не назначен' }}</div>
-                                            </div>
-                                            {% else %}
-                                            <div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;">
-                                                <small class="opacity-50">Свободно</small>
-                                            </div>
-                                            {% endif %}
-                                        </td>
-                                        <td class="align-middle text-center bg-light aud-cell">
-                                            {% if slot %}
-                                            <div class="aud-display badge bg-secondary text-wrap"
-                                                 style="cursor: pointer; min-width: 40px;"
-                                                 onclick="editAud(this)"
-                                                 title="Нажмите, чтобы изменить">
-                                                {{ slot.room|default:'?' }}
-                                            </div>
-                                            <input type="text" class="form-control form-control-sm aud-input text-center p-0"
-                                                   value="{{ slot.room|default:'' }}"
-                                                   style="display: none;"
-                                                   onblur="saveAud(this, {{ slot.id }})"
-                                                   onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
-                                            {% endif %}
-                                        </td>
-                                        {% endwith %}
-                                    </tr>
-                                {% endfor %}
+                                {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                <td class="schedule-drop-zone p-1 align-middle"
+                                    data-group-id="{{ group.id }}"
+                                    data-day="{{ day_num }}"
+                                    data-time-slot="{{ time_slot.id }}">
+                                    {% if slot %}
+                                    <div class="lesson-card p-2 rounded shadow-sm h-100 position-relative border-start border-4 border-{{ slot.get_color_class }}" style="background-color: #fff;">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="badge bg-{{ slot.get_color_class }} mb-1">
+                                                {{ slot.get_lesson_type_display }}
+                                                {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
+                                            </span>
+                                            <button class="btn btn-link text-danger p-0 delete-slot"
+                                                    data-slot-id="{{ slot.id }}"
+                                                    title="Удалить"
+                                                    style="line-height: 1;">
+                                                <i class="bi bi-x-circle-fill"></i>
+                                            </button>
+                                        </div>
+                                        <div class="fw-bold text-dark">{{ slot.subject.name }}</div>
+                                        <div class="small text-muted">{{ slot.teacher.user.get_full_name|default:'Преподаватель не назначен' }}</div>
+                                    </div>
+                                    {% else %}
+                                    <div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;">
+                                        <small class="opacity-50">Свободно</small>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-center bg-light aud-cell">
+                                    {% if slot %}
+                                    <div class="aud-display badge bg-secondary text-wrap"
+                                         style="cursor: pointer; min-width: 40px;"
+                                         onclick="editAud(this)"
+                                         title="Нажмите, чтобы изменить">
+                                        {{ slot.room|default:'?' }}
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm aud-input text-center p-0"
+                                           value="{{ slot.room|default:'' }}"
+                                           style="display: none;"
+                                           onblur="saveAud(this, {{ slot.id }})"
+                                           onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                            </tr>
+                            {% endfor %}
                             {% endfor %}
                         </tbody>
                     </table>
@@ -201,13 +198,13 @@
         </div>
     </div>
     {% else %}
-        <div class="col-12 mt-5">
-            <div class="text-center py-5">
-                <i class="bi bi-arrow-up-circle text-primary" style="font-size: 3rem;"></i>
-                <h4 class="mt-3">Выберите группу и семестр</h4>
-                <p class="text-muted">Для начала работы с расписанием используйте форму выше.</p>
-            </div>
+    <div class="col-12 mt-5">
+        <div class="text-center py-5">
+            <i class="bi bi-arrow-up-circle text-primary" style="font-size: 3rem;"></i>
+            <h4 class="mt-3">Выберите группу и семестр</h4>
+            <p class="text-muted">Для начала работы с расписанием используйте форму выше.</p>
         </div>
+    </div>
     {% endif %}
 </div>
 
@@ -336,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 subjectName: this.dataset.subjectName,
                 subjectType: this.dataset.subjectType,
                 teacherName: this.dataset.teacherName || '',
-                isStream: isStream, 
+                isStream: isStream,
                 remaining: parseInt(this.dataset.remaining || '0')
             };
 
@@ -357,7 +354,6 @@ document.addEventListener('DOMContentLoaded', function() {
             stopAutoScroll();
         });
     }
-
 
     const milItem = document.getElementById('militaryDragItem');
     if(milItem) {
@@ -414,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken') 
+                'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({
                 room: val,
@@ -449,7 +445,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error(err);
         });
     };
-
 
     let autoScrollState = {
         active: false,

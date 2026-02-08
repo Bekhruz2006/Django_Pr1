@@ -47,10 +47,15 @@ def journal_view(request):
     elif current_week:
         week_num = current_week.current_week
     else:
-        week_num = 1
-    schedule_slots = ScheduleSlot.objects.filter(
-        group=group, subject=subject, is_active=True
-    ).order_by('day_of_week', 'start_time')
+        active_semester = Semester.objects.filter(is_active=True).first()
+        if active_semester and active_semester.start_date:
+            today = datetime.now().date()
+            delta = today - active_semester.start_date
+            week_num = (delta.days // 7) + 1
+            if week_num < 1: week_num = 1
+            if week_num > 20: week_num = 20
+        else:
+            week_num = 1
     
     if not schedule_slots.exists():
         messages.warning(request, f'Расписание для группы {group.name} по предмету {subject.name} не найдено')

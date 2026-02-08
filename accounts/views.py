@@ -12,13 +12,15 @@ from django.db.models import Prefetch
 
 from .models import (
     User, Student, Teacher, Dean, Group, GroupTransferHistory,
-    Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector, ViceDean
+    Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector, ViceDean,
+    StudentOrder
 )
 from .forms import (
     UserCreateForm, StudentForm, TeacherForm, DeanForm,
     UserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
     GroupForm, GroupTransferForm, DepartmentCreateForm, SpecialtyCreateForm,
-    InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm
+    InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm,
+    StudentOrderForm
 )
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import InstituteManagementForm, InstituteForm, FacultyFullForm
@@ -262,22 +264,26 @@ def change_password(request):
 @user_passes_test(is_management)
 def user_management(request):
     role_filter = request.GET.get('role', '')
+    dept_filter = request.GET.get('department', '')  
     search = request.GET.get('search', '')
-    
+
     users = User.objects.all()
-    
+
     if role_filter:
         users = users.filter(role=role_filter)
-    
+
+    if dept_filter and role_filter == 'TEACHER':
+        users = users.filter(teacher_profile__department_id=dept_filter)
+
     if search:
         users = users.filter(
             models.Q(username__icontains=search) |
             models.Q(first_name__icontains=search) |
             models.Q(last_name__icontains=search)
         )
-    
+
     users = users.select_related('student_profile', 'teacher_profile', 'dean_profile')
-    
+
     users_with_profiles = []
     for user_obj in users:
         user_data = {
@@ -285,24 +291,37 @@ def user_management(request):
             'has_profile': True,
             'profile_id': None
         }
-        
+
         try:
             if user_obj.role == 'STUDENT':
                 if hasattr(user_obj, 'student_profile'):
                     user_data['profile_id'] = user_obj.student_profile.id
                 else:
                     user_data['has_profile'] = False
+            elif user_obj.role == 'TEACHER':
+                if hasattr(user_obj, 'teacher_profile'):
+                    user_data['profile_id'] = user_obj.teacher_profile.id
+                else:
+                    user_data['has_profile'] = False
+            elif user_obj.role == 'DEAN':
+                if hasattr(user_obj, 'dean_profile'):
+                    user_data['profile_id'] = user_obj.dean_profile.id
+                else:
+                    user_data['has_profile'] = False
         except ObjectDoesNotExist:
             user_data['has_profile'] = False
-        
+
         users_with_profiles.append(user_data)
-    
+
     return render(request, 'accounts/user_management.html', {
         'users': users,
         'users_with_profiles': users_with_profiles,
         'role_filter': role_filter,
+        'dept_filter': dept_filter, 
         'search': search
     })
+
+
 
 
 
@@ -650,11 +669,46 @@ def manage_structure(request):
     
     if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
         institutes = Institute.objects.prefetch_related(
-            'faculties__departments',
-            'faculties__dean_manager__user', 
-            'directors__user' 
+            'directors__user',
+            'faculties__dean_manager__user',
+            'faculties__departments__head__user',
+            'faculties__departments__specialties',
+            'faculties__departments__specialties__groups' 
         ).all()
-        context['institutes'] = institutes
+        
+        structure_data = []
+        for inst in institutes:
+            inst_data = {
+                'obj': inst,
+                'director': inst.directors.first(),
+                'faculties': []
+            }
+            
+            for fac in inst.faculties.all():
+                fac_data = {
+                    'obj': fac,
+                    'dean': getattr(fac, 'dean_manager', None),
+                    'departments': []
+                }
+                
+                for dept in fac.departments.all():
+                    dept_data = {
+                        'obj': dept,
+                        'head': getattr(dept, 'head', None),
+                        'specialties': dept.specialties.all(),
+                        'stats': {
+                            'teachers': dept.teachers.count(),
+                            'groups': Group.objects.filter(specialty__department=dept).count(),
+                            'students': Student.objects.filter(group__specialty__department=dept).count()
+                        }
+                    }
+                    fac_data['departments'].append(dept_data)
+                
+                inst_data['faculties'].append(fac_data)
+            
+            structure_data.append(inst_data)
+
+        context['structure_data'] = structure_data
         context['is_admin'] = True
         
     elif request.user.role in ['DEAN', 'VICE_DEAN']:
@@ -667,14 +721,13 @@ def manage_structure(request):
         if user_faculty:
             departments = Department.objects.filter(faculty=user_faculty).prefetch_related(
                 'specialties__groups',
-                'specialties__academicplan_set', # Обратная связь с планами
+                'specialties__academicplan_set',
                 'head__user'
             )
             
             dept_data = []
             for dept in departments:
                 current_subjects = Subject.objects.filter(department=dept)
-                
                 if active_semester:
                     current_subjects = current_subjects.filter(
                         groups__assigned_semesters=active_semester
@@ -711,18 +764,6 @@ def manage_structure(request):
             return redirect('core:dashboard')
             
     return render(request, 'accounts/structure_manage.html', context)
-
-@user_passes_test(is_admin_or_rector)
-def add_institute(request):
-    if request.method == 'POST':
-        form = InstituteForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Институт добавлен")
-            return redirect('accounts:manage_structure')
-    else:
-        form = InstituteForm()
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить Институт'})
 
 @user_passes_test(is_admin_or_rector)
 def edit_institute(request, pk):
@@ -1092,3 +1133,71 @@ def delete_specialty(request, pk):
         messages.success(request, "Специальность удалена")
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': spec, 'title': 'Удалить специальность'})
+
+
+@user_passes_test(is_admin_or_rector)
+def add_institute(request):
+    if request.method == 'POST':
+        form = InstituteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Институт добавлен")
+            return redirect('accounts:manage_structure')
+    else:
+        form = InstituteForm()
+    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить Институт'})
+
+
+@user_passes_test(is_management)
+def student_orders(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
+    orders = student.orders.all()
+    
+    if request.method == 'POST':
+        form = StudentOrderForm(request.POST, request.FILES)
+        if form.is_valid():
+            order = form.save(commit=False)
+            order.student = student
+            order.created_by = request.user
+            order.save() 
+            messages.success(request, f'Приказ №{order.number} создан. Статус студента обновлен.')
+            return redirect('accounts:user_management')
+    else:
+        form = StudentOrderForm()
+        
+    return render(request, 'accounts/student_orders.html', {
+        'student': student,
+        'orders': orders,
+        'form': form
+    })
+
+@user_passes_test(is_management)
+def payment_list(request):
+    students = Student.objects.filter(financing_type='CONTRACT').select_related('user', 'group')
+    
+    group_id = request.GET.get('group')
+    if group_id:
+        students = students.filter(group_id=group_id)
+        
+    show_debtors = request.GET.get('debtors')
+    
+    context_students = []
+    for s in students:
+        debt = s.contract_amount - s.paid_amount
+        if show_debtors and debt <= 0:
+            continue
+            
+        context_students.append({
+            'student': s,
+            'debt': debt,
+            'percent': int((s.paid_amount / s.contract_amount * 100) if s.contract_amount > 0 else 0)
+        })
+        
+    groups = Group.objects.all()
+    return render(request, 'accounts/payment_list.html', {
+        'students': context_students,
+        'groups': groups,
+        'show_debtors': show_debtors
+    })
+
+

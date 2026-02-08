@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Нагрузка преподавателей{% endblock %}
+{% block breadcrumbs %}
+    <li class="breadcrumb-item">Отчеты</li>
+    <li class="breadcrumb-item active">Сарбории омӯзгорон</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-speedometer2"></i> Нагрузка преподавателей (Сарборӣ)
+                </h5>
+                <button class="btn btn-outline-success btn-sm" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Печать
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Преподаватель</th>
+                                <th>Кафедра</th>
+                                <th class="text-center">Предметов</th>
+                                <th class="text-center">Общие часы</th>
+                                <th class="text-center">Кредиты</th>
+                                <th>Краткий список дисциплин</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report_data %}
+                            <tr>
+                                <td class="fw-bold">
+                                    {{ row.teacher.user.get_full_name }}
+                                    <br>
+                                    <small class="text-muted fw-normal">{{ row.teacher.get_degree_display }}</small>
+                                </td>
+                                <td>{{ row.teacher.department.name }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ row.subjects_count }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <strong class="text-primary fs-5">{{ row.total_hours }}</strong>
+                                </td>
+                                <td class="text-center">{{ row.total_credits }}</td>
+                                <td class="small text-muted">{{ row.subjects_names }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">Нет данных</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

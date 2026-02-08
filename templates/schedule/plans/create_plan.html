@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать учебный план (РУП){% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'schedule:manage_plans' %}">Учебные планы</a></li>
+    <li class="breadcrumb-item active">Создание</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-6 mx-auto">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0"><i class="bi bi-journal-plus"></i> Создание учебного плана (РУП)</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="createPlanForm">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">Специальность *</label>
+                        {{ form.specialty }}
+                        <div class="form-text text-muted">Выберите специальность, для которой создается план.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold text-dark">Год набора (поступления) *</label>
+                            {{ form.admission_year }}
+                        </div>
+
+                        <div class="col-md-6 mb-4 d-flex align-items-center">
+                            <div class="form-check form-switch mt-3">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    Сделать активным сразу
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-3 text-muted">
+
+                    <div class="mb-4 bg-light p-3 rounded border">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-people-fill"></i> Индивидуальный план для группы (Опционально)
+                        </label>
+                        {{ form.group }}
+                        <div class="form-text mt-2">
+                            Выберите группу <strong>ТОЛЬКО</strong> если этот план отличается от общего плана специальности. 
+                            <br>Оставьте "Общий план", если он подходит для всех.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'schedule:manage_plans' %}" class="btn btn-light border">Отмена</a>
+                        <button type="submit" class="btn btn-success px-4 fw-bold">
+                            <i class="bi bi-check-lg"></i> Создать план
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const specialtySelect = document.getElementById('id_specialty');
+    const groupSelect = document.getElementById('id_group');
+    
+    
+    const allGroups = [
+        {% for group in all_groups %}
+        {
+            id: "{{ group.id }}",
+            name: "{{ group.name }}",
+            specialty_id: "{{ group.specialty.id }}"
+        },
+        {% endfor %}
+    ];
+
+    function filterGroups() {
+        const selectedSpecId = specialtySelect.value;
+        const currentGroupValue = groupSelect.value;
+        
+        groupSelect.innerHTML = '<option value="">-- Общий план для всей специальности --</option>';
+        
+        const filteredGroups = allGroups.filter(g => g.specialty_id == selectedSpecId);
+        
+        filteredGroups.forEach(g => {
+            const option = new Option(g.name, g.id);
+            if (g.id === currentGroupValue) option.selected = true;
+            groupSelect.add(option);
+        });
+        
+        if (filteredGroups.length === 0 && selectedSpecId) {
+             const option = new Option("(Нет групп на этой специальности)", "");
+             option.disabled = true;
+             groupSelect.add(option);
+        }
+    }
+
+    specialtySelect.addEventListener('change', filterGroups);
+    
+    filterGroups();
+});
+</script>
+{% endblock %}
