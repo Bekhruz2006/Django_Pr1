@@ -1,38 +1,39 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from accounts.models import User
 
 class ChatRoom(models.Model):
 
     ROOM_TYPE_CHOICES = [
-        ('PRIVATE', 'Личный'),
-        ('GROUP', 'Групповой'),
+        ('PRIVATE', _('Личный')),
+        ('GROUP', _('Групповой')),
     ]
     
     name = models.CharField(
         max_length=200,
         blank=True,
-        verbose_name="Название"
+        verbose_name=_("Название")
     )
     
     room_type = models.CharField(
         max_length=10,
         choices=ROOM_TYPE_CHOICES,
         default='PRIVATE',
-        verbose_name="Тип комнаты"
+        verbose_name=_("Тип комнаты")
     )
     
     participants = models.ManyToManyField(
         User,
         related_name='chat_rooms',
-        verbose_name="Участники"
+        verbose_name=_("Участники")
     )
     
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлен")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Создан"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Обновлен"))
     
     class Meta:
-        verbose_name = "Чат"
-        verbose_name_plural = "Чаты"
+        verbose_name = _("Чат")
+        verbose_name_plural = _("Чаты")
         ordering = ['-updated_at']
     
     def __str__(self):
@@ -56,25 +57,25 @@ class ChatMessage(models.Model):
         ChatRoom,
         on_delete=models.CASCADE,
         related_name='messages',
-        verbose_name="Комната"
+        verbose_name=_("Комната")
     )
     
     sender = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='sent_messages',
-        verbose_name="Отправитель"
+        verbose_name=_("Отправитель")
     )
     
-    content = models.TextField(verbose_name="Сообщение")
+    content = models.TextField(verbose_name=_("Сообщение"))
     
-    is_read = models.BooleanField(default=False, verbose_name="Прочитано")
+    is_read = models.BooleanField(default=False, verbose_name=_("Прочитано"))
     
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отправки")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Дата отправки"))
     
     class Meta:
-        verbose_name = "Сообщение"
-        verbose_name_plural = "Сообщения"
+        verbose_name = _("Сообщение")
+        verbose_name_plural = _("Сообщения")
         ordering = ['created_at']
     
     def __str__(self):

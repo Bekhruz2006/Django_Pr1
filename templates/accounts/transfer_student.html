@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}Перевод студента{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Перевод студента" %}{% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-6 mx-auto">
         <div class="card">
-            <div class="card-header"><i class="bi bi-arrow-left-right"></i> Перевод студента</div>
+            <div class="card-header"><i class="bi bi-arrow-left-right"></i> {% trans "Перевод студента" %}</div>
             <div class="card-body">
-                <p><strong>Студент:</strong> {{ student.user.get_full_name }}</p>
-                <p><strong>Текущая группа:</strong> {{ student.group|default:"не назначена" }}</p>
+                <p><strong>{% trans "Студент:" %}</strong> {{ student.user.get_full_name }}</p>
+                <p><strong>{% trans "Текущая группа:" %}</strong> {{ student.group|default:"не назначена" }}</p>
                 <hr>
                 <form method="post">
                     {% csrf_token %}
@@ -17,8 +18,8 @@
                         {{ field }}
                     </div>
                     {% endfor %}
-                    <button type="submit" class="btn btn-primary">Перевести</button>
-                    <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">Отмена</a>
+                    <button type="submit" class="btn btn-primary">{% trans "Перевести" %}</button>
+                    <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">{% trans "Отмена" %}</a>
                 </form>
             </div>
         </div>

@@ -8,1513 +8,3466 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-08 17:58+0500\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2026-02-09 21:45+0500\n"
+"PO-Revision-Date: 2026-02-10 15:18+0500\n"
+"Last-Translator:   <dasdm@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
-"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);\n"
+"X-Translated-Using: django-rosetta 0.10.3\n"
 
-#: .\department_platform\settings.py:9
+#: .\accounts\forms.py:14 .\accounts\models.py:23
+msgid "Название факультета"
+msgstr "Название факультета"
+
+#: .\accounts\forms.py:15 .\accounts\models.py:24
+msgid "Код факультета"
+msgstr "Код факультета"
+
+#: .\accounts\forms.py:20
+msgid "Декан факультета"
+msgstr "Декан факультета"
+
+#: .\accounts\forms.py:26
+msgid "Кабинет декана"
+msgstr "Кабинет декана"
+
+#: .\accounts\forms.py:27
+msgid "Например: 101/3"
+msgstr "Например: 101/3"
+
+#: .\accounts\forms.py:31
+msgid "Email деканата"
+msgstr "Email деканата"
+
+#: .\accounts\forms.py:38
+msgid "Зам. декана (по учебной работе)"
+msgstr "Зам. декана (по учебной работе)"
+
+#: .\accounts\forms.py:82 .\templates\accounts\edit_institute_full.html:80
+msgid "Заместитель декана"
+msgstr "Заместитель декана"
+
+#: .\accounts\forms.py:114
+msgid "Заведующий кафедрой"
+msgstr "Заведующий кафедрой"
+
+#: .\accounts\forms.py:124 .\accounts\forms.py:125
+msgid "Необязательно"
+msgstr "Необязательно"
+
+#: .\accounts\forms.py:188
+msgid "Например: Кандидат технических наук"
+msgstr "Например: Кандидат технических наук"
+
+#: .\accounts\forms.py:189
+msgid "Например: Доцент"
+msgstr "Например: Доцент"
+
+#: .\accounts\forms.py:200
+msgid "Муовини директор оид ба таълим"
+msgstr "Муовини директор оид ба таълим"
+
+#: .\accounts\forms.py:204 .\templates\accounts\add_user.html:23
+#: .\templates\accounts\user_management.html:44
+msgid "Роль"
+msgstr "Роль"
+
+#: .\accounts\forms.py:205 .\templates\accounts\add_user.html:32
+#: .\templates\accounts\edit_user.html:24
+msgid "Имя"
+msgstr "Имя"
+
+#: .\accounts\forms.py:206 .\templates\accounts\add_user.html:40
+#: .\templates\accounts\edit_user.html:29
+msgid "Фамилия"
+msgstr "Фамилия"
+
+#: .\accounts\forms.py:207 .\templates\accounts\add_user.html:49
+#: .\templates\accounts\edit_user.html:36
+#: .\templates\accounts\profile_student.html:228
+#: .\templates\accounts\user_management.html:45
+msgid "Телефон"
+msgstr "Телефон"
+
+#: .\accounts\forms.py:208 .\templates\accounts\add_user.html:54
+#: .\templates\accounts\edit_user.html:41
+#: .\templates\accounts\profile_teacher.html:12
+msgid "Фото"
+msgstr "Фото"
+
+#: .\accounts\forms.py:220 .\accounts\models.py:96 .\accounts\models.py:330
+#: .\accounts\models.py:493 .\journal\models.py:21 .\journal\models.py:176
+#: .\templates\accounts\all_orders_list.html:37
+#: .\templates\accounts\payment_list.html:29
+msgid "Студент"
+msgstr "Студент"
+
+#: .\accounts\forms.py:221 .\accounts\models.py:97 .\accounts\models.py:236
+#: .\schedule\models.py:47 .\schedule\models.py:249
+msgid "Преподаватель"
+msgstr "Преподаватель"
+
+#: .\accounts\forms.py:222 .\accounts\models.py:98 .\accounts\models.py:210
+msgid "Зав. кафедрой"
+msgstr "Зав. кафедрой"
+
+#: .\accounts\forms.py:223 .\accounts\models.py:198
+msgid "Зам. декана"
+msgstr "Зам. декана"
+
+#: .\accounts\forms.py:287
+msgid "Дополнительные кафедры (где может преподавать)"
+msgstr "Дополнительные кафедры (где может преподавать)"
+
+#: .\accounts\forms.py:343
+msgid "Старый пароль"
+msgstr "Старый пароль"
+
+#: .\accounts\forms.py:347 .\accounts\forms.py:357
+msgid "Новый пароль"
+msgstr "Новый пароль"
+
+#: .\accounts\forms.py:351
+msgid "Подтверждение пароля"
+msgstr "Подтверждение пароля"
+
+#: .\accounts\forms.py:361
+msgid "Подтвердите пароль"
+msgstr "Подтвердите пароль"
+
+#: .\accounts\forms.py:370
+msgid "Пароли не совпадают"
+msgstr "Пароли не совпадают"
+
+#: .\accounts\forms.py:377
+msgid "Добавить студентов в группу"
+msgstr "Добавить студентов в группу"
+
+#: .\accounts\forms.py:414
+msgid "Директор института"
+msgstr "Директор института"
+
+#: .\accounts\forms.py:420
+msgid "Зам. директора (по учебной работе)"
+msgstr "Зам. директора (по учебной работе)"
+
+#: .\accounts\forms.py:425
+msgid "Название должности (для подписи)"
+msgstr "Название должности (для подписи)"
+
+#: .\accounts\forms.py:426
+msgid "Муовини директор оид ба корҳои таълимӣ"
+msgstr "заместитель директора по воспитательной работе"
+
+#: .\accounts\forms.py:431
+msgid "Сардори раёсати таълим (ФИО)"
+msgstr "руководитель отдела образования (ФИО)"
+
+#: .\accounts\forms.py:432 .\schedule\views.py:809
+msgid "Ҷалилов Р.Р."
+msgstr "Ҷалилов Р.Р."
+
+#: .\accounts\forms.py:439
+msgid "Новая группа"
+msgstr "Новая группа"
+
+#: .\accounts\forms.py:443
+msgid "Причина перевода"
+msgstr "Причина перевода"
+
+#: .\accounts\models.py:10
+msgid "Название института"
+msgstr "Название института"
+
+#: .\accounts\models.py:11
+msgid "Аббревиатура"
+msgstr "Аббревиатура"
+
+#: .\accounts\models.py:12 .\templates\accounts\profile_student.html:221
+msgid "Адрес"
+msgstr "Адрес"
+
+#: .\accounts\models.py:15 .\accounts\models.py:22 .\accounts\models.py:405
+#: .\templates\accounts\edit_institute_full.html:42
+#: .\templates\accounts\structure_manage.html:20
+msgid "Институт"
+msgstr "Институт"
+
+#: .\accounts\models.py:16
+msgid "Институты"
+msgstr "Институты"
+
+#: .\accounts\models.py:27 .\accounts\models.py:37 .\accounts\models.py:406
+#: .\schedule\models.py:182 .\templates\accounts\structure_manage.html:23
+msgid "Факультет"
+msgstr "Факультет"
+
+#: .\accounts\models.py:28
+msgid "Факультеты"
+msgstr "Факультеты"
+
+#: .\accounts\models.py:38
+msgid "Название кафедры"
+msgstr "Название кафедры"
+
+#: .\accounts\models.py:44
+msgid "Штатные единицы (ставки)"
+msgstr "Штатные единицы (ставки)"
+
+#: .\accounts\models.py:45
+msgid "Сколько ставок выделено на кафедру"
+msgstr "Сколько ставок выделено на кафедру"
+
+#: .\accounts\models.py:51
+msgid "Бюджет часов (годовой)"
+msgstr "Бюджет часов (годовой)"
+
+#: .\accounts\models.py:52
+msgid "Общая учебная нагрузка кафедры"
+msgstr "Общая учебная нагрузка кафедры"
+
+#: .\accounts\models.py:56 .\accounts\models.py:78 .\accounts\models.py:206
+#: .\accounts\models.py:407 .\schedule\models.py:21
+#: .\templates\accounts\structure_manage.html:97
+msgid "Кафедра"
+msgstr "Кафедра"
+
+#: .\accounts\models.py:57
+msgid "Кафедры"
+msgstr "Кафедры"
+
+#: .\accounts\models.py:79
+msgid "Название направления"
+msgstr "Название направления"
+
+#: .\accounts\models.py:80
+msgid "Шифр (напр. 400.101.08)"
+msgstr "Шифр (напр. 400.101.08)"
+
+#: .\accounts\models.py:81
+msgid "Квалификация (напр. Инженер-программист)"
+msgstr "Квалификация (напр. Инженер-программист)"
+
+#: .\accounts\models.py:84 .\accounts\models.py:243
+msgid "Направление"
+msgstr "Направление"
+
+#: .\accounts\models.py:85
+msgid "Направления"
+msgstr "Направления"
+
+#: .\accounts\models.py:99
+msgid "Зам. декана/директора"
+msgstr "Зам. декана/директора"
+
+#: .\accounts\models.py:100 .\accounts\models.py:185
+#: .\templates\accounts\edit_institute_full.html:61
+msgid "Декан"
+msgstr "Декан"
+
+#: .\accounts\models.py:101
+msgid "Проректор/Зам. директора"
+msgstr "Проректор/Зам. директора"
+
+#: .\accounts\models.py:102 .\accounts\models.py:159
+msgid "Директор/Ректор"
+msgstr "Директор/Ректор"
+
+#: .\accounts\models.py:106
+msgid "ППС (Профессорско-преподавательский)"
+msgstr "ППС (Профессорско-преподавательский)"
+
+#: .\accounts\models.py:107
+msgid "АУП (Административно-управленческий)"
+msgstr "АУП (Административно-управленческий)"
+
+#: .\accounts\models.py:108
+msgid "УВП (Учебно-вспомогательный)"
+msgstr "УВП (Учебно-вспомогательный)"
+
+#: .\accounts\models.py:109
+msgid "Совместитель (ППС + АУП)"
+msgstr "Совместитель (ППС + АУП)"
+
+#: .\accounts\models.py:117
+msgid "Категория сотрудника"
+msgstr "Категория сотрудника"
+
+#: .\accounts\models.py:123 .\templates\accounts\profile_student.html:200
+msgid "Дата рождения"
+msgstr "Дата рождения"
+
+#: .\accounts\models.py:124
+msgid "Адрес проживания"
+msgstr "Адрес проживания"
+
+#: .\accounts\models.py:125
+msgid "Номер паспорта"
+msgstr "Номер паспорта"
+
+#: .\accounts\models.py:156
+msgid "Возглавляет"
+msgstr "Возглавляет"
+
+#: .\accounts\models.py:160
+msgid "Директоры/Ректоры"
+msgstr "Директоры/Ректоры"
+
+#: .\accounts\models.py:168
+msgid "Должность (напр. Зам. по учебной работе)"
+msgstr "Должность (напр. Зам. по учебной работе)"
+
+#: .\accounts\models.py:171
+msgid "Проректор"
+msgstr "Проректор"
+
+#: .\accounts\models.py:172
+msgid "Проректоры"
+msgstr "Проректоры"
+
+#: .\accounts\models.py:186 .\templates\accounts\user_management.html:28
+msgid "Деканы"
+msgstr "Деканы"
+
+#: .\accounts\models.py:194
+msgid "Должность для подписи"
+msgstr "Должность для подписи"
+
+#: .\accounts\models.py:195
+msgid "Область ответственности"
+msgstr "Область ответственности"
+
+#: .\accounts\models.py:199
+msgid "Зам. деканы"
+msgstr "Зам. деканы"
+
+#: .\accounts\models.py:207
+msgid "Ученая степень"
+msgstr "Ученая степень"
+
+#: .\accounts\models.py:211
+msgid "Зав. кафедрами"
+msgstr "Зав. кафедрами"
+
+#: .\accounts\models.py:218 .\templates\accounts\profile_teacher.html:68
+msgid "Основная кафедра"
+msgstr "Основная кафедра"
+
+#: .\accounts\models.py:224 .\templates\accounts\profile_teacher.html:71
+msgid "Дополнительные кафедры"
+msgstr "Дополнительные кафедры"
+
+#: .\accounts\models.py:227
+msgid "Ученая степень (к.т.н, PhD)"
+msgstr "Ученая степень (к.т.н, PhD)"
+
+#: .\accounts\models.py:228
+msgid "Ученое звание (доцент, профессор)"
+msgstr "Ученое звание (доцент, профессор)"
+
+#: .\accounts\models.py:237 .\templates\accounts\user_management.html:27
+msgid "Преподаватели"
+msgstr "Преподаватели"
+
+#: .\accounts\models.py:244
+msgid "Название группы (напр. 400101-А)"
+msgstr "Название группы (напр. 400101-А)"
+
+#: .\accounts\models.py:245 .\schedule\models.py:189
+#: .\templates\accounts\delete_group.html:37
+#: .\templates\accounts\edit_group.html:36
+#: .\templates\accounts\group_management.html:42
+#: .\templates\accounts\profile_teacher.html:114
+msgid "Курс"
+msgstr "Курс"
+
+#: .\accounts\models.py:246 .\schedule\models.py:187
+msgid "Учебный год"
+msgstr "Учебный год"
+
+#: .\accounts\models.py:247
+msgid "TJ"
+msgstr "TJ"
+
+#: .\accounts\models.py:247
+msgid "RU"
+msgstr "RU"
+
+#: .\accounts\models.py:247
+msgid "EN"
+msgstr "EN"
+
+#: .\accounts\models.py:247
+msgid "Язык"
+msgstr "Язык"
+
+#: .\accounts\models.py:248 .\schedule\models.py:269
+#: .\templates\accounts\add_group.html:74
+#: .\templates\accounts\edit_group.html:71
+msgid "Военная кафедра"
+msgstr "Военная кафедра"
+
+#: .\accounts\models.py:251 .\schedule\models.py:247
+#: .\templates\accounts\all_orders_list.html:38
+#: .\templates\accounts\payment_list.html:30
+msgid "Группа"
+msgstr "Группа"
+
+#: .\accounts\models.py:252
+msgid "Группы"
+msgstr "Группы"
+
+#: .\accounts\models.py:262
+msgid "Мужской"
+msgstr "Мужской"
+
+#: .\accounts\models.py:263
+msgid "Женский"
+msgstr "Женский"
+
+#: .\accounts\models.py:267
+msgid "Бюджет"
+msgstr "Бюджет"
+
+#: .\accounts\models.py:268 .\templates\accounts\payment_list.html:31
+msgid "Контракт"
+msgstr "Контракт"
+
+#: .\accounts\models.py:272 .\schedule\models.py:194
+msgid "Активный"
+msgstr "Активный"
+
+#: .\accounts\models.py:273 .\accounts\models.py:485
+msgid "Академический отпуск"
+msgstr "Академический отпуск"
+
+#: .\accounts\models.py:274
+msgid "Отчислен"
+msgstr "Отчислен"
+
+#: .\accounts\models.py:278
+msgid "Очное"
+msgstr "Очное"
+
+#: .\accounts\models.py:279
+msgid "Заочное"
+msgstr "Заочное"
+
+#: .\accounts\models.py:280
+msgid "Вечернее"
+msgstr "Вечернее"
+
+#: .\accounts\models.py:284
+msgid "Таджикский"
+msgstr "Таджикский"
+
+#: .\accounts\models.py:285 .\department_platform\settings.py:9
 msgid "Русский"
-msgstr ""
+msgstr "Русский"
+
+#: .\accounts\models.py:286
+msgid "Английский"
+msgstr "Английский"
+
+#: .\accounts\models.py:291
+msgid "Номер зачетки"
+msgstr "Номер зачетки"
+
+#: .\accounts\models.py:309
+msgid "Сумма контракта"
+msgstr "Сумма контракта"
+
+#: .\accounts\models.py:310 .\templates\accounts\payment_list.html:32
+msgid "Оплачено"
+msgstr "Оплачено"
+
+#: .\accounts\models.py:312
+msgid "ФИО спонсора"
+msgstr "ФИО спонсора"
+
+#: .\accounts\models.py:313
+msgid "Телефон спонсора"
+msgstr "Телефон спонсора"
+
+#: .\accounts\models.py:314
+msgid "Отношение спонсора"
+msgstr "Отношение спонсора"
+
+#: .\accounts\models.py:331 .\templates\accounts\user_management.html:26
+msgid "Студенты"
+msgstr "Студенты"
+
+#: .\accounts\models.py:396 .\accounts\models.py:397
+msgid "История переводов"
+msgstr "История переводов"
+
+#: .\accounts\models.py:412
+msgid "Текущее название"
+msgstr "Текущее название"
+
+#: .\accounts\models.py:414
+msgid "Поле"
+msgstr "Поле"
+
+#: .\accounts\models.py:415
+msgid "Старое значение"
+msgstr "Старое значение"
+
+#: .\accounts\models.py:416
+msgid "Новое значение"
+msgstr "Новое значение"
+
+#: .\accounts\models.py:422 .\accounts\models.py:423
+msgid "История структуры"
+msgstr "История структуры"
+
+#: .\accounts\models.py:484
+msgid "Отчисление (Хориҷ)"
+msgstr "Отчисление"
+
+#: .\accounts\models.py:486 .\templates\accounts\all_orders_list.html:59
+msgid "Восстановление"
+msgstr "Восстановление"
+
+#: .\accounts\models.py:487
+msgid "Выпуск (Хатм)"
+msgstr "Выпуск "
+
+#: .\accounts\models.py:490 .\templates\accounts\student_orders.html:19
+msgid "Номер приказа"
+msgstr "Номер приказа"
+
+#: .\accounts\models.py:491
+msgid "Дата приказа"
+msgstr "Дата приказа"
+
+#: .\accounts\models.py:492
+msgid "Тип приказа"
+msgstr "Тип приказа"
+
+#: .\accounts\models.py:494
+msgid "Причина/Основание"
+msgstr "Причина/Основание"
+
+#: .\accounts\models.py:495
+msgid "Скан приказа"
+msgstr "Скан приказа"
+
+#: .\accounts\models.py:501
+msgid "Приказ по студенту"
+msgstr "Приказ по студенту"
+
+#: .\accounts\models.py:502
+msgid "Приказы (Фармонҳо)"
+msgstr "Приказы"
+
+#: .\accounts\views.py:72
+msgid "Неверный логин или пароль"
+msgstr "Неверный логин или пароль"
+
+#: .\accounts\views.py:79
+msgid "Вы успешно вышли из системы"
+msgstr "Вы успешно вышли из системы"
+
+#: .\accounts\views.py:231
+msgid "Профиль успешно обновлен"
+msgstr "Профиль успешно обновлен"
+
+#: .\accounts\views.py:258
+msgid "Пароль успешно изменен"
+msgstr "Пароль успешно изменен"
+
+#: .\accounts\views.py:337
+msgid "Пожалуйста, загрузите файл .xlsx"
+msgstr "Пожалуйста, загрузите файл .xlsx"
+
+#: .\accounts\views.py:344
+msgid "; "
+msgstr ";"
+
+#: .\accounts\views.py:375
+msgid "У вас нет прав создавать руководство института."
+msgstr "У вас нет прав создавать руководство института."
+
+#: .\accounts\views.py:434
+msgid "Пользователь успешно обновлен"
+msgstr "Пользователь успешно обновлен"
+
+#: .\accounts\views.py:480
+msgid "❌ Вы не можете заблокировать сам себя!"
+msgstr "❌ Вы не можете заблокировать сам себя!"
+
+#: .\accounts\views.py:484
+msgid "❌ Вы не можете заблокировать суперпользователя!"
+msgstr "❌ Вы не можете заблокировать суперпользователя!"
+
+#: .\accounts\views.py:490
+msgid "активирован"
+msgstr "активирован"
+
+#: .\accounts\views.py:490
+msgid "заблокирован"
+msgstr "заблокирован"
+
+#: .\accounts\views.py:528 .\schedule\views.py:61 .\schedule\views.py:763
+#: .\schedule\views.py:1249
+msgid "Доступ запрещен"
+msgstr "Доступ запрещен"
+
+#: .\accounts\views.py:584
+msgid "Нет доступа"
+msgstr "Нет доступа"
+
+#: .\accounts\views.py:595
+msgid "Это специальность чужого факультета"
+msgstr "Это специальность чужого факультета"
+
+#: .\accounts\views.py:616
+msgid "Попытка создания группы на чужом факультете"
+msgstr "Попытка создания группы на чужом факультете"
+
+#: .\accounts\views.py:627
+msgid "Пожалуйста, исправьте ошибки в форме."
+msgstr "Пожалуйста, исправьте ошибки в форме."
+
+#: .\accounts\views.py:644
+msgid "Ошибки формы:"
+msgstr "Ошибки формы:"
+
+#: .\accounts\views.py:764
+msgid "Ваш профиль не привязан к факультету"
+msgstr "Ваш профиль не привязан к факультету"
+
+#: .\accounts\views.py:827
+msgid "Институт и руководство обновлены"
+msgstr "Институт и руководство обновлены"
+
+#: .\accounts\views.py:845
+msgid "Институт удален"
+msgstr "Институт удален"
+
+#: .\accounts\views.py:942
+msgid "Факультет и руководство обновлены"
+msgstr "Факультет и руководство обновлены"
+
+#: .\accounts\views.py:958
+msgid "Факультет удален"
+msgstr "Факультет удален"
+
+#: .\accounts\views.py:985
+msgid "Вы можете добавлять кафедры только в свой факультет"
+msgstr "Вы можете добавлять кафедры только в свой факультет"
+
+#: .\accounts\views.py:1020 .\accounts\views.py:1064 .\accounts\views.py:1108
+#: .\accounts\views.py:1130
+msgid "Это не ваша кафедра"
+msgstr "Это не ваша кафедра"
+
+#: .\accounts\views.py:1046
+msgid "Кафедра обновлена"
+msgstr "Кафедра обновлена"
+
+#: .\accounts\views.py:1068
+msgid "Кафедра удалена"
+msgstr "Кафедра удалена"
+
+#: .\accounts\views.py:1088
+msgid "Ошибка доступа к кафедре"
+msgstr "Ошибка доступа к кафедре"
+
+#: .\accounts\views.py:1091
+msgid "Специальность добавлена"
+msgstr "Специальность добавлена"
+
+#: .\accounts\views.py:1114
+msgid "Специальность обновлена"
+msgstr "Специальность обновлена"
+
+#: .\accounts\views.py:1134
+msgid "Специальность удалена"
+msgstr "Специальность удалена"
+
+#: .\accounts\views.py:1145
+msgid "Институт добавлен"
+msgstr "Институт добавлен"
+
+#: .\chat\forms.py:13
+msgid "Введите сообщение..."
+msgstr "Введите сообщение..."
+
+#: .\chat\models.py:8
+msgid "Личный"
+msgstr "Личный"
+
+#: .\chat\models.py:9
+msgid "Групповой"
+msgstr "Групповой"
+
+#: .\chat\models.py:15 .\schedule\models.py:18 .\schedule\models.py:150
+#: .\templates\accounts\edit_institute_full.html:47
+#: .\templates\accounts\group_management.html:41
+msgid "Название"
+msgstr "Название"
+
+#: .\chat\models.py:22
+msgid "Тип комнаты"
+msgstr "Тип комнаты"
+
+#: .\chat\models.py:28
+msgid "Участники"
+msgstr "Участники"
+
+#: .\chat\models.py:31
+msgid "Создан"
+msgstr "Создан"
+
+#: .\chat\models.py:32
+msgid "Обновлен"
+msgstr "Обновлен"
+
+#: .\chat\models.py:35
+msgid "Чат"
+msgstr "Чат"
+
+#: .\chat\models.py:36
+msgid "Чаты"
+msgstr "Чаты"
+
+#: .\chat\models.py:60
+msgid "Комната"
+msgstr "Комната"
+
+#: .\chat\models.py:67
+msgid "Отправитель"
+msgstr "Отправитель"
+
+#: .\chat\models.py:70 .\chat\models.py:77
+msgid "Сообщение"
+msgstr "Сообщение"
+
+#: .\chat\models.py:72
+msgid "Прочитано"
+msgstr "Прочитано"
+
+#: .\chat\models.py:74
+msgid "Дата отправки"
+msgstr "Дата отправки"
+
+#: .\chat\models.py:78 .\templates\base.html:720
+msgid "Сообщения"
+msgstr "Сообщения"
+
+#: .\chat\views.py:76
+#, python-format
+msgid "Чат с %(user)s создан"
+msgstr "Чат с%(user)s создан"
+
+#: .\chat\views.py:92
+msgid "Сообщение удалено"
+msgstr "Сообщение удалено"
+
+#: .\core\views.py:70
+msgid "Внимание! Активный семестр не выбран. Расписание может не работать."
+msgstr "Внимание! Активный семестр не выбран. Расписание может не работать."
 
 #: .\department_platform\settings.py:10
 msgid "Тоҷикӣ"
-msgstr ""
+msgstr "Тоҷикӣ"
 
 #: .\department_platform\settings.py:11
 msgid "English"
+msgstr "English"
+
+#: .\journal\forms.py:18 .\journal\forms.py:65
+msgid "1-12"
+msgstr "1-12"
+
+#: .\journal\forms.py:32
+msgid ""
+"Нельзя одновременно установить балл и статус отсутствия. Балл автоматически "
+"означает присутствие."
 msgstr ""
+"Нельзя одновременно установить балл и статус отсутствия. Балл автоматически "
+"означает присутствие."
+
+#: .\journal\forms.py:48
+msgid "🔒 Заблокировано (прошло 24 часа)"
+msgstr "🔒 Заблокировано (прошло 24 часа)"
+
+#: .\journal\forms.py:55
+msgid "Выберите студентов"
+msgstr "Выберите студентов"
+
+#: .\journal\forms.py:62
+msgid "Балл"
+msgstr "Балл"
+
+#: .\journal\forms.py:70
+msgid "---"
+msgstr "---"
+
+#: .\journal\forms.py:72 .\journal\models.py:50
+msgid "Статус посещения"
+msgstr "Статус посещения"
+
+#: .\journal\forms.py:92
+msgid "Выберите либо балл, либо статус посещения"
+msgstr "Выберите либо балл, либо статус посещения"
+
+#: .\journal\forms.py:95
+msgid "Нельзя одновременно установить балл и статус отсутствия"
+msgstr "Нельзя одновременно установить балл и статус отсутствия"
+
+#: .\journal\forms.py:104
+msgid "-- Выберите группу --"
+msgstr "-- Выберите группу --"
+
+#: .\journal\forms.py:111
+msgid "-- Выберите предмет --"
+msgstr "-- Выберите предмет --"
+
+#: .\journal\forms.py:119 .\schedule\models.py:326
+msgid "Учебная неделя"
+msgstr "Учебная неделя"
+
+#: .\journal\forms.py:122
+msgid "I-XX"
+msgstr "I-XX"
+
+#: .\journal\forms.py:145
+msgid "С даты"
+msgstr "С даты"
+
+#: .\journal\forms.py:154
+msgid "По дату"
+msgstr "По дату"
+
+#: .\journal\forms.py:163 .\journal\forms.py:181
+msgid "Все студенты"
+msgstr "Все студенты"
+
+#: .\journal\forms.py:169 .\journal\forms.py:188
+msgid "Все преподаватели"
+msgstr "Все преподаватели"
+
+#: .\journal\models.py:11 .\templates\accounts\profile_student.html:360
+msgid "Присутствовал"
+msgstr "Присутствовал"
+
+#: .\journal\models.py:12 .\journal\models.py:186
+msgid "НБ-Болезнь"
+msgstr "НБ-Болезнь"
+
+#: .\journal\models.py:13 .\journal\models.py:187
+msgid "НБ-Уважительная"
+msgstr "НБ-Уважительная"
+
+#: .\journal\models.py:14 .\journal\models.py:188
+msgid "НБ-Неуважительная"
+msgstr "НБ-Неуважительная"
+
+#: .\journal\models.py:28 .\schedule\models.py:71 .\schedule\models.py:248
+#: .\schedule\models.py:449 .\templates\accounts\profile_student.html:144
+msgid "Предмет"
+msgstr "Предмет"
+
+#: .\journal\models.py:31
+msgid "Дата занятия"
+msgstr "Дата занятия"
+
+#: .\journal\models.py:32
+msgid "Время начала пары"
+msgstr "Время начала пары"
+
+#: .\journal\models.py:36 .\schedule\models.py:255
+msgid "Тип занятия"
+msgstr "Тип занятия"
+
+#: .\journal\models.py:43
+msgid "Балл (1-12)"
+msgstr "Балл (1-12)"
+
+#: .\journal\models.py:56
+msgid "Время блокировки"
+msgstr "Время блокировки"
+
+#: .\journal\models.py:64
+msgid "Создал"
+msgstr "Создал"
+
+#: .\journal\models.py:72
+msgid "Изменил"
+msgstr "Изменил"
+
+#: .\journal\models.py:79
+msgid "Запись в журнале"
+msgstr "Запись в журнале"
+
+#: .\journal\models.py:80
+msgid "Записи в журнале"
+msgstr "Записи в журнале"
+
+#: .\journal\models.py:128
+msgid "Запись"
+msgstr "Запись"
+
+#: .\journal\models.py:135
+msgid "Кто изменил"
+msgstr "Кто изменил"
+
+#: .\journal\models.py:138
+msgid "Когда"
+msgstr "Когда"
+
+#: .\journal\models.py:140
+msgid "Старый балл"
+msgstr "Старый балл"
+
+#: .\journal\models.py:141
+msgid "Старая посещаемость"
+msgstr "Старая посещаемость"
+
+#: .\journal\models.py:143
+msgid "Новый балл"
+msgstr "Новый балл"
+
+#: .\journal\models.py:144
+msgid "Новая посещаемость"
+msgstr "Новая посещаемость"
+
+#: .\journal\models.py:146 .\news\models.py:91 .\news\models.py:95
+msgid "Комментарий"
+msgstr "Комментарий"
+
+#: .\journal\models.py:149
+msgid "Лог изменений"
+msgstr "Лог изменений"
+
+#: .\journal\models.py:150
+msgid "Логи изменений"
+msgstr "Логи изменений"
+
+#: .\journal\models.py:179
+msgid "Общий средний балл"
+msgstr "Общий средний балл"
+
+#: .\journal\models.py:180
+msgid "Рейтинг в группе"
+msgstr "Рейтинг в группе"
+
+#: .\journal\models.py:182
+msgid "Процент посещаемости"
+msgstr "Процент посещаемости"
+
+#: .\journal\models.py:183
+msgid "Всего занятий"
+msgstr "Всего занятий"
+
+#: .\journal\models.py:184
+msgid "Посещено занятий"
+msgstr "Посещено занятий"
+
+#: .\journal\models.py:189
+msgid "Всего прогулов"
+msgstr "Всего прогулов"
+
+#: .\journal\models.py:191
+msgid "Данные по предметам"
+msgstr "Данные по предметам"
+
+#: .\journal\models.py:193
+msgid "Последнее обновление"
+msgstr "Последнее обновление"
+
+#: .\journal\models.py:196
+msgid "Статистика студента"
+msgstr "Статистика студента"
+
+#: .\journal\models.py:197
+msgid "Статистика студентов"
+msgstr "Статистика студентов"
+
+#: .\journal\views.py:59
+#, python-format
+msgid ""
+"Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено"
+msgstr ""
+"Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено"
+
+#: .\journal\views.py:120
+msgid "🔒 Запись заблокирована!"
+msgstr "🔒 Запись заблокирована!"
+
+#: .\journal\views.py:123
+msgid "Нет прав на редактирование"
+msgstr "Нет прав на редактирование"
+
+#: .\journal\views.py:152
+#, python-format
+msgid "✅ Балл %(grade_value)s выставлен за неделю"
+msgstr "✅ Балл %(grade_value)s выставлен за неделю"
+
+#: .\journal\views.py:157
+#, python-format
+msgid "✅ Балл %(grade_value)s выставлен"
+msgstr "✅ Балл %(grade_value)s выставлен"
+
+#: .\journal\views.py:171
+msgid "✅ НБ обновлено"
+msgstr "✅ НБ обновлено"
+
+#: .\journal\views.py:199
+msgid "Выберите статус посещаемости"
+msgstr "Выберите статус посещаемости"
+
+#: .\journal\views.py:234
+#, python-format
+msgid "✅ Обновлено: %(updated_count)s"
+msgstr "✅ Обновлено: %(updated_count)s"
+
+#: .\journal\views.py:236
+#, python-format
+msgid "⚠️ Заблокировано: %(locked_count)s"
+msgstr "⚠️ Заблокировано: %(locked_count)s"
+
+#: .\journal\views.py:238
+msgid "Ошибка формы"
+msgstr "Ошибка формы"
+
+#: .\journal\views.py:531
+msgid "Запись заблокирована (прошло 24 часа)"
+msgstr "Запись заблокирована (прошло 24 часа)"
+
+#: .\journal\views.py:533
+msgid "Это не ваш предмет"
+msgstr "Это не ваш предмет"
+
+#: .\journal\views.py:554
+msgid "Оценка должна быть от 1 до 12"
+msgstr "Оценка должна быть от 1 до 12"
+
+#: .\journal\views.py:563
+msgid "Введите число (оценка) или \"нб\" (прогул)"
+msgstr "Введите число (оценка) или \"нб\" (прогул)"
+
+#: .\news\forms.py:19
+msgid "Заголовок новости"
+msgstr "Заголовок новости"
+
+#: .\news\forms.py:24
+msgid "Содержание новости..."
+msgstr "Содержание новости..."
+
+#: .\news\forms.py:30
+msgid "https://youtube.com/..."
+msgstr "https://youtube.com/..."
+
+#: .\news\forms.py:45
+msgid "Ваш комментарий..."
+msgstr "Ваш комментарий..."
+
+#: .\news\models.py:7
+msgid "Объявление"
+msgstr "Объявление"
+
+#: .\news\models.py:8
+msgid "Мероприятие"
+msgstr "Мероприятие"
+
+#: .\news\models.py:9
+msgid "Достижение"
+msgstr "Достижение"
+
+#: .\news\models.py:10 .\templates\accounts\group_management.html:66
+#: .\templates\accounts\structure_manage.html:268
+msgid "Расписание"
+msgstr "Расписание"
+
+#: .\news\models.py:11
+msgid "Другое"
+msgstr "Другое"
+
+#: .\news\models.py:14
+msgid "Заголовок"
+msgstr "Заголовок"
+
+#: .\news\models.py:15
+msgid "Содержание"
+msgstr "Содержание"
+
+#: .\news\models.py:20
+msgid "Категория"
+msgstr "Категория"
+
+#: .\news\models.py:27
+msgid "Изображение"
+msgstr "Изображение"
+
+#: .\news\models.py:32
+msgid "Ссылка на видео (YouTube, Vimeo)"
+msgstr "Ссылка на видео (YouTube, Vimeo)"
+
+#: .\news\models.py:39
+msgid "Видео файл"
+msgstr "Видео файл"
+
+#: .\news\models.py:44
+msgid "Закреплено"
+msgstr "Закреплено"
+
+#: .\news\models.py:49
+msgid "Опубликовано"
+msgstr "Опубликовано"
+
+#: .\news\models.py:57 .\news\models.py:88
+msgid "Автор"
+msgstr "Автор"
+
+#: .\news\models.py:60
+msgid "Дата создания"
+msgstr "Дата создания"
+
+#: .\news\models.py:61
+msgid "Дата обновления"
+msgstr "Дата обновления"
+
+#: .\news\models.py:63
+msgid "Просмотры"
+msgstr "Просмотры"
+
+#: .\news\models.py:66 .\news\models.py:82
+msgid "Новость"
+msgstr "Новость"
+
+#: .\news\models.py:67 .\templates\base.html:715
+msgid "Новости"
+msgstr "Новости"
+
+#: .\news\models.py:92 .\templates\accounts\all_orders_list.html:36
+#: .\templates\accounts\student_orders.html:23
+#: .\templates\accounts\student_orders.html:48
+msgid "Дата"
+msgstr "Дата"
+
+#: .\news\models.py:96
+msgid "Комментарии"
+msgstr "Комментарии"
+
+#: .\news\views.py:51
+msgid "Комментарий добавлен"
+msgstr "Комментарий добавлен"
+
+#: .\news\views.py:70
+msgid "Новость успешно создана"
+msgstr "Новость успешно создана"
+
+#: .\news\views.py:88
+msgid "Новость обновлена"
+msgstr "Новость обновлена"
+
+#: .\news\views.py:103
+msgid "Новость удалена"
+msgstr "Новость удалена"
+
+#: .\news\views.py:113
+msgid "Новость опубликована"
+msgstr "Новость опубликована"
+
+#: .\news\views.py:115
+msgid "Новость снята с публикации"
+msgstr "Новость снята с публикации"
+
+#: .\news\views.py:125
+msgid "Новость закреплена"
+msgstr "Новость закреплена"
+
+#: .\news\views.py:127
+msgid "Новость откреплена"
+msgstr "Новость откреплена"
+
+#: .\schedule\forms.py:31
+msgid "Авто-расчет по кредитам"
+msgstr "Авто-расчет по кредитам"
+
+#: .\schedule\forms.py:37
+msgid "Назначить всем группам кафедры (создаст отдельные предметы)"
+msgstr "Назначить всем группам кафедры (создаст отдельные предметы)"
+
+#: .\schedule\forms.py:77
+msgid "Номер кабинета"
+msgstr "Номер кабинета"
+
+#: .\schedule\forms.py:90
+msgid "Семестр не указан"
+msgstr "Семестр не указан"
+
+#: .\schedule\forms.py:97
+msgid "Выбрать кафедру (для фильтрации групп)"
+msgstr "Выбрать кафедру (для фильтрации групп)"
+
+#: .\schedule\forms.py:103
+msgid "Фильтр по Институту"
+msgstr "Фильтр по Институту"
+
+#: .\schedule\forms.py:115
+msgid "Например: Осенний"
+msgstr "Например: Осенний"
+
+#: .\schedule\forms.py:148 .\schedule\models.py:219
+msgid "Этаж"
+msgstr "Этаж"
+
+#: .\schedule\forms.py:149
+msgid "Начальный номер"
+msgstr "Начальный номер"
+
+#: .\schedule\forms.py:150
+msgid "Конечный номер"
+msgstr "Конечный номер"
+
+#: .\schedule\forms.py:151 .\schedule\models.py:220
+msgid "Вместимость"
+msgstr "Вместимость"
+
+#: .\schedule\forms.py:158
+msgid "Конечный номер должен быть больше начального"
+msgstr "Конечный номер должен быть больше начального"
+
+#: .\schedule\forms.py:176
+msgid "Дата начала семестра"
+msgstr "Дата начала семестра"
+
+#: .\schedule\forms.py:177 .\schedule\models.py:323
+msgid "Текущая неделя"
+msgstr "Текущая неделя"
+
+#: .\schedule\forms.py:205
+msgid "-- Общий план для всей специальности --"
+msgstr "-- Общий план для всей специальности --"
+
+#: .\schedule\forms.py:258
+msgid "Файл расписания (Excel или PDF)"
+msgstr "Файл расписания (Excel или PDF)"
+
+#: .\schedule\forms.py:259
+msgid "Поддерживаются .xlsx и .pdf (табличный вид)"
+msgstr "Поддерживаются .xlsx и .pdf (табличный вид)"
+
+#: .\schedule\forms.py:266 .\schedule\models.py:198 .\schedule\models.py:258
+#: .\schedule\models.py:319
+msgid "Семестр"
+msgstr "Семестр"
+
+#: .\schedule\forms.py:267
+msgid "-- Выберите активный семестр --"
+msgstr "-- Выберите активный семестр --"
+
+#: .\schedule\forms.py:274
+msgid "Группа по умолчанию"
+msgstr "Группа по умолчанию"
+
+#: .\schedule\forms.py:275
+msgid ""
+"Выберите группу, если имя группы не удастся найти в файле автоматически."
+msgstr ""
+"Выберите группу, если имя группы не удастся найти в файле автоматически."
+
+#: .\schedule\forms.py:285
+msgid "Например: Лекция 1. Введение"
+msgstr "Например: Лекция 1. Введение"
+
+#: .\schedule\models.py:14 .\schedule\models.py:242 .\schedule\views.py:104
+msgid "Лекция"
+msgstr "Лекция"
+
+#: .\schedule\models.py:15 .\schedule\models.py:243 .\schedule\models.py:402
+#: .\schedule\views.py:104
+msgid "Практика"
+msgstr "Практика"
+
+#: .\schedule\models.py:16 .\schedule\models.py:244
+msgid "СРСП (КМРО)"
+msgstr "СРСП (КМРО)"
+
+#: .\schedule\models.py:19 .\templates\accounts\edit_institute_full.html:51
+msgid "Код"
+msgstr "Код"
+
+#: .\schedule\models.py:27
+msgid "Основной тип"
+msgstr "Основной тип"
+
+#: .\schedule\models.py:30
+msgid "Лекции (Л) часов за семестр"
+msgstr "Лекции (Л) часов за семестр"
+
+#: .\schedule\models.py:31
+msgid "Практика (А) часов за семестр"
+msgstr "Практика (А) часов за семестр"
+
+#: .\schedule\models.py:32
+msgid "Контроль (КМРО) часов за семестр"
+msgstr "Контроль (КМРО) часов за семестр"
+
+#: .\schedule\models.py:33
+msgid "КМД часов за семестр"
+msgstr "КМД часов за семестр"
+
+#: .\schedule\models.py:35
+msgid "Недель в семестре"
+msgstr "Недель в семестре"
+
+#: .\schedule\models.py:39
+msgid "Это поток (совместное занятие)"
+msgstr "Это поток (совместное занятие)"
+
+#: .\schedule\models.py:51
+msgid "Описание"
+msgstr "Описание"
+
+#: .\schedule\models.py:56
+msgid "Силлабус (PDF/Word)"
+msgstr "Силлабус (PDF/Word)"
+
+#: .\schedule\models.py:59
+msgid "Кредиты (устарело)"
+msgstr "Кредиты"
+
+#: .\schedule\models.py:60
+msgid "Часов (устарело)"
+msgstr "Часов"
+
+#: .\schedule\models.py:67
+msgid "Основание (из плана)"
+msgstr "Основание (из плана)"
+
+#: .\schedule\models.py:72
+msgid "Предметы"
+msgstr "Предметы"
+
+#: .\schedule\models.py:148 .\schedule\models.py:261
+msgid "Начало"
+msgstr "Начало"
+
+#: .\schedule\models.py:149 .\schedule\models.py:262
+msgid "Конец"
+msgstr "Конец"
+
+#: .\schedule\models.py:153
+msgid "Временной слот"
+msgstr "Временной слот"
+
+#: .\schedule\models.py:154
+msgid "Временные слоты"
+msgstr "Временные слоты"
+
+#: .\schedule\models.py:162
+msgid "Первый"
+msgstr "Первый"
+
+#: .\schedule\models.py:163
+msgid "Второй"
+msgstr "Второй"
+
+#: .\schedule\models.py:167
+msgid "Утренняя смена"
+msgstr "Утренняя смена"
+
+#: .\schedule\models.py:168
+msgid "Дневная смена"
+msgstr "Дневная смена"
+
+#: .\schedule\models.py:172
+msgid "1 курс"
+msgstr "1 курс"
+
+#: .\schedule\models.py:173
+msgid "2 курс"
+msgstr "2 курс"
+
+#: .\schedule\models.py:174
+msgid "3 курс"
+msgstr "3 курс"
+
+#: .\schedule\models.py:175
+msgid "4 курс"
+msgstr "4 курс"
+
+#: .\schedule\models.py:176
+msgid "5 курс"
+msgstr "5 курс"
+
+#: .\schedule\models.py:186
+msgid "Название (напр. Осенний)"
+msgstr "Название (напр. Осенний)"
+
+#: .\schedule\models.py:187
+msgid "Формат: 2024-2025"
+msgstr "Формат: 2024-2025"
+
+#: .\schedule\models.py:188
+msgid "Номер семестра"
+msgstr "Номер семестра"
+
+#: .\schedule\models.py:190
+msgid "Смена"
+msgstr "Смена"
+
+#: .\schedule\models.py:192
+msgid "Дата начала"
+msgstr "Дата начала"
+
+#: .\schedule\models.py:193
+msgid "Дата окончания"
+msgstr "Дата окончания"
+
+#: .\schedule\models.py:199
+msgid "Семестры"
+msgstr "Семестры"
+
+#: .\schedule\models.py:218
+msgid "Номер"
+msgstr "Номер"
+
+#: .\schedule\models.py:221 .\templates\accounts\user_management.html:76
+msgid "Активен"
+msgstr "Активен"
+
+#: .\schedule\models.py:224 .\schedule\models.py:263
+#: .\templates\accounts\edit_institute_full.html:67
+msgid "Кабинет"
+msgstr "Кабинет"
+
+#: .\schedule\models.py:225
+msgid "Кабинеты"
+msgstr "Кабинеты"
+
+#: .\schedule\models.py:233 .\schedule\views.py:119 .\schedule\views.py:1218
+#: .\schedule\views.py:1304
+msgid "Понедельник"
+msgstr "Понедельник"
+
+#: .\schedule\models.py:234 .\schedule\views.py:119 .\schedule\views.py:1218
+#: .\schedule\views.py:1304
+msgid "Вторник"
+msgstr "Вторник"
+
+#: .\schedule\models.py:235 .\schedule\views.py:119 .\schedule\views.py:1218
+#: .\schedule\views.py:1304
+msgid "Среда"
+msgstr "Среда"
+
+#: .\schedule\models.py:236 .\schedule\views.py:119 .\schedule\views.py:1219
+#: .\schedule\views.py:1304
+msgid "Четверг"
+msgstr "Четверг"
+
+#: .\schedule\models.py:237 .\schedule\views.py:119 .\schedule\views.py:1219
+#: .\schedule\views.py:1304
+msgid "Пятница"
+msgstr "Пятница"
+
+#: .\schedule\models.py:238 .\schedule\views.py:119 .\schedule\views.py:1219
+#: .\schedule\views.py:1304
+msgid "Суббота"
+msgstr "Суббота"
+
+#: .\schedule\models.py:259
+msgid "День недели"
+msgstr "День недели"
+
+#: .\schedule\models.py:260
+msgid "Время"
+msgstr "Время"
+
+#: .\schedule\models.py:264
+msgid "Номер кабинета (текст)"
+msgstr "Номер кабинета (текст)"
+
+#: .\schedule\models.py:265
+msgid "Активно"
+msgstr "Активно"
+
+#: .\schedule\models.py:267
+msgid "ID Потока"
+msgstr "ID Потока"
+
+#: .\schedule\models.py:272 .\schedule\models.py:299
+msgid "Занятие"
+msgstr "Занятие"
+
+#: .\schedule\models.py:273
+msgid "Занятия"
+msgstr "Занятия"
+
+#: .\schedule\models.py:295
+msgid "Отменено"
+msgstr "Отменено"
+
+#: .\schedule\models.py:296
+msgid "Перенесено"
+msgstr "Перенесено"
+
+#: .\schedule\models.py:300 .\templates\accounts\student_orders.html:49
+msgid "Тип"
+msgstr "Тип"
+
+#: .\schedule\models.py:301
+msgid "Дата исключения"
+msgstr "Дата исключения"
+
+#: .\schedule\models.py:302
+msgid "Причина"
+msgstr "Причина"
+
+#: .\schedule\models.py:304
+msgid "Новая дата"
+msgstr "Новая дата"
+
+#: .\schedule\models.py:305
+msgid "Новое время начала"
+msgstr "Новое время начала"
+
+#: .\schedule\models.py:306
+msgid "Новое время окончания"
+msgstr "Новое время окончания"
+
+#: .\schedule\models.py:307
+msgid "Новый кабинет"
+msgstr "Новый кабинет"
+
+#: .\schedule\models.py:312
+msgid "Исключение в расписании"
+msgstr "Исключение в расписании"
+
+#: .\schedule\models.py:313
+msgid "Исключения в расписании"
+msgstr "Исключения в расписании"
+
+#: .\schedule\models.py:320
+msgid "Номер недели"
+msgstr "Номер недели"
+
+#: .\schedule\models.py:321
+msgid "Начало недели"
+msgstr "Начало недели"
+
+#: .\schedule\models.py:322
+msgid "Конец недели"
+msgstr "Конец недели"
+
+#: .\schedule\models.py:327
+msgid "Учебные недели"
+msgstr "Учебные недели"
+
+#: .\schedule\models.py:352
+msgid "Название дисциплины"
+msgstr "Название дисциплины"
+
+#: .\schedule\models.py:355
+msgid "Шаблон дисциплины"
+msgstr "Шаблон дисциплины"
+
+#: .\schedule\models.py:356
+msgid "Справочник дисциплин"
+msgstr "Справочник дисциплин"
+
+#: .\schedule\models.py:365 .\templates\accounts\delete_group.html:39
+#: .\templates\accounts\edit_group.html:53
+#: .\templates\accounts\group_management.html:44
+msgid "Специальность"
+msgstr "Специальность"
+
+#: .\schedule\models.py:366
+msgid "Год набора (поступления)"
+msgstr "Год набора (поступления)"
+
+#: .\schedule\models.py:368
+msgid "Актуальный"
+msgstr "Актуальный"
+
+#: .\schedule\models.py:376
+msgid "Группа (для индивидуального плана)"
+msgstr "Группа (для индивидуального плана)"
+
+#: .\schedule\models.py:380
+msgid "Учебный план (РУП)"
+msgstr "Учебный план (РУП)"
+
+#: .\schedule\models.py:381
+msgid "Учебные планы"
+msgstr "Учебные планы"
+
+#: .\schedule\models.py:393
+msgid "Экзамен"
+msgstr "Экзамен"
+
+#: .\schedule\models.py:394
+msgid "Зачет"
+msgstr "Зачет"
+
+#: .\schedule\models.py:395
+msgid "Дифф. зачет"
+msgstr "Дифф. зачет"
+
+#: .\schedule\models.py:396
+msgid "Курсовая работа"
+msgstr "Курсовая работа"
+
+#: .\schedule\models.py:400
+msgid "Обязательная"
+msgstr "Обязательная"
+
+#: .\schedule\models.py:401
+msgid "Элективная (по выбору)"
+msgstr "Элективная (по выбору)"
+
+#: .\schedule\models.py:406
+msgid "Дисциплина"
+msgstr "Дисциплина"
+
+#: .\schedule\models.py:410
+msgid "Номер семестра (1-8)"
+msgstr "Номер семестра (1-8)"
+
+#: .\schedule\models.py:413
+msgid "Тип блока"
+msgstr "Тип блока"
+
+#: .\schedule\models.py:415
+msgid "Кредиты (ECTS)"
+msgstr "Кредиты (ECTS)"
+
+#: .\schedule\models.py:417
+msgid "Лекции"
+msgstr "Лекции"
+
+#: .\schedule\models.py:418
+msgid "Практика (Семинары)"
+msgstr "Практика (Семинары)"
+
+#: .\schedule\models.py:419
+msgid "Лабораторные"
+msgstr "Лабораторные"
+
+#: .\schedule\models.py:420
+msgid "СРСП (Контактная)"
+msgstr "СРСП (Контактная)"
+
+#: .\schedule\models.py:421
+msgid "СРС (Самостоятельная)"
+msgstr "СРС (Самостоятельная)"
+
+#: .\schedule\models.py:427
+msgid "Форма контроля"
+msgstr "Форма контроля"
+
+#: .\schedule\models.py:431
+msgid "Есть курсовая работа (КР)"
+msgstr "Есть курсовая работа (КР)"
+
+#: .\schedule\models.py:435
+msgid "Дисциплина плана"
+msgstr "Дисциплина плана"
+
+#: .\schedule\models.py:436
+msgid "Дисциплины плана"
+msgstr "Дисциплины плана"
+
+#: .\schedule\models.py:450
+msgid "Название материала"
+msgstr "Название материала"
+
+#: .\schedule\models.py:451 .\templates\accounts\all_orders_list.html:41
+#: .\templates\accounts\student_orders.html:50
+msgid "Файл"
+msgstr "Файл"
+
+#: .\schedule\models.py:452
+msgid "Дата загрузки"
+msgstr "Дата загрузки"
+
+#: .\schedule\models.py:455
+msgid "Учебный материал"
+msgstr "Учебный материал"
+
+#: .\schedule\models.py:456
+msgid "Учебные материалы"
+msgstr "Учебные материалы"
+
+#: .\schedule\views.py:71
+msgid "Нет активного семестра. Пожалуйста, создайте или активируйте семестр."
+msgstr "Нет активного семестра. Пожалуйста, создайте или активируйте семестр."
+
+#: .\schedule\views.py:104
+msgid "СРСП"
+msgstr "СРСП"
+
+#: .\schedule\views.py:160
+msgid "Кафедраи ҳарбӣ (Военная кафедра)"
+msgstr "Кафедраи ҳарбӣ (Военная кафедра)"
+
+#: .\schedule\views.py:180
+msgid "Воен. каф"
+msgstr "Воен. каф"
+
+#: .\schedule\views.py:184
+#, python-format
+msgid "Назначено %(created_count)s часов военной кафедры"
+msgstr "Назначено %(created_count)s часов военной кафедры"
+
+#: .\schedule\views.py:204 .\schedule\views.py:783 .\schedule\views.py:1211
+msgid "Нет активного семестра"
+msgstr "Нет активного семестра"
+
+#: .\schedule\views.py:208
+msgid "Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ."
+msgstr "Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ."
+
+#: .\schedule\views.py:210
+msgid "Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ."
+msgstr "Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ."
+
+#: .\schedule\views.py:219
+msgid "Слишком большой поток! Максимум 3 группы."
+msgstr "Слишком большой поток! Максимум 3 группы."
+
+#: .\schedule\views.py:235
+#, python-format
+msgid "Группа %(group_name)s занята: %(subject_name)s"
+msgstr "Группа %(group_name)s занята: %(subject_name)s"
+
+#: .\schedule\views.py:246
+#, python-format
+msgid "Преподаватель %(teacher_name)s занят."
+msgstr "Преподаватель %(teacher_name)s занят."
+
+#: .\schedule\views.py:279
+#, python-format
+msgid "Ошибка сервера: %(error)s"
+msgstr "Ошибка сервера: %(error)s"
+
+#: .\schedule\views.py:296
+#, python-format
+msgid "Кабинет %(room_number)s не найден"
+msgstr "Кабинет %(room_number)s не найден"
+
+#: .\schedule\views.py:316
+#, python-format
+msgid "Кабинет занят: %(group_name)s, %(subject_name)s"
+msgstr "Кабинет занят: %(group_name)s, %(subject_name)s"
+
+#: .\schedule\views.py:332
+#, python-format
+msgid ""
+"Вместимость кабинета (%(capacity)s) меньше количества студентов "
+"(%(students)s). Продолжить?"
+msgstr ""
+"Вместимость кабинета (%(capacity)s) меньше количества студентов "
+"(%(students)s). Продолжить?"
+
+#: .\schedule\views.py:357
+msgid "Нет прав"
+msgstr "Нет прав"
+
+#: .\schedule\views.py:362
+#, python-format
+msgid "Удален поток (%(count)s групп)"
+msgstr "Удален поток (%(count)s групп)"
+
+#: .\schedule\views.py:365
+msgid "Занятие удалено"
+msgstr "Занятие удалено"
+
+#: .\schedule\views.py:370
+#, python-format
+msgid "Ошибка: %(error)s"
+msgstr "Ошибка: %(error)s"
+
+#: .\schedule\views.py:391
+msgid "Активный семестр не найден."
+msgstr "Активный семестр не найден."
+
+#: .\schedule\views.py:422
+#, python-format
+msgid "Нет активного семестра для %(course)s курса"
+msgstr "Нет активного семестра для %(course)s курса"
+
+#: .\schedule\views.py:430 .\schedule\views.py:898
+msgid "ДУШАНБЕ"
+msgstr "Понедельник"
+
+#: .\schedule\views.py:430 .\schedule\views.py:898
+msgid "СЕШАНБЕ"
+msgstr "Вторник"
+
+#: .\schedule\views.py:430 .\schedule\views.py:898
+msgid "ЧОРШАНБЕ"
+msgstr "Среда"
+
+#: .\schedule\views.py:430 .\schedule\views.py:898
+msgid "ПАНҶШАНБЕ"
+msgstr "Четверг"
+
+#: .\schedule\views.py:430 .\schedule\views.py:898
+msgid "ҶУМЪА"
+msgstr "Пятница "
+
+#: .\schedule\views.py:430 .\schedule\views.py:898
+msgid "ШАНБЕ"
+msgstr "Суббота "
+
+#: .\schedule\views.py:523
+msgid "Нет доступа к этой кафедре"
+msgstr "Нет доступа к этой кафедре"
+
+#: .\schedule\views.py:543
+#, python-format
+msgid "Предмет \"%(subject_name)s\" создан"
+msgstr "Предмет \"%(subject_name)s\" создан"
+
+#: .\schedule\views.py:548
+msgid "Ошибки формы предмета:"
+msgstr "Ошибки формы предмета:"
+
+#: .\schedule\views.py:564
+msgid "Добавить предмет"
+msgstr "Добавить предмет"
+
+#: .\schedule\views.py:575
+msgid "Предмет обновлен"
+msgstr "Предмет обновлен"
+
+#: .\schedule\views.py:579
+msgid "Редактировать предмет"
+msgstr "Редактировать предмет"
+
+#: .\schedule\views.py:585
+msgid "Предмет удален"
+msgstr "Предмет удален"
+
+#: .\schedule\views.py:606
+#, python-format
+msgid "Семестр \"%(semester_name)s\" создан для факультета %(faculty_name)s"
+msgstr "Семестр \"%(semester_name)s\" создан для факультета %(faculty_name)s"
+
+#: .\schedule\views.py:610
+msgid "Добавить семестр"
+msgstr "Добавить семестр"
+
+#: .\schedule\views.py:629
+msgid "Семестр обновлен"
+msgstr "Семестр обновлен"
+
+#: .\schedule\views.py:634
+msgid "Редактировать семестр"
+msgstr "Редактировать семестр"
+
+#: .\schedule\views.py:649
+#, python-format
+msgid "Семестр \"%(semester_name)s\" (%(course)s курс) теперь АКТИВЕН!"
+msgstr "Семестр \"%(semester_name)s\" (%(course)s курс) теперь АКТИВЕН!"
+
+#: .\schedule\views.py:653
+#, python-format
+msgid "Семестр \"%(semester_name)s\" деактивирован."
+msgstr "Семестр \"%(semester_name)s\" деактивирован."
+
+#: .\schedule\views.py:668
+#, python-format
+msgid "Кабинет %(classroom_number)s добавлен"
+msgstr "Кабинет %(classroom_number)s добавлен"
+
+#: .\schedule\views.py:672
+msgid "Добавить кабинет"
+msgstr "Добавить кабинет"
+
+#: .\schedule\views.py:691
+#, python-format
+msgid "Создано %(created_count)s кабинетов"
+msgstr "Создано %(created_count)s кабинетов"
+
+#: .\schedule\views.py:701
+#, python-format
+msgid "Кабинет %(classroom_number)s удален"
+msgstr "Кабинет %(classroom_number)s удален"
+
+#: .\schedule\views.py:726
+#, python-format
+msgid "Учебная неделя %(week_num)s установлена"
+msgstr "Учебная неделя %(week_num)s установлена"
+
+#: .\schedule\views.py:728
+msgid "Сначала создайте семестр"
+msgstr "Сначала создайте семестр"
+
+#: .\schedule\views.py:776
+msgid "Library python-docx not installed"
+msgstr "Library python-docx not installed"
+
+#: .\schedule\views.py:791
+msgid "Ошибка структуры: Группа не привязана корректно."
+msgstr "Ошибка структуры: Группа не привязана корректно."
+
+#: .\schedule\views.py:806
+msgid "Мирзозода А. Н."
+msgstr "Мирзозода А. Н."
+
+#: .\schedule\views.py:807
+msgid "Ҷовиди Ҷамшед"
+msgstr "Ҷовиди Ҷамшед"
+
+#: .\schedule\views.py:825
+msgid "Мувофиқа карда шуд:\n"
+msgstr "Было решено:\n"
+
+#: .\schedule\views.py:826
+msgid "Сардори раёсати таълим\n"
+msgstr "руководитель отдела образования\n"
+
+#: .\schedule\views.py:827
+#, python-format
+msgid "________ дотсент %(head_edu_name)s\n"
+msgstr "________ дотсент %(head_edu_name)s\n"
+
+#: .\schedule\views.py:828
+msgid "«___» _________ 2025с"
+msgstr "«___» _________ 2025с"
+
+#: .\schedule\views.py:833
+msgid "Тасдиқ мекунам:\n"
+msgstr "Я подтверждаю:\n"
+
+#: .\schedule\views.py:834
+msgid ""
+"Муовини директор\n"
+"оид ба корҳои таълимӣ\n"
+msgstr ""
+"заместитель директора\n"
+"по образовательной деятельности\n"
+
+#: .\schedule\views.py:835
+#, python-format
+msgid "________ дотсент %(vice_name)s\n"
+msgstr "________ дотсент %(vice_name)s\n"
+
+#: .\schedule\views.py:836
+msgid "«___»_________ 2025c"
+msgstr "«___»_________ 2025c"
+
+#: .\schedule\views.py:842
+msgid "ҶАДВАЛИ ДАРСӢ"
+msgstr "расписание уроков"
+
+#: .\schedule\views.py:849
+msgid "якуми"
+msgstr "первое"
+
+#: .\schedule\views.py:849
+msgid "дуюми"
+msgstr "второе"
+
+#: .\schedule\views.py:852
+#, python-format
+msgid ""
+"дар нимсолаи %(sem_text)s соли таҳсили %(year_text)s барои донишҷӯёни курси "
+"%(course)s-юми %(institute_name)s-и Донишгоҳи байналмилаии сайёҳӣ ва "
+"соҳибкории Тоҷикистон"
+msgstr ""
+"в %(sem_text)s семестре %(year_text)s учебного года для %(course)s-го "
+"%(institute_name)s студентов Международного университета туризма и бизнеса "
+"Таджикистана"
+
+#: .\schedule\views.py:865
+#, python-format
+msgid "(БАСТИ %(shift_num)s)"
+msgstr "(СМЕНА %(shift_num)s)"
+
+#: .\schedule\views.py:874
+msgid "ҲАФТА"
+msgstr "НЕДЕЛЯ"
+
+#: .\schedule\views.py:875
+msgid "СОАТ"
+msgstr "ЧАС"
+
+#: .\schedule\views.py:877
+#, python-format
+msgid "%(specialty_code)s – “%(specialty_name)s” (%(student_count)s нафар)"
+msgstr "%(specialty_code)s – “%(specialty_name)s” (%(student_count)s людей)"
+
+#: .\schedule\views.py:882
+msgid "АУД"
+msgstr "АУД"
+
+#: .\schedule\views.py:923
+#, python-format
+msgid "%(subject_name)s (%(lesson_type)s)\n"
+msgstr "%(subject_name)s (%(lesson_type)s)\n"
+
+#: .\schedule\views.py:928
+#, python-format
+msgid "%(teacher_name)s"
+msgstr "%(teacher_name)s"
+
+#: .\schedule\views.py:962
+msgid "Кафедраи ҳарбӣ"
+msgstr "Военная кафедра"
+
+#: .\schedule\views.py:980
+msgid "Директор"
+msgstr "Директор"
+
+#: .\schedule\views.py:985
+#, python-format
+msgid "%(director_name)s"
+msgstr "%(director_name)s"
+
+#: .\schedule\views.py:1041
+msgid "Это план чужого факультета!"
+msgstr "Это план чужого факультета!"
+
+#: .\schedule\views.py:1067
+msgid "Дисциплина добавлена"
+msgstr "Дисциплина добавлена"
+
+#: .\schedule\views.py:1090
+msgid "Нет активного семестра! Сначала активируйте семестр."
+msgstr "Нет активного семестра! Сначала активируйте семестр."
+
+#: .\schedule\views.py:1179
+#, python-format
+msgid "Создано предметов: %(created_count)s"
+msgstr "Создано предметов: %(created_count)s"
+
+#: .\schedule\views.py:1196
+#, python-format
+msgid "Кабинет %(classroom_number)s обновлен"
+msgstr "Кабинет %(classroom_number)s обновлен"
+
+#: .\schedule\views.py:1202
+#, python-format
+msgid "Редактировать кабинет %(classroom_number)s"
+msgstr "Редактировать кабинет %(classroom_number)s"
+
+#: .\schedule\views.py:1258
+msgid "Нет данных для сохранения"
+msgstr "Нет данных для сохранения"
+
+#: .\schedule\views.py:1283
+#, python-format
+msgid ""
+"✅ Импорт завершен! Слотов: %(slots)s, Новых предметов: %(subjects)s, Новых "
+"учителей: %(teachers)s"
+msgstr ""
+"✅ Импорт завершен! Слотов: %(slots)s, Новых предметов: %(subjects)s, Новых "
+"учителей: %(teachers)s"
+
+#: .\schedule\views.py:1298
+msgid "Данные не найдены в файле или формат некорректен."
+msgstr "Данные не найдены в файле или формат некорректен."
+
+#: .\schedule\views.py:1309
+#, python-format
+msgid "Ошибка обработки файла: %(error)s"
+msgstr "Ошибка обработки файла: %(error)s"
+
+#: .\schedule\views.py:1326
+msgid "Название не может быть пустым"
+msgstr "Название не может быть пустым"
+
+#: .\schedule\views.py:1329
+msgid "Такая дисциплина уже существует"
+msgstr "Такая дисциплина уже существует"
+
+#: .\schedule\views.py:1349
+msgid "Укажите новый год"
+msgstr "Укажите новый год"
+
+#: .\schedule\views.py:1353
+#, python-format
+msgid "План для %(specialty_code)s на %(new_year)s год уже существует!"
+msgstr "План для %(specialty_code)s на %(new_year)s год уже существует!"
+
+#: .\schedule\views.py:1375
+#, python-format
+msgid "План успешно скопирован на %(new_year)s год!"
+msgstr "План успешно скопирован на %(new_year)s год!"
+
+#: .\schedule\views.py:1389
+msgid "Нет прав на удаление"
+msgstr "Нет прав на удаление"
+
+#: .\schedule\views.py:1393
+msgid "Дисциплина удалена из плана"
+msgstr "Дисциплина удалена из плана"
+
+#: .\schedule\views.py:1451
+msgid "Материал добавлен"
+msgstr "Материал добавлен"
+
+#: .\schedule\views.py:1468
+msgid "Материал удален"
+msgstr "Материал удален"
+
+#: .\schedule\views.py:1483
+#, python-format
+msgid ""
+"Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!"
+msgstr ""
+"Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!"
+
+#: .\schedule\views.py:1494
+msgid "Нет прав на удаление этого плана"
+msgstr "Нет прав на удаление этого плана"
+
+#: .\schedule\views.py:1498
+#, python-format
+msgid "Учебный план для %(specialty_code)s удален"
+msgstr "Учебный план для %(specialty_code)s удален"
+
+#: .\schedule\views.py:1511
+#, python-format
+msgid "Семестр '%(semester_name)s' (%(course)s курс) успешно активирован!"
+msgstr "Семестр '%(semester_name)s' (%(course)s курс) успешно активирован!"
+
+#: .\schedule\views.py:1523
+msgid "Выберите семестр из списка"
+msgstr "Выберите семестр из списка"
+
+#: .\schedule\views.py:1529
+msgid "Ошибка доступа"
+msgstr "Ошибка доступа"
+
+#: .\schedule\views.py:1542
+#, python-format
+msgid "Семестр %(semester)s теперь АКТИВЕН для %(course)s курса!"
+msgstr "Семестр %(semester)s теперь АКТИВЕН для %(course)s курса!"
+
+#: .\templates\accounts\add_group.html:4
+#: .\templates\accounts\add_group.html:11
+#: .\templates\accounts\group_management.html:13
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Добавить группу"
+msgstr "Добавить предмет"
+
+#: .\templates\accounts\add_group.html:27
+#, fuzzy
+#| msgid "Название кафедры"
+msgid "Название группы *"
+msgstr "Название кафедры"
+
+#: .\templates\accounts\add_group.html:32
+msgid "Имя должно быть уникальным (например: 400101-А)"
+msgstr "Имя должно быть уникальным (например: 400101-А)"
+
+#: .\templates\accounts\add_group.html:37
+#, fuzzy
+#| msgid "Курс"
+msgid "Курс *"
+msgstr "Курс"
+
+#: .\templates\accounts\add_group.html:45
+#, fuzzy
+#| msgid "Сообщения"
+msgid "Год обучения *"
+msgstr "Сообщения"
+
+#: .\templates\accounts\add_group.html:54
+#, fuzzy
+#| msgid "Специальность"
+msgid "Специальность *"
+msgstr "Специальность"
+
+#: .\templates\accounts\add_group.html:61
+#, fuzzy
+#| msgid "Специальность обновлена"
+msgid "Специальность выбрана автоматически"
+msgstr "Специальность обновлена"
+
+#: .\templates\accounts\add_group.html:67
+#: .\templates\accounts\edit_group.html:61
+#, fuzzy
+#| msgid "Сообщения"
+msgid "Язык обучения"
+msgstr "Сообщения"
+
+#: .\templates\accounts\add_group.html:80
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Создать группу"
+msgstr "Новая группа"
+
+#: .\templates\accounts\add_group.html:83
+#: .\templates\accounts\add_user.html:63
+#: .\templates\accounts\change_password.html:22
+#: .\templates\accounts\confirm_delete.html:25
+#: .\templates\accounts\delete_group.html:50
+#: .\templates\accounts\edit_group.html:88
+#: .\templates\accounts\edit_institute_full.html:89
+#: .\templates\accounts\edit_profile.html:29
+#: .\templates\accounts\edit_user.html:71
+#: .\templates\accounts\form_generic.html:33
+#: .\templates\accounts\import_students.html:46
+#: .\templates\accounts\reset_password.html:19
+#: .\templates\accounts\transfer_student.html:22
+#, fuzzy
+#| msgid "Смена"
+msgid "Отмена"
+msgstr "Смена"
+
+#: .\templates\accounts\add_user.html:4 .\templates\accounts\add_user.html:11
+#: .\templates\accounts\user_management.html:15
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Добавить пользователя"
+msgstr "Добавить предмет"
+
+#: .\templates\accounts\add_user.html:19
+msgid "Логин будет сгенерирован автоматически. Временный пароль:"
+msgstr "Логин будет сгенерирован автоматически. Временный пароль:"
+
+#: .\templates\accounts\add_user.html:60
+msgid "Создать пользователя"
+msgstr "Создать пользователя"
+
+#: .\templates\accounts\add_user.html:69
+#, fuzzy
+#| msgid "Причина/Основание"
+msgid "Обратите внимание:"
+msgstr "Причина/Основание"
+
+#: .\templates\accounts\add_user.html:69
+msgid ""
+"После создания пользователя нужно будет заполнить дополнительные поля "
+"профиля через редактирование."
+msgstr ""
+"После создания пользователя нужно будет заполнить дополнительные поля "
+"профиля через редактирование."
+
+#: .\templates\accounts\all_orders_list.html:3
+#, fuzzy
+#| msgid "Номер приказа"
+msgid "Реестр приказов"
+msgstr "Номер приказа"
+
+#: .\templates\accounts\all_orders_list.html:10
+#, fuzzy
+#| msgid "Приказ по студенту"
+msgid "Реестр приказов по студентам"
+msgstr "Приказ по студенту"
+
+#: .\templates\accounts\all_orders_list.html:11
+#, fuzzy
+#| msgid "Возглавляет"
+msgid "На главную"
+msgstr "Возглавляет"
+
+#: .\templates\accounts\all_orders_list.html:16
+#, fuzzy
+#| msgid "Номер приказа"
+msgid "Номер приказа или Фамилия..."
+msgstr "Номер приказа"
+
+#: .\templates\accounts\all_orders_list.html:20
+#, fuzzy
+#| msgid "Все студенты"
+msgid "Все типы"
+msgstr "Все студенты"
+
+#: .\templates\accounts\all_orders_list.html:27
+#: .\templates\accounts\group_management.html:32
+#: .\templates\accounts\user_management.html:33
+msgid "Найти"
+msgstr "Найти"
+
+#: .\templates\accounts\all_orders_list.html:35
+#, fuzzy
+#| msgid "Тип приказа"
+msgid "№ Приказа"
+msgstr "Тип приказа"
+
+#: .\templates\accounts\all_orders_list.html:39
+#: .\templates\accounts\student_orders.html:27
+#, fuzzy
+#| msgid "Тип занятия"
+msgid "Тип действия"
+msgstr "Тип занятия"
+
+#: .\templates\accounts\all_orders_list.html:40
+#, fuzzy
+#| msgid "Название"
+msgid "Основание"
+msgstr "Название"
+
+#: .\templates\accounts\all_orders_list.html:57
+#, fuzzy
+#| msgid "Отчислен"
+msgid "Отчисление"
+msgstr "Отчислен"
+
+#: .\templates\accounts\all_orders_list.html:72
+#, fuzzy
+#| msgid "Приказы (Фармонҳо)"
+msgid "Приказов не найдено"
+msgstr "Приказы"
+
+#: .\templates\accounts\change_password.html:3
+#: .\templates\accounts\change_password.html:8
+#: .\templates\accounts\change_password.html:21
+#: .\templates\accounts\profile_teacher.html:28
+#, fuzzy
+#| msgid "Подтвердите пароль"
+msgid "Сменить пароль"
+msgstr "Подтвердите пароль"
+
+#: .\templates\accounts\confirm_delete.html:11
+#: .\templates\accounts\delete_group.html:33
+#, fuzzy
+#| msgid "Подтверждение пароля"
+msgid "Подтверждение удаления"
+msgstr "Подтверждение пароля"
+
+#: .\templates\accounts\confirm_delete.html:14
+msgid "Вы уверены?"
+msgstr "Вы уверены?"
+
+#: .\templates\accounts\confirm_delete.html:16
+#, python-format
+msgid "Вы собираетесь удалить: <strong>%(obj)s</strong>"
+msgstr "Вы собираетесь удалить: <strong>%(obj)s</strong>"
+
+#: .\templates\accounts\confirm_delete.html:19
+msgid "Это действие необратимо. Все связанные данные могут быть удалены."
+msgstr "Это действие необратимо. Все связанные данные могут быть удалены."
+
+#: .\templates\accounts\confirm_delete.html:26
+msgid "Да, удалить"
+msgstr "Да, удалить"
+
+#: .\templates\accounts\delete_group.html:4
+#: .\templates\accounts\delete_group.html:11
+#, fuzzy
+#| msgid "-- Выберите группу --"
+msgid "Удалить группу"
+msgstr "-- Выберите группу --"
+
+#: .\templates\accounts\delete_group.html:16
+msgid "Невозможно удалить группу"
+msgstr "Невозможно удалить группу"
+
+#: .\templates\accounts\delete_group.html:18
+#, python-format
+msgid ""
+"\n"
+"                            В группе <strong>%(group_name)s</strong> есть <strong>%(counter)s</strong> студент. \n"
+"                            Сначала переведите студентов в другие группы или удалите их.\n"
+"                            "
+msgid_plural ""
+"\n"
+"                            В группе <strong>%(group_name)s</strong> есть <strong>%(counter)s</strong> студентов. \n"
+"                            Сначала переведите студентов в другие группы или удалите их.\n"
+"                            "
+msgstr[0] ""
+"\n"
+"В группе <strong>%(group_name)s</strong> есть <strong>%(counter)s</strong> студент.\n"
+"Сначала переведите студентов в другие группы или удалите их."
+msgstr[1] ""
+"\n"
+"В группе <strong>%(group_name)s</strong> есть <strong>%(counter)s</strong> студентов.\n"
+"Сначала переведите студентов в другие группы или удалите их."
+msgstr[2] ""
+"\n"
+" "
+msgstr[3] ""
+"\n"
+" "
+
+#: .\templates\accounts\delete_group.html:29
+#: .\templates\accounts\profile_teacher.html:32
+msgid "Назад к списку"
+msgstr "Назад к списку"
+
+#: .\templates\accounts\delete_group.html:34
+#, python-format
+msgid ""
+"Вы действительно хотите удалить группу <strong>%(group_name)s</strong>?"
+msgstr ""
+"Вы действительно хотите удалить группу <strong>%(group_name)s</strong>?"
+
+#: .\templates\accounts\delete_group.html:36
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Информация о группе"
+msgstr "Новая группа"
+
+#: .\templates\accounts\delete_group.html:38
+#, fuzzy
+#| msgid "Код"
+msgid "Год"
+msgstr "Код"
+
+#: .\templates\accounts\delete_group.html:47
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Да, удалить группу"
+msgstr "Добавить предмет"
+
+#: .\templates\accounts\edit_group.html:4
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Редактировать группу"
+msgstr "Редактировать предмет"
+
+#: .\templates\accounts\edit_group.html:11
+#, fuzzy, python-format
+#| msgid "Редактировать кабинет %(classroom_number)s"
+msgid "Редактировать группу: %(group.name)s"
+msgstr "Редактировать кабинет %(classroom_number)s"
+
+#: .\templates\accounts\edit_group.html:27
+#, fuzzy
+#| msgid "Название кафедры"
+msgid "Название группы"
+msgstr "Название кафедры"
+
+#: .\templates\accounts\edit_group.html:44
+#: .\templates\accounts\group_management.html:43
+#, fuzzy
+#| msgid "Сообщения"
+msgid "Год обучения"
+msgstr "Сообщения"
+
+#: .\templates\accounts\edit_group.html:80
+#, python-format
+msgid "В этой группе <strong>%(group.students.count)s</strong> студентов"
+msgstr "В этой группе <strong>%(group.students.count)s</strong> студентов"
+
+#: .\templates\accounts\edit_group.html:85
+#: .\templates\accounts\edit_institute_full.html:91
+#: .\templates\accounts\edit_user.html:68
+#, fuzzy
+#| msgid "Логи изменений"
+msgid "Сохранить изменения"
+msgstr "Логи изменений"
+
+#: .\templates\accounts\edit_institute_full.html:18
+#: .\templates\accounts\edit_profile.html:12
+#: .\templates\accounts\edit_user.html:20
+#, fuzzy
+#| msgid "Основная кафедра"
+msgid "Основная информация"
+msgstr "Основная кафедра"
+
+#: .\templates\accounts\edit_institute_full.html:28
+#: .\templates\accounts\edit_institute_full.html:57
+msgid "Руководство"
+msgstr "Руководство"
+
+#: .\templates\accounts\edit_institute_full.html:40
+#, fuzzy
+#| msgid "Декан факультета"
+msgid "Данные факультета"
+msgstr "Декан факультета"
+
+#: .\templates\accounts\edit_institute_full.html:63
+msgid "При выборе пользователя его роль автоматически сменится на 'Декан'"
+msgstr "При выборе пользователя его роль автоматически сменится на 'Декан'"
+
+#: .\templates\accounts\edit_institute_full.html:71
+#: .\templates\accounts\profile_teacher.html:44
+msgid "Email"
+msgstr "Email"
+
+#: .\templates\accounts\edit_institute_full.html:82
+msgid "Опционально. Роль пользователя сменится на 'Зам. декана'"
+msgstr "Опционально. Роль пользователя сменится на 'Зам. декана'"
+
+#: .\templates\accounts\edit_profile.html:3
+#: .\templates\accounts\edit_profile.html:8
+#: .\templates\accounts\profile_teacher.html:25
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Редактировать профиль"
+msgstr "Редактировать предмет"
+
+#: .\templates\accounts\edit_profile.html:20
+#, fuzzy
+#| msgid "Военная кафедра"
+msgid "Профильная информация"
+msgstr "Военная кафедра"
+
+#: .\templates\accounts\edit_profile.html:28
+#: .\templates\accounts\form_generic.html:34
+msgid "Сохранить"
+msgstr "Сохранить"
+
+#: .\templates\accounts\edit_user.html:4
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Редактировать пользователя"
+msgstr "Редактировать предмет"
+
+#: .\templates\accounts\edit_user.html:6
+#, fuzzy
+#| msgid "Преподаватели"
+msgid "Пользователи"
+msgstr "Преподаватели"
+
+#: .\templates\accounts\edit_user.html:7
+#, fuzzy, python-format
+#| msgid "Редактировать кабинет %(classroom_number)s"
+msgid "Редактирование: %(user_obj.username)s"
+msgstr "Редактировать кабинет %(classroom_number)s"
+
+#: .\templates\accounts\edit_user.html:14
+#, fuzzy, python-format
+#| msgid "Редактировать кабинет %(classroom_number)s"
+msgid "Редактировать пользователя: %(user_obj.get_full_name)s"
+msgstr "Редактировать кабинет %(classroom_number)s"
+
+#: .\templates\accounts\edit_user.html:44
+#, fuzzy
+#| msgid "Текущая неделя"
+msgid "Текущее"
+msgstr "Текущая неделя"
+
+#: .\templates\accounts\edit_user.html:44
+#, fuzzy
+#| msgid "Просмотры"
+msgid "Посмотреть"
+msgstr "Просмотры"
+
+#: .\templates\accounts\edit_user.html:51
+#, python-format
+msgid "Профильная информация (%(user_obj.get_role_display)s)"
+msgstr "Профильная информация (%(user_obj.get_role_display)s)"
+
+#: .\templates\accounts\form_generic.html:6
+#, fuzzy
+#| msgid "Сохтор (Структура)"
+msgid "Структура"
+msgstr "Структура"
+
+#: .\templates\accounts\group_management.html:4
+#: .\templates\accounts\group_management.html:11
+#, fuzzy
+#| msgid "Справочник дисциплин"
+msgid "Управление группами"
+msgstr "Справочник дисциплин"
+
+#: .\templates\accounts\group_management.html:20
+#, fuzzy
+#| msgid "Текущее название"
+msgid "Поиск по названию..."
+msgstr "Текущее название"
+
+#: .\templates\accounts\group_management.html:24
+#, fuzzy
+#| msgid "1 курс"
+msgid "Все курсы"
+msgstr "1 курс"
+
+#: .\templates\accounts\group_management.html:26
+#: .\templates\accounts\profile_student.html:23
+#, fuzzy
+#| msgid "1 курс"
+msgid "курс"
+msgstr "1 курс"
+
+#: .\templates\accounts\group_management.html:45
+#, fuzzy
+#| msgid "Студент"
+msgid "Студентов"
+msgstr "Студент"
+
+#: .\templates\accounts\group_management.html:46
+#: .\templates\accounts\structure_manage.html:101
+#: .\templates\accounts\user_management.html:47
+msgid "Действия"
+msgstr "Действия"
+
+#: .\templates\accounts\group_management.html:63
+#: .\templates\accounts\profile_student.html:39
+#: .\templates\accounts\user_management.html:91
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Редактировать"
+msgstr "Редактировать предмет"
+
+#: .\templates\accounts\group_management.html:69
+#: .\templates\accounts\structure_manage.html:60
+msgid "Удалить"
+msgstr "Удалить"
+
+#: .\templates\accounts\group_management.html:77
+#, fuzzy
+#| msgid "Группа по умолчанию"
+msgid "Группы не найдены"
+msgstr "Группа по умолчанию"
+
+#: .\templates\accounts\import_students.html:4
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Импорт студентов"
+msgstr "Выберите студентов"
+
+#: .\templates\accounts\import_students.html:11
+#, fuzzy
+#| msgid "Статистика студентов"
+msgid "Массовый импорт студентов"
+msgstr "Статистика студентов"
+
+#: .\templates\accounts\import_students.html:15
+msgid "Формат Excel файла (.xlsx):"
+msgstr "Формат Excel файла (.xlsx):"
+
+#: .\templates\accounts\import_students.html:16
+msgid "Колонка A: Имя"
+msgstr "Колонка A: Имя"
+
+#: .\templates\accounts\import_students.html:17
+#, fuzzy
+#| msgid "Фамилия"
+msgid "Колонка B: Фамилия"
+msgstr "Фамилия"
+
+#: .\templates\accounts\import_students.html:18
+msgid "Колонка C: Отчество (необязательно)"
+msgstr "Колонка C: Отчество (необязательно)"
+
+#: .\templates\accounts\import_students.html:19
+msgid "Колонка D: Номер зачетки (необязательно, иначе авто)"
+msgstr "Колонка D: Номер зачетки (необязательно, иначе авто)"
+
+#: .\templates\accounts\import_students.html:20
+msgid "Первая строка (заголовки) пропускается."
+msgstr "Первая строка (заголовки) пропускается."
+
+#: .\templates\accounts\import_students.html:27
+#, fuzzy
+#| msgid "-- Выберите группу --"
+msgid "Выберите группу (опционально)"
+msgstr "-- Выберите группу --"
+
+#: .\templates\accounts\import_students.html:29
+#, fuzzy
+#| msgid "-- Выберите группу --"
+msgid "-- Без группы --"
+msgstr "-- Выберите группу --"
+
+#: .\templates\accounts\import_students.html:34
+msgid "Все импортированные студенты будут добавлены в эту группу."
+msgstr "Все импортированные студенты будут добавлены в эту группу."
+
+#: .\templates\accounts\import_students.html:38
+#, fuzzy
+#| msgid "Файл"
+msgid "Файл Excel"
+msgstr "Файл"
+
+#: .\templates\accounts\import_students.html:44
+#, fuzzy
+#| msgid "Начальный номер"
+msgid "Начать импорт"
+msgstr "Начальный номер"
+
+#: .\templates\accounts\login.html:6
+msgid "Вход в систему"
+msgstr "Вход в систему"
+
+#: .\templates\accounts\login.html:57
+#, fuzzy
+#| msgid "Система Деканат"
+msgid "Платформа деканата"
+msgstr "Система Деканат"
+
+#: .\templates\accounts\login.html:58
+msgid "Войдите в систему"
+msgstr "Войдите в систему"
+
+#: .\templates\accounts\login.html:73
+#: .\templates\accounts\user_management.html:42
+msgid "Логин"
+msgstr "Логин"
+
+#: .\templates\accounts\login.html:77
+#, fuzzy
+#| msgid "Новый пароль"
+msgid "Пароль"
+msgstr "Новый пароль"
+
+#: .\templates\accounts\login.html:80
+msgid "Войти"
+msgstr "Войти"
+
+#: .\templates\accounts\payment_list.html:3
+#, fuzzy
+#| msgid "Дата исключения"
+msgid "Оплата обучения"
+msgstr "Дата исключения"
+
+#: .\templates\accounts\payment_list.html:10
+msgid "Маблағи шартнома (Оплата)"
+msgstr "Оплата"
+
+#: .\templates\accounts\payment_list.html:13
+#, fuzzy
+#| msgid "Группы"
+msgid "Все группы"
+msgstr "Группы"
+
+#: .\templates\accounts\payment_list.html:20
+msgid "Только должники"
+msgstr "Только должники"
+
+#: .\templates\accounts\payment_list.html:33
+msgid "Долг"
+msgstr "Долг"
+
+#: .\templates\accounts\payment_list.html:34
+#: .\templates\accounts\user_management.html:46
+msgid "Статус"
+msgstr "Статус"
+
+#: .\templates\accounts\payment_list.html:55
+#, fuzzy
+#| msgid "Нет прав"
+msgid "Нет данных"
+msgstr "Нет прав"
+
+#: .\templates\accounts\profile_student.html:4
+#, fuzzy
+#| msgid "Статистика студента"
+msgid "Профиль студента"
+msgstr "Статистика студента"
+
+#: .\templates\accounts\profile_student.html:32
+#, fuzzy
+#| msgid "Группа"
+msgid "Группа:"
+msgstr "Группа"
+
+#: .\templates\accounts\profile_student.html:53
+#, fuzzy
+#| msgid "Среда"
+msgid "Средний GPA"
+msgstr "Среда"
+
+#: .\templates\accounts\profile_student.html:64
+#, fuzzy
+#| msgid "Новая посещаемость"
+msgid "Посещаемость"
+msgstr "Новая посещаемость"
+
+#: .\templates\accounts\profile_student.html:75
+#, fuzzy
+#| msgid "Рейтинг в группе"
+msgid "Рейтинг"
+msgstr "Рейтинг в группе"
+
+#: .\templates\accounts\profile_student.html:86
+msgid "Прогулы (НБ)"
+msgstr "Прогулы (НБ)"
+
+#: .\templates\accounts\profile_student.html:99
+#, fuzzy
+#| msgid "Дата исключения"
+msgid "Динамика обучения"
+msgstr "Дата исключения"
+
+#: .\templates\accounts\profile_student.html:112
+#, fuzzy
+#| msgid "Статус посещения"
+msgid "Структура посещения"
+msgstr "Статус посещения"
+
+#: .\templates\accounts\profile_student.html:119
+msgid "Пар всего"
+msgstr "Пар всего"
+
+#: .\templates\accounts\profile_student.html:123
+#, fuzzy
+#| msgid "Присутствовал"
+msgid "Присут."
+msgstr "Присутствовал"
+
+#: .\templates\accounts\profile_student.html:124
+#: .\templates\accounts\profile_student.html:360
+#, fuzzy
+#| msgid "НБ-Болезнь"
+msgid "Болезнь"
+msgstr "НБ-Болезнь"
+
+#: .\templates\accounts\profile_student.html:125
+msgid "Уваж."
+msgstr "Уваж."
+
+#: .\templates\accounts\profile_student.html:126
+msgid "НБ"
+msgstr "НБ"
+
+#: .\templates\accounts\profile_student.html:137
+#, fuzzy
+#| msgid "Данные по предметам"
+msgid "Успеваемость по предметам"
+msgstr "Данные по предметам"
+
+#: .\templates\accounts\profile_student.html:145
+#, fuzzy
+#| msgid "Преподаватели"
+msgid "Показатели"
+msgstr "Преподаватели"
+
+#: .\templates\accounts\profile_student.html:146
+#, fuzzy
+#| msgid "Вместимость"
+msgid "Эффективность"
+msgstr "Вместимость"
+
+#: .\templates\accounts\profile_student.html:182
+#, fuzzy
+#| msgid "Данные по предметам"
+msgid "Нет данных по предметам"
+msgstr "Данные по предметам"
+
+#: .\templates\accounts\profile_student.html:195
+#, fuzzy
+#| msgid "Учебные планы"
+msgid "Личные данные"
+msgstr "Учебные планы"
+
+#: .\templates\accounts\profile_student.html:207
+msgid "Пол / Нац."
+msgstr "Пол / Нац."
+
+#: .\templates\accounts\profile_student.html:214
+#, fuzzy
+#| msgid "Номер паспорта"
+msgid "Паспорт"
+msgstr "Номер паспорта"
+
+#: .\templates\accounts\profile_student.html:323
+#, fuzzy, python-format
+#| msgid "Новая посещаемость"
+msgid "Посещаемость %%"
+msgstr "Новая посещаемость"
+
+#: .\templates\accounts\profile_student.html:360
+#, fuzzy
+#| msgid "НБ-Уважительная"
+msgid "Уважительная"
+msgstr "НБ-Уважительная"
+
+#: .\templates\accounts\profile_student.html:360
+msgid "Прогул"
+msgstr "Прогул"
+
+#: .\templates\accounts\profile_teacher.html:4
+#, fuzzy
+#| msgid "Все преподаватели"
+msgid "Профиль преподавателя"
+msgstr "Все преподаватели"
+
+#: .\templates\accounts\profile_teacher.html:40 .\templates\base.html:728
+msgid "Контакты"
+msgstr "Контакты"
+
+#: .\templates\accounts\profile_teacher.html:52
+msgid "Часы консультаций"
+msgstr "Часы консультаций"
+
+#: .\templates\accounts\profile_teacher.html:56
+msgid "Контактная информация не заполнена"
+msgstr "Контактная информация не заполнена"
+
+#: .\templates\accounts\profile_teacher.html:65
+#, fuzzy
+#| msgid "Преподаватели"
+msgid "О преподавателе"
+msgstr "Преподаватели"
+
+#: .\templates\accounts\profile_teacher.html:68
+#, fuzzy
+#| msgid "Новое значение"
+msgid "Не назначена"
+msgstr "Новое значение"
+
+#: .\templates\accounts\profile_teacher.html:79
+msgid "Биография"
+msgstr "Биография"
+
+#: .\templates\accounts\profile_teacher.html:84
+#, fuzzy
+#| msgid "Учебные материалы"
+msgid "Научные интересы"
+msgstr "Учебные материалы"
+
+#: .\templates\accounts\profile_teacher.html:89
+msgid "Информация не заполнена"
+msgstr "Информация не заполнена"
+
+#: .\templates\accounts\profile_teacher.html:102
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Мои группы"
+msgstr "Новая группа"
+
+#: .\templates\accounts\profile_teacher.html:113
+#, fuzzy, python-format
+#| msgid "Все студенты"
+msgid "%(counter)s студент"
+msgid_plural "%(counter)s студентов"
+msgstr[0] "Все студенты"
+msgstr[1] "Все студенты"
+msgstr[2] "Все студенты"
+msgstr[3] "Все студенты"
+
+#: .\templates\accounts\profile_teacher.html:123
+msgid "посещ."
+msgstr "посещ."
+
+#: .\templates\accounts\profile_teacher.html:132
+#, fuzzy
+#| msgid "Рейтинг в группе"
+msgid "Подробнее о группах"
+msgstr "Рейтинг в группе"
+
+#: .\templates\accounts\profile_teacher.html:136
+#, fuzzy
+#| msgid "Группа по умолчанию"
+msgid "Группы не назначены"
+msgstr "Группа по умолчанию"
+
+#: .\templates\accounts\reset_password.html:3
+#: .\templates\accounts\reset_password.html:18
+#: .\templates\accounts\user_management.html:97
+#, fuzzy
+#| msgid "Старый пароль"
+msgid "Сбросить пароль"
+msgstr "Старый пароль"
+
+#: .\templates\accounts\reset_password.html:8
+#, python-format
+msgid "Сбросить пароль для %(user_obj.get_full_name)s"
+msgstr "Сбросить пароль для %(user_obj.get_full_name)s"
+
+#: .\templates\accounts\structure_manage.html:4
+msgid "Управление структурой ВУЗа"
+msgstr "Управление структурой ВУЗа"
+
+#: .\templates\accounts\structure_manage.html:6
+#: .\templates\accounts\structure_manage.html:14
+msgid "Структура университета"
+msgstr "Структура университета"
+
+#: .\templates\accounts\structure_manage.html:15
+msgid "Управление институтами, факультетами, кафедрами и специальностями"
+msgstr "Управление институтами, факультетами, кафедрами и специальностями"
+
+#: .\templates\accounts\structure_manage.html:44
+#, fuzzy
+#| msgid "Директор"
+msgid "Директор:"
+msgstr "Директор"
+
+#: .\templates\accounts\structure_manage.html:54
+#, fuzzy
+#| msgid "Факультет"
+msgid "факультетов"
+msgstr "Факультет"
+
+#: .\templates\accounts\structure_manage.html:57
+#: .\templates\accounts\structure_manage.html:236
+msgid "Настройки"
+msgstr "Настройки"
+
+#: .\templates\accounts\structure_manage.html:82
+#, fuzzy
+#| msgid "Декан"
+msgid "Декан:"
+msgstr "Декан"
+
+#: .\templates\accounts\structure_manage.html:85
+#, fuzzy
+#| msgid "Добавить кабинет"
+msgid "Добавить кафедру"
+msgstr "Добавить кабинет"
+
+#: .\templates\accounts\structure_manage.html:85
+msgid "+ Каф"
+msgstr "+ Каф"
+
+#: .\templates\accounts\structure_manage.html:98
+#, fuzzy
+#| msgid "Заведующий кафедрой"
+msgid "Заведующий"
+msgstr "Заведующий кафедрой"
+
+#: .\templates\accounts\structure_manage.html:99
+#, fuzzy
+#| msgid "Практика"
+msgid "Статистика"
+msgstr "Практика"
+
+#: .\templates\accounts\structure_manage.html:100
+#, fuzzy
+#| msgid "Специальность"
+msgid "Специальности"
+msgstr "Специальность"
+
+#: .\templates\accounts\structure_manage.html:115
+msgid "преп."
+msgstr "преп."
+
+#: .\templates\accounts\structure_manage.html:116
+msgid "студ."
+msgstr "студ."
+
+#: .\templates\accounts\structure_manage.html:130
+#, fuzzy
+#| msgid "Добавить семестр"
+msgid "Добавить специальность"
+msgstr "Добавить семестр"
+
+#: .\templates\accounts\structure_manage.html:130
+msgid "+Спец"
+msgstr "+Спец"
+
+#: .\templates\accounts\structure_manage.html:139
+msgid "Кафедры отсутствуют."
+msgstr "Кафедры отсутствуют."
+
+#: .\templates\accounts\structure_manage.html:140
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Добавить первую"
+msgstr "Добавить предмет"
+
+#: .\templates\accounts\structure_manage.html:153
+#, fuzzy
+#| msgid "Это план чужого факультета!"
+msgid "В этом институте пока нет факультетов."
+msgstr "Это план чужого факультета!"
+
+#: .\templates\accounts\structure_manage.html:155
+#, fuzzy
+#| msgid "Декан факультета"
+msgid "Добавить факультет"
+msgstr "Декан факультета"
+
+#: .\templates\accounts\structure_manage.html:167
+msgid "Структура пуста"
+msgstr "Структура пуста"
+
+#: .\templates\accounts\structure_manage.html:168
+#, fuzzy
+#| msgid "У вас нет прав создавать руководство института."
+msgid "Начните с создания первого института."
+msgstr "У вас нет прав создавать руководство института."
+
+#: .\templates\accounts\structure_manage.html:170
+#, fuzzy
+#| msgid "Иловаи Институт"
+msgid "Создать Институт"
+msgstr "Добавление Института"
+
+#: .\templates\accounts\structure_manage.html:180
+#, fuzzy
+#| msgid "Кабинет декана"
+msgid "Панель Декана:"
+msgstr "Кабинет декана"
+
+#: .\templates\accounts\structure_manage.html:180
+#, python-format
+msgid "Вы управляете факультетом <u>%(faculty.name)s</u>."
+msgstr "Вы управляете факультетом <u>%(faculty.name)s</u>."
+
+#: .\templates\accounts\structure_manage.html:181
+msgid ""
+"Используйте этот раздел для настройки кафедр, специальностей и назначения "
+"заведующих."
+msgstr ""
+"Используйте этот раздел для настройки кафедр, специальностей и назначения "
+"заведующих."
+
+#: .\templates\accounts\structure_manage.html:187
+#, fuzzy
+#| msgid "Основная кафедра"
+msgid "Новая кафедра"
+msgstr "Основная кафедра"
+
+#: .\templates\accounts\structure_manage.html:202
+msgid "Зав:"
+msgstr "Зав:"
+
+#: .\templates\accounts\structure_manage.html:207
+msgid "НАГРУЗКА"
+msgstr "НАГРУЗКА"
+
+#: .\templates\accounts\structure_manage.html:223
+msgid "Действия:"
+msgstr "Действия:"
+
+#: .\templates\accounts\structure_manage.html:226
+#, fuzzy
+#| msgid "Специальность"
+msgid "+Специальность"
+msgstr "Специальность"
+
+#: .\templates\accounts\structure_manage.html:229
+#, fuzzy
+#| msgid "Преподаватель"
+msgid "+Преподаватель"
+msgstr "Преподаватель"
+
+#: .\templates\accounts\structure_manage.html:232
+msgid "Штат"
+msgstr "Штат"
+
+#: .\templates\accounts\structure_manage.html:255
+msgid "ГРУППЫ:"
+msgstr "ГРУППЫ:"
+
+#: .\templates\accounts\structure_manage.html:257
+msgid "Нет РУП! Создать"
+msgstr "Нет РУП! Создать"
+
+#: .\templates\accounts\structure_manage.html:259
+#, fuzzy
+#| msgid "СРСП"
+msgid "РУП"
+msgstr "СРСП"
+
+#: .\templates\accounts\structure_manage.html:273
+#, fuzzy
+#| msgid "Группа"
+msgid "Групп нет"
+msgstr "Группа"
+
+#: .\templates\accounts\structure_manage.html:274
+msgid "+Доб."
+msgstr "+Доб."
+
+#: .\templates\accounts\student_orders.html:8
+#, python-format
+msgid "Приказы: %(student.user.get_full_name)s"
+msgstr "Приказы: %(student.user.get_full_name)s"
+
+#: .\templates\accounts\student_orders.html:12
+msgid ""
+"Создание приказа <strong>автоматически изменит статус</strong> студента "
+"(отчислит, выпустит и т.д.)."
+msgstr ""
+"Создание приказа <strong>автоматически изменит статус</strong> студента "
+"(отчислит, выпустит и т.д.)."
+
+#: .\templates\accounts\student_orders.html:32
+#, fuzzy
+#| msgid "Причина/Основание"
+msgid "Причина / Основание"
+msgstr "Причина/Основание"
+
+#: .\templates\accounts\student_orders.html:36
+msgid "Скан файла (опционально)"
+msgstr "Скан файла (опционально)"
+
+#: .\templates\accounts\student_orders.html:39
+#, fuzzy
+#| msgid "Дата приказа"
+msgid "Издать приказ"
+msgstr "Дата приказа"
+
+#: .\templates\accounts\student_orders.html:42
+#, fuzzy
+#| msgid "История переводов"
+msgid "История приказов"
+msgstr "История переводов"
+
+#: .\templates\accounts\student_orders.html:47
+msgid "№"
+msgstr "№"
+
+#: .\templates\accounts\student_orders.html:66
+#, fuzzy
+#| msgid "Приказ по студенту"
+msgid "Приказов нет"
+msgstr "Приказ по студенту"
+
+#: .\templates\accounts\transfer_student.html:3
+#: .\templates\accounts\transfer_student.html:8
+#, fuzzy
+#| msgid "Приказ по студенту"
+msgid "Перевод студента"
+msgstr "Приказ по студенту"
+
+#: .\templates\accounts\transfer_student.html:10
+#, fuzzy
+#| msgid "Студент"
+msgid "Студент:"
+msgstr "Студент"
+
+#: .\templates\accounts\transfer_student.html:11
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Текущая группа:"
+msgstr "Новая группа"
+
+#: .\templates\accounts\transfer_student.html:21
+#, fuzzy
+#| msgid "Перенесено"
+msgid "Перевести"
+msgstr "Перенесено"
+
+#: .\templates\accounts\user_management.html:4
+#: .\templates\accounts\user_management.html:6
+#: .\templates\accounts\user_management.html:13
+#, fuzzy
+#| msgid "Последнее обновление"
+msgid "Управление пользователями"
+msgstr "Последнее обновление"
+
+#: .\templates\accounts\user_management.html:21
+msgid "Поиск..."
+msgstr "Поиск..."
+
+#: .\templates\accounts\user_management.html:25
+#, fuzzy
+#| msgid "Все преподаватели"
+msgid "Все роли"
+msgstr "Все преподаватели"
+
+#: .\templates\accounts\user_management.html:43
+msgid "ФИО"
+msgstr "ФИО"
+
+#: .\templates\accounts\user_management.html:57
+#, fuzzy
+#| msgid "Преподаватель"
+msgid "Суперпользователь"
+msgstr "Преподаватель"
+
+#: .\templates\accounts\user_management.html:70
+#, fuzzy
+#| msgid "Пароли не совпадают"
+msgid "Профиль не создан"
+msgstr "Пароли не совпадают"
+
+#: .\templates\accounts\user_management.html:78
+#, fuzzy
+#| msgid "заблокирован"
+msgid "Заблокирован"
+msgstr "заблокирован"
+
+#: .\templates\accounts\user_management.html:85
+#, fuzzy
+#| msgid "Просмотры"
+msgid "Просмотр профиля"
+msgstr "Просмотры"
+
+#: .\templates\accounts\user_management.html:104
+#, fuzzy
+#| msgid "❌ Вы не можете заблокировать сам себя!"
+msgid "Нельзя заблокировать себя"
+msgstr "❌ Вы не можете заблокировать сам себя!"
+
+#: .\templates\accounts\user_management.html:111
+#: .\templates\accounts\user_management.html:112
+#, fuzzy
+#| msgid "заблокирован"
+msgid "Заблокировать"
+msgstr "заблокирован"
+
+#: .\templates\accounts\user_management.html:111
+#: .\templates\accounts\user_management.html:112
+#, fuzzy
+#| msgid "активирован"
+msgid "Активировать"
+msgstr "активирован"
+
+#: .\templates\accounts\user_management.html:111
+#, fuzzy
+#| msgid "Преподаватель"
+msgid "пользователя"
+msgstr "Преподаватель"
+
+#: .\templates\accounts\user_management.html:118
+#, fuzzy
+#| msgid "Отчисление (Хориҷ)"
+msgid "Приказы (Отчисление/Выпуск)"
+msgstr "Отчисление"
+
+#: .\templates\accounts\user_management.html:124
+msgid "Перевести в другую группу"
+msgstr "Перевести в другую группу"
+
+#: .\templates\accounts\user_management.html:130
+#, fuzzy
+#| msgid "Профиль успешно обновлен"
+msgid "Профиль студента не создан"
+msgstr "Профиль успешно обновлен"
 
 #: .\templates\base.html:511
 msgid "Система Деканат"
-msgstr ""
+msgstr "Система Деканат"
 
 #: .\templates\base.html:537
 msgid "Профиль"
-msgstr ""
+msgstr "Профиль"
 
 #: .\templates\base.html:542
 msgid "Выход"
-msgstr ""
+msgstr "Выход"
 
 #: .\templates\base.html:555
-msgid "Администрирование"
-msgstr ""
+msgid "Сохтор (Структура)"
+msgstr "Структура"
 
-#: .\templates\base.html:558
-msgid "Структура ВУЗа"
-msgstr ""
+#: .\templates\base.html:559
+msgid "Рӯйхати факултетҳо ва кафедраҳо"
+msgstr "Список факультетов и кафедр"
 
-#: .\templates\base.html:563
-msgid "Обзор структуры"
-msgstr ""
+#: .\templates\base.html:565
+msgid "Иловаи Институт"
+msgstr "Добавление Института"
 
-#: .\templates\base.html:566
-msgid "Добавить Институт"
-msgstr ""
+#: .\templates\base.html:572
+msgid "Шуъбаи таълим"
+msgstr "отдел образования"
 
-#: .\templates\base.html:569
-msgid "Добавить Факультет"
-msgstr ""
+#: .\templates\base.html:576
+msgid "Нақшаҳои таълимӣ (РУП)"
+msgstr "образовательные планы (РУП)"
 
-#: .\templates\base.html:574
-msgid "Пользователи"
-msgstr ""
+#: .\templates\base.html:581
+msgid "Рӯйхати фанҳо"
+msgstr "Список предметов (Дисциплин("
 
-#: .\templates\base.html:579
-msgid "Все пользователи"
-msgstr ""
+#: .\templates\base.html:586
+msgid "Гурӯҳҳои академӣ"
+msgstr "академические группы"
 
-#: .\templates\base.html:582
-msgid "Создать пользователя"
-msgstr ""
+#: .\templates\base.html:590
+msgid "Ҷадвали дарсҳо"
+msgstr "расписание уроков"
 
-#: .\templates\base.html:585
-msgid "Импорт студентов"
-msgstr ""
+#: .\templates\base.html:595
+msgid "Конструктор (Селанамоӣ)"
+msgstr "Конструктор"
 
-#: .\templates\base.html:592
-msgid "Учебный процесс"
-msgstr ""
+#: .\templates\base.html:598
+msgid "Намоиши ҷадвал"
+msgstr "Показ расписания"
 
-#: .\templates\base.html:595 .\templates\core\dashboard_admin.html:74
-msgid "Управление"
-msgstr ""
+#: .\templates\base.html:601
+msgid "Семестрҳо"
+msgstr "Семестры"
 
-#: .\templates\base.html:600
-msgid "Семестры"
-msgstr ""
+#: .\templates\base.html:608
+msgid "Контингент ва Кадрҳо"
+msgstr "контингент и личный состав"
 
-#: .\templates\base.html:603
-msgid "Учебные планы (РУП)"
-msgstr ""
+#: .\templates\base.html:612
+msgid "Фармонҳо (Приказы)"
+msgstr "Приказы"
 
-#: .\templates\base.html:606
-msgid "Дисциплины"
-msgstr ""
+#: .\templates\base.html:616
+msgid "Кормандон ва Донишҷӯён"
+msgstr "сотрудники и студенты"
 
-#: .\templates\base.html:609
-msgid "Группы"
-msgstr ""
+#: .\templates\base.html:621
+msgid "Рӯйхати омӯзгорон"
+msgstr "Список преподователей"
 
-#: .\templates\base.html:615
-msgid "Меню"
-msgstr ""
+#: .\templates\base.html:624
+msgid "Рӯйхати донишҷӯён"
+msgstr "Список студентов"
 
-#: .\templates\base.html:618
-msgid "Расписание"
-msgstr ""
+#: .\templates\base.html:627
+msgid "Иловаи корбар"
+msgstr "добавление пользователя"
 
-#: .\templates\base.html:623
-msgid "Журнал"
-msgstr ""
+#: .\templates\base.html:630
+msgid "Импорт (Excel)"
+msgstr "Импорт (Excel)"
 
-#: .\templates\base.html:629
-msgid "Оценки"
-msgstr ""
+#: .\templates\base.html:636
+msgid "Кабинети инфиродӣ"
+msgstr "личный кабинет"
 
-#: .\templates\base.html:634 .\templates\base.html:692
-msgid "Новости"
-msgstr ""
+#: .\templates\base.html:640
+msgid "Ҷадвали ман"
+msgstr "мое расписание"
 
-#: .\templates\base.html:637 .\templates\base.html:697
-msgid "Сообщения"
-msgstr ""
+#: .\templates\base.html:643
+msgid "Журнали электронӣ"
+msgstr "Электронный журнал"
 
 #: .\templates\base.html:649
+msgid "Ҷадвали дарсӣ"
+msgstr "расписание уроков"
+
+#: .\templates\base.html:652
+msgid "Баҳоҳо ва Давомот"
+msgstr "оценки и посещаемость"
+
+#: .\templates\base.html:657
+msgid "Хабарҳо"
+msgstr "Новости"
+
+#: .\templates\base.html:660
+msgid "Паёмҳо"
+msgstr "сообщения"
+
+#: .\templates\base.html:672
 msgid "Главная"
-msgstr ""
+msgstr "Главная"
 
-#: .\templates\base.html:674
+#: .\templates\base.html:697
 msgid "О платформе"
-msgstr ""
+msgstr "О платформе"
 
-#: .\templates\base.html:677
+#: .\templates\base.html:700
 msgid ""
 "Современная образовательная платформа для эффективного управления учебным "
 "процессом и взаимодействия между студентами и преподавателями."
 msgstr ""
-
-#: .\templates\base.html:682
-msgid "Быстрые ссылки"
-msgstr ""
-
-#: .\templates\base.html:687 .\templates\core\dashboard_admin.html:11
-msgid "Панель управления"
-msgstr ""
+"Современная образовательная платформа для эффективного управления учебным "
+"процессом и взаимодействия между студентами и преподавателями."
 
 #: .\templates\base.html:705
-msgid "Контакты"
-msgstr ""
+msgid "Быстрые ссылки"
+msgstr "Быстрые ссылки"
 
-#: .\templates\base.html:722
+#: .\templates\base.html:710 .\templates\core\dashboard_admin.html:13
+msgid "Панель управления"
+msgstr "Панель управления"
+
+#: .\templates\base.html:745
 msgid "г. Душанбе, ул. Студенческая 1"
-msgstr ""
+msgstr "г. Душанбе, ул. Студенческая 1"
 
-#: .\templates\base.html:729
+#: .\templates\base.html:752
 msgid "Мы в соцсетях"
-msgstr ""
+msgstr "Мы в соцсетях"
 
-#: .\templates\base.html:746
+#: .\templates\base.html:769
 msgid "Следите за новостями и обновлениями в наших социальных сетях"
-msgstr ""
+msgstr "Следите за новостями и обновлениями в наших социальных сетях"
 
-#: .\templates\base.html:756
+#: .\templates\base.html:779
 msgid "Университетская Платформа. Все права защищены."
-msgstr ""
+msgstr "Университетская Платформа. Все права защищены."
 
-#: .\templates\base.html:831
+#: .\templates\base.html:854
 msgid "Переключить тему"
-msgstr ""
+msgstr "Переключить тему"
 
-#: .\templates\core\dashboard_admin.html:4
+#: .\templates\core\dashboard_admin.html:5
 msgid "Панель Администратора"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:12
-msgid "Обзор системы и быстрое управление"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:23
-msgid "Институты"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:31
-msgid "Студенты"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:39
-msgid "Преподаватели"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:47
-msgid "Кафедры"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:59
-msgid "Структура университета"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:70
-msgid "факультетов"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:80
-msgid "Структура еще не создана"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:87
-msgid "Полное управление структурой"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:97
-msgid "Быстрые действия"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:105
-msgid "Добавить пользователя"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:106
-msgid "Создать студента или преподавателя"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:112
-msgid "Настройка семестра"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:113
-msgid "Активация и даты"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:119
-msgid "Опубликовать новость"
-msgstr ""
-
-#: .\templates\core\dashboard_admin.html:120
-msgid "Объявление для всего ВУЗа"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\contrib\messages\apps.py:16
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:96
-msgid "Messages"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\contrib\sitemaps\apps.py:8
-msgid "Site Maps"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\contrib\staticfiles\apps.py:9
-msgid "Static Files"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\contrib\syndication\apps.py:7
-msgid "Syndication"
-msgstr ""
-
-#. Translators: String used to replace omitted page numbers in elided page
-#. range generated by paginators, e.g. [1, 2, '…', 5, 6, 7, '…', 9, 10].
-#: .\venv\Lib\site-packages\django\core\paginator.py:30
-msgid "…"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\paginator.py:32
-msgid "That page number is not an integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\paginator.py:33
-msgid "That page number is less than 1"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\paginator.py:34
-msgid "That page contains no results"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:22
-msgid "Enter a valid value."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:70
-msgid "Enter a valid domain name."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:153
-#: .\venv\Lib\site-packages\django\forms\fields.py:775
-msgid "Enter a valid URL."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:200
-msgid "Enter a valid integer."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:211
-msgid "Enter a valid email address."
-msgstr ""
-
-#. Translators: "letters" means latin letters: a-z and A-Z.
-#: .\venv\Lib\site-packages\django\core\validators.py:289
-msgid ""
-"Enter a valid “slug” consisting of letters, numbers, underscores or hyphens."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:297
-msgid ""
-"Enter a valid “slug” consisting of Unicode letters, numbers, underscores, or "
-"hyphens."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:309
-#: .\venv\Lib\site-packages\django\core\validators.py:318
-#: .\venv\Lib\site-packages\django\core\validators.py:332
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2220
-#, python-format
-msgid "Enter a valid %(protocol)s address."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:311
-msgid "IPv4"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:320
-#: .\venv\Lib\site-packages\django\utils\ipv6.py:43
-msgid "IPv6"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:334
-msgid "IPv4 or IPv6"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:375
-msgid "Enter only digits separated by commas."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:381
-#, python-format
-msgid "Ensure this value is %(limit_value)s (it is %(show_value)s)."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:416
-#, python-format
-msgid "Ensure this value is less than or equal to %(limit_value)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:425
-#, python-format
-msgid "Ensure this value is greater than or equal to %(limit_value)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:434
-#, python-format
-msgid "Ensure this value is a multiple of step size %(limit_value)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:441
-#, python-format
-msgid ""
-"Ensure this value is a multiple of step size %(limit_value)s, starting from "
-"%(offset)s, e.g. %(offset)s, %(valid_value1)s, %(valid_value2)s, and so on."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:473
-#, python-format
-msgid ""
-"Ensure this value has at least %(limit_value)d character (it has "
-"%(show_value)d)."
-msgid_plural ""
-"Ensure this value has at least %(limit_value)d characters (it has "
-"%(show_value)d)."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:491
-#, python-format
-msgid ""
-"Ensure this value has at most %(limit_value)d character (it has "
-"%(show_value)d)."
-msgid_plural ""
-"Ensure this value has at most %(limit_value)d characters (it has "
-"%(show_value)d)."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:514
-#: .\venv\Lib\site-packages\django\forms\fields.py:366
-#: .\venv\Lib\site-packages\django\forms\fields.py:405
-msgid "Enter a number."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:516
-#, python-format
-msgid "Ensure that there are no more than %(max)s digit in total."
-msgid_plural "Ensure that there are no more than %(max)s digits in total."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:521
-#, python-format
-msgid "Ensure that there are no more than %(max)s decimal place."
-msgid_plural "Ensure that there are no more than %(max)s decimal places."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:526
-#, python-format
-msgid ""
-"Ensure that there are no more than %(max)s digit before the decimal point."
-msgid_plural ""
-"Ensure that there are no more than %(max)s digits before the decimal point."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:597
-#, python-format
-msgid ""
-"File extension “%(extension)s” is not allowed. Allowed extensions are: "
-"%(allowed_extensions)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\core\validators.py:659
-msgid "Null characters are not allowed."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\base.py:1600
-#: .\venv\Lib\site-packages\django\forms\models.py:908
-msgid "and"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\base.py:1602
-#, python-format
-msgid "%(model_name)s with this %(field_labels)s already exists."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\constraints.py:22
-#, python-format
-msgid "Constraint “%(name)s” is violated."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:134
-#, python-format
-msgid "Value %(value)r is not a valid choice."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:135
-msgid "This field cannot be null."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:136
-msgid "This field cannot be blank."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:137
-#, python-format
-msgid "%(model_name)s with this %(field_label)s already exists."
-msgstr ""
-
-#. Translators: The 'lookup_type' is one of 'date', 'year' or
-#. 'month'. Eg: "Title must be unique for pub_date year"
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:141
-#, python-format
-msgid ""
-"%(field_label)s must be unique for %(date_field_label)s %(lookup_type)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:180
-#, python-format
-msgid "Field of type: %(field_type)s"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1162
-#, python-format
-msgid "“%(value)s” value must be either True or False."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1163
-#, python-format
-msgid "“%(value)s” value must be either True, False, or None."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1165
-msgid "Boolean (Either True or False)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1215
-#, python-format
-msgid "String (up to %(max_length)s)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1217
-msgid "String (unlimited)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1326
-msgid "Comma-separated integers"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1427
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid date format. It must be in YYYY-MM-DD "
-"format."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1431
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1566
-#, python-format
-msgid ""
-"“%(value)s” value has the correct format (YYYY-MM-DD) but it is an invalid "
-"date."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1435
-msgid "Date (without time)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1562
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid format. It must be in YYYY-MM-DD "
-"HH:MM[:ss[.uuuuuu]][TZ] format."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1570
-#, python-format
-msgid ""
-"“%(value)s” value has the correct format (YYYY-MM-DD HH:MM[:ss[.uuuuuu]]"
-"[TZ]) but it is an invalid date/time."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1575
-msgid "Date (with time)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1702
-#, python-format
-msgid "“%(value)s” value must be a decimal number."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1704
-msgid "Decimal number"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1864
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid format. It must be in [DD] "
-"[[HH:]MM:]ss[.uuuuuu] format."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1868
-msgid "Duration"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1920
-msgid "Email address"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:1945
-msgid "File path"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2023
-#, python-format
-msgid "“%(value)s” value must be a float."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2025
-msgid "Floating point number"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2065
-#, python-format
-msgid "“%(value)s” value must be an integer."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2067
-msgid "Integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2163
-msgid "Big (8 byte) integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2180
-msgid "Small integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2188
-msgid "IPv4 address"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2219
-msgid "IP address"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2310
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2311
-#, python-format
-msgid "“%(value)s” value must be either None, True or False."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2313
-msgid "Boolean (Either True, False or None)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2364
-msgid "Positive big integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2379
-msgid "Positive integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2394
-msgid "Positive small integer"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2410
-#, python-format
-msgid "Slug (up to %(max_length)s)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2446
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:69
-msgid "Text"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2526
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid format. It must be in HH:MM[:ss[.uuuuuu]] "
-"format."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2530
-#, python-format
-msgid ""
-"“%(value)s” value has the correct format (HH:MM[:ss[.uuuuuu]]) but it is an "
-"invalid time."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2534
-msgid "Time"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2642
-msgid "URL"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2666
-msgid "Raw binary data"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2731
-#, python-format
-msgid "“%(value)s” is not a valid UUID."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:2733
-msgid "Universally unique identifier"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\files.py:244
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:26
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:71
-msgid "File"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\files.py:420
-msgid "Image"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\json.py:24
-msgid "A JSON object"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\json.py:26
-msgid "Value must be valid JSON."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\related.py:979
-#, python-format
-msgid "%(model)s instance with %(field)s %(value)r is not a valid choice."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\related.py:982
-msgid "Foreign Key (type determined by related field)"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\related.py:1276
-msgid "One-to-one relationship"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\related.py:1333
-#, python-format
-msgid "%(from)s-%(to)s relationship"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\related.py:1335
-#, python-format
-msgid "%(from)s-%(to)s relationships"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\db\models\fields\related.py:1383
-msgid "Many-to-many relationship"
-msgstr ""
-
-#. Translators: If found as last label character, these punctuation
-#. characters will prevent the default label_suffix to be appended to the label
-#: .\venv\Lib\site-packages\django\forms\boundfield.py:185
-msgid ":?.!"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:95
-msgid "This field is required."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:315
-msgid "Enter a whole number."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:486
-#: .\venv\Lib\site-packages\django\forms\fields.py:1267
-msgid "Enter a valid date."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:509
-#: .\venv\Lib\site-packages\django\forms\fields.py:1268
-msgid "Enter a valid time."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:536
-msgid "Enter a valid date/time."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:570
-msgid "Enter a valid duration."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:571
-#, python-brace-format
-msgid "The number of days must be between {min_days} and {max_days}."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:640
-msgid "No file was submitted. Check the encoding type on the form."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:641
-msgid "No file was submitted."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:642
-msgid "The submitted file is empty."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:644
-#, python-format
-msgid "Ensure this filename has at most %(max)d character (it has %(length)d)."
-msgid_plural ""
-"Ensure this filename has at most %(max)d characters (it has %(length)d)."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:649
-msgid "Please either submit a file or check the clear checkbox, not both."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:717
-msgid ""
-"Upload a valid image. The file you uploaded was either not an image or a "
-"corrupted image."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:889
-#: .\venv\Lib\site-packages\django\forms\fields.py:975
-#: .\venv\Lib\site-packages\django\forms\models.py:1592
-#, python-format
-msgid "Select a valid choice. %(value)s is not one of the available choices."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:977
-#: .\venv\Lib\site-packages\django\forms\fields.py:1096
-#: .\venv\Lib\site-packages\django\forms\models.py:1590
-msgid "Enter a list of values."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:1097
-msgid "Enter a complete value."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:1339
-msgid "Enter a valid UUID."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\fields.py:1369
-msgid "Enter a valid JSON."
-msgstr ""
-
-#. Translators: This is the default suffix added to form field labels
-#: .\venv\Lib\site-packages\django\forms\forms.py:97
-msgid ":"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\forms.py:239
-#, python-format
-msgid "(Hidden field %(name)s) %(error)s"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\formsets.py:61
-#, python-format
-msgid ""
-"ManagementForm data is missing or has been tampered with. Missing fields: "
-"%(field_names)s. You may need to file a bug report if the issue persists."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\formsets.py:65
-#, python-format
-msgid "Please submit at most %(num)d form."
-msgid_plural "Please submit at most %(num)d forms."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\forms\formsets.py:70
-#, python-format
-msgid "Please submit at least %(num)d form."
-msgid_plural "Please submit at least %(num)d forms."
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\forms\formsets.py:484
-#: .\venv\Lib\site-packages\django\forms\formsets.py:491
-msgid "Order"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\formsets.py:499
-msgid "Delete"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:901
-#, python-format
-msgid "Please correct the duplicate data for %(field)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:906
-#, python-format
-msgid "Please correct the duplicate data for %(field)s, which must be unique."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:913
-#, python-format
-msgid ""
-"Please correct the duplicate data for %(field_name)s which must be unique "
-"for the %(lookup)s in %(date_field)s."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:922
-msgid "Please correct the duplicate values below."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:1359
-msgid "The inline value did not match the parent instance."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:1450
-msgid "Select a valid choice. That choice is not one of the available choices."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\models.py:1594
-#, python-format
-msgid "“%(pk)s” is not a valid value."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\utils.py:229
-#, python-format
-msgid ""
-"%(datetime)s couldn’t be interpreted in time zone %(current_timezone)s; it "
-"may be ambiguous or it may not exist."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\widgets.py:527
-msgid "Clear"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\widgets.py:528
-msgid "Currently"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\widgets.py:529
-msgid "Change"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\widgets.py:866
-msgid "Unknown"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\widgets.py:867
-msgid "Yes"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\forms\widgets.py:868
-msgid "No"
-msgstr ""
-
-#. Translators: Please do not add spaces around commas.
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:873
-msgid "yes,no,maybe"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:903
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:920
-#, python-format
-msgid "%(size)d byte"
-msgid_plural "%(size)d bytes"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:922
-#, python-format
-msgid "%s KB"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:924
-#, python-format
-msgid "%s MB"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:926
-#, python-format
-msgid "%s GB"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:928
-#, python-format
-msgid "%s TB"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\template\defaultfilters.py:930
-#, python-format
-msgid "%s PB"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dateformat.py:74
-msgid "p.m."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dateformat.py:75
-msgid "a.m."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dateformat.py:80
-msgid "PM"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dateformat.py:81
-msgid "AM"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dateformat.py:153
-msgid "midnight"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dateformat.py:155
-msgid "noon"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:7
-msgid "Monday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:8
-msgid "Tuesday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:9
-msgid "Wednesday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:10
-msgid "Thursday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:11
-msgid "Friday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:12
-msgid "Saturday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:13
-msgid "Sunday"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:16
-msgid "Mon"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:17
-msgid "Tue"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:18
-msgid "Wed"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:19
-msgid "Thu"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:20
-msgid "Fri"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:21
-msgid "Sat"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:22
-msgid "Sun"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:25
-msgid "January"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:26
-msgid "February"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:27
-msgid "March"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:28
-msgid "April"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:29
-msgid "May"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:30
-msgid "June"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:31
-msgid "July"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:32
-msgid "August"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:33
-msgid "September"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:34
-msgid "October"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:35
-msgid "November"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:36
-msgid "December"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:39
-msgid "jan"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:40
-msgid "feb"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:41
-msgid "mar"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:42
-msgid "apr"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:43
-msgid "may"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:44
-msgid "jun"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:45
-msgid "jul"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:46
-msgid "aug"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:47
-msgid "sep"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:48
-msgid "oct"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:49
-msgid "nov"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:50
-msgid "dec"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:53
-msgctxt "abbrev. month"
-msgid "Jan."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:54
-msgctxt "abbrev. month"
-msgid "Feb."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:55
-msgctxt "abbrev. month"
-msgid "March"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:56
-msgctxt "abbrev. month"
-msgid "April"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:57
-msgctxt "abbrev. month"
-msgid "May"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:58
-msgctxt "abbrev. month"
-msgid "June"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:59
-msgctxt "abbrev. month"
-msgid "July"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:60
-msgctxt "abbrev. month"
-msgid "Aug."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:61
-msgctxt "abbrev. month"
-msgid "Sept."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:62
-msgctxt "abbrev. month"
-msgid "Oct."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:63
-msgctxt "abbrev. month"
-msgid "Nov."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:64
-msgctxt "abbrev. month"
-msgid "Dec."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:67
-msgctxt "alt. month"
-msgid "January"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:68
-msgctxt "alt. month"
-msgid "February"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:69
-msgctxt "alt. month"
-msgid "March"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:70
-msgctxt "alt. month"
-msgid "April"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:71
-msgctxt "alt. month"
-msgid "May"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:72
-msgctxt "alt. month"
-msgid "June"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:73
-msgctxt "alt. month"
-msgid "July"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:74
-msgctxt "alt. month"
-msgid "August"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:75
-msgctxt "alt. month"
-msgid "September"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:76
-msgctxt "alt. month"
-msgid "October"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:77
-msgctxt "alt. month"
-msgid "November"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\dates.py:78
-msgctxt "alt. month"
-msgid "December"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\ipv6.py:20
-msgid "This is not a valid IPv6 address."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\text.py:76
-#, python-format
-msgctxt "String to return when truncating text"
-msgid "%(truncated_text)s…"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\text.py:287
-msgid "or"
-msgstr ""
-
-#. Translators: This string is used as a separator between list elements
-#: .\venv\Lib\site-packages\django\utils\text.py:306
-#: .\venv\Lib\site-packages\django\utils\timesince.py:135
-msgid ", "
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\utils\timesince.py:8
-#, python-format
-msgid "%(num)d year"
-msgid_plural "%(num)d years"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\utils\timesince.py:9
-#, python-format
-msgid "%(num)d month"
-msgid_plural "%(num)d months"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\utils\timesince.py:10
-#, python-format
-msgid "%(num)d week"
-msgid_plural "%(num)d weeks"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\utils\timesince.py:11
-#, python-format
-msgid "%(num)d day"
-msgid_plural "%(num)d days"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\utils\timesince.py:12
-#, python-format
-msgid "%(num)d hour"
-msgid_plural "%(num)d hours"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\utils\timesince.py:13
-#, python-format
-msgid "%(num)d minute"
-msgid_plural "%(num)d minutes"
-msgstr[0] ""
-msgstr[1] ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:29
-msgid "Forbidden"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:30
-msgid "CSRF verification failed. Request aborted."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:34
-msgid ""
-"You are seeing this message because this HTTPS site requires a “Referer "
-"header” to be sent by your web browser, but none was sent. This header is "
-"required for security reasons, to ensure that your browser is not being "
-"hijacked by third parties."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:40
-msgid ""
-"If you have configured your browser to disable “Referer” headers, please re-"
-"enable them, at least for this site, or for HTTPS connections, or for “same-"
-"origin” requests."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:45
-msgid ""
-"If you are using the <meta name=\"referrer\" content=\"no-referrer\"> tag or "
-"including the “Referrer-Policy: no-referrer” header, please remove them. The "
-"CSRF protection requires the “Referer” header to do strict referer checking. "
-"If you’re concerned about privacy, use alternatives like <a "
-"rel=\"noreferrer\" …> for links to third-party sites."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:54
-msgid ""
-"You are seeing this message because this site requires a CSRF cookie when "
-"submitting forms. This cookie is required for security reasons, to ensure "
-"that your browser is not being hijacked by third parties."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:60
-msgid ""
-"If you have configured your browser to disable cookies, please re-enable "
-"them, at least for this site, or for “same-origin” requests."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\csrf.py:66
-msgid "More information is available with DEBUG=True."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:44
-msgid "No year specified"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:64
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:115
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:214
-msgid "Date out of range"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:94
-msgid "No month specified"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:147
-msgid "No day specified"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:194
-msgid "No week specified"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:353
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:384
-#, python-format
-msgid "No %(verbose_name_plural)s available"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:680
-#, python-format
-msgid ""
-"Future %(verbose_name_plural)s not available because "
-"%(class_name)s.allow_future is False."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\dates.py:720
-#, python-format
-msgid "Invalid date string “%(datestr)s” given format “%(format)s”"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\detail.py:56
-#, python-format
-msgid "No %(verbose_name)s found matching the query"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\list.py:70
-msgid "Page is not “last”, nor can it be converted to an int."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\list.py:77
-#, python-format
-msgid "Invalid page (%(page_number)s): %(message)s"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\generic\list.py:173
-#, python-format
-msgid "Empty list and “%(class_name)s.allow_empty” is False."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\static.py:49
-msgid "Directory indexes are not allowed here."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\static.py:51
-#, python-format
-msgid "“%(path)s” does not exist"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\static.py:68
-#: .\venv\Lib\site-packages\django\views\templates\directory_index.html:8
-#: .\venv\Lib\site-packages\django\views\templates\directory_index.html:11
-#, python-format
-msgid "Index of %(directory)s"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:7
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:204
-msgid "The install worked successfully! Congratulations!"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:206
-#, python-format
-msgid ""
-"View <a href=\"https://docs.djangoproject.com/en/%(version)s/releases/\" "
-"target=\"_blank\" rel=\"noopener\">release notes</a> for Django %(version)s"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:208
-#, python-format
-msgid ""
-"You are seeing this page because <a href=\"https://docs.djangoproject.com/en/"
-"%(version)s/ref/settings/#debug\" target=\"_blank\" "
-"rel=\"noopener\">DEBUG=True</a> is in your settings file and you have not "
-"configured any URLs."
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:217
-msgid "Django Documentation"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:218
-msgid "Topics, references, &amp; how-to’s"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:226
-msgid "Tutorial: A Polling App"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:227
-msgid "Get started with Django"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:235
-msgid "Django Community"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:236
-msgid "Connect, get help, or contribute"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:24
-msgid "Uploaded_by"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:27
-msgid "Upload date"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:34
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:64
-msgid "Id"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:35
-msgid "User1"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:37
-msgid "User2"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:42
-msgid "Dialog"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:43
-msgid "Dialogs"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:46
-msgid "Dialog between "
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:65
-msgid "Author"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:67
-msgid "Recipient"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:73
-msgid "Read"
-msgstr ""
-
-#: .\venv\Lib\site-packages\django_private_chat2\models.py:95
-msgid "Message"
-msgstr ""
+msgstr "Панель Администратора"

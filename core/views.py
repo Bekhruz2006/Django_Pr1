@@ -1,33 +1,67 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count, Avg
-from datetime import datetime
-from accounts.models import Student, Teacher, Group, Institute, Faculty, Department
+from django.db.models import Count, Q, Avg
+from django.db.models.functions import TruncMonth
+from django.utils import timezone
+from accounts.models import Student, Teacher, Group, Institute, Department, StudentOrder, User
 from news.models import News
+from journal.models import StudentStatistics
+from schedule.models import ScheduleSlot
 import json
+from datetime import datetime
+from schedule.models import Semester
+
 
 @login_required
 def dashboard(request):
     user = request.user
     context = {'user': user}
-    
-    template = 'core/dashboard_student.html'
 
     context['news_list'] = News.objects.filter(is_published=True).order_by('-is_pinned', '-created_at')[:5]
 
-    if user.is_superuser or user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+    if user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+        selected_institute_id = request.GET.get('institute_id')
+        selected_institute = None
+        institutes = Institute.objects.prefetch_related('faculties').all()
+
+        students_qs = Student.objects.filter(status='ACTIVE')
+        teachers_qs = Teacher.objects.all()
+        groups_qs = Group.objects.all()
+        orders_qs = StudentOrder.objects.filter(status='DRAFT').select_related('student__user', 'created_by').order_by('date')
+
+        if selected_institute_id:
+            try:
+                selected_institute = institutes.get(id=selected_institute_id)
+                faculties_ids = selected_institute.faculties.values_list('id', flat=True)
+                students_qs = students_qs.filter(group__specialty__department__faculty__in=faculties_ids)
+                teachers_qs = teachers_qs.filter(department__faculty__in=faculties_ids)
+                groups_qs = groups_qs.filter(specialty__department__faculty__in=faculties_ids)
+                orders_qs = orders_qs.filter(student__group__specialty__department__faculty__in=faculties_ids)
+                #tye = Null
+            except Institute.DoesNotExist:
+                pass
+
         context.update({
-            'total_institutes': Institute.objects.count(),
-            'total_faculties': Faculty.objects.count(),
-            'total_departments': Department.objects.count(),
+            'institutes': institutes,
+            'selected_institute': selected_institute,
+            'total_students': students_qs.count(),
+            'total_teachers': teachers_qs.count(),
+            'total_debtors': students_qs.filter(financing_type='CONTRACT').count(),
+            'total_groups': groups_qs.count(),
+            'pending_orders': orders_qs[:10],
+            'pending_count': orders_qs.count()
+            
+        })
+        return render(request, 'core/dashboard_rector.html', context)
+
+    elif user.is_superuser:
+        institutes = Institute.objects.prefetch_related('faculties').all()
+        context.update({
+            'institutes': institutes,
             'total_students': Student.objects.count(),
-            'total_teachers': Teacher.objects.count(),
-            'institutes_list': Institute.objects.prefetch_related(
-                'faculties__departments'
-            ).annotate(
-                fac_count=Count('faculties', distinct=True)
-            ).all(),
+            'total_users': User.objects.count(),
+            'latest_orders': StudentOrder.objects.all().order_by('-created_at')[:5],
         })
         return render(request, 'core/dashboard_admin.html', context)
 
@@ -37,7 +71,6 @@ def dashboard(request):
         context['profile'] = profile
         context['faculty'] = faculty
 
-        from schedule.models import Semester
         if not Semester.objects.filter(is_active=True).exists():
             messages.warning(request, "Внимание! Активный семестр не выбран. Расписание может не работать.")
 
@@ -50,12 +83,11 @@ def dashboard(request):
                 'students_count': students_count,
                 'groups_count': groups_count,
                 'teachers_count': teachers_count,
-                'departments': Department.objects.filter(faculty=faculty).prefetch_related('specialties')
+                'departments': Department.objects.filter(faculty=faculty).prefetch_related('specialties'),
+                'my_drafts': StudentOrder.objects.filter(created_by=user, status='DRAFT').count()
             })
 
-            from journal.models import StudentStatistics
             course_stats = []
-            
             chart_courses = []
             chart_gpa = []
             chart_attendance = []
@@ -69,23 +101,23 @@ def dashboard(request):
                     stats = StudentStatistics.objects.filter(student__in=students)
                     avg_gpa = stats.aggregate(Avg('overall_gpa'))['overall_gpa__avg'] or 0
                     avg_att = stats.aggregate(Avg('attendance_percentage'))['attendance_percentage__avg'] or 0
-                    
+
                     course_stats.append({
                         'course': course_num,
                         'students_count': students.count(),
                         'avg_gpa': avg_gpa,
                         'avg_attendance': avg_att,
                     })
-                    
+
                     chart_courses.append(f"{course_num} курс")
                     chart_gpa.append(round(avg_gpa, 2))
                     chart_attendance.append(round(avg_att, 1))
 
             context['course_stats'] = course_stats
-            
             context['json_courses'] = json.dumps(chart_courses)
             context['json_gpa'] = json.dumps(chart_gpa)
             context['json_attendance'] = json.dumps(chart_attendance)
+            #context['json_total_gpa'] = json.dumps(chart_gpa)
 
         return render(request, 'core/dashboard_dean.html', context)
 
@@ -94,15 +126,12 @@ def dashboard(request):
             context['profile'] = user.teacher_profile
         elif hasattr(user, 'head_of_dept_profile'):
             context['profile'] = user.head_of_dept_profile
-            
-        template = 'core/dashboard_teacher.html'
+        return render(request, 'core/dashboard_teacher.html', context)
 
-    elif user.role == 'STUDENT':
+    else:
         context['profile'] = user.student_profile
-        template = 'core/dashboard_student.html'
 
     try:
-        from schedule.models import ScheduleSlot
         today = datetime.now()
         day_of_week = today.weekday()
         current_time = today.time()
@@ -141,4 +170,4 @@ def dashboard(request):
         context['current_time'] = datetime.now().time()
         context['today'] = datetime.now()
 
-    return render(request, template, context)
+    return render(request, 'core/dashboard_student.html', context)

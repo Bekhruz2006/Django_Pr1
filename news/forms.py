@@ -1,12 +1,12 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from .models import News, NewsComment
 from core.validators import validate_file_extension
-
-
 
 class NewsForm(forms.ModelForm):
     image = forms.ImageField(required=False, validators=[validate_file_extension], widget=forms.FileInput(attrs={'class': 'form-control'}))
     video_file = forms.FileField(required=False, validators=[validate_file_extension], widget=forms.FileInput(attrs={'class': 'form-control'}))
+    
     class Meta:
         model = News
         fields = [
@@ -16,18 +16,18 @@ class NewsForm(forms.ModelForm):
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Заголовок новости'
+                'placeholder': _('Заголовок новости')
             }),
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 10,
-                'placeholder': 'Содержание новости...'
+                'placeholder': _('Содержание новости...')
             }),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'video_url': forms.URLInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'https://youtube.com/...'
+                'placeholder': _('https://youtube.com/...')
             }),
             'video_file': forms.FileInput(attrs={'class': 'form-control'}),
             'is_pinned': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -42,6 +42,6 @@ class NewsCommentForm(forms.ModelForm):
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Ваш комментарий...'
+                'placeholder': _('Ваш комментарий...')
             })
         }

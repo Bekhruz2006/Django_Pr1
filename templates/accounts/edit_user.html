@@ -1,53 +1,54 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Редактировать пользователя{% endblock %}
+{% block title %}{% trans "Редактировать пользователя" %}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item"><a href="{% url 'accounts:user_management' %}">Пользователи</a></li>
-    <li class="breadcrumb-item active">Редактирование: {{ user_obj.username }}</li>
+    <li class="breadcrumb-item"><a href="{% url 'accounts:user_management' %}">{% trans "Пользователи" %}</a></li>
+    <li class="breadcrumb-item active">{% blocktrans %}Редактирование: {{ user_obj.username }}{% endblocktrans %}</li>
 {% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-10 mx-auto">
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-pencil"></i> Редактировать пользователя: {{ user_obj.get_full_name }}
+                <i class="bi bi-pencil"></i> {% blocktrans %}Редактировать пользователя: {{ user_obj.get_full_name }}{% endblocktrans %}
             </div>
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
-                    <h5 class="mb-3">Основная информация</h5>
+                    <h5 class="mb-3">{% trans "Основная информация" %}</h5>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Имя</label>
+                            <label class="form-label">{% trans "Имя" %}</label>
                             {{ user_form.first_name }}
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Фамилия</label>
+                            <label class="form-label">{% trans "Фамилия" %}</label>
                             {{ user_form.last_name }}
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Телефон</label>
+                            <label class="form-label">{% trans "Телефон" %}</label>
                             {{ user_form.phone }}
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Фото</label>
+                            <label class="form-label">{% trans "Фото" %}</label>
                             {{ user_form.photo }}
                             {% if user_obj.photo %}
-                                <br><small>Текущее: <a href="{{ user_obj.photo.url }}" target="_blank">Посмотреть</a></small>
+                                <br><small>{% trans "Текущее" %}: <a href="{{ user_obj.photo.url }}" target="_blank">{% trans "Посмотреть" %}</a></small>
                             {% endif %}
                         </div>
                     </div>
                     
                     {% if profile_form %}
                     <hr class="my-4">
-                    <h5 class="mb-3">Профильная информация ({{ user_obj.get_role_display }})</h5>
+                    <h5 class="mb-3">{% blocktrans %}Профильная информация ({{ user_obj.get_role_display }}){% endblocktrans %}</h5>
                     
                     <div class="row">
                         {% for field in profile_form %}
@@ -64,10 +65,10 @@
                     
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Сохранить изменения
+                            <i class="bi bi-check-circle"></i> {% trans "Сохранить изменения" %}
                         </button>
                         <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Отмена
+                            <i class="bi bi-x-circle"></i> {% trans "Отмена" %}
                         </a>
                     </div>
                 </form>

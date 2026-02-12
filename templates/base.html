@@ -7,11 +7,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}University Platform{% endblock %}</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/bundle.css' %}">
-    
     <style>
         :root {
             --sidebar-width: 280px;
@@ -551,90 +549,113 @@
 
     {% if user.is_authenticated %}
     <aside id="sidebar">
-        {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
-            <div class="admin-menu-header">{% trans "Администрирование" %}</div>
+        {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
+            <div class="admin-menu-header">{% trans "Сохтор (Структура)" %}</div>
             
-            <div class="sidebar-section-header" data-target="structure-menu">
-                <span><i class="bi bi-building-gear me-2"></i>{% trans "Структура ВУЗа" %}</span>
-                <i class="bi bi-chevron-down toggle-icon"></i>
-            </div>
-            <div class="sidebar-menu-group" id="structure-menu">
-                <a class="sidebar-link" href="{% url 'accounts:manage_structure' %}">
-                    <i class="bi bi-diagram-3"></i> {% trans "Обзор структуры" %}
-                </a>
-                <a class="sidebar-link" href="{% url 'accounts:add_institute' %}">
-                    <i class="bi bi-plus-lg"></i> {% trans "Добавить Институт" %}
-                </a>
-                <a class="sidebar-link" href="{% url 'accounts:add_faculty' %}">
-                    <i class="bi bi-plus-lg"></i> {% trans "Добавить Факультет" %}
-                </a>
-            </div>
+            <a class="sidebar-link" href="{% url 'accounts:manage_structure' %}">
+                <i class="bi bi-diagram-3"></i> 
+                <span>{% trans "Рӯйхати факултетҳо ва кафедраҳо" %}</span>
+            </a>
+            
+            {% if user.is_superuser or user.role in 'RECTOR,DIRECTOR' %}
+            <a class="sidebar-link" href="{% url 'accounts:add_institute' %}">
+                <i class="bi bi-plus-lg"></i> 
+                <span>{% trans "Иловаи Институт" %}</span>
+            </a>
+            {% endif %}
+        {% endif %}
 
-            <div class="sidebar-section-header" data-target="users-menu">
-                <span><i class="bi bi-people-fill me-2"></i>{% trans "Пользователи" %}</span>
+        {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
+            <div class="sidebar-divider"></div>
+            <div class="admin-menu-header">{% trans "Шуъбаи таълим" %}</div>
+
+            <a class="sidebar-link" href="{% url 'schedule:manage_plans' %}">
+                <i class="bi bi-journal-richtext"></i> 
+                <span>{% trans "Нақшаҳои таълимӣ (РУП)" %}</span>
+            </a>
+
+            <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}">
+                <i class="bi bi-book"></i> 
+                <span>{% trans "Рӯйхати фанҳо" %}</span>
+            </a>
+
+            <a class="sidebar-link" href="{% url 'accounts:group_management' %}">
+                <i class="bi bi-collection"></i> 
+                <span>{% trans "Гурӯҳҳои академӣ" %}</span>
+            </a>
+
+            <div class="sidebar-section-header" data-target="schedule-menu">
+                <span><i class="bi bi-calendar-week me-2"></i>{% trans "Ҷадвали дарсҳо" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
-            <div class="sidebar-menu-group" id="users-menu">
-                <a class="sidebar-link" href="{% url 'accounts:user_management' %}">
-                    <i class="bi bi-list-ul"></i> {% trans "Все пользователи" %}
+            <div class="sidebar-menu-group" id="schedule-menu">
+                <a class="sidebar-link" href="{% url 'schedule:constructor' %}">
+                    <i class="bi bi-grid-3x3"></i> {% trans "Конструктор (Селанамоӣ)" %}
                 </a>
-                <a class="sidebar-link" href="{% url 'accounts:add_user' %}">
-                    <i class="bi bi-person-plus"></i> {% trans "Создать пользователя" %}
+                <a class="sidebar-link" href="{% url 'schedule:view' %}">
+                    <i class="bi bi-eye"></i> {% trans "Намоиши ҷадвал" %}
                 </a>
-                <a class="sidebar-link" href="{% url 'accounts:import_students' %}">
-                    <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Импорт студентов" %}
+                <a class="sidebar-link" href="{% url 'schedule:manage_semesters' %}">
+                    <i class="bi bi-calendar-range"></i> {% trans "Семестрҳо" %}
                 </a>
             </div>
         {% endif %}
 
-        {% if user.is_superuser or user.role in 'DEAN,VICE_DEAN,RECTOR' %}
+        {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
             <div class="sidebar-divider"></div>
-            <div class="admin-menu-header">{% trans "Учебный процесс" %}</div>
+            <div class="admin-menu-header">{% trans "Контингент ва Кадрҳо" %}</div>
 
-            <div class="sidebar-section-header" data-target="study-mgmt-menu">
-                <span><i class="bi bi-mortarboard me-2"></i>{% trans "Управление" %}</span>
+            <a class="sidebar-link" href="{% url 'accounts:all_orders' %}">
+                <i class="bi bi-file-earmark-text"></i> 
+                <span>{% trans "Фармонҳо (Приказы)" %}</span>
+            </a>
+
+            <div class="sidebar-section-header" data-target="users-menu">
+                <span><i class="bi bi-people-fill me-2"></i>{% trans "Кормандон ва Донишҷӯён" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
-            <div class="sidebar-menu-group" id="study-mgmt-menu">
-                <a class="sidebar-link" href="{% url 'schedule:manage_semesters' %}">
-                    <i class="bi bi-calendar-range"></i> {% trans "Семестры" %}
+            <div class="sidebar-menu-group" id="users-menu">
+                <a class="sidebar-link" href="{% url 'accounts:user_management' %}?role=TEACHER">
+                    <i class="bi bi-person-badge"></i> {% trans "Рӯйхати омӯзгорон" %}
                 </a>
-                <a class="sidebar-link" href="{% url 'schedule:manage_plans' %}">
-                    <i class="bi bi-journal-richtext"></i> {% trans "Учебные планы (РУП)" %}
+                <a class="sidebar-link" href="{% url 'accounts:user_management' %}?role=STUDENT">
+                    <i class="bi bi-people"></i> {% trans "Рӯйхати донишҷӯён" %}
                 </a>
-                <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}">
-                    <i class="bi bi-book"></i> {% trans "Дисциплины" %}
+                <a class="sidebar-link" href="{% url 'accounts:add_user' %}">
+                    <i class="bi bi-person-plus"></i> {% trans "Иловаи корбар" %}
                 </a>
-                <a class="sidebar-link" href="{% url 'accounts:group_management' %}">
-                    <i class="bi bi-collection"></i> {% trans "Группы" %}
+                <a class="sidebar-link" href="{% url 'accounts:import_students' %}">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Импорт (Excel)" %}
                 </a>
             </div>
         {% endif %}
 
         <div class="sidebar-divider"></div>
-        <div class="admin-menu-header">{% trans "Меню" %}</div>
+        <div class="admin-menu-header">{% trans "Кабинети инфиродӣ" %}</div>
 
-        <a class="sidebar-link" href="{% url 'schedule:view' %}">
-            <i class="bi bi-calendar-week"></i> {% trans "Расписание" %}
-        </a>
-        
         {% if user.role == 'TEACHER' %}
+            <a class="sidebar-link" href="{% url 'schedule:view' %}">
+                <i class="bi bi-calendar-week"></i> {% trans "Ҷадвали ман" %}
+            </a>
             <a class="sidebar-link" href="{% url 'journal:journal_view' %}">
-                <i class="bi bi-journal-check"></i> {% trans "Журнал" %}
+                <i class="bi bi-journal-check"></i> {% trans "Журнали электронӣ" %}
             </a>
         {% endif %}
         
         {% if user.role == 'STUDENT' %}
+            <a class="sidebar-link" href="{% url 'schedule:view' %}">
+                <i class="bi bi-calendar-week"></i> {% trans "Ҷадвали дарсӣ" %}
+            </a>
             <a class="sidebar-link" href="{% url 'journal:student_view' %}">
-                <i class="bi bi-journal-text"></i> {% trans "Оценки" %}
+                <i class="bi bi-journal-text"></i> {% trans "Баҳоҳо ва Давомот" %}
             </a>
         {% endif %}
 
         <a class="sidebar-link" href="{% url 'news:list' %}">
-            <i class="bi bi-newspaper"></i> {% trans "Новости" %}
+            <i class="bi bi-newspaper"></i> {% trans "Хабарҳо" %}
         </a>
         <a class="sidebar-link" href="{% url 'chat:list' %}">
-            <i class="bi bi-chat-dots"></i> {% trans "Сообщения" %}
+            <i class="bi bi-chat-dots"></i> {% trans "Паёмҳо" %}
         </a>
     </aside>
     {% endif %}

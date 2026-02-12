@@ -43,4 +43,8 @@ urlpatterns = [
     path('reports/teacher-load/', views.teacher_load_report, name='teacher_load_report'),
     path('subject/<int:subject_id>/materials/', views.subject_materials, name='subject_materials'),
     path('material/<int:material_id>/delete/', views.delete_material, name='delete_material'),
+    path('plans/<int:plan_id>/activate/', views.activate_plan, name='activate_plan'),
+    path('plans/<int:plan_id>/delete/', views.delete_plan, name='delete_plan'),
+    path('semester/<int:semester_id>/activate-ref/', views.activate_semester_from_plan, name='activate_semester_from_plan'),
+    path('semester/set-active/', views.set_active_semester_manual, name='set_active_semester_manual'),
 ]

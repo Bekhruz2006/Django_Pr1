@@ -6,35 +6,36 @@ from .models import (
 )
 from datetime import datetime
 from core.validators import validate_image_only
+from django.utils.translation import gettext_lazy as _
 
 from .models import StudentOrder
 
 class FacultyFullForm(forms.ModelForm):
-    name = forms.CharField(label="Название факультета", widget=forms.TextInput(attrs={'class': 'form-control'}))
-    code = forms.CharField(label="Код факультета", widget=forms.TextInput(attrs={'class': 'form-control'}))
+    name = forms.CharField(label=_("Название факультета"), widget=forms.TextInput(attrs={'class': 'form-control'}))
+    code = forms.CharField(label=_("Код факультета"), widget=forms.TextInput(attrs={'class': 'form-control'}))
     
     dean_user = forms.ModelChoiceField(
         queryset=User.objects.filter(role__in=['TEACHER', 'DEAN', 'HEAD_OF_DEPT']),
         required=False,
-        label="Декан факультета",
+        label=_("Декан факультета"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
     office_location = forms.CharField(
         required=False, 
-        label="Кабинет декана",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: 101/3'})
+        label=_("Кабинет декана"),
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: 101/3')})
     )
     contact_email = forms.EmailField(
         required=False, 
-        label="Email деканата",
+        label=_("Email деканата"),
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
 
     vice_dean_user = forms.ModelChoiceField(
         queryset=User.objects.filter(role__in=['TEACHER', 'VICE_DEAN', 'HEAD_OF_DEPT']),
         required=False,
-        label="Зам. декана (по учебной работе)",
+        label=_("Зам. декана (по учебной работе)"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -64,7 +65,6 @@ class FacultyFullForm(forms.ModelForm):
         self.fields['dean_user'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.get_role_display()})"
         self.fields['vice_dean_user'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.get_role_display()})"
 
-
 class InstituteForm(forms.ModelForm):
     class Meta:
         model = Institute
@@ -79,7 +79,7 @@ class FacultyForm(forms.ModelForm):
     vice_dean = forms.ModelChoiceField(
         queryset=User.objects.filter(role__in=['VICE_DEAN', 'TEACHER']),
         required=False,
-        label="Заместитель декана",
+        label=_("Заместитель декана"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -111,7 +111,7 @@ class DepartmentForm(forms.ModelForm):
     head_of_department = forms.ModelChoiceField(
         queryset=User.objects.none(),
         required=False,
-        label="Заведующий кафедрой",
+        label=_("Заведующий кафедрой"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -121,8 +121,8 @@ class DepartmentForm(forms.ModelForm):
         widgets = {
             'faculty': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'total_wage_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25', 'placeholder': 'Необязательно'}),
-            'total_hours_budget': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Необязательно'}),
+            'total_wage_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25', 'placeholder': _('Необязательно')}),
+            'total_hours_budget': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': _('Необязательно')}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -185,8 +185,8 @@ class TeacherEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['degree'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Например: Кандидат технических наук'})
-        self.fields['title'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Например: Доцент'})
+        self.fields['degree'].widget.attrs.update({'class': 'form-control', 'placeholder': _('Например: Кандидат технических наук')})
+        self.fields['title'].widget.attrs.update({'class': 'form-control', 'placeholder': _('Например: Доцент')})
         self.fields['department'].widget.attrs.update({'class': 'form-select'})
         self.fields['biography'].widget.attrs.update({'class': 'form-control'})
         self.fields['contact_email'].widget.attrs.update({'class': 'form-control'})
@@ -197,15 +197,15 @@ class ProRectorForm(forms.ModelForm):
         fields = ['institute', 'title']
         widgets = {
             'institute': forms.Select(attrs={'class': 'form-select'}),
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Муовини директор оид ба таълим'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Муовини директор оид ба таълим')}),
         }
 
 class UserCreateForm(forms.ModelForm):
-    role = forms.ChoiceField(label="Роль", widget=forms.Select(attrs={'class': 'form-select'}))
-    first_name = forms.CharField(max_length=150, required=True, label="Имя", widget=forms.TextInput(attrs={'class': 'form-control'}))
-    last_name = forms.CharField(max_length=150, required=True, label="Фамилия", widget=forms.TextInput(attrs={'class': 'form-control'}))
-    phone = forms.CharField(required=False, label="Телефон", widget=forms.TextInput(attrs={'class': 'form-control'}))
-    photo = forms.ImageField(required=False, label="Фото", widget=forms.FileInput(attrs={'class': 'form-control'}))
+    role = forms.ChoiceField(label=_("Роль"), widget=forms.Select(attrs={'class': 'form-select'}))
+    first_name = forms.CharField(max_length=150, required=True, label=_("Имя"), widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, required=True, label=_("Фамилия"), widget=forms.TextInput(attrs={'class': 'form-control'}))
+    phone = forms.CharField(required=False, label=_("Телефон"), widget=forms.TextInput(attrs={'class': 'form-control'}))
+    photo = forms.ImageField(required=False, label=_("Фото"), widget=forms.FileInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = User
@@ -217,10 +217,10 @@ class UserCreateForm(forms.ModelForm):
         if creator:
             if creator.role == 'DEAN' or creator.role == 'VICE_DEAN':
                 allowed_roles = [
-                    ('STUDENT', 'Студент'),
-                    ('TEACHER', 'Преподаватель'),
-                    ('HEAD_OF_DEPT', 'Зав. кафедрой'),
-                    ('VICE_DEAN', 'Зам. декана'),
+                    ('STUDENT', _('Студент')),
+                    ('TEACHER', _('Преподаватель')),
+                    ('HEAD_OF_DEPT', _('Зав. кафедрой')),
+                    ('VICE_DEAN', _('Зам. декана')),
                 ]
                 self.fields['role'].choices = allowed_roles
             elif creator.is_superuser or creator.role in ['RECTOR', 'DIRECTOR']:
@@ -284,7 +284,7 @@ class TeacherForm(forms.ModelForm):
     additional_departments = forms.ModelMultipleChoiceField(
         queryset=Department.objects.none(),
         required=False,
-        label="Дополнительные кафедры (где может преподавать)",
+        label=_("Дополнительные кафедры (где может преподавать)"),
         widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '5'})
     )
     class Meta:
@@ -340,25 +340,25 @@ class UserEditForm(forms.ModelForm):
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
-        label="Старый пароль",
+        label=_("Старый пароль"),
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
     new_password1 = forms.CharField(
-        label="Новый пароль",
+        label=_("Новый пароль"),
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
     new_password2 = forms.CharField(
-        label="Подтверждение пароля",
+        label=_("Подтверждение пароля"),
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
 
 class PasswordResetByDeanForm(forms.Form):
     new_password = forms.CharField(
-        label="Новый пароль",
+        label=_("Новый пароль"),
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
     confirm_password = forms.CharField(
-        label="Подтвердите пароль",
+        label=_("Подтвердите пароль"),
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
 
@@ -367,14 +367,14 @@ class PasswordResetByDeanForm(forms.Form):
         password = cleaned_data.get('new_password')
         confirm = cleaned_data.get('confirm_password')
         if password != confirm:
-            raise forms.ValidationError("Пароли не совпадают")
+            raise forms.ValidationError(_("Пароли не совпадают"))
         return cleaned_data
 
 class GroupForm(forms.ModelForm):
     assign_students = forms.ModelMultipleChoiceField(
         queryset=Student.objects.all(),
         required=False,
-        label="Добавить студентов в группу",
+        label=_("Добавить студентов в группу"),
         widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '10'})
     )
 
@@ -411,36 +411,36 @@ class InstituteManagementForm(forms.Form):
     director = forms.ModelChoiceField(
         queryset=User.objects.filter(role__in=['DIRECTOR', 'TEACHER', 'DEAN']),
         required=False,
-        label="Директор института",
+        label=_("Директор института"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     vice_director_edu = forms.ModelChoiceField(
         queryset=User.objects.filter(role__in=['PRO_RECTOR', 'VICE_DEAN', 'TEACHER']),
         required=False,
-        label="Зам. директора (по учебной работе)",
+        label=_("Зам. директора (по учебной работе)"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     vice_director_edu_title = forms.CharField(
         required=False,
-        label="Название должности (для подписи)",
-        initial="Муовини директор оид ба корҳои таълимӣ",
+        label=_("Название должности (для подписи)"),
+        initial=_("Муовини директор оид ба корҳои таълимӣ"),
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     head_of_edu = forms.CharField(
         required=False,
-        label="Сардори раёсати таълим (ФИО)",
-        initial="Ҷалилов Р.Р.",
+        label=_("Сардори раёсати таълим (ФИО)"),
+        initial=_("Ҷалилов Р.Р."),
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
 class GroupTransferForm(forms.Form):
     to_group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
-        label="Новая группа",
+        label=_("Новая группа"),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     reason = forms.CharField(
-        label="Причина перевода",
+        label=_("Причина перевода"),
         widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         required=False
     )
@@ -449,9 +449,16 @@ class StudentOrderForm(forms.ModelForm):
         model = StudentOrder
         fields = ['number', 'date', 'order_type', 'reason', 'file']
         widgets = {
-            'number': forms.TextInput(attrs={'class': 'form-control'}),
+            'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Генерируется автоматически')}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'order_type': forms.Select(attrs={'class': 'form-select'}),
-            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': _('Основание для приказа...')}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['number'].required = False 
+        self.fields['number'].help_text = _("Оставьте пустым для авто-генерации")
+
+        

@@ -1,35 +1,36 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Управление пользователями{% endblock %}
+{% block title %}{% trans "Управление пользователями" %}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item active">Управление пользователями</li>
+    <li class="breadcrumb-item active">{% trans "Управление пользователями" %}</li>
 {% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-people"></i> Управление пользователями</span>
+                <span><i class="bi bi-people"></i> {% trans "Управление пользователями" %}</span>
                 <a href="{% url 'accounts:add_user' %}" class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-circle"></i> Добавить пользователя
+                    <i class="bi bi-plus-circle"></i> {% trans "Добавить пользователя" %}
                 </a>
             </div>
             <div class="card-body">
                 <form method="get" class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <input type="text" class="form-control" name="search" placeholder="Поиск..." value="{{ search }}">
+                        <input type="text" class="form-control" name="search" placeholder="{% trans 'Поиск...' %}" value="{{ search }}">
                     </div>
                     <div class="col-md-3">
                         <select class="form-select" name="role">
-                            <option value="">Все роли</option>
-                            <option value="STUDENT" {% if role_filter == 'STUDENT' %}selected{% endif %}>Студенты</option>
-                            <option value="TEACHER" {% if role_filter == 'TEACHER' %}selected{% endif %}>Преподаватели</option>
-                            <option value="DEAN" {% if role_filter == 'DEAN' %}selected{% endif %}>Деканы</option>
+                            <option value="">{% trans "Все роли" %}</option>
+                            <option value="STUDENT" {% if role_filter == 'STUDENT' %}selected{% endif %}>{% trans "Студенты" %}</option>
+                            <option value="TEACHER" {% if role_filter == 'TEACHER' %}selected{% endif %}>{% trans "Преподаватели" %}</option>
+                            <option value="DEAN" {% if role_filter == 'DEAN' %}selected{% endif %}>{% trans "Деканы" %}</option>
                         </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-search"></i> Найти
+                            <i class="bi bi-search"></i> {% trans "Найти" %}
                         </button>
                     </div>
                 </form>
@@ -38,12 +39,12 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Логин</th>
-                                <th>ФИО</th>
-                                <th>Роль</th>
-                                <th>Телефон</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
+                                <th>{% trans "Логин" %}</th>
+                                <th>{% trans "ФИО" %}</th>
+                                <th>{% trans "Роль" %}</th>
+                                <th>{% trans "Телефон" %}</th>
+                                <th>{% trans "Статус" %}</th>
+                                <th>{% trans "Действия" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -53,7 +54,7 @@
                                 <td>
                                     {{ user_obj.username }}
                                     {% if user_obj.is_superuser %}
-                                        <span class="badge bg-danger ms-1" title="Суперпользователь">SUPER</span>
+                                        <span class="badge bg-danger ms-1" title="{% trans 'Суперпользователь' %}">SUPER</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ user_obj.get_full_name }}</td>
@@ -62,71 +63,71 @@
                                         {% if user_obj.role == 'STUDENT' %}bg-primary
                                         {% elif user_obj.role == 'TEACHER' %}bg-info
                                         {% else %}bg-warning{% endif %}">
-                                        {{ user_obj.get_role_display|default:"Не указана" }}
+                                        {{ user_obj.get_role_display|default:"{% trans 'Не указана' %}" }}
                                     </span>
 
                                     {% if not user_data.has_profile %}
-                                        <span class="badge bg-danger" title="Профиль не создан">!</span>
+                                        <span class="badge bg-danger" title="{% trans 'Профиль не создан' %}">!</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ user_obj.phone|default:"—" }}</td>
                                 <td>
                                     {% if user_obj.is_active %}
-                                        <span class="badge bg-success">Активен</span>
+                                        <span class="badge bg-success">{% trans "Активен" %}</span>
                                     {% else %}
-                                        <span class="badge bg-danger">Заблокирован</span>
+                                        <span class="badge bg-danger">{% trans "Заблокирован" %}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a href="{% url 'accounts:view_user_profile' user_obj.id %}"
                                            class="btn btn-outline-info"
-                                           title="Просмотр профиля">
+                                           title="{% trans 'Просмотр профиля' %}">
                                             <i class="bi bi-eye"></i>
                                         </a>
 
                                         <a href="{% url 'accounts:edit_user' user_obj.id %}"
                                            class="btn btn-outline-primary"
-                                           title="Редактировать">
+                                           title="{% trans 'Редактировать' %}">
                                             <i class="bi bi-pencil"></i>
                                         </a>
 
                                         <a href="{% url 'accounts:reset_password' user_obj.id %}"
                                            class="btn btn-outline-warning"
-                                           title="Сбросить пароль">
+                                           title="{% trans 'Сбросить пароль' %}">
                                             <i class="bi bi-key"></i>
                                         </a>
 
                                         {% if user_obj.id == user.id %}
                                             <button type="button"
                                                     class="btn btn-outline-secondary"
-                                                    title="Нельзя заблокировать себя"
+                                                    title="{% trans 'Нельзя заблокировать себя' %}"
                                                     disabled>
                                                 <i class="bi bi-shield-lock"></i>
                                             </button>
                                         {% else %}
                                             <a href="{% url 'accounts:toggle_user_active' user_obj.id %}"
                                                class="btn btn-outline-danger"
-                                               onclick="return confirm('{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %} пользователя {{ user_obj.username }}?')"
-                                               title="{% if user_obj.is_active %}Заблокировать{% else %}Активировать{% endif %}">
+                                               onclick="return confirm('{% if user_obj.is_active %}{% trans 'Заблокировать' %}{% else %}{% trans 'Активировать' %}{% endif %} {% trans 'пользователя' %} {{ user_obj.username }}?')"
+                                               title="{% if user_obj.is_active %}{% trans 'Заблокировать' %}{% else %}{% trans 'Активировать' %}{% endif %}">
                                                 <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
                                             </a>
                                         {% endif %}
 
                                         {% if user_obj.role == 'STUDENT' %}
-                                            <a href="{% url 'accounts:student_orders' user_data.profile_id %}" class="btn btn-outline-danger" title="Приказы (Отчисление/Выпуск)">
+                                            <a href="{% url 'accounts:student_orders' user_data.profile_id %}" class="btn btn-outline-danger" title="{% trans 'Приказы (Отчисление/Выпуск)' %}">
                                                 <i class="bi bi-file-earmark-text"></i>
                                             </a>
                                             {% if user_data.has_profile and user_data.profile_id %}
                                                 <a href="{% url 'accounts:transfer_student' user_data.profile_id %}"
                                                    class="btn btn-outline-info"
-                                                   title="Перевести в другую группу">
+                                                   title="{% trans 'Перевести в другую группу' %}">
                                                     <i class="bi bi-arrow-left-right"></i>
                                                 </a>
                                             {% else %}
                                                 <button type="button"
                                                         class="btn btn-outline-secondary"
-                                                        title="Профиль студента не создан"
+                                                        title="{% trans 'Профиль студента не создан' %}"
                                                         disabled>
                                                     <i class="bi bi-exclamation-triangle"></i>
                                                 </button>

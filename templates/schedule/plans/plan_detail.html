@@ -8,24 +8,62 @@
 {% endblock %}
 
 {% block content %}
+<style>
+    .semester-nav .nav-link {
+        color: #495057 !important;
+        background-color: #e9ecef !important;
+        border: 1px solid #dee2e6 !important;
+        margin-right: 5px;
+        font-weight: 600;
+    }
+
+    .semester-nav .nav-link:hover {
+        background-color: #dee2e6 !important;
+        color: #000 !important;
+    }
+
+    .semester-nav .nav-link.active {
+        background-color: #0d6efd !important;
+        color: #ffffff !important;
+        border-color: #0d6efd !important;
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+    }
+    @keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+    }
+    .animate-pulse {
+        animation: pulse-green 2s infinite;
+    }
+</style>
+
 <div class="row mt-4">
     <div class="col-12 mb-3">
         <div class="card shadow-sm border-0">
             <div class="card-body d-flex justify-content-between align-items-center bg-white rounded">
                 <div>
-                    <h4 class="mb-1 text-dark fw-bold">{{ plan.specialty.name }} ({{ plan.specialty.code }})</h4>
-                    <p class="mb-0 text-secondary">
-                        {% if plan.group %}
-                            <span class="badge bg-info text-dark me-2"><i class="bi bi-people-fill"></i> Группа: {{ plan.group.name }}</span>
+                    <div class="d-flex align-items-center gap-3">
+                        <h4 class="mb-0 text-dark fw-bold">{{ plan.specialty.name }}</h4>
+                        {% if plan.is_active %}
+                            <span class="badge bg-success shadow-sm">АКТИВНЫЙ ПЛАН</span>
                         {% else %}
-                            <span class="badge bg-secondary me-2">Общий план специальности</span>
+                            <span class="badge bg-secondary opacity-50">АРХИВНЫЙ</span>
+                            <a href="{% url 'schedule:activate_plan' plan.id %}" class="btn btn-sm btn-outline-success ms-2">
+                                <i class="bi bi-play-circle"></i> Сделать активным
+                            </a>
                         {% endif %}
-                        Год набора: <strong class="text-dark">{{ plan.admission_year }}</strong>
+                    </div>
+                    <p class="mb-0 text-secondary mt-1">
+                        Код: <strong>{{ plan.specialty.code }}</strong> | Год набора: <strong>{{ plan.admission_year }}</strong>
                     </p>
                 </div>
-                <div class="text-end">
-                    <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning text-dark">
+                <div class="d-flex gap-2">
+                    <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning text-dark shadow-sm">
                         <i class="bi bi-magic"></i> Создать нагрузку
+                    </a>
+                    <a href="{% url 'schedule:delete_plan' plan.id %}" class="btn btn-outline-danger shadow-sm" onclick="return confirm('Вы уверены? Это удалит ВЕСЬ план и все дисциплины в нем!')">
+                        <i class="bi bi-trash"></i> Удалить план
                     </a>
                 </div>
             </div>
@@ -33,16 +71,63 @@
     </div>
 
     <div class="col-12 mb-3">
-        <ul class="nav nav-pills bg-white p-2 rounded shadow-sm gap-2" id="semesterTabs">
-            {% for i in semesters_range %}
-            <li class="nav-item">
-                <a class="nav-link {% if i == current_sem_num %}active bg-primary text-white{% else %}bg-light text-dark border{% endif %}" 
-                   href="?semester={{ i }}">
-                   {{ i }} Семестр
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-2">
+                <ul class="nav nav-pills semester-nav" id="semesterTabs">
+                    {% for i in semesters_range %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if i == current_sem_num %}active{% endif %}"
+                           href="?semester={{ i }}">
+                           {{ i }} Семестр
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 mb-4">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h6 class="fw-bold mb-1 text-primary">
+                        <i class="bi bi-calendar-check"></i> Настройка периода для {{ target_course }} курса
+                    </h6>
+                    <small class="text-muted">
+                        Выберите, какой семестр (из созданных в настройках) сейчас идет у студентов этого курса.
+                    </small>
+                </div>
+
+                <div class="d-flex align-items-center bg-white p-2 rounded border">
+                    <form action="{% url 'schedule:set_active_semester_manual' %}" method="post" class="d-flex align-items-center gap-2">
+                        {% csrf_token %}
+
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0">Текущий:</span>
+                            <select name="semester_id" class="form-select border-start-0 ps-1 fw-bold" style="min-width: 250px;">
+                                <option value="" disabled {% if not active_semester %}selected{% endif %}>-- Не выбран --</option>
+                                {% for sem in available_semesters %}
+                                    <option value="{{ sem.id }}" {% if sem.is_active %}selected{% endif %}>
+                                        {{ sem.academic_year }} | {{ sem.name }} ({{ sem.get_shift_display }})
+                                        {% if sem.is_active %} ✅{% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2-circle"></i> Активировать
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="vr mx-2"></div>
+
+                    <a href="{% url 'schedule:add_semester' %}" class="btn btn-sm btn-outline-secondary" title="Создать новый, если нет в списке">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="col-md-4">
@@ -53,10 +138,13 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    {{ form.semester_number }} 
-                    
+                    {{ form.semester_number }}
+
                     {% if form.errors %}
-                        <div class="alert alert-danger p-2 small mb-3">Ошибка заполнения формы</div>
+                        <div class="alert alert-danger p-2 small mb-3">
+                            <strong>Ошибка!</strong> Проверьте поля.
+                            {{ form.errors }}
+                        </div>
                     {% endif %}
 
                     <div class="mb-3">
@@ -71,11 +159,11 @@
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Тип блока</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">Тип</label>
                             {{ form.discipline_type }}
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Кредиты</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">Кредиты (ECTS)</label>
                             {{ form.credits }}
                         </div>
                     </div>
@@ -134,7 +222,6 @@
                 <div class="d-flex gap-3 text-muted small">
                     <span>Кредитов: <b class="text-dark">{{ stats.credits }}</b></span>
                     <span>Экзаменов: <b class="text-dark">{{ stats.exams }}</b></span>
-                    <span>Зачетов: <b class="text-dark">{{ stats.offsets }}</b></span>
                 </div>
             </div>
 
@@ -142,7 +229,7 @@
                 {% if not disciplines %}
                     <div class="text-center py-5">
                         <i class="bi bi-journal-plus text-muted opacity-50" style="font-size: 3rem;"></i>
-                        <p class="mt-3 text-muted">Семестр пуст. Добавьте дисциплины.</p>
+                        <p class="mt-3 text-muted">Семестр пуст. Добавьте дисциплины через форму слева.</p>
                     </div>
                 {% else %}
                     <div class="table-responsive">
@@ -150,7 +237,6 @@
                             <thead class="bg-light text-dark small text-uppercase">
                                 <tr>
                                     <th class="ps-4">Название</th>
-                                    <th>Тип</th>
                                     <th class="text-center">Кредиты</th>
                                     <th class="text-center">Л / П / СРСП / СРС</th>
                                     <th>Контроль</th>
@@ -160,21 +246,16 @@
                             <tbody>
                                 {% for disc in disciplines %}
                                 <tr>
-                                    <td class="ps-4 fw-medium text-dark">{{ disc.subject_template.name }}</td>
-                                    <td>
-                                        {% if disc.discipline_type == 'REQUIRED' %}
-                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10">Обяз.</span>
-                                        {% elif disc.discipline_type == 'ELECTIVE' %}
-                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-10">Выбор</span>
-                                        {% else %}
-                                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-10">Практ.</span>
-                                        {% endif %}
+                                    <td class="ps-4 fw-medium text-dark">
+                                        {{ disc.subject_template.name }}
+                                        <br><small class="text-muted">{{ disc.get_discipline_type_display }}</small>
                                     </td>
                                     <td class="text-center fw-bold text-dark">{{ disc.credits }}</td>
                                     <td class="text-center text-muted small">
-                                        <span class="text-dark fw-bold">{{ disc.lecture_hours }}</span> / 
-                                        <span class="text-dark fw-bold">{{ disc.practice_hours }}</span> / 
-                                        {{ disc.control_hours }} / {{ disc.independent_hours }}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ disc.lecture_hours }}</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success">{{ disc.practice_hours }}</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-dark">{{ disc.control_hours }}</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-dark">{{ disc.independent_hours }}</span>
                                     </td>
                                     <td>
                                         {% if disc.control_type == 'EXAM' %}
@@ -182,14 +263,11 @@
                                         {% else %}
                                             <span class="text-success small">Зачет</span>
                                         {% endif %}
-                                        {% if disc.has_course_work %}
-                                            <div class="badge bg-secondary text-white" style="font-size: 0.6rem;">КР</div>
-                                        {% endif %}
                                     </td>
                                     <td class="text-end pe-4">
                                         <a href="{% url 'schedule:delete_plan_discipline' disc.id %}"
                                            class="btn btn-sm btn-link text-danger p-0"
-                                           onclick="return confirm('Удалить дисциплину?')"
+                                           onclick="return confirm('Удалить дисциплину из плана?')"
                                            title="Удалить">
                                             <i class="bi bi-x-lg"></i>
                                         </a>
@@ -200,6 +278,26 @@
                         </table>
                     </div>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Новая дисциплина (Справочник)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Добавьте название предмета в общий справочник, чтобы использовать его в планах.</p>
+                <input type="text" id="newSubjectName" class="form-control" placeholder="Название (например: Философия)">
+                <div id="modalError" class="text-danger mt-2 small" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="createSubjectTemplate()">Создать</button>
             </div>
         </div>
     </div>
@@ -231,8 +329,11 @@ function createSubjectTemplate() {
             const select = document.getElementById('id_subject_template');
             const option = new Option(data.name, data.id, true, true);
             select.add(option);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addTemplateModal'));
+
+            const modalEl = document.getElementById('addTemplateModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
+
             nameInput.value = '';
             errorDiv.style.display = 'none';
         } else {
@@ -257,19 +358,22 @@ document.addEventListener('DOMContentLoaded', function() {
         creditsInput.addEventListener('input', function() {
             const credits = parseInt(this.value) || 0;
             if (credits <= 0) return;
-            
-            const totalHours = credits * 24; 
-            const srs = Math.floor(totalHours * 0.4); 
+
+            const totalHours = credits * 24;
+
+            const srs = Math.floor(totalHours / 3);
+
             const auditory = totalHours - srs;
-            
-            const lec = Math.floor(auditory * 0.4);
-            const prac = Math.floor(auditory * 0.4);
-            const srsp = auditory - lec - prac;
+
+            const part = Math.floor(auditory / 3);
+
+            const remainder = auditory - (part * 3);
 
             if(srsInput) srsInput.value = srs;
-            if(lecInput) lecInput.value = lec;
-            if(pracInput) pracInput.value = prac;
-            if(srspInput) srspInput.value = srsp;
+            if(lecInput) lecInput.value = part;
+            if(pracInput) pracInput.value = part;
+
+            if(srspInput) srspInput.value = part + remainder;
         });
     }
 });

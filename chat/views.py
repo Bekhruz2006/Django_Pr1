@@ -3,13 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count, Max
 from django.http import JsonResponse
+from django.utils.translation import gettext as _
 from accounts.models import User
 from .models import ChatRoom, ChatMessage
 from .forms import ChatMessageForm
 
 @login_required
 def chat_list(request):
-    
     rooms = ChatRoom.objects.filter(
         participants=request.user
     ).annotate(
@@ -26,7 +26,6 @@ def chat_list(request):
 
 @login_required
 def chat_room(request, room_id):
-    
     room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
 
     messages_list = room.messages.select_related('sender').order_by('created_at')
@@ -57,7 +56,6 @@ def chat_room(request, room_id):
 
 @login_required
 def start_chat(request):
-    
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         recipient = get_object_or_404(User, id=user_id)
@@ -75,7 +73,7 @@ def start_chat(request):
         room = ChatRoom.objects.create(room_type='PRIVATE')
         room.participants.add(request.user, recipient)
         
-        messages.success(request, f'Чат с {recipient.get_full_name()} создан')
+        messages.success(request, _('Чат с %(user)s создан') % {'user': recipient.get_full_name()})
         return redirect('chat:room', room_id=room.id)
 
     users = User.objects.exclude(id=request.user.id).select_related(
@@ -88,11 +86,10 @@ def start_chat(request):
 
 @login_required
 def delete_message(request, message_id):
-    
     message = get_object_or_404(ChatMessage, id=message_id, sender=request.user)
     room_id = message.room.id
     message.delete()
-    messages.success(request, 'Сообщение удалено')
+    messages.success(request, _('Сообщение удалено'))
     return redirect('chat:room', room_id=room_id)
 
 @login_required
@@ -119,12 +116,12 @@ def get_new_messages(request, room_id):
     
     return JsonResponse({'messages': messages_data})
 
-
 @login_required
 def mark_as_read(request, room_id):
     room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
     room.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
     return JsonResponse({'status': 'ok'})
+
 @login_required
 def mark_read_api(request, room_id):
     room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)

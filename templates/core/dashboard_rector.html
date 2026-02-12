@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Кабинет Руководителя" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Приветствие -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="fw-bold text-dark">
+                {% trans "Добро пожаловать" %}, {{ user.get_full_name }}
+            </h3>
+            <p class="text-muted">{% trans "Обзор деятельности университета" %}</p>
+        </div>
+    </div>
+
+    <!-- KPI Карточки -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small">{% trans "Контингент студентов" %}</h6>
+                    <h2 class="mb-0 fw-bold">{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small">{% trans "Документы на подпись" %}</h6>
+                    <h2 class="mb-0 fw-bold text-warning">{{ pending_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-success">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small">{% trans "Штат сотрудников" %}</h6>
+                    <h2 class="mb-0 fw-bold">{{ total_teachers }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной блок: Приказы на подпись -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-danger">
+                        <i class="bi bi-pen-fill me-2"></i>{% trans "Требует утверждения (Проекты приказов)" %}
+                    </h5>
+                    <a href="{% url 'accounts:all_orders' %}?status=DRAFT" class="btn btn-sm btn-outline-primary">
+                        {% trans "Перейти в реестр" %}
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">{% trans "Дата" %}</th>
+                                    <th>{% trans "Тип приказа" %}</th>
+                                    <th>{% trans "Студент" %}</th>
+                                    <th>{% trans "Инициатор (Декан)" %}</th>
+                                    <th>{% trans "Основание" %}</th>
+                                    <th class="text-end pe-4">{% trans "Действие" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in pending_orders %}
+                                <tr class="table-warning bg-opacity-10">
+                                    <td class="ps-4 fw-bold">{{ order.date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ order.get_order_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        {{ order.student.user.get_full_name }}
+                                        <br><small class="text-muted">{{ order.student.group.name }}</small>
+                                    </td>
+                                    <td>{{ order.created_by.get_full_name }}</td>
+                                    <td><small>{{ order.reason|truncatewords:5 }}</small></td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            {% if order.file %}
+                                                <a href="{{ order.file.url }}" target="_blank" class="btn btn-sm btn-light text-danger" title="Скачать скан">
+                                                    <i class="bi bi-file-pdf"></i>
+                                                </a>
+                                            {% endif %}
+                                            
+                                            <form action="{% url 'accounts:approve_order' order.id %}" method="post">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success shadow-sm" onclick="return confirm('{% trans 'Вы уверены, что хотите утвердить этот приказ?' %}')">
+                                                    <i class="bi bi-check-lg"></i> {% trans "Утвердить" %}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="bi bi-check-circle fs-1 text-success opacity-50 mb-2 d-block"></i>
+                                        {% trans "Нет документов, требующих подписи." %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,10 +5,14 @@ from django.contrib import messages
 from django.db import transaction
 from django.db import models
 from django.http import HttpResponseForbidden
+from django.utils.translation import gettext as _
 from .services import StudentImportService
 from schedule.models import Semester, Subject, AcademicPlan
 from django.db.models import Prefetch
-
+from django.db.models import Count, Q, Avg
+from django.db.models.functions import TruncMonth 
+from django.utils import timezone
+import json
 
 from .models import (
     User, Student, Teacher, Dean, Group, GroupTransferHistory,
@@ -68,14 +72,14 @@ def login_view(request):
             login(request, user)
             return redirect('core:dashboard')
         else:
-            messages.error(request, 'Неверный логин или пароль')
+            messages.error(request, _('Неверный логин или пароль'))
     
     return render(request, 'accounts/login.html')
 
 @login_required
 def logout_view(request):
     logout(request)
-    messages.success(request, 'Вы успешно вышли из системы')
+    messages.success(request, _('Вы успешно вышли из системы'))
     return redirect('accounts:login')
 
 @login_required
@@ -107,7 +111,7 @@ def profile_view(request):
         if monthly_data:
             for entry in monthly_data:
                 if entry['month']:
-                    month_name = entry['month'].strftime('%b') # Jan, Feb...
+                    month_name = entry['month'].strftime('%b')
                     chart_labels.append(month_name)
                     chart_gpa.append(round(entry['avg_grade'] or 0, 2))
                     att_pct = (entry['attended'] / entry['total_lessons'] * 100) if entry['total_lessons'] > 0 else 0
@@ -227,7 +231,7 @@ def edit_profile(request):
             user_form.save()
             if profile_form:
                 profile_form.save()
-            messages.success(request, 'Профиль успешно обновлен')
+            messages.success(request, _('Профиль успешно обновлен'))
             return redirect('accounts:profile')
     else:
         user_form = UserEditForm(instance=user)
@@ -254,7 +258,7 @@ def change_password(request):
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)
-            messages.success(request, 'Пароль успешно изменен')
+            messages.success(request, _('Пароль успешно изменен'))
             return redirect('accounts:profile')
     else:
         form = CustomPasswordChangeForm(request.user)
@@ -333,16 +337,16 @@ def import_students(request):
         group_id = request.POST.get('group_id')
         
         if not excel_file.name.endswith('.xlsx'):
-            messages.error(request, 'Пожалуйста, загрузите файл .xlsx')
+            messages.error(request, _('Пожалуйста, загрузите файл .xlsx'))
             return redirect('accounts:import_students')
 
         try:
             results = StudentImportService.import_from_excel(excel_file, group_id)
-            messages.success(request, f"Импортировано: {results['created']} студентов.")
+            messages.success(request, _(f"Импортировано: {results['created']} студентов."))
             if results['errors']:
-                messages.warning(request, f"Ошибки ({len(results['errors'])}): {'; '.join(results['errors'][:3])}...")
+                messages.warning(request, _(f"Ошибки ({len(results['errors'])}): {'; '.join(results['errors'][:3])}..."))
         except Exception as e:
-            messages.error(request, f"Критическая ошибка импорта: {str(e)}")
+            messages.error(request, _(f"Критическая ошибка импорта: {str(e)}"))
             
         return redirect('accounts:group_management')
     
@@ -371,7 +375,7 @@ def add_user(request):
                 role = user_form.cleaned_data['role']
                 
                 if request.user.role == 'DEAN' and role in ['DIRECTOR', 'RECTOR', 'PRO_RECTOR']:
-                    messages.error(request, "У вас нет прав создавать руководство института.")
+                    messages.error(request, _("У вас нет прав создавать руководство института."))
                     transaction.set_rollback(True)
                     return redirect('accounts:add_user')
 
@@ -394,7 +398,7 @@ def add_user(request):
                                 teacher.save()
                                 
                     
-                    messages.success(request, f'Пользователь {user.username} ({user.get_role_display()}) успешно создан.')
+                    messages.success(request, _(f'Пользователь {user.username} ({user.get_role_display()}) успешно создан.'))
                     
                     if department_id:
                         return redirect('accounts:manage_structure')
@@ -402,7 +406,7 @@ def add_user(request):
                     return redirect('accounts:user_management')
                     
                 except Exception as e:
-                    messages.error(request, f'Ошибка при настройке профиля: {str(e)}')
+                    messages.error(request, _(f'Ошибка при настройке профиля: {str(e)}'))
                     print(e)
     else:
         user_form = UserCreateForm(creator=request.user, initial=initial_data)
@@ -430,7 +434,7 @@ def edit_user(request, user_id):
             user_form.save()
             if profile_form:
                 profile_form.save()
-            messages.success(request, 'Пользователь успешно обновлен')
+            messages.success(request, _('Пользователь успешно обновлен'))
             return redirect('accounts:user_management')
     else:
         user_form = UserEditForm(instance=user_obj)
@@ -461,7 +465,7 @@ def reset_password(request, user_id):
             new_password = form.cleaned_data['new_password']
             user_obj.set_password(new_password)
             user_obj.save()
-            messages.success(request, f'Пароль для {user_obj.username} успешно сброшен')
+            messages.success(request, _(f'Пароль для {user_obj.username} успешно сброшен'))
             return redirect('accounts:user_management')
     else:
         form = PasswordResetByDeanForm()
@@ -476,18 +480,18 @@ def toggle_user_active(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
     
     if user_obj.id == request.user.id:
-        messages.error(request, '❌ Вы не можете заблокировать сам себя!')
+        messages.error(request, _('❌ Вы не можете заблокировать сам себя!'))
         return redirect('accounts:user_management')
     
     if user_obj.is_superuser and not request.user.is_superuser:
-        messages.error(request, '❌ Вы не можете заблокировать суперпользователя!')
+        messages.error(request, _('❌ Вы не можете заблокировать суперпользователя!'))
         return redirect('accounts:user_management')
     
     user_obj.is_active = not user_obj.is_active
     user_obj.save()
     
-    status = "активирован" if user_obj.is_active else "заблокирован"
-    messages.success(request, f'Пользователь {user_obj.username} {status}')
+    status = _("активирован") if user_obj.is_active else _("заблокирован")
+    messages.success(request, _(f'Пользователь {user_obj.username} {status}'))
     return redirect('accounts:user_management')
 
 @user_passes_test(is_management)
@@ -511,7 +515,7 @@ def transfer_student(request, student_id):
                 student.group = new_group
                 student.save()
                 
-                messages.success(request, f'Студент переведен из {old_group} в {new_group}')
+                messages.success(request, _(f'Студент переведен из {old_group} в {new_group}'))
                 return redirect('accounts:user_management')
     else:
         form = GroupTransferForm()
@@ -524,7 +528,7 @@ def transfer_student(request, student_id):
 @login_required
 def view_user_profile(request, user_id):
     if not is_management(request.user) and request.user.role != 'TEACHER':
-         messages.error(request, 'Доступ запрещен')
+         messages.error(request, _('Доступ запрещен'))
          return redirect('core:dashboard')
 
     user_obj = get_object_or_404(User, id=user_id)
@@ -580,7 +584,7 @@ def group_management(request):
 @login_required
 def add_group(request):
     if not (request.user.is_superuser or request.user.role in ['DEAN', 'VICE_DEAN']):
-        messages.error(request, "Нет доступа")
+        messages.error(request, _("Нет доступа"))
         return redirect('core:dashboard')
 
     specialty_id = request.GET.get('specialty')
@@ -591,7 +595,7 @@ def add_group(request):
             specialty = Specialty.objects.get(id=specialty_id)
             if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
                 if specialty.department.faculty != request.user.dean_profile.faculty:
-                    messages.error(request, "Это специальность чужого факультета")
+                    messages.error(request, _("Это специальность чужого факультета"))
                     return redirect('accounts:manage_structure')
             initial_data['specialty'] = specialty
         except Specialty.DoesNotExist:
@@ -612,18 +616,18 @@ def add_group(request):
                 if is_dean(request.user):
                     spec = form.cleaned_data['specialty']
                     if spec.department.faculty != request.user.dean_profile.faculty:
-                        raise Exception("Попытка создания группы на чужом факультете")
+                        raise Exception(_("Попытка создания группы на чужом факультете"))
 
                 group = form.save()
-                messages.success(request, f'Группа {group.name} успешно создана')
+                messages.success(request, _(f'Группа {group.name} успешно создана'))
                 
                 if specialty_id:
                     return redirect('accounts:manage_structure')
                 return redirect('accounts:group_management')
             except Exception as e:
-                messages.error(request, f"Ошибка сохранения: {str(e)}")
+                messages.error(request, _(f"Ошибка сохранения: {str(e)}"))
         else:
-            messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
+            messages.error(request, _("Пожалуйста, исправьте ошибки в форме."))
     else:
         form = GroupForm(initial=initial_data)
         configure_form(form)
@@ -637,10 +641,10 @@ def edit_group(request, group_id):
         form = GroupForm(request.POST, instance=group)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Группа {group.name} успешно обновлена')
+            messages.success(request, _(f'Группа {group.name} успешно обновлена'))
             return redirect('accounts:group_management')
         else:
-            print("Ошибки формы:", form.errors) 
+            print(_("Ошибки формы:"), form.errors) 
     else:
         form = GroupForm(instance=group)
     return render(request, 'accounts/edit_group.html', {'form': form, 'group': group})
@@ -651,10 +655,10 @@ def delete_group(request, group_id):
     students_count = Student.objects.filter(group=group).count()
     if request.method == 'POST':
         if students_count > 0:
-            messages.error(request, f'Невозможно удалить группу {group.name}. В ней есть {students_count} студентов.')
+            messages.error(request, _(f'Невозможно удалить группу {group.name}. В ней есть {students_count} студентов.'))
         else:
             group.delete()
-            messages.success(request, f'Группа {group.name} успешно удалена')
+            messages.success(request, _(f'Группа {group.name} успешно удалена'))
         return redirect('accounts:group_management')
     return render(request, 'accounts/delete_group.html', {'group': group, 'students_count': students_count})
 
@@ -760,7 +764,7 @@ def manage_structure(request):
             context['is_dean'] = True
             context['active_semester'] = active_semester
         else:
-            messages.error(request, "Ваш профиль не привязан к факультету")
+            messages.error(request, _("Ваш профиль не привязан к факультету"))
             return redirect('core:dashboard')
             
     return render(request, 'accounts/structure_manage.html', context)
@@ -815,7 +819,7 @@ def edit_institute(request, pk):
                         new_vice_user.save()
 
                     if current_vice and current_vice.user != new_vice_user:
-                        current_vice.institute = None # Или delete(), если профиль не нужен
+                        current_vice.institute = None
                         current_vice.save()
 
                     vice_profile, created = ProRector.objects.get_or_create(user=new_vice_user)
@@ -823,7 +827,7 @@ def edit_institute(request, pk):
                     vice_profile.title = title
                     vice_profile.save()
 
-            messages.success(request, "Институт и руководство обновлены")
+            messages.success(request, _("Институт и руководство обновлены"))
             return redirect('accounts:manage_structure')
     else:
         form = InstituteForm(instance=institute)
@@ -841,7 +845,7 @@ def delete_institute(request, pk):
     institute = get_object_or_404(Institute, pk=pk)
     if request.method == 'POST':
         institute.delete()
-        messages.success(request, "Институт удален")
+        messages.success(request, _("Институт удален"))
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': institute, 'title': 'Удалить Институт'})
 
@@ -881,7 +885,7 @@ def add_faculty(request):
                     vice_profile.title = "Муовини декан оид ба таълим" 
                     vice_profile.save()
 
-            messages.success(request, f"Факультет {faculty.name} успешно создан!")
+            messages.success(request, _(f"Факультет {faculty.name} успешно создан!"))
             return redirect('accounts:manage_structure')
     else:
         form = FacultyFullForm(initial=initial_data)
@@ -903,7 +907,7 @@ def edit_faculty(request, pk):
 
                 if new_dean_user:
                     if current_dean_profile and current_dean_profile.user != new_dean_user:
-                        current_dean_profile.faculty = None # Снимаем полномочия со старого
+                        current_dean_profile.faculty = None
                         current_dean_profile.save()
                     
                     if new_dean_user.role != 'DEAN' and not new_dean_user.is_superuser:
@@ -938,7 +942,7 @@ def edit_faculty(request, pk):
                     current_vice_profile.faculty = None
                     current_vice_profile.save()
 
-            messages.success(request, "Факультет и руководство обновлены")
+            messages.success(request, _("Факультет и руководство обновлены"))
             return redirect('accounts:manage_structure')
     else:
         form = FacultyFullForm(instance=faculty)
@@ -954,7 +958,7 @@ def delete_faculty(request, pk):
     faculty = get_object_or_404(Faculty, pk=pk)
     if request.method == 'POST':
         faculty.delete()
-        messages.success(request, "Факультет удален")
+        messages.success(request, _("Факультет удален"))
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': faculty, 'title': 'Удалить Факультет'})
 
@@ -981,7 +985,7 @@ def add_department(request):
             if is_dean(request.user):
                 dean_faculty = request.user.dean_profile.faculty
                 if form.cleaned_data['faculty'] != dean_faculty:
-                    messages.error(request, "Вы можете добавлять кафедры только в свой факультет")
+                    messages.error(request, _("Вы можете добавлять кафедры только в свой факультет"))
                     return redirect('accounts:manage_structure')
             
             with transaction.atomic():
@@ -998,7 +1002,7 @@ def add_department(request):
                         defaults={'department': dept}
                     )
 
-            messages.success(request, f"Кафедра {dept.name} создана")
+            messages.success(request, _(f"Кафедра {dept.name} создана"))
             return redirect('accounts:manage_structure')
     else:
         form = DepartmentForm(initial=initial, faculty_context=faculty_context)
@@ -1016,7 +1020,7 @@ def edit_department(request, pk):
     
     if is_dean(request.user):
         if dept.faculty != request.user.dean_profile.faculty:
-            return HttpResponseForbidden("Это не ваша кафедра")
+            return HttpResponseForbidden(_("Это не ваша кафедра"))
 
     if request.method == 'POST':
         form = DepartmentForm(request.POST, instance=dept, faculty_context=dept.faculty)
@@ -1042,7 +1046,7 @@ def edit_department(request, pk):
                 elif not head_user and hasattr(dept, 'head'):
                     dept.head.delete()
 
-            messages.success(request, "Кафедра обновлена")
+            messages.success(request, _("Кафедра обновлена"))
             return redirect('accounts:manage_structure')
     else:
         form = DepartmentForm(instance=dept, faculty_context=dept.faculty)
@@ -1060,11 +1064,11 @@ def delete_department(request, pk):
     if not is_management(request.user):
         return HttpResponseForbidden()
     if is_dean(request.user) and dept.faculty != request.user.dean_profile.faculty:
-        return HttpResponseForbidden()
+        return HttpResponseForbidden(_("Это не ваша кафедра"))
 
     if request.method == 'POST':
         dept.delete()
-        messages.success(request, "Кафедра удалена")
+        messages.success(request, _("Кафедра удалена"))
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': dept, 'title': 'Удалить кафедру'})
 
@@ -1084,10 +1088,10 @@ def add_specialty(request):
             if is_dean(request.user):
                 dean_faculty = request.user.dean_profile.faculty
                 if form.cleaned_data['department'].faculty != dean_faculty:
-                    messages.error(request, "Ошибка доступа к кафедре")
+                    messages.error(request, _("Ошибка доступа к кафедре"))
                     return redirect('accounts:manage_structure')
             form.save()
-            messages.success(request, "Специальность добавлена")
+            messages.success(request, _("Специальность добавлена"))
             return redirect('accounts:manage_structure')
     else:
         form = SpecialtyForm(initial=initial)
@@ -1104,13 +1108,13 @@ def edit_specialty(request, pk):
         return HttpResponseForbidden()
     
     if is_dean(request.user) and spec.department.faculty != request.user.dean_profile.faculty:
-        return HttpResponseForbidden()
+        return HttpResponseForbidden(_("Это не ваша кафедра"))
 
     if request.method == 'POST':
         form = SpecialtyForm(request.POST, instance=spec)
         if form.is_valid():
             form.save()
-            messages.success(request, "Специальность обновлена")
+            messages.success(request, _("Специальность обновлена"))
             return redirect('accounts:manage_structure')
     else:
         form = SpecialtyForm(instance=spec)
@@ -1126,11 +1130,11 @@ def delete_specialty(request, pk):
     if not is_management(request.user):
         return HttpResponseForbidden()
     if is_dean(request.user) and spec.department.faculty != request.user.dean_profile.faculty:
-        return HttpResponseForbidden()
+        return HttpResponseForbidden(_("Это не ваша кафедра"))
 
     if request.method == 'POST':
         spec.delete()
-        messages.success(request, "Специальность удалена")
+        messages.success(request, _("Специальность удалена"))
         return redirect('accounts:manage_structure')
     return render(request, 'accounts/confirm_delete.html', {'obj': spec, 'title': 'Удалить специальность'})
 
@@ -1141,7 +1145,7 @@ def add_institute(request):
         form = InstituteForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Институт добавлен")
+            messages.success(request, _("Институт добавлен"))
             return redirect('accounts:manage_structure')
     else:
         form = InstituteForm()
@@ -1151,19 +1155,21 @@ def add_institute(request):
 @user_passes_test(is_management)
 def student_orders(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-    orders = student.orders.all()
+    orders = student.orders.all().order_by('-date')
     
     if request.method == 'POST':
         form = StudentOrderForm(request.POST, request.FILES)
         if form.is_valid():
             order = form.save(commit=False)
             order.student = student
-            order.created_by = request.user
-            order.save() 
-            messages.success(request, f'Приказ №{order.number} создан. Статус студента обновлен.')
+            order.initiated_by = request.user 
+            order.status = 'DRAFT'
+            order.save()
+            
+            messages.success(request, _(f'Проект приказа №{order.number} создан.'))
             return redirect('accounts:user_management')
     else:
-        form = StudentOrderForm()
+        form = StudentOrderForm(initial={'date': timezone.now().date()})
         
     return render(request, 'accounts/student_orders.html', {
         'student': student,
@@ -1200,4 +1206,46 @@ def payment_list(request):
         'show_debtors': show_debtors
     })
 
+@user_passes_test(is_management)
+def all_orders_list(request):
+    search = request.GET.get('search', '')
+    type_filter = request.GET.get('type', '')
+    
+    orders = StudentOrder.objects.select_related('student__user', 'student__group').all()
+    
+    if search:
+        orders = orders.filter(
+            models.Q(number__icontains=search) |
+            models.Q(student__user__last_name__icontains=search) |
+            models.Q(student__user__first_name__icontains=search)
+        )
+    
+    if type_filter:
+        orders = orders.filter(order_type=type_filter)
+        
+    return render(request, 'accounts/all_orders_list.html', {
+        'orders': orders,
+        'search': search,
+        'type_filter': type_filter,
+        'order_types': StudentOrder.ORDER_TYPES
+    })
 
+
+
+
+
+
+@user_passes_test(lambda u: u.is_superuser or u.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR'])
+def approve_order(request, order_id):
+    order = get_object_or_404(StudentOrder, id=order_id)
+    order.signed_by = request.user 
+    order.apply_effect(request.user)
+
+    if request.method == 'POST':
+        if order.status == 'DRAFT':
+            order.apply_effect(request.user)
+            messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студента обновлен."))
+        else:
+            messages.warning(request, _("Приказ уже обработан."))
+            
+    return redirect('accounts:all_orders')

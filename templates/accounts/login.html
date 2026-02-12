@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+
+{% load i18n %}
+
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход в систему</title>
+    <title>{% trans "Вход в систему" %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -50,11 +53,12 @@
     </style>
 </head>
 <body>
+    {% load i18n %}
     <div class="login-card">
         <div class="login-header">
             <div class="login-icon">🎓</div>
-            <h2>Платформа деканата</h2>
-            <p class="text-muted">Войдите в систему</p>
+            <h2>{% trans "Платформа деканата" %}</h2>
+            <p class="text-muted">{% trans "Войдите в систему" %}</p>
         </div>
         
         {% if messages %}
@@ -69,14 +73,14 @@
         <form method="post">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="username" class="form-label">Логин</label>
+                <label for="username" class="form-label">{% trans "Логин" %}</label>
                 <input type="text" class="form-control" id="username" name="username" required>
             </div>
             <div class="mb-3">
-                <label for="password" class="form-label">Пароль</label>
+                <label for="password" class="form-label">{% trans "Пароль" %}</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary btn-login w-100">Войти</button>
+            <button type="submit" class="btn btn-primary btn-login w-100">{% trans "Войти" %}</button>
         </form>
     </div>
     

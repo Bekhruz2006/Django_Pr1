@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Управление структурой ВУЗа{% endblock %}
+{% block title %}{% trans "Управление структурой ВУЗа" %}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item active">Структура университета</li>
+    <li class="breadcrumb-item active">{% trans "Структура университета" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -10,16 +11,16 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="fw-bold text-dark mb-1">Структура университета</h3>
-            <p class="text-muted small mb-0">Управление институтами, факультетами, кафедрами и специальностями</p>
+            <h3 class="fw-bold text-dark mb-1">{% trans "Структура университета" %}</h3>
+            <p class="text-muted small mb-0">{% trans "Управление институтами, факультетами, кафедрами и специальностями" %}</p>
         </div>
         {% if is_admin %}
         <div class="d-flex gap-2">
             <a href="{% url 'accounts:add_institute' %}" class="btn btn-success btn-sm shadow-sm">
-                <i class="bi bi-plus-lg"></i> Институт
+                <i class="bi bi-plus-lg"></i> {% trans "Институт" %}
             </a>
             <a href="{% url 'accounts:add_faculty' %}" class="btn btn-primary btn-sm shadow-sm">
-                <i class="bi bi-plus-lg"></i> Факультет
+                <i class="bi bi-plus-lg"></i> {% trans "Факультет" %}
             </a>
         </div>
         {% endif %}
@@ -40,9 +41,9 @@
                         <div>
                             <h5 class="mb-0 fw-bold text-dark">{{ inst_data.obj.name }}</h5>
                             <div class="small text-muted mt-1">
-                                <i class="bi bi-person-badge me-1"></i>Директор: 
+                                <i class="bi bi-person-badge me-1"></i>{% trans "Директор:" %} 
                                 <span class="fw-medium text-dark">
-                                    {{ inst_data.director.user.get_full_name|default:"Не назначен" }}
+                                    {{ inst_data.director.user.get_full_name|default:"{% trans 'Не назначен' %}" }}
                                 </span>
                             </div>
                         </div>
@@ -50,13 +51,13 @@
                     
                     <div class="d-flex align-items-center gap-3">
                         <span class="badge bg-light text-dark border">
-                            {{ inst_data.faculties|length }} факультетов
+                            {{ inst_data.faculties|length }} {% trans "факультетов" %}
                         </span>
                         <div class="btn-group" role="group">
-                            <a href="{% url 'accounts:edit_institute' inst_data.obj.id %}" class="btn btn-sm btn-outline-secondary" title="Настройки">
+                            <a href="{% url 'accounts:edit_institute' inst_data.obj.id %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Настройки' %}">
                                 <i class="bi bi-gear"></i>
                             </a>
-                            <a href="{% url 'accounts:delete_institute' inst_data.obj.id %}" class="btn btn-sm btn-outline-danger" title="Удалить">
+                            <a href="{% url 'accounts:delete_institute' inst_data.obj.id %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Удалить' %}">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </div>
@@ -78,10 +79,10 @@
                                     </div>
                                     <div class="d-flex align-items-center gap-3">
                                         <small class="text-muted">
-                                            Декан: <b>{{ fac_data.dean.user.get_full_name|default:"-" }}</b>
+                                            {% trans "Декан:" %} <b>{{ fac_data.dean.user.get_full_name|default:"-" }}</b>
                                         </small>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}" class="btn btn-outline-success" title="Добавить кафедру">+ Каф</a>
+                                            <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}" class="btn btn-outline-success" title="{% trans 'Добавить кафедру' %}">{% trans "+ Каф" %}</a>
                                             <a href="{% url 'accounts:edit_faculty' fac_data.obj.id %}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
                                             <a href="{% url 'accounts:delete_faculty' fac_data.obj.id %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a>
                                         </div>
@@ -93,11 +94,11 @@
                                         <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
                                             <thead class="bg-light text-muted">
                                                 <tr>
-                                                    <th class="ps-4" style="width: 30%;">Кафедра</th>
-                                                    <th style="width: 20%;">Заведующий</th>
-                                                    <th style="width: 15%;">Статистика</th>
-                                                    <th style="width: 25%;">Специальности</th>
-                                                    <th class="text-end pe-3" style="width: 10%;">Действия</th>
+                                                    <th class="ps-4" style="width: 30%;">{% trans "Кафедра" %}</th>
+                                                    <th style="width: 20%;">{% trans "Заведующий" %}</th>
+                                                    <th style="width: 15%;">{% trans "Статистика" %}</th>
+                                                    <th style="width: 25%;">{% trans "Специальности" %}</th>
+                                                    <th class="text-end pe-3" style="width: 10%;">{% trans "Действия" %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -111,8 +112,8 @@
                                                     </td>
                                                     <td class="align-middle">
                                                         <div class="d-flex flex-column small">
-                                                            <span><i class="bi bi-person text-muted"></i> {{ dept_data.stats.teachers }} преп.</span>
-                                                            <span><i class="bi bi-people text-muted"></i> {{ dept_data.stats.students }} студ.</span>
+                                                            <span><i class="bi bi-person text-muted"></i> {{ dept_data.stats.teachers }} {% trans "преп." %}</span>
+                                                            <span><i class="bi bi-people text-muted"></i> {{ dept_data.stats.students }} {% trans "студ." %}</span>
                                                         </div>
                                                     </td>
                                                     <td class="align-middle">
@@ -126,7 +127,7 @@
                                                     </td>
                                                     <td class="text-end pe-3 align-middle">
                                                         <div class="btn-group btn-group-sm">
-                                                            <a href="{% url 'accounts:add_specialty' %}?department={{ dept_data.obj.id }}" class="btn btn-light text-primary" title="Добавить специальность">+Спец</a>
+                                                            <a href="{% url 'accounts:add_specialty' %}?department={{ dept_data.obj.id }}" class="btn btn-light text-primary" title="{% trans 'Добавить специальность' %}">{% trans "+Спец" %}</a>
                                                             <a href="{% url 'accounts:edit_department' dept_data.obj.id %}" class="btn btn-light text-secondary"><i class="bi bi-gear"></i></a>
                                                             <a href="{% url 'accounts:delete_department' dept_data.obj.id %}" class="btn btn-light text-danger"><i class="bi bi-trash"></i></a>
                                                         </div>
@@ -135,8 +136,8 @@
                                                 {% empty %}
                                                 <tr>
                                                     <td colspan="5" class="text-center py-3 text-muted small">
-                                                        Кафедры отсутствуют. 
-                                                        <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}">Добавить первую</a>
+                                                        {% trans "Кафедры отсутствуют." %} 
+                                                        <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}">{% trans "Добавить первую" %}</a>
                                                     </td>
                                                 </tr>
                                                 {% endfor %}
@@ -149,9 +150,9 @@
                         {% else %}
                             <div class="text-center py-4 text-muted">
                                 <i class="bi bi-diagram-2 fs-3 d-block mb-2 opacity-50"></i>
-                                В этом институте пока нет факультетов.
+                                {% trans "В этом институте пока нет факультетов." %}
                                 <br>
-                                <a href="{% url 'accounts:add_faculty' %}?institute={{ inst_data.obj.id }}" class="btn btn-sm btn-primary mt-2">Добавить факультет</a>
+                                <a href="{% url 'accounts:add_faculty' %}?institute={{ inst_data.obj.id }}" class="btn btn-sm btn-primary mt-2">{% trans "Добавить факультет" %}</a>
                             </div>
                         {% endif %}
                         
@@ -163,10 +164,10 @@
                 <div class="mb-3">
                     <i class="bi bi-building-dash text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
                 </div>
-                <h4>Структура пуста</h4>
-                <p class="text-muted">Начните с создания первого института.</p>
+                <h4>{% trans "Структура пуста" %}</h4>
+                <p class="text-muted">{% trans "Начните с создания первого института." %}</p>
                 <a href="{% url 'accounts:add_institute' %}" class="btn btn-primary btn-lg mt-2">
-                    <i class="bi bi-plus-lg"></i> Создать Институт
+                    <i class="bi bi-plus-lg"></i> {% trans "Создать Институт" %}
                 </a>
             </div>
             {% endfor %}
@@ -176,14 +177,14 @@
         <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
             <i class="bi bi-info-circle-fill fs-4 me-3"></i>
             <div>
-                <strong>Панель Декана:</strong> Вы управляете факультетом <u>{{ faculty.name }}</u>.
-                <br><small>Используйте этот раздел для настройки кафедр, специальностей и назначения заведующих.</small>
+                <strong>{% trans "Панель Декана:" %}</strong> {% blocktrans %}Вы управляете факультетом <u>{{ faculty.name }}</u>.{% endblocktrans %}
+                <br><small>{% trans "Используйте этот раздел для настройки кафедр, специальностей и назначения заведующих." %}</small>
             </div>
         </div>
         
         <div class="d-flex justify-content-end mb-3">
             <a href="{% url 'accounts:add_department' %}" class="btn btn-primary shadow-sm">
-                <i class="bi bi-plus-lg"></i> Новая кафедра
+                <i class="bi bi-plus-lg"></i> {% trans "Новая кафедра" %}
             </a>
         </div>
 
@@ -198,12 +199,12 @@
                                 <div>
                                     <span class="fw-bold fs-6 text-dark">{{ item.obj.name }}</span>
                                     <div class="small text-muted mt-1 fw-normal">
-                                        <i class="bi bi-person-badge"></i> Зав: <span class="text-dark fw-medium">{{ item.obj.head.user.get_full_name|default:"Не назначен" }}</span>
+                                        <i class="bi bi-person-badge"></i> {% trans "Зав:" %} <span class="text-dark fw-medium">{{ item.obj.head.user.get_full_name|default:"{% trans 'Не назначен' %}" }}</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="text-end d-none d-md-block">
-                                <small class="text-muted d-block" style="font-size: 0.7rem;">НАГРУЗКА</small>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">{% trans "НАГРУЗКА" %}</small>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="progress" style="width: 80px; height: 6px;">
                                         <div class="progress-bar {% if item.load_percent > 100 %}bg-danger{% else %}bg-success{% endif %}" 
@@ -219,20 +220,20 @@
                 <div id="collapse{{ item.obj.id }}" class="accordion-collapse collapse">
                     <div class="accordion-body bg-light p-3">
                         <div class="d-flex gap-2 mb-3 p-2 bg-white rounded border flex-wrap align-items-center">
-                            <span class="text-muted small text-uppercase fw-bold ms-2 me-auto">Действия:</span>
+                            <span class="text-muted small text-uppercase fw-bold ms-2 me-auto">{% trans "Действия:" %}</span>
                             
                             <a href="{% url 'accounts:add_specialty' %}?department={{ item.obj.id }}" class="btn btn-xs btn-outline-primary">
-                                <i class="bi bi-mortarboard-plus"></i> +Специальность
+                                <i class="bi bi-mortarboard-plus"></i> {% trans "+Специальность" %}
                             </a>
                             <a href="{% url 'accounts:add_user' %}?role=TEACHER&department={{ item.obj.id }}" class="btn btn-xs btn-outline-success">
-                                <i class="bi bi-person-plus"></i> +Преподаватель
+                                <i class="bi bi-person-plus"></i> {% trans "+Преподаватель" %}
                             </a>
                             <a href="{% url 'accounts:user_management' %}?role=TEACHER&department={{ item.obj.id }}" class="btn btn-xs btn-info text-white">
-                                <i class="bi bi-people"></i> Штат ({{ item.teachers_count }})
+                                <i class="bi bi-people"></i> {% trans "Штат" %} ({{ item.teachers_count }})
                             </a>
                             <div class="vr mx-2"></div>
                             <a href="{% url 'accounts:edit_department' item.obj.id %}" class="btn btn-xs btn-secondary">
-                                <i class="bi bi-gear"></i> Настройки
+                                <i class="bi bi-gear"></i> {% trans "Настройки" %}
                             </a>
                         </div>
 
@@ -251,11 +252,11 @@
                                     </div>
                                     <div class="card-body p-2 bg-light bg-opacity-10">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <small class="text-muted fw-bold">ГРУППЫ:</small>
+                                            <small class="text-muted fw-bold">{% trans "ГРУППЫ:" %}</small>
                                             {% if not spec_data.plan %}
-                                                <a href="{% url 'schedule:create_plan' %}?specialty={{ spec_data.obj.id }}" class="badge bg-warning text-dark text-decoration-none">Нет РУП! Создать</a>
+                                                <a href="{% url 'schedule:create_plan' %}?specialty={{ spec_data.obj.id }}" class="badge bg-warning text-dark text-decoration-none">{% trans "Нет РУП! Создать" %}</a>
                                             {% else %}
-                                                <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" class="badge bg-success text-decoration-none">РУП {{ spec_data.plan.admission_year }}</a>
+                                                <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" class="badge bg-success text-decoration-none">{% trans "РУП" %} {{ spec_data.plan.admission_year }}</a>
                                             {% endif %}
                                         </div>
                                         
@@ -264,13 +265,13 @@
                                                 <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" 
                                                    class="btn btn-sm btn-white border d-flex align-items-center px-2 py-1"
                                                    style="font-size: 0.75rem;"
-                                                   title="Расписание">
+                                                   title="{% trans 'Расписание' %}">
                                                     <span class="fw-bold me-1">{{ group.name }}</span>
                                                     <span class="badge bg-secondary rounded-pill" style="font-size: 0.6rem;">{{ group.course }}</span>
                                                 </a>
                                             {% empty %}
-                                                <small class="text-muted fst-italic">Групп нет</small>
-                                                <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="ms-2 small text-primary text-decoration-none">+Доб.</a>
+                                                <small class="text-muted fst-italic">{% trans "Групп нет" %}</small>
+                                                <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="ms-2 small text-primary text-decoration-none">{% trans "+Доб." %}</a>
                                             {% endfor %}
                                         </div>
                                     </div>

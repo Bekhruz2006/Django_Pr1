@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Редактировать профиль{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Редактировать профиль" %}{% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-8 mx-auto">
         <div class="card">
-            <div class="card-header"><i class="bi bi-pencil"></i> Редактировать профиль</div>
+            <div class="card-header"><i class="bi bi-pencil"></i> {% trans "Редактировать профиль" %}</div>
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <h5>Основная информация</h5>
+                    <h5>{% trans "Основная информация" %}</h5>
                     {% for field in user_form %}
                     <div class="mb-3">
                         <label class="form-label">{{ field.label }}</label>
@@ -16,7 +17,7 @@
                     </div>
                     {% endfor %}
                     {% if profile_form %}
-                    <hr><h5>Профильная информация</h5>
+                    <hr><h5>{% trans "Профильная информация" %}</h5>
                     {% for field in profile_form %}
                     <div class="mb-3">
                         <label class="form-label">{{ field.label }}</label>
@@ -24,8 +25,8 @@
                     </div>
                     {% endfor %}
                     {% endif %}
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
-                    <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">Отмена</a>
+                    <button type="submit" class="btn btn-primary">{% trans "Сохранить" %}</button>
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">{% trans "Отмена" %}</a>
                 </form>
             </div>
         </div>

@@ -1,34 +1,35 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Управление группами{% endblock %}
+{% block title %}{% trans "Управление группами" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-collection"></i> Управление группами</span>
+                <span><i class="bi bi-collection"></i> {% trans "Управление группами" %}</span>
                 <a href="{% url 'accounts:add_group' %}" class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-circle"></i> Добавить группу
+                    <i class="bi bi-plus-circle"></i> {% trans "Добавить группу" %}
                 </a>
             </div>
             <div class="card-body">
                 
                 <form method="get" class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <input type="text" class="form-control" name="search" placeholder="Поиск по названию..." value="{{ search }}">
+                        <input type="text" class="form-control" name="search" placeholder="{% trans 'Поиск по названию...' %}" value="{{ search }}">
                     </div>
                     <div class="col-md-3">
                         <select class="form-select" name="course">
-                            <option value="">Все курсы</option>
+                            <option value="">{% trans "Все курсы" %}</option>
                             {% for i in "12345" %}
-                                <option value="{{ i }}" {% if course_filter == i %}selected{% endif %}>{{ i }} курс</option>
+                                <option value="{{ i }}" {% if course_filter == i %}selected{% endif %}>{{ i }} {% trans "курс" %}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-search"></i> Найти
+                            <i class="bi bi-search"></i> {% trans "Найти" %}
                         </button>
                     </div>
                 </form>
@@ -37,12 +38,12 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Название</th>
-                                <th>Курс</th>
-                                <th>Год обучения</th>
-                                <th>Специальность</th>
-                                <th>Студентов</th>
-                                <th>Действия</th>
+                                <th>{% trans "Название" %}</th>
+                                <th>{% trans "Курс" %}</th>
+                                <th>{% trans "Год обучения" %}</th>
+                                <th>{% trans "Специальность" %}</th>
+                                <th>{% trans "Студентов" %}</th>
+                                <th>{% trans "Действия" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,13 +60,13 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'accounts:edit_group' group.id %}" class="btn btn-outline-primary" title="Редактировать">
+                                        <a href="{% url 'accounts:edit_group' group.id %}" class="btn btn-outline-primary" title="{% trans 'Редактировать' %}">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" class="btn btn-outline-info" title="Расписание">
+                                        <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" class="btn btn-outline-info" title="{% trans 'Расписание' %}">
                                             <i class="bi bi-calendar3"></i>
                                         </a>
-                                        <a href="{% url 'accounts:delete_group' group.id %}" class="btn btn-outline-danger" title="Удалить">
+                                        <a href="{% url 'accounts:delete_group' group.id %}" class="btn btn-outline-danger" title="{% trans 'Удалить' %}">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
@@ -73,7 +74,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted">Группы не найдены</td>
+                                <td colspan="6" class="text-center text-muted">{% trans "Группы не найдены" %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

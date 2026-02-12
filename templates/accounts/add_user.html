@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Добавить пользователя{% endblock %}
+{% block title %}{% trans "Добавить пользователя" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-8 mx-auto">
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-person-plus"></i> Добавить пользователя
+                <i class="bi bi-person-plus"></i> {% trans "Добавить пользователя" %}
             </div>
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
@@ -15,11 +16,11 @@
                     
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> 
-                        Логин будет сгенерирован автоматически. Временный пароль: <strong>password123</strong>
+                        {% trans "Логин будет сгенерирован автоматически. Временный пароль:" %} <strong>password123</strong>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Роль *</label>
+                        <label class="form-label">{% trans "Роль" %} *</label>
                         {{ form.role }}
                         {% if form.role.errors %}
                             <div class="text-danger">{{ form.role.errors }}</div>
@@ -28,7 +29,7 @@
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Имя *</label>
+                            <label class="form-label">{% trans "Имя" %} *</label>
                             {{ form.first_name }}
                             {% if form.first_name.errors %}
                                 <div class="text-danger">{{ form.first_name.errors }}</div>
@@ -36,7 +37,7 @@
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Фамилия *</label>
+                            <label class="form-label">{% trans "Фамилия" %} *</label>
                             {{ form.last_name }}
                             {% if form.last_name.errors %}
                                 <div class="text-danger">{{ form.last_name.errors }}</div>
@@ -45,27 +46,27 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Телефон</label>
+                        <label class="form-label">{% trans "Телефон" %}</label>
                         {{ form.phone }}
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Фото</label>
+                        <label class="form-label">{% trans "Фото" %}</label>
                         {{ form.photo }}
                     </div>
                     
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Создать пользователя
+                            <i class="bi bi-check-circle"></i> {% trans "Создать пользователя" %}
                         </button>
                         <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Отмена
+                            <i class="bi bi-x-circle"></i> {% trans "Отмена" %}
                         </a>
                     </div>
                 </form>
                 
                 <div class="alert alert-warning mt-3">
-                    <strong>Обратите внимание:</strong> После создания пользователя нужно будет заполнить дополнительные поля профиля через редактирование.
+                    <strong>{% trans "Обратите внимание:" %}</strong> {% trans "После создания пользователя нужно будет заполнить дополнительные поля профиля через редактирование." %}
                 </div>
             </div>
         </div>

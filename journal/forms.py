@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from .models import JournalEntry, JournalChangeLog
 from accounts.models import Group
 from schedule.models import Subject
@@ -14,7 +15,7 @@ class JournalEntryForm(forms.ModelForm):
                 'class': 'form-control form-control-sm',
                 'min': 1,
                 'max': 12,
-                'placeholder': '1-12'
+                'placeholder': _('1-12')
             }),
             'attendance_status': forms.Select(attrs={
                 'class': 'form-select form-select-sm'
@@ -28,8 +29,8 @@ class JournalEntryForm(forms.ModelForm):
 
         if grade is not None and grade > 0 and attendance_status != 'PRESENT':
             raise ValidationError(
-                "Нельзя одновременно установить балл и статус отсутствия. "
-                "Балл автоматически означает присутствие."
+                _("Нельзя одновременно установить балл и статус отсутствия. "
+                "Балл автоматически означает присутствие.")
             )
         
         return cleaned_data
@@ -44,31 +45,31 @@ class JournalEntryForm(forms.ModelForm):
                 for field in self.fields.values():
                     field.disabled = True
                     field.widget.attrs['class'] += ' bg-secondary bg-opacity-25'
-                    field.widget.attrs['title'] = '🔒 Заблокировано (прошло 24 часа)'
+                    field.widget.attrs['title'] = _('🔒 Заблокировано (прошло 24 часа)')
 
 class BulkGradeForm(forms.Form):
 
     students = forms.MultipleChoiceField(
         widget=forms.CheckboxSelectMultiple,
         required=False,
-        label="Выберите студентов"
+        label=_("Выберите студентов")
     )
     
     grade = forms.IntegerField(
         min_value=1,
         max_value=12,
         required=False,
-        label="Балл",
+        label=_("Балл"),
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
-            'placeholder': '1-12'
+            'placeholder': _('1-12')
         })
     )
     
     attendance_status = forms.ChoiceField(
-        choices=[('', '---')] + JournalEntry.ATTENDANCE_CHOICES,
+        choices=[('', _('---'))] + JournalEntry.ATTENDANCE_CHOICES,
         required=False,
-        label="Статус посещения",
+        label=_("Статус посещения"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
@@ -88,10 +89,10 @@ class BulkGradeForm(forms.Form):
         attendance_status = cleaned_data.get('attendance_status')
         
         if not grade and not attendance_status:
-            raise ValidationError("Выберите либо балл, либо статус посещения")
+            raise ValidationError(_("Выберите либо балл, либо статус посещения"))
         
         if grade and attendance_status and attendance_status != 'PRESENT':
-            raise ValidationError("Нельзя одновременно установить балл и статус отсутствия")
+            raise ValidationError(_("Нельзя одновременно установить балл и статус отсутствия"))
         
         return cleaned_data
 
@@ -100,14 +101,14 @@ class JournalFilterForm(forms.Form):
     group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
         required=True,
-        empty_label="-- Выберите группу --",
+        empty_label=_("-- Выберите группу --"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
     subject = forms.ModelChoiceField(
         queryset=Subject.objects.all(),
         required=True,
-        empty_label="-- Выберите предмет --",
+        empty_label=_("-- Выберите предмет --"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
@@ -115,10 +116,10 @@ class JournalFilterForm(forms.Form):
         min_value=1,
         max_value=20,
         required=False,
-        label="Учебная неделя",
+        label=_("Учебная неделя"),
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
-            'placeholder': 'I-XX'
+            'placeholder': _('I-XX')
         })
     )
     
@@ -141,7 +142,7 @@ class ChangeLogFilterForm(forms.Form):
 
     date_from = forms.DateField(
         required=False,
-        label="С даты",
+        label=_("С даты"),
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control'
@@ -150,7 +151,7 @@ class ChangeLogFilterForm(forms.Form):
     
     date_to = forms.DateField(
         required=False,
-        label="По дату",
+        label=_("По дату"),
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control'
@@ -159,13 +160,13 @@ class ChangeLogFilterForm(forms.Form):
     
     student = forms.ChoiceField(
         required=False,
-        choices=[('', 'Все студенты')],
+        choices=[('', _('Все студенты'))],
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
     teacher = forms.ChoiceField(
         required=False,
-        choices=[('', 'Все преподаватели')],
+        choices=[('', _('Все преподаватели'))],
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
@@ -177,13 +178,13 @@ class ChangeLogFilterForm(forms.Form):
         if group:
             from accounts.models import Student
             students = Student.objects.filter(group=group)
-            self.fields['student'].choices = [('', 'Все студенты')] + [
+            self.fields['student'].choices = [('', _('Все студенты'))] + [
                 (s.id, s.user.get_full_name()) for s in students
             ]
         
         if subject:
             from accounts.models import Teacher
             teachers = Teacher.objects.filter(subjects=subject)
-            self.fields['teacher'].choices = [('', 'Все преподаватели')] + [
+            self.fields['teacher'].choices = [('', _('Все преподаватели'))] + [
                 (t.id, t.user.get_full_name()) for t in teachers
             ]

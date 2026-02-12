@@ -1,41 +1,61 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from accounts.models import User, Group, Teacher, Department
+from accounts.models import User, Group, Teacher, Department, Faculty
 from datetime import timedelta, date
 import uuid
 import math
+from django.utils.translation import gettext_lazy as _
+from accounts.models import Institute
 
 from django.db import models
 import math
+class Building(models.Model):
+    name = models.CharField(max_length=100, verbose_name=_("Название корпуса"), help_text="Например: Главный корпус, Блок А")
+    address = models.CharField(max_length=255, blank=True, verbose_name=_("Адрес"))
+    institute = models.ForeignKey(
+        Institute, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='buildings',
+        verbose_name=_("Принадлежность Институту")
+    )
+
+    class Meta:
+        verbose_name = _("Учебный корпус")
+        verbose_name_plural = _("Учебные корпуса")
+
+    def __str__(self):
+        return self.name
 
 class Subject(models.Model):
     TYPE_CHOICES = [
-        ('LECTURE', 'Лекция'),
-        ('PRACTICE', 'Практика'),
-        ('SRSP', 'СРСП (КМРО)'),
+        ('LECTURE', _('Лекция')),
+        ('PRACTICE', _('Практика')),
+        ('SRSP', _('СРСП (КМРО)')),
     ]
-    name = models.CharField(max_length=200, verbose_name="Название")
-    code = models.CharField(max_length=20, unique=True, verbose_name="Код")
+    name = models.CharField(max_length=200, verbose_name=_("Название"))
+    code = models.CharField(max_length=20, unique=True, verbose_name=_("Код"))
 
-    department = models.ForeignKey('accounts.Department', on_delete=models.CASCADE, related_name='subjects', verbose_name="Кафедра")
+    department = models.ForeignKey('accounts.Department', on_delete=models.CASCADE, related_name='subjects', verbose_name=_("Кафедра"))
 
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
         default='LECTURE',
-        verbose_name="Основной тип"
+        verbose_name=_("Основной тип")
     )
 
-    lecture_hours = models.IntegerField(default=0, verbose_name="Лекции (Л) часов за семестр")
-    practice_hours = models.IntegerField(default=0, verbose_name="Практика (А) часов за семестр")
-    control_hours = models.IntegerField(default=0, verbose_name="Контроль (КМРО) часов за семестр")
-    independent_work_hours = models.IntegerField(default=0, verbose_name="КМД часов за семестр")
+    lecture_hours = models.IntegerField(default=0, verbose_name=_("Лекции (Л) часов за семестр"))
+    practice_hours = models.IntegerField(default=0, verbose_name=_("Практика (А) часов за семестр"))
+    control_hours = models.IntegerField(default=0, verbose_name=_("Контроль (КМРО) часов за семестр"))
+    independent_work_hours = models.IntegerField(default=0, verbose_name=_("КМД часов за семестр"))
 
-    semester_weeks = models.IntegerField(default=16, verbose_name="Недель в семестре")
+    semester_weeks = models.IntegerField(default=16, verbose_name=_("Недель в семестре"))
     
     is_stream_subject = models.BooleanField(
         default=False, 
-        verbose_name="Это поток (совместное занятие)"
+        verbose_name=_("Это поток (совместное занятие)")
     )
     
     teacher = models.ForeignKey(
@@ -43,38 +63,32 @@ class Subject(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Преподаватель"
+        verbose_name=_("Преподаватель")
     )
 
-    groups = models.ManyToManyField(
-        'accounts.Group',
-        related_name='assigned_subjects',
-        blank=True,
-        verbose_name="Группы"
-    )
 
-    description = models.TextField(blank=True, verbose_name="Описание")
+    description = models.TextField(blank=True, verbose_name=_("Описание"))
     syllabus_file = models.FileField(
         upload_to='syllabus/', 
         blank=True, 
         null=True, 
-        verbose_name="Силлабус (PDF/Word)"
+        verbose_name=_("Силлабус (PDF/Word)")
     )
 
-    credits = models.IntegerField(default=0, verbose_name="Кредиты (устарело)")
-    hours_per_semester = models.IntegerField(default=0, verbose_name="Часов (устарело)")
+    credits = models.IntegerField(default=0, verbose_name=_("Кредиты (устарело)"))
+    hours_per_semester = models.IntegerField(default=0, verbose_name=_("Часов (устарело)"))
     
     plan_discipline = models.ForeignKey(
         'PlanDiscipline',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Основание (из плана)"
+        verbose_name=_("Основание (из плана)")
     )
 
     class Meta:
-        verbose_name = "Предмет"
-        verbose_name_plural = "Предметы"
+        verbose_name = _("Предмет")
+        verbose_name_plural = _("Предметы")
         ordering = ['name']
 
     def __str__(self):
@@ -150,13 +164,13 @@ class Subject(models.Model):
     
 
 class TimeSlot(models.Model):
-    start_time = models.TimeField(verbose_name="Начало")
-    end_time = models.TimeField(verbose_name="Конец")
-    name = models.CharField(max_length=50, blank=True, verbose_name="Название")
+    start_time = models.TimeField(verbose_name=_("Начало"))
+    end_time = models.TimeField(verbose_name=_("Конец"))
+    name = models.CharField(max_length=50, blank=True, verbose_name=_("Название"))
 
     class Meta:
-        verbose_name = "Временной слот"
-        verbose_name_plural = "Временные слоты"
+        verbose_name = _("Временной слот")
+        verbose_name_plural = _("Временные слоты")
         ordering = ['start_time']
 
     def __str__(self):
@@ -164,44 +178,45 @@ class TimeSlot(models.Model):
 
 class Semester(models.Model):
     NUMBER_CHOICES = [
-        (1, 'Первый'),
-        (2, 'Второй'),
+        (1, _('Первый')),
+        (2, _('Второй')),
     ]
 
     SHIFT_CHOICES = [
-        ('MORNING', 'Утренняя смена'),
-        ('DAY', 'Дневная смена'),
+        ('MORNING', _('Утренняя смена')),
+        ('DAY', _('Дневная смена')),
     ]
 
     COURSE_CHOICES = [
-        (1, '1 курс'),
-        (2, '2 курс'),
-        (3, '3 курс'),
-        (4, '4 курс'),
-        (5, '5 курс'),
+        (1, _('1 курс')),
+        (2, _('2 курс')),
+        (3, _('3 курс')),
+        (4, _('4 курс')),
+        (5, _('5 курс')),
     ]
-
-    name = models.CharField(max_length=200, verbose_name="Название (напр. Осенний)")
-    academic_year = models.CharField(max_length=20, verbose_name="Учебный год", help_text="Формат: 2024-2025")
-    number = models.IntegerField(choices=NUMBER_CHOICES, verbose_name="Номер семестра")
-    course = models.IntegerField(choices=COURSE_CHOICES, verbose_name="Курс")
-    shift = models.CharField(max_length=10, choices=SHIFT_CHOICES, verbose_name="Смена")
-
-    start_date = models.DateField(verbose_name="Дата начала")
-    end_date = models.DateField(verbose_name="Дата окончания")
-    is_active = models.BooleanField(default=False, verbose_name="Активный")
-
-    groups = models.ManyToManyField(
-        'accounts.Group',
-        blank=True,
-        related_name='assigned_semesters',
-        verbose_name="Применен к группам"
+    faculty = models.ForeignKey(
+        Faculty, 
+        on_delete=models.CASCADE, 
+        related_name='semesters',
+        verbose_name=_("Факультет"),
+        null=True, 
+        blank=True
     )
+    name = models.CharField(max_length=200, verbose_name=_("Название (напр. Осенний)"))
+    academic_year = models.CharField(max_length=20, verbose_name=_("Учебный год"), help_text=_("Формат: 2024-2025"))
+    number = models.IntegerField(choices=NUMBER_CHOICES, verbose_name=_("Номер семестра"))
+    course = models.IntegerField(choices=COURSE_CHOICES, verbose_name=_("Курс"))
+    shift = models.CharField(max_length=10, choices=SHIFT_CHOICES, verbose_name=_("Смена"))
+
+    start_date = models.DateField(verbose_name=_("Дата начала"))
+    end_date = models.DateField(verbose_name=_("Дата окончания"))
+    is_active = models.BooleanField(default=False, verbose_name=_("Активный"))
+
 
     class Meta:
-        verbose_name = "Семестр"
-        verbose_name_plural = "Семестры"
-        unique_together = ['academic_year', 'number', 'course']
+        verbose_name = _("Семестр")
+        verbose_name_plural = _("Семестры")
+        unique_together = ['faculty', 'academic_year', 'number', 'course'] 
         ordering = ['-academic_year', 'course', 'number']
 
     def __str__(self):
@@ -219,62 +234,71 @@ class Semester(models.Model):
         return cls.objects.filter(is_active=True).first()
 
 class Classroom(models.Model):
-    number = models.CharField(max_length=20, unique=True, verbose_name="Номер")
-    floor = models.IntegerField(verbose_name="Этаж")
-    capacity = models.IntegerField(default=30, verbose_name="Вместимость")
-    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    building = models.ForeignKey(
+        Building, 
+        on_delete=models.CASCADE, 
+        related_name='classrooms',
+        verbose_name=_("Корпус/Блок"),
+        null=True 
+    )
+
+    number = models.CharField(max_length=20, unique=True, verbose_name=_("Номер"))
+    floor = models.IntegerField(verbose_name=_("Этаж"))
+    capacity = models.IntegerField(default=30, verbose_name=_("Вместимость"))
+    is_active = models.BooleanField(default=True, verbose_name=_("Активен"))
 
     class Meta:
-        verbose_name = "Кабинет"
-        verbose_name_plural = "Кабинеты"
-        ordering = ['floor', 'number']
+        verbose_name = _("Кабинет")
+        verbose_name_plural = _("Кабинеты")
+        ordering = ['building', 'floor', 'number']
+        unique_together = ['building', 'number']
 
     def __str__(self):
         return f"Каб. {self.number}"
 
 class ScheduleSlot(models.Model):
     DAYS_OF_WEEK = [
-        (0, 'Понедельник'),
-        (1, 'Вторник'),
-        (2, 'Среда'),
-        (3, 'Четверг'),
-        (4, 'Пятница'),
-        (5, 'Суббота'),
+        (0, _('Понедельник')),
+        (1, _('Вторник')),
+        (2, _('Среда')),
+        (3, _('Четверг')),
+        (4, _('Пятница')),
+        (5, _('Суббота')),
     ]
 
     LESSON_TYPE_CHOICES = [
-        ('LECTURE', 'Лекция'),
-        ('PRACTICE', 'Практика'),
-        ('SRSP', 'СРСП (КМРО)'),
+        ('LECTURE', _('Лекция')),
+        ('PRACTICE', _('Практика')),
+        ('SRSP', _('СРСП (КМРО)')),
     ]
 
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа")
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Предмет")
-    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Преподаватель")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name=_("Группа"))
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name=_("Предмет"))
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Преподаватель"))
 
     lesson_type = models.CharField(
         max_length=10,
         choices=LESSON_TYPE_CHOICES,
         default='LECTURE',
-        verbose_name="Тип занятия"
+        verbose_name=_("Тип занятия")
     )
 
-    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name="Семестр")
-    day_of_week = models.IntegerField(choices=DAYS_OF_WEEK, verbose_name="День недели")
-    time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, verbose_name="Время")
-    start_time = models.TimeField(verbose_name="Начало")
-    end_time = models.TimeField(verbose_name="Конец")
-    classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Кабинет")
-    room = models.CharField(max_length=20, blank=True, null=True, verbose_name="Номер кабинета (текст)")
-    is_active = models.BooleanField(default=True, verbose_name="Активно")
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name=_("Семестр"))
+    day_of_week = models.IntegerField(choices=DAYS_OF_WEEK, verbose_name=_("День недели"))
+    time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, verbose_name=_("Время"))
+    start_time = models.TimeField(verbose_name=_("Начало"))
+    end_time = models.TimeField(verbose_name=_("Конец"))
+    classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Кабинет"))
+    room = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Номер кабинета (текст)"))
+    is_active = models.BooleanField(default=True, verbose_name=_("Активно"))
 
-    stream_id = models.UUIDField(null=True, blank=True, verbose_name="ID Потока")
+    stream_id = models.UUIDField(null=True, blank=True, verbose_name=_("ID Потока"))
 
-    is_military = models.BooleanField(default=False, verbose_name="Военная кафедра")
+    is_military = models.BooleanField(default=False, verbose_name=_("Военная кафедра"))
 
     class Meta:
-        verbose_name = "Занятие"
-        verbose_name_plural = "Занятия"
+        verbose_name = _("Занятие")
+        verbose_name_plural = _("Занятия")
         ordering = ['day_of_week', 'start_time']
 
     def get_color_class(self):
@@ -296,39 +320,39 @@ class ScheduleSlot(models.Model):
 
 class ScheduleException(models.Model):
     EXCEPTION_TYPES = [
-        ('CANCEL', 'Отменено'),
-        ('RESCHEDULE', 'Перенесено'),
+        ('CANCEL', _('Отменено')),
+        ('RESCHEDULE', _('Перенесено')),
     ]
 
-    schedule_slot = models.ForeignKey(ScheduleSlot, on_delete=models.CASCADE, verbose_name="Занятие")
-    exception_type = models.CharField(max_length=20, choices=EXCEPTION_TYPES, verbose_name="Тип")
-    exception_date = models.DateField(verbose_name="Дата исключения")
-    reason = models.TextField(verbose_name="Причина")
+    schedule_slot = models.ForeignKey(ScheduleSlot, on_delete=models.CASCADE, verbose_name=_("Занятие"))
+    exception_type = models.CharField(max_length=20, choices=EXCEPTION_TYPES, verbose_name=_("Тип"))
+    exception_date = models.DateField(verbose_name=_("Дата исключения"))
+    reason = models.TextField(verbose_name=_("Причина"))
 
-    new_date = models.DateField(null=True, blank=True, verbose_name="Новая дата")
-    new_start_time = models.TimeField(null=True, blank=True, verbose_name="Новое время начала")
-    new_end_time = models.TimeField(null=True, blank=True, verbose_name="Новое время окончания")
-    new_classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Новый кабинет")
+    new_date = models.DateField(null=True, blank=True, verbose_name=_("Новая дата"))
+    new_start_time = models.TimeField(null=True, blank=True, verbose_name=_("Новое время начала"))
+    new_end_time = models.TimeField(null=True, blank=True, verbose_name=_("Новое время окончания"))
+    new_classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Новый кабинет"))
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Исключение в расписании"
-        verbose_name_plural = "Исключения в расписании"
+        verbose_name = _("Исключение в расписании")
+        verbose_name_plural = _("Исключения в расписании")
 
     def __str__(self):
         return f"{self.schedule_slot} - {self.get_exception_type_display()} ({self.exception_date})"
 
 class AcademicWeek(models.Model):
-    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name="Семестр")
-    week_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(20)], verbose_name="Номер недели")
-    start_date = models.DateField(verbose_name="Начало недели")
-    end_date = models.DateField(verbose_name="Конец недели")
-    is_current = models.BooleanField(default=True, verbose_name="Текущая неделя")
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, verbose_name=_("Семестр"))
+    week_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(20)], verbose_name=_("Номер недели"))
+    start_date = models.DateField(verbose_name=_("Начало недели"))
+    end_date = models.DateField(verbose_name=_("Конец недели"))
+    is_current = models.BooleanField(default=True, verbose_name=_("Текущая неделя"))
 
     class Meta:
-        verbose_name = "Учебная неделя"
-        verbose_name_plural = "Учебные недели"
+        verbose_name = _("Учебная неделя")
+        verbose_name_plural = _("Учебные недели")
 
     def __str__(self):
         return f"Неделя {self.week_number} ({self.start_date})"
@@ -353,11 +377,11 @@ class AcademicWeek(models.Model):
 
 
 class SubjectTemplate(models.Model):
-    name = models.CharField(max_length=200, unique=True, verbose_name="Название дисциплины")
+    name = models.CharField(max_length=200, unique=True, verbose_name=_("Название дисциплины"))
     
     class Meta:
-        verbose_name = "Шаблон дисциплины"
-        verbose_name_plural = "Справочник дисциплин"
+        verbose_name = _("Шаблон дисциплины")
+        verbose_name_plural = _("Справочник дисциплин")
         ordering = ['name']
 
     def __str__(self):
@@ -366,10 +390,10 @@ class SubjectTemplate(models.Model):
 
 
 class AcademicPlan(models.Model):
-    specialty = models.ForeignKey('accounts.Specialty', on_delete=models.CASCADE, verbose_name="Специальность")
-    admission_year = models.IntegerField(verbose_name="Год набора (поступления)")
+    specialty = models.ForeignKey('accounts.Specialty', on_delete=models.CASCADE, verbose_name=_("Специальность"))
+    admission_year = models.IntegerField(verbose_name=_("Год набора (поступления)"))
     created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True, verbose_name="Актуальный")
+    is_active = models.BooleanField(default=True, verbose_name=_("Актуальный"))
 
     group = models.ForeignKey(
         'accounts.Group', 
@@ -377,12 +401,12 @@ class AcademicPlan(models.Model):
         null=True, 
         blank=True, 
         related_name='academic_plans',
-        verbose_name="Группа (для индивидуального плана)"
+        verbose_name=_("Группа (для индивидуального плана)")
     )
 
     class Meta:
-        verbose_name = "Учебный план (РУП)"
-        verbose_name_plural = "Учебные планы"
+        verbose_name = _("Учебный план (РУП)")
+        verbose_name_plural = _("Учебные планы")
         unique_together = ['specialty', 'admission_year', 'group']
     def __str__(self):
         if self.group:
@@ -390,54 +414,52 @@ class AcademicPlan(models.Model):
         return f"РУП Специальности: {self.specialty.name} ({self.admission_year})"
 
 
-
-
 class PlanDiscipline(models.Model):
     CONTROL_CHOICES = [
-        ('EXAM', 'Экзамен'),
-        ('CREDIT', 'Зачет'),
-        ('DIFF_CREDIT', 'Дифф. зачет'),
-        ('COURSE_WORK', 'Курсовая работа'),
+        ('EXAM', _('Экзамен')),
+        ('CREDIT', _('Зачет')),
+        ('DIFF_CREDIT', _('Дифф. зачет')),
+        ('COURSE_WORK', _('Курсовая работа')),
     ]
 
     TYPE_CHOICES = [
-        ('REQUIRED', 'Обязательная'),
-        ('ELECTIVE', 'Элективная (по выбору)'),
-        ('PRACTICE', 'Практика'),
+        ('REQUIRED', _('Обязательная')),
+        ('ELECTIVE', _('Элективная (по выбору)')),
+        ('PRACTICE', _('Практика')),
     ]
 
     plan = models.ForeignKey(AcademicPlan, on_delete=models.CASCADE, related_name='disciplines')
-    subject_template = models.ForeignKey(SubjectTemplate, on_delete=models.PROTECT, verbose_name="Дисциплина")
+    subject_template = models.ForeignKey(SubjectTemplate, on_delete=models.PROTECT, verbose_name=_("Дисциплина"))
     
     semester_number = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(12)],
-        verbose_name="Номер семестра (1-8)"
+        verbose_name=_("Номер семестра (1-8)")
     )
     
-    discipline_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='REQUIRED', verbose_name="Тип блока")
+    discipline_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='REQUIRED', verbose_name=_("Тип блока"))
 
-    credits = models.IntegerField(verbose_name="Кредиты (ECTS)")
+    credits = models.IntegerField(verbose_name=_("Кредиты (ECTS)"))
     
-    lecture_hours = models.IntegerField(default=0, verbose_name="Лекции")
-    practice_hours = models.IntegerField(default=0, verbose_name="Практика (Семинары)")
-    lab_hours = models.IntegerField(default=0, verbose_name="Лабораторные")
-    control_hours = models.IntegerField(default=0, verbose_name="СРСП (Контактная)")
-    independent_hours = models.IntegerField(default=0, verbose_name="СРС (Самостоятельная)")
+    lecture_hours = models.IntegerField(default=0, verbose_name=_("Лекции"))
+    practice_hours = models.IntegerField(default=0, verbose_name=_("Практика (Семинары)"))
+    lab_hours = models.IntegerField(default=0, verbose_name=_("Лабораторные"))
+    control_hours = models.IntegerField(default=0, verbose_name=_("СРСП (Контактная)"))
+    independent_hours = models.IntegerField(default=0, verbose_name=_("СРС (Самостоятельная)"))
     
     control_type = models.CharField(
         max_length=20, 
         choices=CONTROL_CHOICES,
         default='EXAM',
-        verbose_name="Форма контроля"
+        verbose_name=_("Форма контроля")
     )
     has_course_work = models.BooleanField(
         default=False,
-        verbose_name="Есть курсовая работа (КР)"
+        verbose_name=_("Есть курсовая работа (КР)")
     )
 
     class Meta:
-        verbose_name = "Дисциплина плана"
-        verbose_name_plural = "Дисциплины плана"
+        verbose_name = _("Дисциплина плана")
+        verbose_name_plural = _("Дисциплины плана")
         ordering = ['semester_number', 'discipline_type', 'subject_template__name']
         unique_together = ['plan', 'subject_template', 'semester_number']
 
@@ -450,15 +472,21 @@ class PlanDiscipline(models.Model):
 
 
 class SubjectMaterial(models.Model):
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='materials', verbose_name="Предмет")
-    title = models.CharField(max_length=255, verbose_name="Название материала")
-    file = models.FileField(upload_to='materials/%Y/%m/', verbose_name="Файл")
-    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='materials', verbose_name=_("Предмет"))
+    title = models.CharField(max_length=255, verbose_name=_("Название материала"))
+    file = models.FileField(upload_to='materials/%Y/%m/', verbose_name=_("Файл"))
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Дата загрузки"))
     
     class Meta:
-        verbose_name = "Учебный материал"
-        verbose_name_plural = "Учебные материалы"
+        verbose_name = _("Учебный материал")
+        verbose_name_plural = _("Учебные материалы")
 
     def __str__(self):
         return self.title
+
+
+
+
+
+
 

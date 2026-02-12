@@ -1,52 +1,53 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-8 mx-auto">
         <div class="card border-danger shadow-sm">
             <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Приказы: {{ student.user.get_full_name }}</h5>
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> {% blocktrans %}Приказы: {{ student.user.get_full_name }}{% endblocktrans %}</h5>
             </div>
             <div class="card-body">
                 <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> Создание приказа <strong>автоматически изменит статус</strong> студента (отчислит, выпустит и т.д.).
+                    <i class="bi bi-exclamation-triangle"></i> {% blocktrans %}Создание приказа <strong>автоматически изменит статус</strong> студента (отчислит, выпустит и т.д.).{% endblocktrans %}
                 </div>
 
                 <form method="post" enctype="multipart/form-data" class="mb-4">
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label>Номер приказа</label>
+                            <label>{% trans "Номер приказа" %}</label>
                             {{ form.number }}
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label>Дата</label>
+                            <label>{% trans "Дата" %}</label>
                             {{ form.date }}
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label>Тип действия</label>
+                            <label>{% trans "Тип действия" %}</label>
                             {{ form.order_type }}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label>Причина / Основание</label>
+                        <label>{% trans "Причина / Основание" %}</label>
                         {{ form.reason }}
                     </div>
                     <div class="mb-3">
-                        <label>Скан файла (опционально)</label>
+                        <label>{% trans "Скан файла (опционально)" %}</label>
                         {{ form.file }}
                     </div>
-                    <button type="submit" class="btn btn-danger w-100">Издать приказ</button>
+                    <button type="submit" class="btn btn-danger w-100">{% trans "Издать приказ" %}</button>
                 </form>
 
-                <h6 class="border-bottom pb-2">История приказов</h6>
+                <h6 class="border-bottom pb-2">{% trans "История приказов" %}</h6>
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
                             <tr>
-                                <th>№</th>
-                                <th>Дата</th>
-                                <th>Тип</th>
-                                <th>Файл</th>
+                                <th>{% trans "№" %}</th>
+                                <th>{% trans "Дата" %}</th>
+                                <th>{% trans "Тип" %}</th>
+                                <th>{% trans "Файл" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -62,7 +63,7 @@
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="4" class="text-center text-muted">Приказов нет</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted">{% trans "Приказов нет" %}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

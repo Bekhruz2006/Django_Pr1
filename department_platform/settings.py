@@ -31,8 +31,8 @@ INSTALLED_APPS = [
     'schedule.apps.ScheduleConfig',      
     'news.apps.NewsConfig',             
     'chat.apps.ChatConfig',             
-    #'chat.apps.ForCongig',
-    'core.apps.CoreConfig',          
+    'core.apps.CoreConfig',    
+    'rosetta',      
     
 ]
 

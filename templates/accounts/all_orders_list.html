@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Реестр приказов" %}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-danger"><i class="bi bi-archive"></i> {% trans "Реестр приказов по студентам" %}</h5>
+                <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary btn-sm">{% trans "На главную" %}</a>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <input type="text" name="search" class="form-control" placeholder="{% trans 'Номер приказа или Фамилия...' %}" value="{{ search }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="type" class="form-select">
+                            <option value="">{% trans "Все типы" %}</option>
+                            {% for code, name in order_types %}
+                                <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">{% trans "Найти" %}</button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{% trans "№ Приказа" %}</th>
+                                <th>{% trans "Дата" %}</th>
+                                <th>{% trans "Студент" %}</th>
+                                <th>{% trans "Группа" %}</th>
+                                <th>{% trans "Тип действия" %}</th>
+                                <th>{% trans "Основание" %}</th>
+                                <th>{% trans "Файл" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr class="{% if order.status == 'DRAFT' %}table-warning{% endif %}">
+                                <td class="fw-bold">
+                                    {{ order.number }}
+                                    {% if order.status == 'DRAFT' %}
+                                        <span class="badge bg-warning text-dark">{% trans "ПРОЕКТ" %}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{% trans "ПОДПИСАН" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.date|date:"d.m.Y" }}</td>
+                                <td>
+                                    <a href="{% url 'accounts:view_user_profile' order.student.user.id %}">
+                                        {{ order.student.user.get_full_name }}
+                                    </a>
+                                </td>
+                                <td>{{ order.student.group.name|default:"-" }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ order.get_order_type_display }}</span>
+                                </td>
+                                <td><small class="text-muted">{{ order.reason|truncatewords:5 }}</small></td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        {% if order.file %}
+                                            <a href="{{ order.file.url }}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-pdf"></i></a>
+                                        {% endif %}
+                                        
+                                        {% if order.status == 'DRAFT' %}
+                                            {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
+                                            <form action="{% url 'accounts:approve_order' order.id %}" method="post" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success" title="{% trans 'Подписать приказ' %}" onclick="return confirm('{% trans 'Утвердить приказ и применить изменения к студенту?' %}')">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center py-4">{% trans "Приказов не найдено" %}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

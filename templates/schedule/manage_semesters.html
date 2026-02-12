@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+
+{% block title %}Управление семестрами{% endblock %}
+
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
@@ -6,14 +9,19 @@
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-calendar-range"></i> Управление семестрами</span>
                 <a href="{% url 'schedule:add_semester' %}" class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-lg"></i> Новый семестр
+                    <i class="bi bi-plus-lg"></i> Создать новый семестр
                 </a>
             </div>
             <div class="card-body">
+                
                 {% if missing_courses %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> Внимание! Для курсов:
-                    <b>{{ missing_courses|join:", " }}</b> сейчас нет активного семестра. Расписание для них может быть недоступно.
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
+                    <div>
+                        <strong>Внимание!</strong> Отсутствует активный семестр для курсов: 
+                        <b>{{ missing_courses|join:", " }}</b>.
+                        <br>Расписание для этих курсов будет недоступно преподавателям и студентам.
+                    </div>
                 </div>
                 {% endif %}
 
@@ -21,56 +29,50 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th>Статус</th>
                                 <th>Учебный год</th>
                                 <th>Курс</th>
-                                <th>Семестр</th>
+                                <th>Название (№)</th>
                                 <th>Смена</th>
-                                <th>Группы</th>
                                 <th>Период</th>
-                                <th>Статус</th>
-                                <th class="text-end">Действия</th>
+                                <th class="text-end">Управление</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for sem in semesters %}
-                            <tr class="{% if sem.is_active %}table-success{% endif %}">
-                                <td><span class="badge bg-secondary">{{ sem.academic_year }}</span></td>
-                                <td><b>{{ sem.course }} курс</b></td>
-                                <td>{{ sem.name }} (№{{ sem.number }})</td>
-                                <td>
-                                    <i class="bi bi-{% if sem.shift == 'MORNING' %}sun text-warning{% else %}moon-stars text-primary{% endif %}"></i>
-                                    {{ sem.get_shift_display }}
-                                </td>
-                                <td>
-                                    {% for g in sem.groups.all %}
-                                        <span class="badge bg-outline-primary text-dark border">{{ g.name }}</span>
-                                    {% empty %}
-                                        <span class="text-muted small">Все группы {{ sem.course }} курса</span>
-                                    {% endfor %}
-                                </td>
-                                <td><small>{{ sem.start_date|date:"d.m.y" }} — {{ sem.end_date|date:"d.m.y" }}</small></td>
+                            <tr class="{% if sem.is_active %}table-success border-start border-5 border-success{% endif %}">
                                 <td>
                                     {% if sem.is_active %}
-                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> АКТИВЕН</span>
+                                        <span class="badge bg-success shadow-sm">
+                                            <i class="bi bi-check-circle-fill"></i> АКТИВЕН
+                                        </span>
                                     {% else %}
-                                        <span class="badge bg-light text-muted">Неактивен</span>
+                                        <a href="{% url 'schedule:toggle_semester' sem.id %}" 
+                                           class="btn btn-sm btn-outline-secondary opacity-75"
+                                           title="Нажмите, чтобы сделать активным">
+                                            <i class="bi bi-circle"></i> Сделать активным
+                                        </a>
                                     {% endif %}
                                 </td>
+                                <td><span class="fw-bold">{{ sem.academic_year }}</span></td>
+                                <td><span class="badge bg-primary">{{ sem.course }} курс</span></td>
+                                <td>{{ sem.name }} ({{ sem.number }})</td>
+                                <td>
+                                    {% if sem.shift == 'MORNING' %}
+                                        <span class="text-warning"><i class="bi bi-sun-fill"></i> 1 смена</span>
+                                    {% else %}
+                                        <span class="text-primary"><i class="bi bi-moon-stars-fill"></i> 2 смена</span>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ sem.start_date|date:"d.m.y" }} — {{ sem.end_date|date:"d.m.y" }}</small></td>
                                 <td class="text-end">
-                                    <div class="btn-group">
-                                        {% if not sem.is_active %}
-                                        <a href="{% url 'schedule:toggle_semester' sem.id %}" class="btn btn-sm btn-outline-success" title="Активировать">
-                                            <i class="bi bi-play-fill"></i>
-                                        </a>
-                                        {% endif %}
-                                        <a href="{% url 'schedule:edit_semester' sem.id %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                    </div>
+                                    <a href="{% url 'schedule:edit_semester' sem.id %}" class="btn btn-sm btn-light text-primary border" title="Редактировать">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="8" class="text-center py-4">Семестры не созданы</td></tr>
+                            <tr><td colspan="7" class="text-center py-5 text-muted">Семестры еще не созданы</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

@@ -1,36 +1,42 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Удалить группу{% endblock %}
+{% block title %}{% trans "Удалить группу" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-6 mx-auto">
         <div class="card border-danger">
             <div class="card-header bg-danger text-white">
-                <i class="bi bi-exclamation-triangle"></i> Удалить группу
+                <i class="bi bi-exclamation-triangle"></i> {% trans "Удалить группу" %}
             </div>
             <div class="card-body">
                 {% if students_count > 0 %}
                     <div class="alert alert-danger">
-                        <h5><i class="bi bi-x-circle"></i> Невозможно удалить группу</h5>
+                        <h5><i class="bi bi-x-circle"></i> {% trans "Невозможно удалить группу" %}</h5>
                         <p class="mb-0">
-                            В группе <strong>{{ group.name }}</strong> есть <strong>{{ students_count }}</strong> студентов. 
+                            {% blocktrans with group_name=group.name count counter=students_count %}
+                            В группе <strong>{{ group_name }}</strong> есть <strong>{{ counter }}</strong> студент. 
                             Сначала переведите студентов в другие группы или удалите их.
+                            {% plural %}
+                            В группе <strong>{{ group_name }}</strong> есть <strong>{{ counter }}</strong> студентов. 
+                            Сначала переведите студентов в другие группы или удалите их.
+                            {% endblocktrans %}
                         </p>
                     </div>
                     
                     <a href="{% url 'accounts:group_management' %}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Назад к списку
+                        <i class="bi bi-arrow-left"></i> {% trans "Назад к списку" %}
                     </a>
                 {% else %}
                     <div class="alert alert-warning">
-                        <h5><i class="bi bi-exclamation-triangle"></i> Подтверждение удаления</h5>
-                        <p>Вы действительно хотите удалить группу <strong>{{ group.name }}</strong>?</p>
+                        <h5><i class="bi bi-exclamation-triangle"></i> {% trans "Подтверждение удаления" %}</h5>
+                        <p>{% blocktrans with group_name=group.name %}Вы действительно хотите удалить группу <strong>{{ group_name }}</strong>?{% endblocktrans %}</p>
                         <p class="mb-0">
-                            <strong>Информация о группе:</strong><br>
-                            Курс: {{ group.course }}<br>
-                            Год: {{ group.academic_year }}<br>
-                            Специальность: {{ group.specialty }}
+                            <strong>{% trans "Информация о группе" %}:</strong><br>
+                            {% trans "Курс" %}: {{ group.course }}<br>
+                            {% trans "Год" %}: {{ group.academic_year }}<br>
+                            {% trans "Специальность" %}: {{ group.specialty }}
                         </p>
                     </div>
                     
@@ -38,10 +44,10 @@
                         {% csrf_token %}
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-danger">
-                                <i class="bi bi-trash"></i> Да, удалить группу
+                                <i class="bi bi-trash"></i> {% trans "Да, удалить группу" %}
                             </button>
                             <a href="{% url 'accounts:group_management' %}" class="btn btn-secondary">
-                                <i class="bi bi-x-circle"></i> Отмена
+                                <i class="bi bi-x-circle"></i> {% trans "Отмена" %}
                             </a>
                         </div>
                     </form>

@@ -25,6 +25,8 @@ from .models import Subject, ScheduleSlot, Semester, Classroom, AcademicWeek, Ti
 from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, MaterialUploadForm, AcademicWeekForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm
 from .services import ScheduleImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department
+import math
+from django.utils.translation import gettext as _
 
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
@@ -55,95 +57,67 @@ def get_active_semester_for_group(group):
 
 @login_required
 def schedule_constructor(request):
-    if request.user.role not in ['DEAN', 'VICE_DEAN', 'superuser']:
-         messages.error(request, "Доступ запрещен")
+    if request.user.role not in ['DEAN', 'VICE_DEAN', 'superuser', 'RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+         messages.error(request, _("Доступ запрещен"))
          return redirect('core:dashboard')
 
     active_semester = Semester.objects.filter(is_active=True).first()
-
+    
     semester_id = request.GET.get('semester')
     if semester_id:
         active_semester = get_object_or_404(Semester, id=semester_id)
 
     if not active_semester:
-        messages.error(request, 'Нет активного семестра. Создайте его в разделе "Семестры".')
+        messages.warning(request, _('Нет активного семестра. Пожалуйста, создайте или активируйте семестр.'))
         return redirect('schedule:manage_semesters')
 
-    all_semesters = Semester.objects.all().order_by('-is_active', '-academic_year')
-
-    groups = Group.objects.all().order_by('name')
-    if request.user.role == 'DEAN':
+    groups = Group.objects.all().select_related('specialty').order_by('name')
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         groups = groups.filter(specialty__department__faculty=faculty)
 
     selected_group_id = request.GET.get('group')
     selected_group = None
-
-    if selected_group_id:
-        selected_group = get_object_or_404(Group, id=selected_group_id)
-        if request.user.role == 'DEAN' and selected_group not in groups:
-             return redirect('schedule:constructor')
-        
-    time_slots = get_time_slots_for_shift(active_semester.shift)
-
-    days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
-
     schedule_data = {}
     subjects_to_schedule = []
 
-    if selected_group:
+    if selected_group_id:
+        selected_group = get_object_or_404(Group, id=selected_group_id)
+        
         slots = ScheduleSlot.objects.filter(
             group=selected_group,
             semester=active_semester,
             is_active=True
         ).select_related('subject', 'teacher__user', 'time_slot', 'classroom')
 
-        schedule_data[selected_group.id] = {}
+        schedule_data = {}
         for slot in slots:
-            if slot.day_of_week not in schedule_data[selected_group.id]:
-                schedule_data[selected_group.id][slot.day_of_week] = {}
-            schedule_data[selected_group.id][slot.day_of_week][slot.time_slot.id] = slot
+            if slot.day_of_week not in schedule_data:
+                schedule_data[slot.day_of_week] = {}
+            schedule_data[slot.day_of_week][slot.time_slot.id] = slot
 
         assigned_subjects = selected_group.assigned_subjects.select_related('teacher__user').all()
 
         for subject in assigned_subjects:
-            needed = subject.get_weekly_slots_needed()
+            needed = subject.get_weekly_slots_needed() 
+            
+            for l_type, label, color in [('LECTURE', _('Лекция'), 'primary'), ('PRACTICE', _('Практика'), 'success'), ('SRSP', _('СРСП'), 'warning')]:
+                if needed[l_type] > 0:
+                    scheduled_count = slots.filter(subject=subject, lesson_type=l_type).count()
+                    remaining = max(0, needed[l_type] - scheduled_count)
+                    
+                    if remaining > 0:
+                        subjects_to_schedule.append({
+                            'obj': subject,
+                            'type': l_type,
+                            'label': label,
+                            'remaining': remaining,
+                            'color': color
+                        })
 
-            if needed['LECTURE'] > 0:
-                scheduled = slots.filter(subject=subject, lesson_type='LECTURE').count()
-                remaining = max(0, needed['LECTURE'] - scheduled)
-                if remaining > 0:
-                    subjects_to_schedule.append({
-                        'obj': subject,
-                        'type': 'LECTURE',
-                        'label': 'Лекция',
-                        'remaining': remaining,
-                        'color': 'primary'
-                    })
-
-            if needed['PRACTICE'] > 0:
-                scheduled = slots.filter(subject=subject, lesson_type='PRACTICE').count()
-                remaining = max(0, needed['PRACTICE'] - scheduled)
-                if remaining > 0:
-                    subjects_to_schedule.append({
-                        'obj': subject,
-                        'type': 'PRACTICE',
-                        'label': 'Практика',
-                        'remaining': remaining,
-                        'color': 'success'
-                    })
-
-            if needed['SRSP'] > 0:
-                scheduled = slots.filter(subject=subject, lesson_type='SRSP').count()
-                remaining = max(0, needed['SRSP'] - scheduled)
-                if remaining > 0:
-                    subjects_to_schedule.append({
-                        'obj': subject,
-                        'type': 'SRSP',
-                        'label': 'СРСП',
-                        'remaining': remaining,
-                        'color': 'warning'
-                    })
+    time_slots = TimeSlot.objects.all().order_by('start_time')
+    days = [(0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')), (3, _('Четверг')), (4, _('Пятница')), (5, _('Суббота'))]
+    all_semesters = Semester.objects.all().order_by('-is_active', '-start_date')
 
     return render(request, 'schedule/constructor_with_limits.html', {
         'groups': groups,
@@ -152,8 +126,8 @@ def schedule_constructor(request):
         'all_semesters': all_semesters,
         'time_slots': time_slots,
         'days': days,
-        'schedule_data': schedule_data,
-        'subjects_to_schedule': subjects_to_schedule,
+        'schedule_data': schedule_data, 
+        'subjects_to_schedule': subjects_to_schedule, 
     })
 
 
@@ -183,7 +157,7 @@ def create_schedule_slot(request):
             military_subject, _ = Subject.objects.get_or_create(
                 code="MILITARY",
                 defaults={
-                    'name': "Кафедраи ҳарбӣ (Военная кафедра)", 
+                    'name': _("Кафедраи ҳарбӣ (Военная кафедра)"), 
                     'department': military_dept, 
                     'type': 'PRACTICE'
                 }
@@ -202,12 +176,12 @@ def create_schedule_slot(request):
                         end_time=ts.end_time,
                         is_military=True,
                         lesson_type='PRACTICE',
-                        classroom=None, # Важно! Нет кабинета - нет конфликта
-                        room="Воен. каф" # Просто текст для отображения
+                        classroom=None,
+                        room=_("Воен. каф")
                     )
                     created_count += 1
             
-            return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
+            return JsonResponse({'success': True, 'message': _('Назначено %(created_count)s часов военной кафедры') % {'created_count': created_count}})
 
         force = data.get('force', False)
         group_id = data.get('group')
@@ -227,13 +201,13 @@ def create_schedule_slot(request):
             active_semester = get_active_semester_for_group(main_group)
         
         if not active_semester:
-            return JsonResponse({'success': False, 'error': 'Нет активного семестра'}, status=400)
+            return JsonResponse({'success': False, 'error': _('Нет активного семестра')}, status=400)
 
         start_h = time_slot.start_time.hour
         if active_semester.shift == 'MORNING' and start_h >= 13:
-            return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ.'}, status=400)
+            return JsonResponse({'success': False, 'error': _('Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ.')}, status=400)
         if active_semester.shift == 'DAY' and start_h < 13:
-            return JsonResponse({'success': False, 'error': 'Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ.'}, status=400)
+            return JsonResponse({'success': False, 'error': _('Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ.')}, status=400)
     
         groups_to_schedule = [main_group]
         is_stream = False
@@ -242,7 +216,7 @@ def create_schedule_slot(request):
         if lesson_type == 'LECTURE' and subject.groups.count() > 1:
             all_subject_groups = list(subject.groups.all())
             if len(all_subject_groups) > 3:
-                return JsonResponse({'success': False, 'error': 'Слишком большой поток! Максимум 3 группы.'}, status=400)
+                return JsonResponse({'success': False, 'error': _('Слишком большой поток! Максимум 3 группы.')}, status=400)
             groups_to_schedule = all_subject_groups
             is_stream = True
             stream_id = uuid.uuid4()
@@ -258,7 +232,7 @@ def create_schedule_slot(request):
                     is_active=True
                 ).first()
                 if busy_slot:
-                    conflicts.append(f"Группа {target_group.name} занята: {busy_slot.subject.name}")
+                    conflicts.append(_("Группа %(group_name)s занята: %(subject_name)s") % {'group_name': target_group.name, 'subject_name': busy_slot.subject.name})
             
             if subject.teacher:
                 teacher_slots = ScheduleSlot.objects.filter(
@@ -269,7 +243,7 @@ def create_schedule_slot(request):
                     is_active=True
                 )
                 if teacher_slots.exists():
-                    conflicts.append(f"Преподаватель {subject.teacher.user.get_full_name()} занят.")
+                    conflicts.append(_("Преподаватель %(teacher_name)s занят.") % {'teacher_name': subject.teacher.user.get_full_name()})
 
         if conflicts:
             return JsonResponse({'success': False, 'is_conflict': True, 'error': "<br>".join(conflicts)}, status=400)
@@ -302,7 +276,7 @@ def create_schedule_slot(request):
         return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f"Ошибка сервера: {str(e)}"}, status=500)
+        return JsonResponse({'success': False, 'error': _("Ошибка сервера: %(error)s") % {'error': str(e)}}, status=500)
 
 
 @login_required
@@ -311,7 +285,7 @@ def update_schedule_room(request, slot_id):
     try:
         data = json.loads(request.body)
         room_number = data.get('room', '').strip()
-        force = data.get('force', False) # НОВЫЙ ПАРАМЕТР
+        force = data.get('force', False)
         
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
@@ -319,7 +293,7 @@ def update_schedule_room(request, slot_id):
         if room_number:
             classroom = Classroom.objects.filter(number=room_number, is_active=True).first()
             if not classroom:
-                return JsonResponse({'success': False, 'error': f'Кабинет {room_number} не найден'}, status=400)
+                return JsonResponse({'success': False, 'error': _('Кабинет %(room_number)s не найден') % {'room_number': room_number}}, status=400)
             
             occupants = ScheduleSlot.objects.filter(
                 classroom=classroom,
@@ -339,7 +313,7 @@ def update_schedule_room(request, slot_id):
                 return JsonResponse({
                     'success': False,
                     'is_conflict': True, 
-                    'error': f'Кабинет занят: {other.group.name}, {other.subject.name}'
+                    'error': _('Кабинет занят: %(group_name)s, %(subject_name)s') % {'group_name': other.group.name, 'subject_name': other.subject.name}
                 }, status=400)
 
             if not force:
@@ -355,7 +329,7 @@ def update_schedule_room(request, slot_id):
                     return JsonResponse({
                         'success': False,
                         'is_capacity_warning': True, 
-                        'error': f'Вместимость кабинета ({classroom.capacity}) меньше количества студентов ({total_students}). Продолжить?'
+                        'error': _('Вместимость кабинета (%(capacity)s) меньше количества студентов (%(students)s). Продолжить?') % {'capacity': classroom.capacity, 'students': total_students}
                     }, status=400)
 
         with transaction.atomic():
@@ -380,20 +354,20 @@ def delete_schedule_slot(request, slot_id):
         schedule_slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
         if not (request.user.is_staff or hasattr(request.user, 'dean_profile')):
-            return JsonResponse({'success': False, 'error': 'Нет прав'}, status=403)
+            return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
 
         with transaction.atomic():
             if schedule_slot.stream_id:
                 count = ScheduleSlot.objects.filter(stream_id=schedule_slot.stream_id).delete()[0]
-                msg = f'Удален поток ({count} групп)'
+                msg = _('Удален поток (%(count)s групп)') % {'count': count}
             else:
                 schedule_slot.delete()
-                msg = 'Занятие удалено'
+                msg = _('Занятие удалено')
 
         return JsonResponse({'success': True, 'message': msg})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'}, status=500)
+        return JsonResponse({'success': False, 'error': _('Ошибка: %(error)s') % {'error': str(e)}}, status=500)
 
 @login_required
 def schedule_view(request):
@@ -414,7 +388,7 @@ def schedule_view(request):
         active_semester = Semester.objects.filter(is_active=True).first()
 
     if not active_semester:
-        messages.warning(request, 'Активный семестр не найден.')
+        messages.warning(request, _('Активный семестр не найден.'))
         return render(request, 'schedule/no_semester.html')
 
     if user.role == 'TEACHER':
@@ -445,7 +419,7 @@ def schedule_view(request):
             group = get_object_or_404(Group, id=group_id)
             active_semester = get_active_semester_for_group(group)
             if not active_semester:
-                messages.warning(request, f'Нет активного семестра для {group.course} курса')
+                messages.warning(request, _('Нет активного семестра для %(course)s курса') % {'course': group.course})
 
         context = {'groups': groups, 'group': group, 'active_semester': active_semester}
         if not group:
@@ -453,7 +427,7 @@ def schedule_view(request):
 
     if group and active_semester:
         time_slots = get_time_slots_for_shift(active_semester.shift)
-        days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
+        days = [(0, _('ДУШАНБЕ')), (1, _('СЕШАНБЕ')), (2, _('ЧОРШАНБЕ')), (3, _('ПАНҶШАНБЕ')), (4, _('ҶУМЪА')), (5, _('ШАНБЕ'))]
         valid_slot_ids = list(time_slots.values_list('id', flat=True))
 
         slots = ScheduleSlot.objects.filter(
@@ -546,7 +520,7 @@ def add_subject(request):
         target_department = get_object_or_404(Department, id=dept_id)
         if request.user.role == 'DEAN':
             if target_department.faculty != request.user.dean_profile.faculty:
-                messages.error(request, "Нет доступа к этой кафедре")
+                messages.error(request, _("Нет доступа к этой кафедре"))
                 return redirect('schedule:manage_subjects')
 
         initial_data['department'] = target_department
@@ -566,12 +540,12 @@ def add_subject(request):
                 dept_groups = Group.objects.filter(specialty__department=subject.department)
                 subject.groups.add(*dept_groups)
 
-            messages.success(request, f'Предмет "{subject.name}" создан')
+            messages.success(request, _('Предмет "%(subject_name)s" создан') % {'subject_name': subject.name})
             if dept_id:
                 return redirect('accounts:manage_structure')
             return redirect('schedule:manage_subjects')
         else:
-            print("Ошибки формы предмета:", form.errors)
+            print(_("Ошибки формы предмета:"), form.errors)
     else:
         form = SubjectForm(initial=initial_data)
 
@@ -587,7 +561,7 @@ def add_subject(request):
                 Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)
             ).distinct()
 
-    return render(request, 'schedule/subject_form.html', {'form': form, 'title': 'Добавить предмет'})
+    return render(request, 'schedule/subject_form.html', {'form': form, 'title': _('Добавить предмет')})
 
 
 
@@ -598,29 +572,29 @@ def edit_subject(request, subject_id):
         form = SubjectForm(request.POST, instance=subject)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Предмет обновлен')
+            messages.success(request, _('Предмет обновлен'))
             return redirect('schedule:manage_subjects')
     else:
         form = SubjectForm(instance=subject)
-    return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': 'Редактировать предмет'})
+    return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': _('Редактировать предмет')})
 
 @user_passes_test(is_dean_or_admin)
 def delete_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
     subject.delete()
-    messages.success(request, 'Предмет удален')
+    messages.success(request, _('Предмет удален'))
     return redirect('schedule:manage_subjects')
 
 @user_passes_test(is_dean_or_admin)
 def manage_semesters(request):
-    semesters = Semester.objects.all().order_by('-academic_year', 'course', 'number')
-
-    active_by_course = Semester.objects.filter(is_active=True).values_list('course', flat=True)
-    missing_courses = [c for c, _ in Semester.COURSE_CHOICES if c not in active_by_course]
+    semesters = Semester.objects.all().order_by('-academic_year', 'course')
+    
+    if request.user.role == 'DEAN':
+        faculty = request.user.dean_profile.faculty
+        semesters = semesters.filter(faculty=faculty)
 
     return render(request, 'schedule/manage_semesters.html', {
-        'semesters': semesters,
-        'missing_courses': missing_courses
+        'semesters': semesters
     })
 
 @user_passes_test(is_dean_or_admin)
@@ -628,24 +602,12 @@ def add_semester(request):
     if request.method == 'POST':
         form = SemesterForm(request.POST, user=request.user)
         if form.is_valid():
-            semester = form.save(commit=False)
-            semester.save() 
-            
-            dept = form.cleaned_data.get('department_filter')
-            course = form.cleaned_data.get('course')
-            
-            if dept and course:
-                dept_groups = Group.objects.filter(specialty__department=dept, course=course)
-                semester.groups.add(*dept_groups)
-            
-            form.save_m2m()
-            
-            messages.success(request, f'Семестр "{semester.name}" создан')
+            semester = form.save()
+            messages.success(request, _('Семестр "%(semester_name)s" создан для факультета %(faculty_name)s') % {'semester_name': semester.name, 'faculty_name': semester.faculty.name})
             return redirect('schedule:manage_semesters')
     else:
         form = SemesterForm(user=request.user)
-        
-    return render(request, 'schedule/semester_form.html', {'form': form, 'title': 'Добавить семестр'})
+    return render(request, 'schedule/semester_form.html', {'form': form, 'title': _('Добавить семестр')})
 
 @user_passes_test(is_dean_or_admin)
 def edit_semester(request, semester_id):
@@ -664,20 +626,32 @@ def edit_semester(request, semester_id):
                 semester.groups.add(*dept_groups)
                 
             form.save_m2m()
-            messages.success(request, 'Семестр обновлен')
+            messages.success(request, _('Семестр обновлен'))
             return redirect('schedule:manage_semesters')
     else:
         form = SemesterForm(instance=semester, user=request.user)
         
-    return render(request, 'schedule/semester_form.html', {'form': form, 'semester': semester, 'title': 'Редактировать семестр'})
+    return render(request, 'schedule/semester_form.html', {'form': form, 'semester': semester, 'title': _('Редактировать семестр')})
 
 @user_passes_test(is_dean_or_admin)
 def toggle_semester_active(request, semester_id):
     semester = get_object_or_404(Semester, id=semester_id)
-    semester.is_active = not semester.is_active
-    semester.save()
-    status = "активирован" if semester.is_active else "деактивирован"
-    messages.success(request, f'Семестр {status}')
+    
+    with transaction.atomic():
+        if not semester.is_active:
+            Semester.objects.filter(
+                course=semester.course, 
+                is_active=True
+            ).update(is_active=False)
+            
+            semester.is_active = True
+            semester.save()
+            messages.success(request, _('Семестр "%(semester_name)s" (%(course)s курс) теперь АКТИВЕН!') % {'semester_name': semester.name, 'course': semester.course})
+        else:
+            semester.is_active = False
+            semester.save()
+            messages.warning(request, _('Семестр "%(semester_name)s" деактивирован.') % {'semester_name': semester.name})
+
     return redirect('schedule:manage_semesters')
 
 @user_passes_test(is_dean_or_admin)
@@ -691,11 +665,11 @@ def add_classroom(request):
         form = ClassroomForm(request.POST)
         if form.is_valid():
             classroom = form.save()
-            messages.success(request, f'Кабинет {classroom.number} добавлен')
+            messages.success(request, _('Кабинет %(classroom_number)s добавлен') % {'classroom_number': classroom.number})
             return redirect('schedule:manage_classrooms')
     else:
         form = ClassroomForm()
-    return render(request, 'schedule/classroom_form.html', {'form': form, 'title': 'Добавить кабинет'})
+    return render(request, 'schedule/classroom_form.html', {'form': form, 'title': _('Добавить кабинет')})
 
 @user_passes_test(is_dean_or_admin)
 def bulk_add_classrooms(request):
@@ -714,7 +688,7 @@ def bulk_add_classrooms(request):
                     Classroom.objects.create(number=number, floor=floor, capacity=capacity)
                     created += 1
 
-            messages.success(request, f'Создано {created} кабинетов')
+            messages.success(request, _('Создано %(created_count)s кабинетов') % {'created_count': created})
             return redirect('schedule:manage_classrooms')
     else:
         form = BulkClassroomForm()
@@ -724,7 +698,7 @@ def bulk_add_classrooms(request):
 def delete_classroom(request, classroom_id):
     classroom = get_object_or_404(Classroom, id=classroom_id)
     classroom.delete()
-    messages.success(request, f'Кабинет {classroom.number} удален')
+    messages.success(request, _('Кабинет %(classroom_number)s удален') % {'classroom_number': classroom.number})
     return redirect('schedule:manage_classrooms')
 
 @user_passes_test(is_dean_or_admin)
@@ -749,9 +723,9 @@ def manage_academic_week(request):
                 week.week_number = week_num
 
                 week.save()
-                messages.success(request, f'Учебная неделя {week_num} установлена')
+                messages.success(request, _('Учебная неделя %(week_num)s установлена') % {'week_num': week_num})
             else:
-                messages.error(request, 'Сначала создайте семестр')
+                messages.error(request, _('Сначала создайте семестр'))
             return redirect('schedule:manage_academic_week')
     else:
         initial = {}
@@ -786,7 +760,7 @@ def group_list(request):
     elif user.role == 'DEAN':
         groups = Group.objects.all()
     else:
-        messages.error(request, 'Доступ запрещен')
+        messages.error(request, _('Доступ запрещен'))
         return redirect('core:dashboard')
 
     groups_with_students = []
@@ -799,14 +773,14 @@ def group_list(request):
 @login_required
 def export_schedule(request):
     if not DOCX_AVAILABLE:
-        return HttpResponse("Library python-docx not installed", status=500)
+        return HttpResponse(_("Library python-docx not installed"), status=500)
 
     group_id = request.GET.get('group')
     group = get_object_or_404(Group, id=group_id)
     active_semester = get_active_semester_for_group(group)
     
     if not active_semester:
-        return HttpResponse("Нет активного семестра", status=400)
+        return HttpResponse(_("Нет активного семестра"), status=400)
 
     try:
         specialty = group.specialty
@@ -814,7 +788,7 @@ def export_schedule(request):
         faculty = department.faculty
         institute = faculty.institute
     except AttributeError:
-        return HttpResponse("Ошибка структуры: Группа не привязана корректно.", status=400)
+        return HttpResponse(_("Ошибка структуры: Группа не привязана корректно."), status=400)
 
     director_user = None
     director_obj = Director.objects.filter(institute=institute).first()
@@ -829,10 +803,10 @@ def export_schedule(request):
     if vice_obj:
         vice_user = vice_obj.user
 
-    director_name = director_user.get_full_name() if director_user else "Мирзозода А. Н." 
-    vice_name = vice_user.get_full_name() if vice_user else "Ҷовиди Ҷамшед" 
+    director_name = director_user.get_full_name() if director_user else _("Мирзозода А. Н.") 
+    vice_name = vice_user.get_full_name() if vice_user else _("Ҷовиди Ҷамшед") 
     
-    head_edu_name = "Ҷалилов Р.Р." 
+    head_edu_name = _("Ҷалилов Р.Р.")
 
     doc = Document()
     
@@ -848,35 +822,39 @@ def export_schedule(request):
     
     c1 = header_table.cell(0, 0)
     p1 = c1.paragraphs[0]
-    p1.add_run("Мувофиқа карда шуд:\n").bold = True
-    p1.add_run("Сардори раёсати таълим\n")
-    p1.add_run(f"________ дотсент {head_edu_name}\n")
-    p1.add_run("«___» _________ 2025с")
+    p1.add_run(_("Мувофиқа карда шуд:\n")).bold = True
+    p1.add_run(_("Сардори раёсати таълим\n"))
+    p1.add_run(_("________ дотсент %(head_edu_name)s\n") % {'head_edu_name': head_edu_name})
+    p1.add_run(_("«___» _________ 2025с"))
     
     c2 = header_table.cell(0, 1)
     p2 = c2.paragraphs[0]
     p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    p2.add_run("Тасдиқ мекунам:\n").bold = True
-    p2.add_run("Муовини директор\nоид ба корҳои таълимӣ\n").bold = False
-    p2.add_run(f"________ дотсент {vice_name}\n")
-    p2.add_run("«___»_________ 2025c")
+    p2.add_run(_("Тасдиқ мекунам:\n")).bold = True
+    p2.add_run(_("Муовини директор\nоид ба корҳои таълимӣ\n")).bold = False
+    p2.add_run(_("________ дотсент %(vice_name)s\n") % {'vice_name': vice_name})
+    p2.add_run(_("«___»_________ 2025c"))
 
     doc.add_paragraph() 
 
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title_p.add_run("ҶАДВАЛИ ДАРСӢ")
+    run = title_p.add_run(_("ҶАДВАЛИ ДАРСӢ"))
     run.bold = True
     run.font.size = Pt(16)
     run.font.name = 'Times New Roman'
 
     subtitle = doc.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    sem_text = "якуми" if active_semester.number == 1 else "дуюми"
+    sem_text = _("якуми") if active_semester.number == 1 else _("дуюми")
     year_text = active_semester.academic_year
     
-    text = f"дар нимсолаи {sem_text} соли таҳсили {year_text} барои донишҷӯёни курси {group.course}-юми " \
-           f"{institute.name}-и Донишгоҳи байналмилаии сайёҳӣ ва соҳибкории Тоҷикистон"
+    text = _("дар нимсолаи %(sem_text)s соли таҳсили %(year_text)s барои донишҷӯёни курси %(course)s-юми %(institute_name)s-и Донишгоҳи байналмилаии сайёҳӣ ва соҳибкории Тоҷикистон") % {
+        'sem_text': sem_text,
+        'year_text': year_text,
+        'course': group.course,
+        'institute_name': institute.name
+    }
     
     run_sub = subtitle.add_run(text)
     run_sub.font.name = 'Times New Roman'
@@ -884,7 +862,7 @@ def export_schedule(request):
     run_sub.bold = True
     
     shift_num = "1" if active_semester.shift == "MORNING" else "2"
-    shift_p = doc.add_paragraph(f"(БАСТИ {shift_num})")
+    shift_p = doc.add_paragraph(_("(БАСТИ %(shift_num)s)") % {'shift_num': shift_num})
     shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     shift_p.runs[0].bold = True
     shift_p.runs[0].font.size = Pt(14)
@@ -893,11 +871,15 @@ def export_schedule(request):
     table.style = 'Table Grid'
     
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = "ҲАФТА"
-    hdr_cells[1].text = "СОАТ"
+    hdr_cells[0].text = _("ҲАФТА")
+    hdr_cells[1].text = _("СОАТ")
     
-    hdr_cells[2].text = f"{specialty.code} – “{specialty.name}” ({group.students.count()} нафар)"
-    hdr_cells[3].text = "АУД"
+    hdr_cells[2].text = _("%(specialty_code)s – “%(specialty_name)s” (%(student_count)s нафар)") % {
+        'specialty_code': specialty.code,
+        'specialty_name': specialty.name,
+        'student_count': group.students.count()
+    }
+    hdr_cells[3].text = _("АУД")
     
     for cell in hdr_cells:
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -905,7 +887,7 @@ def export_schedule(request):
         shading_elm = OxmlElement('w:shd')
         shading_elm.set(qn('w:val'), 'clear')
         shading_elm.set(qn('w:color'), 'auto')
-        shading_elm.set(qn('w:fill'), 'D9D9D9') # Серый цвет
+        shading_elm.set(qn('w:fill'), 'D9D9D9')
         cell._tc.get_or_add_tcPr().append(shading_elm)
         
         for run in cell.paragraphs[0].runs:
@@ -913,7 +895,7 @@ def export_schedule(request):
             run.font.size = Pt(10)
 
     time_slots = get_time_slots_for_shift(active_semester.shift)
-    days = [(0, 'ДУШАНБЕ'), (1, 'СЕШАНБЕ'), (2, 'ЧОРШАНБЕ'), (3, 'ПАНҶШАНБЕ'), (4, 'ҶУМЪА'), (5, 'ШАНБЕ')]
+    days = [(0, _('ДУШАНБЕ')), (1, _('СЕШАНБЕ')), (2, _('ЧОРШАНБЕ')), (3, _('ПАНҶШАНБЕ')), (4, _('ҶУМЪА')), (5, _('ШАНБЕ'))]
 
     for day_num, day_name in days:
         is_military_day = ScheduleSlot.objects.filter(
@@ -938,9 +920,12 @@ def export_schedule(request):
                     cell = row.cells[2]
                     p = cell.paragraphs[0]
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.add_run(f"{slot.subject.name} ({slot.get_lesson_type_display()})\n")
+                    p.add_run(_("%(subject_name)s (%(lesson_type)s)\n") % {
+                        'subject_name': slot.subject.name,
+                        'lesson_type': slot.get_lesson_type_display()
+                    })
                     if slot.teacher:
-                        p.add_run(f"{slot.teacher.user.get_full_name()}")
+                        p.add_run(_("%(teacher_name)s") % {'teacher_name': slot.teacher.user.get_full_name()})
                     
                     cell_aud = row.cells[3]
                     cell_aud.text = slot.room if slot.room else ""
@@ -953,7 +938,7 @@ def export_schedule(request):
         
         tcPr = day_cell._tc.get_or_add_tcPr()
         textDirection = OxmlElement('w:textDirection')
-        textDirection.set(qn('w:val'), 'btLr') # Bottom to Top
+        textDirection.set(qn('w:val'), 'btLr')
         tcPr.append(textDirection)
         
         shading_elm = OxmlElement('w:shd')
@@ -974,7 +959,7 @@ def export_schedule(request):
             if last_row_idx > first_row_idx:
                 mil_cell.merge(table.rows[last_row_idx].cells[3]) 
             
-            mil_cell.text = "Кафедраи ҳарбӣ"
+            mil_cell.text = _("Кафедраи ҳарбӣ")
             
             for paragraph in mil_cell.paragraphs:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -992,12 +977,12 @@ def export_schedule(request):
     
     f_c1 = footer_table.cell(0, 0)
     fp1 = f_c1.paragraphs[0]
-    fp1.add_run("Директор").bold = True
+    fp1.add_run(_("Директор")).bold = True
     
     f_c2 = footer_table.cell(0, 1)
     fp2 = f_c2.paragraphs[0]
     fp2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    fp2.add_run(f"{director_name}").bold = True
+    fp2.add_run(_("%(director_name)s") % {'director_name': director_name}).bold = True
 
     f = BytesIO()
     doc.save(f)
@@ -1050,61 +1035,59 @@ def create_plan(request):
 @user_passes_test(is_dean_or_admin)
 def plan_detail(request, plan_id):
     plan = get_object_or_404(AcademicPlan, id=plan_id)
-    
     if request.user.role == 'DEAN':
-        if plan.specialty.department.faculty != request.user.dean_profile.faculty:
-            messages.error(request, "Нет доступа к этому плану")
+        user_faculty = request.user.dean_profile.faculty
+        if plan.specialty.department.faculty != user_faculty:
+            messages.error(request, _("Это план чужого факультета!"))
             return redirect('schedule:manage_plans')
+    else:
+        user_faculty = plan.specialty.department.faculty 
 
     try:
         current_sem_num = int(request.GET.get('semester', 1))
     except ValueError:
         current_sem_num = 1
 
-    disciplines = PlanDiscipline.objects.filter(
-        plan=plan, 
-        semester_number=current_sem_num
-    ).order_by('discipline_type', 'subject_template__name')
-    
-    total_credits = sum(d.credits for d in disciplines)
-    total_exams = disciplines.filter(control_type='EXAM').count()
-    total_credits_count = disciplines.filter(control_type__in=['CREDIT', 'DIFF_CREDIT']).count()
+    target_course = (current_sem_num + 1) // 2
 
-    initial_data = {'semester_number': current_sem_num}
+    available_semesters = Semester.objects.filter(
+        faculty=user_faculty,
+        course=target_course
+    ).order_by('-academic_year', 'number')
 
-    if request.method == 'POST':
-        form = PlanDisciplineForm(request.POST, initial=initial_data)
+    active_semester = available_semesters.filter(is_active=True).first()
+
+    if request.method == 'POST' and 'add_discipline' in request.POST:
+        form = PlanDisciplineForm(request.POST)
         if form.is_valid():
             disc = form.save(commit=False)
             disc.plan = plan
             disc.semester_number = current_sem_num
             disc.save()
-            messages.success(request, "Дисциплина добавлена")
+            messages.success(request, _("Дисциплина добавлена"))
             return redirect(f"{request.path}?semester={current_sem_num}")
     else:
-        form = PlanDisciplineForm(initial=initial_data)
-        form.fields['semester_number'].widget = forms.HiddenInput()
+        form = PlanDisciplineForm(initial={'semester_number': current_sem_num})
+
+    disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_sem_num)
     
     return render(request, 'schedule/plans/plan_detail.html', {
-        'plan': plan, 
-        'disciplines': disciplines, 
+        'plan': plan,
+        'disciplines': disciplines,
         'form': form,
         'current_sem_num': current_sem_num,
         'semesters_range': range(1, 9),
-        'stats': {
-            'credits': total_credits,
-            'exams': total_exams,
-            'offsets': total_credits_count
-        }
+        'target_course': target_course,
+        'available_semesters': available_semesters, 
+        'active_semester': active_semester          
     })
-
 
 
 @user_passes_test(is_dean_or_admin)
 def generate_subjects_from_rup(request):
     active_semester = Semester.objects.filter(is_active=True).first()
     if not active_semester:
-        messages.error(request, "Нет активного семестра! Сначала активируйте семестр.")
+        messages.error(request, _("Нет активного семестра! Сначала активируйте семестр."))
         return redirect('schedule:manage_semesters')
 
     groups = Group.objects.all()
@@ -1193,7 +1176,7 @@ def generate_subjects_from_rup(request):
                             subject.groups.add(grp)
                             created_count += 1
 
-        messages.success(request, f"Создано предметов: {created_count}")
+        messages.success(request, _("Создано предметов: %(created_count)s") % {'created_count': created_count})
         return redirect('schedule:manage_subjects')
 
     return render(request, 'schedule/plans/generate_preview.html', {
@@ -1210,13 +1193,13 @@ def edit_classroom(request, classroom_id):
         form = ClassroomForm(request.POST, instance=classroom)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Кабинет {classroom.number} обновлен')
+            messages.success(request, _('Кабинет %(classroom_number)s обновлен') % {'classroom_number': classroom.number})
             return redirect('schedule:manage_classrooms')
     else:
         form = ClassroomForm(instance=classroom)
     return render(request, 'schedule/classroom_form.html', {
         'form': form, 
-        'title': f'Редактировать кабинет {classroom.number}'
+        'title': _('Редактировать кабинет %(classroom_number)s') % {'classroom_number': classroom.number}
     })
 
 @user_passes_test(is_dean_or_admin)
@@ -1225,15 +1208,15 @@ def classroom_occupancy(request):
     active_semester = Semester.objects.filter(is_active=True).first()
     
     if not active_semester:
-        messages.error(request, "Нет активного семестра")
+        messages.error(request, _("Нет активного семестра"))
         return redirect('schedule:manage_classrooms')
 
     classrooms = Classroom.objects.filter(is_active=True).order_by('floor', 'number')
     time_slots = TimeSlot.objects.all().order_by('start_time')
     
     days = [
-        (0, 'Понедельник'), (1, 'Вторник'), (2, 'Среда'),
-        (3, 'Четверг'), (4, 'Пятница'), (5, 'Суббота')
+        (0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')),
+        (3, _('Четверг')), (4, _('Пятница')), (5, _('Суббота'))
     ]
 
     slots = ScheduleSlot.objects.filter(
@@ -1263,7 +1246,7 @@ def classroom_occupancy(request):
 @login_required
 def import_schedule_view(request):
     if not (request.user.role in ['DEAN', 'VICE_DEAN'] or request.user.is_superuser):
-        messages.error(request, "Доступ запрещен")
+        messages.error(request, _("Доступ запрещен"))
         return redirect('schedule:view')
 
     if request.method == 'POST' and 'confirm_import' in request.POST:
@@ -1272,7 +1255,7 @@ def import_schedule_view(request):
 
         all_keys = [k for k in request.POST.keys() if k.startswith('item_') and k.endswith('_group_id')]
         if not all_keys:
-            messages.error(request, "Нет данных для сохранения")
+            messages.error(request, _("Нет данных для сохранения"))
             return redirect('schedule:view')
 
         import_data = []
@@ -1297,7 +1280,11 @@ def import_schedule_view(request):
 
         importer = ScheduleImporter()
         stats = importer.save_data_from_preview(import_data, semester)
-        messages.success(request, f"✅ Импорт завершен! Слотов: {stats['slots']}, Новых предметов: {stats['subjects']}, Новых учителей: {stats['teachers']}")
+        messages.success(request, _("✅ Импорт завершен! Слотов: %(slots)s, Новых предметов: %(subjects)s, Новых учителей: %(teachers)s") % {
+            'slots': stats['slots'],
+            'subjects': stats['subjects'],
+            'teachers': stats['teachers']
+        })
         return redirect('schedule:view')
 
     elif request.method == 'POST':
@@ -1308,18 +1295,18 @@ def import_schedule_view(request):
                 preview_data = importer.parse_for_preview(default_group=form.cleaned_data['default_group'])
 
                 if not preview_data:
-                    messages.warning(request, "Данные не найдены в файле или формат некорректен.")
+                    messages.warning(request, _("Данные не найдены в файле или формат некорректен."))
                     return redirect('schedule:import_schedule')
 
                 context = {
                     'preview_data': preview_data,
                     'semester': form.cleaned_data['semester'],
-                    'days_map_rev': {0: 'Понедельник', 1: 'Вторник', 2: 'Среда', 3: 'Четверг', 4: 'Пятница', 5: 'Суббота'}
+                    'days_map_rev': {0: _('Понедельник'), 1: _('Вторник'), 2: _('Среда'), 3: _('Четверг'), 4: _('Пятница'), 5: _('Суббота')}
                 }
                 return render(request, 'schedule/import_preview_edit.html', context)
 
             except Exception as e:
-                messages.error(request, f"Ошибка обработки файла: {str(e)}")
+                messages.error(request, _("Ошибка обработки файла: %(error)s") % {'error': str(e)})
 
     else:
         form = ScheduleImportForm()
@@ -1336,10 +1323,10 @@ def api_create_subject_template(request):
         name = data.get('name', '').strip()
         
         if not name:
-            return JsonResponse({'success': False, 'error': 'Название не может быть пустым'})
+            return JsonResponse({'success': False, 'error': _('Название не может быть пустым')})
             
         if SubjectTemplate.objects.filter(name__iexact=name).exists():
-            return JsonResponse({'success': False, 'error': 'Такая дисциплина уже существует'})
+            return JsonResponse({'success': False, 'error': _('Такая дисциплина уже существует')})
             
         template = SubjectTemplate.objects.create(name=name)
         
@@ -1359,11 +1346,14 @@ def copy_plan(request, plan_id):
     if request.method == 'POST':
         new_year = request.POST.get('new_year')
         if not new_year:
-            messages.error(request, "Укажите новый год")
+            messages.error(request, _("Укажите новый год"))
             return redirect('schedule:manage_plans')
             
         if AcademicPlan.objects.filter(specialty=original_plan.specialty, admission_year=new_year).exists():
-            messages.error(request, f"План для {original_plan.specialty.code} на {new_year} год уже существует!")
+            messages.error(request, _("План для %(specialty_code)s на %(new_year)s год уже существует!") % {
+                'specialty_code': original_plan.specialty.code,
+                'new_year': new_year
+            })
             return redirect('schedule:manage_plans')
 
         with transaction.atomic():
@@ -1382,7 +1372,7 @@ def copy_plan(request, plan_id):
             
             PlanDiscipline.objects.bulk_create(new_disciplines)
             
-        messages.success(request, f"План успешно скопирован на {new_year} год!")
+        messages.success(request, _("План успешно скопирован на %(new_year)s год!") % {'new_year': new_year})
         return redirect('schedule:plan_detail', plan_id=new_plan.id)
         
     return redirect('schedule:manage_plans')
@@ -1396,11 +1386,11 @@ def delete_plan_discipline(request, discipline_id):
     
     if request.user.role == 'DEAN':
         if discipline.plan.specialty.department.faculty != request.user.dean_profile.faculty:
-            messages.error(request, "Нет прав на удаление")
+            messages.error(request, _("Нет прав на удаление"))
             return redirect('schedule:plan_detail', plan_id=plan_id)
 
     discipline.delete()
-    messages.success(request, "Дисциплина удалена из плана")
+    messages.success(request, _("Дисциплина удалена из плана"))
     return redirect('schedule:plan_detail', plan_id=plan_id)
 
 @user_passes_test(is_dean_or_admin)
@@ -1458,7 +1448,7 @@ def subject_materials(request, subject_id):
             mat = form.save(commit=False)
             mat.subject = subject
             mat.save()
-            messages.success(request, 'Материал добавлен')
+            messages.success(request, _('Материал добавлен'))
             return redirect('schedule:subject_materials', subject_id=subject.id)
     else:
         form = MaterialUploadForm()
@@ -1475,11 +1465,82 @@ def delete_material(request, material_id):
     material = get_object_or_404(SubjectMaterial, id=material_id)
     if request.user.is_superuser or (request.user.role == 'TEACHER' and material.subject.teacher.user == request.user):
         material.delete()
-        messages.success(request, 'Материал удален')
+        messages.success(request, _('Материал удален'))
     return redirect('schedule:subject_materials', subject_id=material.subject.id)
 
 
 
+@user_passes_test(is_dean_or_admin)
+def activate_plan(request, plan_id):
+    plan = get_object_or_404(AcademicPlan, id=plan_id)
+    
+    with transaction.atomic():
+        AcademicPlan.objects.filter(specialty=plan.specialty).update(is_active=False)
+        
+        plan.is_active = True
+        plan.save()
+        
+    messages.success(request, _("Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!") % {
+        'specialty_code': plan.specialty.code,
+        'admission_year': plan.admission_year
+    })
+    return redirect('schedule:plan_detail', plan_id=plan.id)
 
+@user_passes_test(is_dean_or_admin)
+def delete_plan(request, plan_id):
+    plan = get_object_or_404(AcademicPlan, id=plan_id)
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if plan.specialty.department.faculty != request.user.dean_profile.faculty:
+            messages.error(request, _("Нет прав на удаление этого плана"))
+            return redirect('schedule:manage_plans')
+            
+    plan.delete()
+    messages.success(request, _("Учебный план для %(specialty_code)s удален") % {'specialty_code': plan.specialty.code})
+    return redirect('schedule:manage_plans')
 
+@user_passes_test(is_dean_or_admin)
+def activate_semester_from_plan(request, semester_id):
+    semester = get_object_or_404(Semester, id=semester_id)
+    
+    with transaction.atomic():
+        Semester.objects.filter(course=semester.course, is_active=True).update(is_active=False)
+        
+        semester.is_active = True
+        semester.save()
+        
+    messages.success(request, _("Семестр '%(semester_name)s' (%(course)s курс) успешно активирован!") % {
+        'semester_name': semester.name,
+        'course': semester.course
+    })
+    return redirect(request.META.get('HTTP_REFERER', 'schedule:manage_plans'))
 
+@user_passes_test(is_dean_or_admin)
+@require_POST
+def set_active_semester_manual(request):
+    semester_id = request.POST.get('semester_id')
+    
+    if not semester_id:
+        messages.error(request, _("Выберите семестр из списка"))
+        return redirect(request.META.get('HTTP_REFERER'))
+
+    semester = get_object_or_404(Semester, id=semester_id)
+    
+    if request.user.role == 'DEAN' and semester.faculty != request.user.dean_profile.faculty:
+        messages.error(request, _("Ошибка доступа"))
+        return redirect(request.META.get('HTTP_REFERER'))
+
+    with transaction.atomic():
+        Semester.objects.filter(
+            faculty=semester.faculty, 
+            course=semester.course, 
+            is_active=True
+        ).update(is_active=False)
+        
+        semester.is_active = True
+        semester.save()
+
+    messages.success(request, _("Семестр %(semester)s теперь АКТИВЕН для %(course)s курса!") % {
+        'semester': semester,
+        'course': semester.course
+    })
+    return redirect(request.META.get('HTTP_REFERER'))

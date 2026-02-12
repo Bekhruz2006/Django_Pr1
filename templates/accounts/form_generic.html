@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block title %}{{ title }}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item"><a href="{% url 'accounts:manage_structure' %}">Структура</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'accounts:manage_structure' %}">{% trans "Структура" %}</a></li>
     <li class="breadcrumb-item active">{{ title }}</li>
 {% endblock %}
 {% block content %}
@@ -29,8 +30,8 @@
                     {% endfor %}
                     
                     <div class="d-flex gap-2 justify-content-end mt-4">
-                        <a href="javascript:history.back()" class="btn btn-secondary">Отмена</a>
-                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                        <a href="javascript:history.back()" class="btn btn-secondary">{% trans "Отмена" %}</a>
+                        <button type="submit" class="btn btn-primary">{% trans "Сохранить" %}</button>
                     </div>
                 </form>
             </div>

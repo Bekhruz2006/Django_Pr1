@@ -13,6 +13,7 @@ urlpatterns = [
     path('journal/', include('journal.urls')),
     path('news/', include('news.urls')),  
     path('chat/', include('chat.urls')),  
+    path('rosetta/', include('rosetta.urls')),
     path('', include('core.urls')),
     
 

@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import json
 from django.views.decorators.http import require_POST
+from django.utils.translation import gettext as _
 from django.utils import timezone
-
 
 from .models import JournalEntry, JournalChangeLog, StudentStatistics
 from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLogFilterForm
@@ -24,7 +24,6 @@ def is_dean(user):
 def is_student(user):
     return user.is_authenticated and user.role == 'STUDENT'
 
-
 @login_required
 @user_passes_test(is_teacher)
 def journal_view(request):
@@ -37,7 +36,6 @@ def journal_view(request):
         form = JournalFilterForm(teacher=teacher) 
         return render(request, 'journal/select_journal.html', {'form': form})
 
-    
     group = get_object_or_404(Group, id=group_id)
     subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
     current_week = AcademicWeek.get_current()
@@ -58,7 +56,7 @@ def journal_view(request):
             week_num = 1
     
     if not schedule_slots.exists():
-        messages.warning(request, f'Расписание для группы {group.name} по предмету {subject.name} не найдено')
+        messages.warning(request, _('Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено') % {'group_name': group.name, 'subject_name': subject.name})
         return redirect('journal:journal_view')
 
     if current_week:
@@ -119,10 +117,10 @@ def update_entry(request, entry_id):
     teacher = request.user.teacher_profile
 
     if entry.is_locked():
-        messages.error(request, '🔒 Запись заблокирована!')
+        messages.error(request, _('🔒 Запись заблокирована!'))
         return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
     if entry.subject.teacher != teacher:
-        messages.error(request, 'Нет прав на редактирование')
+        messages.error(request, _('Нет прав на редактирование'))
         return redirect('journal:journal_view')
     
     if request.method == 'POST':
@@ -151,12 +149,12 @@ def update_entry(request, entry_id):
                             weekly_entry.attendance_status = 'PRESENT'
                             weekly_entry.modified_by = teacher
                             weekly_entry.save()
-                    messages.success(request, f'✅ Балл {grade_value} выставлен за неделю')
+                    messages.success(request, _('✅ Балл %(grade_value)s выставлен за неделю') % {'grade_value': grade_value})
                 else:
                     entry.grade, entry.attendance_status = grade_value, 'PRESENT'
                     entry.modified_by = teacher
                     entry.save()
-                    messages.success(request, f'✅ Балл {grade_value} выставлен')
+                    messages.success(request, _('✅ Балл %(grade_value)s выставлен') % {'grade_value': grade_value})
             
             elif new_attendance and new_attendance != old_attendance:
                 entry.attendance_status = new_attendance
@@ -170,7 +168,7 @@ def update_entry(request, entry_id):
                     new_grade=entry.grade, new_attendance=entry.attendance_status,
                     comment="Обновление посещаемости"
                 )
-                messages.success(request, f'✅ НБ обновлено')
+                messages.success(request, _('✅ НБ обновлено'))
             
             stats, _ = StudentStatistics.objects.get_or_create(student=entry.student)
             stats.recalculate()
@@ -198,7 +196,7 @@ def bulk_update(request):
         attendance = form.cleaned_data.get('attendance_status')
         
         if not attendance:
-            messages.error(request, 'Выберите статус посещаемости')
+            messages.error(request, _('Выберите статус посещаемости'))
             return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
         
         updated_count = locked_count = 0
@@ -233,11 +231,11 @@ def bulk_update(request):
         
         StudentStatistics.recalculate_group(group)
         if updated_count > 0:
-            messages.success(request, f'✅ Обновлено: {updated_count}')
+            messages.success(request, _('✅ Обновлено: %(updated_count)s') % {'updated_count': updated_count})
         if locked_count > 0:
-            messages.warning(request, f'⚠️ Заблокировано: {locked_count}')
+            messages.warning(request, _('⚠️ Заблокировано: %(locked_count)s') % {'locked_count': locked_count})
     else:
-        messages.error(request, 'Ошибка формы')
+        messages.error(request, _('Ошибка формы'))
     
     return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
 
@@ -308,7 +306,6 @@ def student_journal_view(request):
     return render(request, 'journal/student_view.html', {
         'student': student, 'subjects_data': subjects_data.values(), 'stats': stats
     })
-
 
 @login_required
 @user_passes_test(is_dean)
@@ -518,9 +515,6 @@ def group_detailed_report(request, group_id):
         'group': group, 'students_data': students_data, 'subjects': subjects
     })
 
-
-
-
 @login_required
 @user_passes_test(is_teacher)
 @require_POST
@@ -534,9 +528,9 @@ def update_journal_cell(request):
         teacher = request.user.teacher_profile
 
         if entry.is_locked():
-            return JsonResponse({'success': False, 'error': 'Запись заблокирована (прошло 24 часа)'}, status=403)
+            return JsonResponse({'success': False, 'error': _('Запись заблокирована (прошло 24 часа)')}, status=403)
         if entry.subject.teacher != teacher:
-            return JsonResponse({'success': False, 'error': 'Это не ваш предмет'}, status=403)
+            return JsonResponse({'success': False, 'error': _('Это не ваш предмет')}, status=403)
 
         old_grade = entry.grade
         old_attendance = entry.attendance_status
@@ -557,7 +551,7 @@ def update_journal_cell(request):
                     response_data['display'] = str(grade)
                     response_data['type'] = 'grade'
                 else:
-                    return JsonResponse({'success': False, 'error': 'Оценка должна быть от 1 до 12'}, status=400)
+                    return JsonResponse({'success': False, 'error': _('Оценка должна быть от 1 до 12')}, status=400)
             
             elif value in ['н', 'нб', 'nb', 'n', 'abs']:
                 entry.grade = None
@@ -566,7 +560,7 @@ def update_journal_cell(request):
                 response_data['type'] = 'absent'
             
             else:
-                return JsonResponse({'success': False, 'error': 'Введите число (оценка) или "нб" (прогул)'}, status=400)
+                return JsonResponse({'success': False, 'error': _('Введите число (оценка) или "нб" (прогул)')}, status=400)
 
             entry.modified_by = teacher
             entry.save()

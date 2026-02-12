@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.utils.translation import gettext as _
 from .models import News, NewsComment
 from .forms import NewsForm, NewsCommentForm
 
@@ -47,7 +48,7 @@ def news_detail(request, news_id):
             comment.news = news
             comment.author = request.user
             comment.save()
-            messages.success(request, 'Комментарий добавлен')
+            messages.success(request, _('Комментарий добавлен'))
             return redirect('news:detail', news_id=news_id)
     else:
         form = NewsCommentForm()
@@ -66,7 +67,7 @@ def news_create(request):
             news = form.save(commit=False)
             news.author = request.user
             news.save()
-            messages.success(request, 'Новость успешно создана')
+            messages.success(request, _('Новость успешно создана'))
             return redirect('news:detail', news_id=news.id)
     else:
         form = NewsForm()
@@ -84,7 +85,7 @@ def news_edit(request, news_id):
         form = NewsForm(request.POST, request.FILES, instance=news)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Новость обновлена')
+            messages.success(request, _('Новость обновлена'))
             return redirect('news:detail', news_id=news_id)
     else:
         form = NewsForm(instance=news)
@@ -99,7 +100,7 @@ def news_edit(request, news_id):
 def news_delete(request, news_id):
     news = get_object_or_404(News, id=news_id)
     news.delete()
-    messages.success(request, 'Новость удалена')
+    messages.success(request, _('Новость удалена'))
     return redirect('news:list')
 
 @user_passes_test(is_dean)
@@ -108,8 +109,10 @@ def news_toggle_publish(request, news_id):
     news.is_published = not news.is_published
     news.save()
     
-    status = "опубликована" if news.is_published else "снята с публикации"
-    messages.success(request, f'Новость {status}')
+    if news.is_published:
+        messages.success(request, _('Новость опубликована'))
+    else:
+        messages.success(request, _('Новость снята с публикации'))
     return redirect('news:list')
 
 @user_passes_test(is_dean)
@@ -118,6 +121,8 @@ def news_toggle_pin(request, news_id):
     news.is_pinned = not news.is_pinned
     news.save()
     
-    status = "закреплена" if news.is_pinned else "откреплена"
-    messages.success(request, f'Новость {status}')
+    if news.is_pinned:
+        messages.success(request, _('Новость закреплена'))
+    else:
+        messages.success(request, _('Новость откреплена'))
     return redirect('news:detail', news_id=news_id)
