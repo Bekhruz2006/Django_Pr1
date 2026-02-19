@@ -13,7 +13,9 @@ from django.utils import timezone
 from .models import JournalEntry, JournalChangeLog, StudentStatistics
 from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLogFilterForm
 from accounts.models import Student, Teacher, Group
-from schedule.models import Subject, ScheduleSlot, AcademicWeek
+from schedule.models import Subject, ScheduleSlot, Semester
+ 
+
 
 def is_teacher(user):
     return user.is_authenticated and user.role == 'TEACHER'
@@ -24,6 +26,13 @@ def is_dean(user):
 def is_student(user):
     return user.is_authenticated and user.role == 'STUDENT'
 
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.utils.translation import gettext as _
+from datetime import datetime, timedelta
+from django.db.models import Avg
+
 @login_required
 @user_passes_test(is_teacher)
 def journal_view(request):
@@ -31,42 +40,58 @@ def journal_view(request):
     group_id = request.GET.get('group')
     subject_id = request.GET.get('subject')
     week_num = request.GET.get('week')
-    
+
     if not group_id or not subject_id:
-        form = JournalFilterForm(teacher=teacher) 
+        form = JournalFilterForm(teacher=teacher)
         return render(request, 'journal/select_journal.html', {'form': form})
 
     group = get_object_or_404(Group, id=group_id)
     subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
-    current_week = AcademicWeek.get_current()
-    
+
+    active_semester = Semester.objects.filter(
+        is_active=True,
+        course=group.course
+    ).first()
+
     if week_num:
         week_num = int(week_num)
-    elif current_week:
-        week_num = current_week.current_week
     else:
-        active_semester = Semester.objects.filter(is_active=True).first()
-        if active_semester and active_semester.start_date:
-            today = datetime.now().date()
-            delta = today - active_semester.start_date
-            week_num = (delta.days // 7) + 1
-            if week_num < 1: week_num = 1
-            if week_num > 20: week_num = 20
+        if active_semester:
+            week_num = active_semester.get_current_week_number()
         else:
             week_num = 1
-    
-    if not schedule_slots.exists():
-        messages.warning(request, _('Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено') % {'group_name': group.name, 'subject_name': subject.name})
-        return redirect('journal:journal_view')
 
-    if current_week:
-        week_start = current_week.semester_start_date + timedelta(weeks=week_num - 1)
+    if week_num < 1:
+        week_num = 1
+    if week_num > 20:
+        week_num = 20
+
+    if active_semester and active_semester.start_date:
+        week_start = active_semester.start_date + timedelta(weeks=week_num - 1)
     else:
-        week_start = datetime.now().date() - timedelta(days=datetime.now().weekday())
+        today = datetime.now().date()
+        week_start = today - timedelta(days=today.weekday())
+
+    schedule_slots = ScheduleSlot.objects.filter(
+        group=group,
+        subject=subject,
+        is_active=True,
+        semester=active_semester 
+    )
+
+    if not schedule_slots.exists():
+        messages.warning(
+            request,
+            _('Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено') % {
+                'group_name': group.name,
+                'subject_name': subject.name
+            }
+        )
+        return redirect('journal:journal_view')
 
     students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
     days_with_lessons = []
-    
+
     for slot in schedule_slots:
         lesson_date = week_start + timedelta(days=slot.day_of_week)
         days_with_lessons.append({
@@ -81,12 +106,19 @@ def journal_view(request):
         student_row = {'student': student, 'entries': []}
         for day_info in days_with_lessons:
             entry, _ = JournalEntry.objects.get_or_create(
-                student=student, subject=subject,
-                lesson_date=day_info['date'], lesson_time=day_info['time'],
-                defaults={'lesson_type': subject.type, 'created_by': teacher, 'modified_by': teacher}
+                student=student,
+                subject=subject,
+                lesson_date=day_info['date'],
+                lesson_time=day_info['time'],
+                defaults={
+                    'lesson_type': subject.type,
+                    'created_by': teacher,
+                    'modified_by': teacher
+                }
             )
             student_row['entries'].append({
-                'entry': entry, 'is_locked': entry.is_locked(),
+                'entry': entry,
+                'is_locked': entry.is_locked(),
                 'form': JournalEntryForm(instance=entry, user=request.user, prefix=f'entry_{entry.id}')
             })
         journal_data.append(student_row)
@@ -94,7 +126,9 @@ def journal_view(request):
     day_stats = []
     for day_info in days_with_lessons:
         day_entries = JournalEntry.objects.filter(
-            subject=subject, lesson_date=day_info['date'], lesson_time=day_info['time']
+            subject=subject,
+            lesson_date=day_info['date'],
+            lesson_time=day_info['time']
         )
         total = day_entries.count()
         present = day_entries.filter(attendance_status='PRESENT').count()
@@ -103,11 +137,15 @@ def journal_view(request):
             'attendance_pct': (present / total * 100) if total > 0 else 0,
             'avg_grade': round(avg_grade, 1)
         })
-    
+
     return render(request, 'journal/journal_table_weekly.html', {
-        'group': group, 'subject': subject, 'week_num': week_num,
-        'days_with_lessons': days_with_lessons, 'journal_data': journal_data,
-        'day_stats': day_stats, 'can_edit': True
+        'group': group,
+        'subject': subject,
+        'week_num': week_num,
+        'days_with_lessons': days_with_lessons,
+        'journal_data': journal_data,
+        'day_stats': day_stats,
+        'can_edit': True
     })
 
 @login_required
@@ -122,26 +160,31 @@ def update_entry(request, entry_id):
     if entry.subject.teacher != teacher:
         messages.error(request, _('Нет прав на редактирование'))
         return redirect('journal:journal_view')
-    
+
     if request.method == 'POST':
         old_grade, old_attendance = entry.grade, entry.attendance_status
         new_grade = request.POST.get('grade')
         new_attendance = request.POST.get('attendance_status')
-        
+
         with transaction.atomic():
             if new_grade and new_grade.strip():
                 grade_value = int(new_grade)
-                current_week = AcademicWeek.get_current()
-                
-                if current_week:
-                    delta = entry.lesson_date - current_week.semester_start_date
-                    week_num = (delta.days // 7) + 1
-                    week_start = current_week.semester_start_date + timedelta(weeks=week_num - 1)
+
+                active_semester = Semester.objects.filter(
+                    is_active=True,
+                    course=entry.student.group.course
+                ).first()
+
+                if active_semester:
+                    week_num = active_semester.get_current_week_number()
+                    week_start = active_semester.start_date + timedelta(weeks=week_num - 1)
                     week_end = week_start + timedelta(days=6)
-                    
+
                     weekly_entries = JournalEntry.objects.filter(
-                        student=entry.student, subject=entry.subject,
-                        lesson_date__gte=week_start, lesson_date__lte=week_end
+                        student=entry.student,
+                        subject=entry.subject,
+                        lesson_date__gte=week_start,
+                        lesson_date__lte=week_end
                     )
                     for weekly_entry in weekly_entries:
                         if not weekly_entry.is_locked():
@@ -149,13 +192,19 @@ def update_entry(request, entry_id):
                             weekly_entry.attendance_status = 'PRESENT'
                             weekly_entry.modified_by = teacher
                             weekly_entry.save()
-                    messages.success(request, _('✅ Балл %(grade_value)s выставлен за неделю') % {'grade_value': grade_value})
+                    messages.success(
+                        request,
+                        _('✅ Балл %(grade_value)s выставлен за неделю') % {'grade_value': grade_value}
+                    )
                 else:
                     entry.grade, entry.attendance_status = grade_value, 'PRESENT'
                     entry.modified_by = teacher
                     entry.save()
-                    messages.success(request, _('✅ Балл %(grade_value)s выставлен') % {'grade_value': grade_value})
-            
+                    messages.success(
+                        request,
+                        _('✅ Балл %(grade_value)s выставлен') % {'grade_value': grade_value}
+                    )
+
             elif new_attendance and new_attendance != old_attendance:
                 entry.attendance_status = new_attendance
                 if new_attendance != 'PRESENT':
@@ -163,16 +212,19 @@ def update_entry(request, entry_id):
                 entry.modified_by = teacher
                 entry.save()
                 JournalChangeLog.objects.create(
-                    entry=entry, changed_by=teacher,
-                    old_grade=old_grade, old_attendance=old_attendance,
-                    new_grade=entry.grade, new_attendance=entry.attendance_status,
+                    entry=entry,
+                    changed_by=teacher,
+                    old_grade=old_grade,
+                    old_attendance=old_attendance,
+                    new_grade=entry.grade,
+                    new_attendance=entry.attendance_status,
                     comment="Обновление посещаемости"
                 )
                 messages.success(request, _('✅ НБ обновлено'))
-            
+
             stats, _ = StudentStatistics.objects.get_or_create(student=entry.student)
             stats.recalculate()
-    
+
     return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
 
 @login_required

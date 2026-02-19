@@ -1,73 +1,207 @@
 {% extends 'base.html' %}
 {% load schedule_filters %}
+{% load i18n %}
 
-{% block title %}Занятость аудиторий{% endblock %}
+{% block title %}{% trans "Занятость аудиторий" %}{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-grid-3x3"></i> Занятость аудиторий</span>
-                <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> Назад
-                </a>
-            </div>
-            <div class="card-body">
-                
-                <form method="get" class="mb-4">
-                    <div class="btn-group" role="group">
-                        {% for day_num, day_name in days %}
-                            <button type="submit" name="day" value="{{ day_num }}" 
-                                    class="btn {% if selected_day == day_num %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                {{ day_name }}
-                            </button>
-                        {% endfor %}
-                    </div>
-                </form>
+<div class="container-fluid py-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0"><i class="bi bi-grid-3x3"></i> {% trans "Карта занятости аудиторий" %}</h5>
+            <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-arrow-left"></i> {% trans "К списку" %}
+            </a>
+        </div>
+        <div class="card-body">
 
-                <div class="table-responsive">
-                    <table class="table table-bordered table-sm text-center align-middle">
-                        <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
-                            <tr>
-                                <th style="width: 80px;">Ауд.</th>
-                                <th style="width: 60px;">Мест</th>
-                                {% for ts in time_slots %}
-                                    <th>{{ ts.start_time|time:"H:i" }}<br><small class="text-muted">{{ ts.end_time|time:"H:i" }}</small></th>
-                                {% endfor %}
+            <form method="get" class="mb-4 bg-light p-3 rounded border d-flex flex-wrap gap-3 align-items-center justify-content-between">
+
+                <div class="btn-group shadow-sm" role="group">
+                    {% for day_num, day_name in days %}
+                        <button type="submit" name="day" value="{{ day_num }}"
+                                class="btn {% if selected_day == day_num %}btn-primary{% else %}btn-outline-secondary{% endif %} px-3">
+                            {{ day_name }}
+                        </button>
+                    {% endfor %}
+                </div>
+
+                {% if institutes %}
+                <div class="d-flex align-items-center">
+                    <label class="me-2 fw-bold text-muted"><i class="bi bi-bank"></i> Институт:</label>
+                    <select name="institute" class="form-select form-select-sm shadow-sm" style="min-width: 250px;" onchange="this.form.submit()">
+                        <option value="">-- Все корпуса --</option>
+                        {% for inst in institutes %}
+                            <option value="{{ inst.id }}" {% if selected_institute_id == inst.id %}selected{% endif %}>
+                                {{ inst.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="day" value="{{ selected_day }}">
+                </div>
+                {% endif %}
+
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle text-center" style="font-size: 0.9rem;">
+                    <thead class="table-light align-middle">
+                        <tr>
+                            <th style="width: 150px; background: #f8f9fa; position: sticky; left: 0; z-index: 2;">
+                                {% trans "Аудитория" %}
+                            </th>
+                            <th style="width: 60px;">{% trans "Мест" %}</th>
+                            {% for ts in time_slots %}
+                                <th style="min-width: 120px;">
+                                    <div class="fw-bold">{{ ts.number }} пара</div>
+                                    <small class="text-muted">{{ ts.start_time|time:"H:i" }} - {{ ts.end_time|time:"H:i" }}</small>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% regroup classrooms by building as building_list %}
+                        {% for building_group in building_list %}
+                            <tr class="table-secondary text-start">
+                                <td colspan="{{ time_slots|length|add:2 }}" class="fw-bold ps-3 py-2 text-uppercase text-dark">
+                                    <i class="bi bi-building me-2"></i>
+                                    {{ building_group.grouper.name|default:"Без корпуса" }}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for classroom in classrooms %}
+
+                            {% for classroom in building_group.list %}
                             <tr>
-                                <td class="fw-bold bg-light">{{ classroom.number }}</td>
-                                <td class="small text-muted">{{ classroom.capacity }}</td>
-                                
+                                <td class="fw-bold bg-light text-start ps-3" style="position: sticky; left: 0; z-index: 1;">
+                                    {{ classroom.number }}
+                                    <div class="small text-muted fw-normal">Этаж {{ classroom.floor }}</div>
+                                </td>
+
+                                <td class="text-muted bg-white">{{ classroom.capacity }}</td>
+
                                 {% for ts in time_slots %}
                                     {% with slot=occupancy|get_slot:classroom.id|get_slot:ts.id %}
-                                        <td class="{% if slot %}bg-success bg-opacity-10{% endif %}">
-                                            {% if slot %}
-                                                <div class="small fw-bold text-dark">{{ slot.group.name }}</div>
-                                                <div style="font-size: 0.7rem;" class="text-muted" title="{{ slot.subject.name }}">
-                                                    {{ slot.subject.name|truncatechars:15 }}
+                                        {% if slot %}
+                                            <td class="p-1 cursor-pointer position-relative"
+                                                style="background-color: rgba(16, 185, 129, 0.1); cursor: pointer;"
+                                                onclick="showSlotDetails(
+                                                    '{{ classroom.number }}',
+                                                    '{{ classroom.building.name }}',
+                                                    '{{ ts.start_time|time:'H:i' }} - {{ ts.end_time|time:'H:i' }}',
+                                                    '{{ slot.subject.name|escapejs }}',
+                                                    '{{ slot.group.name|escapejs }}',
+                                                    '{{ slot.teacher.user.get_full_name|default:'Не назначен'|escapejs }}',
+                                                    '{{ slot.get_lesson_type_display }}',
+                                                    '{{ slot.subject.get_color_class }}'
+                                                )">
+                                                <div class="w-100 h-100 rounded p-1 border border-success border-opacity-25">
+                                                    <div class="fw-bold text-dark small text-truncate" style="max-width: 110px;">
+                                                        {{ slot.group.name }}
+                                                    </div>
+                                                    <div class="text-secondary x-small text-truncate" style="font-size: 0.75rem; max-width: 110px;">
+                                                        {{ slot.subject.name }}
+                                                    </div>
                                                 </div>
-                                            {% else %}
-                                                <span class="text-muted opacity-25">-</span>
-                                            {% endif %}
-                                        </td>
+                                            </td>
+                                        {% else %}
+                                            <td class="text-muted opacity-25 bg-white">
+                                                <i class="bi bi-dash-lg"></i>
+                                            </td>
+                                        {% endif %}
                                     {% endwith %}
                                 {% endfor %}
                             </tr>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="mt-3 small text-muted">
-                    <i class="bi bi-info-circle"></i> Отображается расписание только для активного семестра.
-                </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3 d-flex align-items-center gap-3 small text-muted">
+                <div><span class="d-inline-block border border-success border-opacity-25 rounded me-1" style="width: 15px; height: 15px; background: rgba(16, 185, 129, 0.1);"></span> - Занято</div>
+                <div><i class="bi bi-dash-lg"></i> - Свободно</div>
             </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="slotDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle me-2"></i>Детали занятия
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold text-primary mb-0" id="modalRoom"></h2>
+                    <p class="text-muted mb-0" id="modalBuilding"></p>
+                    <span class="badge bg-light text-dark border mt-2 fs-6">
+                        <i class="bi bi-clock"></i> <span id="modalTime"></span>
+                    </span>
+                </div>
+
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="small text-muted text-uppercase fw-bold">Предмет</label>
+                            <div class="d-flex align-items-center">
+                                <span class="badge me-2" id="modalTypeBadge"></span>
+                                <span class="fs-5 fw-bold text-dark" id="modalSubject"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase fw-bold">Группа</label>
+                                <div class="fs-6" id="modalGroup"></div>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase fw-bold">Преподаватель</label>
+                                <div class="fs-6" id="modalTeacher"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showSlotDetails(room, building, time, subject, group, teacher, type, colorClass) {
+        document.getElementById('modalRoom').textContent = "Кабинет " + room;
+        document.getElementById('modalBuilding').textContent = building;
+        document.getElementById('modalTime').textContent = time;
+        document.getElementById('modalSubject').textContent = subject;
+        document.getElementById('modalGroup').textContent = group;
+        document.getElementById('modalTeacher').textContent = teacher;
+
+        const badge = document.getElementById('modalTypeBadge');
+        badge.textContent = type;
+        badge.className = `badge me-2 bg-${colorClass}`;
+
+        const modal = new bootstrap.Modal(document.getElementById('slotDetailsModal'));
+        modal.show();
+    }
+</script>
+
+<style>
+    .cursor-pointer {
+        transition: all 0.2s;
+    }
+    .cursor-pointer:hover {
+        background-color: rgba(16, 185, 129, 0.2) !important;
+        transform: scale(1.02);
+        z-index: 5;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .x-small {
+        font-size: 0.7rem;
+    }
+</style>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load schedule_filters %}
-
+{% load i18n %}
 {% block title %}Конструктор расписания{% endblock %}
 
 {% block content %}
@@ -9,38 +9,57 @@
     <div class="col-12">
         <div class="card mb-3 shadow-sm border-primary">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-calendar-week"></i> Конструктор расписания</span>
+                <span><i class="bi bi-calendar-week"></i> {% trans "Конструктор расписания" %}</span>
             </div>
             <div class="card-body bg-light">
                 <form method="get" id="groupSelectionForm" class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold">Группа</label>
-                        <select class="form-select border-primary" name="group" required>
-                            <option value="">-- Выберите группу --</option>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">{% trans "Выберите группу" %}</label>
+                        <div class="btn-group w-100 mb-2 btn-group-sm" role="group">
+                            <input type="radio" class="btn-check course-filter" name="c_filter" id="c_all" value="all" checked>
+                            <label class="btn btn-outline-secondary" for="c_all">{% trans "Все" %}</label>
+
+                            <input type="radio" class="btn-check course-filter" name="c_filter" id="c_1" value="1">
+                            <label class="btn btn-outline-secondary" for="c_1">1 {% trans "курс" %}</label>
+
+                            <input type="radio" class="btn-check course-filter" name="c_filter" id="c_2" value="2">
+                            <label class="btn btn-outline-secondary" for="c_2">2 {% trans "курс" %}</label>
+
+                            <input type="radio" class="btn-check course-filter" name="c_filter" id="c_3" value="3">
+                            <label class="btn btn-outline-secondary" for="c_3">3 {% trans "курс" %}</label>
+                            
+                            <input type="radio" class="btn-check course-filter" name="c_filter" id="c_4" value="4">
+                            <label class="btn btn-outline-secondary" for="c_4">4 {% trans "курс" %}</label>
+                        </div>
+
+                        <select class="form-select border-primary form-select-lg" name="group" id="groupSelect" required>
+                            <option value="" data-course="all">-- {% trans "Выберите группу из списка" %} --</option>
                             {% for g in groups %}
-                                <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>
+                                <option value="{{ g.id }}" data-course="{{ g.course }}" {% if group and group.id == g.id %}selected{% endif %}>
                                     {{ g.name }} ({{ g.course }} курс)
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold">Семестр и Смена</label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">{% trans "Семестр" %}</label>
                         <select class="form-select border-primary" name="semester">
                             {% for sem in all_semesters %}
                                 <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
-                                    {{ sem.academic_year }} | {{ sem.name }}
-                                    {% if sem.shift == 'MORNING' %}☀️ 1-я смена (Утро){% else %}🌙 2-я смена (День){% endif %}
-                                    {% if sem.is_active %}(Активный){% endif %}
+                                    {% if sem.is_active %}✅{% endif %} 
+                                    {{ sem.name }} ({{ sem.academic_year }}) — {{ sem.get_shift_display }}
                                 </option>
                             {% endfor %}
                         </select>
+                        <div class="form-text text-muted small">
+                            {% trans "Активный семестр выбран автоматически" %}
+                        </div>
                     </div>
 
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100 fw-bold">
-                            <i class="bi bi-arrow-clockwise"></i> Загрузить
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
+                            <i class="bi bi-arrow-right-circle"></i> {% trans "Открыть" %}
                         </button>
                     </div>
                 </form>
@@ -257,6 +276,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createSlot(group, day, timeSlot, subject, type, semesterId, isForce = false) {
+        
+        if (!isForce) {
+        }
+
+        
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
             headers: {
@@ -276,13 +300,13 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (data.is_stream) {
-                    console.log('Поток создан');
-                }
                 location.reload();
             } else {
                 if (data.is_conflict) {
-                    document.getElementById('conflictMessage').innerHTML = data.error;
+                    document.getElementById('conflictMessage').innerHTML = `
+                        <div class="text-danger fw-bold mb-2">Обнаружены конфликты:</div>
+                        ${data.error}
+                    `;
                     lastAttemptData = {
                         groupId: group,
                         subjectId: subject,
@@ -617,6 +641,31 @@ document.addEventListener('DOMContentLoaded', function() {
         mo.observe(document.body, { childList: true, subtree: true });
     } catch (e) { }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    const filters = document.querySelectorAll('.course-filter');
+    const select = document.getElementById('groupSelect');
+    const options = Array.from(select.options);
+
+    filters.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const course = this.value;
+            
+            select.value = "";
+            
+            options.forEach(opt => {
+                if (opt.value === "") return; 
+                
+                const optCourse = opt.getAttribute('data-course');
+                if (course === 'all' || optCourse === course) {
+                    opt.style.display = '';
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+
 </script>
 
 <style>

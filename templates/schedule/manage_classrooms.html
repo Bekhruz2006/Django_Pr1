@@ -1,65 +1,78 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Управление кабинетами{% endblock %}
+{% block title %}{% trans "Управление кабинетами" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-door-open"></i> Управление кабинетами</span>
-                <div>
-                    <a href="{% url 'schedule:classroom_occupancy' %}" class="btn btn-primary btn-sm me-2">
-                        <i class="bi bi-grid-3x3"></i> Просмотр занятости
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
+                <h5 class="mb-0 text-primary"><i class="bi bi-door-open"></i> {% trans "Аудиторный фонд" %}</h5>
+                
+                <div class="d-flex gap-2">
+                    <a href="{% url 'schedule:classroom_occupancy' %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-grid-3x3"></i> {% trans "Карта занятости" %}
                     </a>
-                    <a href="{% url 'schedule:bulk_add_classrooms' %}" class="btn btn-info btn-sm me-2">
-                        <i class="bi bi-plus-square"></i> Массовое добавление
+                    <a href="{% url 'schedule:manage_buildings' %}" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-building"></i> {% trans "Корпуса" %}
+                    </a>
+
+                    {% if is_admin %}
+                    <form method="get" class="d-flex align-items-center">
+                        <select name="institute" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 200px;">
+                            <option value="">{% trans "Все институты" %}</option>
+                            {% for inst in institutes %}
+                                <option value="{{ inst.id }}" {% if selected_institute_id == inst.id %}selected{% endif %}>
+                                    {{ inst.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    {% endif %}
+
+                    <a href="{% url 'schedule:bulk_add_classrooms' %}" class="btn btn-info btn-sm text-white">
+                        <i class="bi bi-plus-square"></i> {% trans "Массово" %}
                     </a>
                     <a href="{% url 'schedule:add_classroom' %}" class="btn btn-success btn-sm">
-                        <i class="bi bi-plus-circle"></i> Добавить кабинет
+                        <i class="bi bi-plus-circle"></i> {% trans "Добавить" %}
                     </a>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
                             <tr>
-                                <th>Номер</th>
-                                <th>Этаж</th>
-                                <th>Вместимость</th>
-                                <th>Статус</th>
-                                <th class="text-end">Действия</th>
+                                <th class="ps-4">{% trans "Корпус" %}</th>
+                                <th>{% trans "Номер" %}</th>
+                                <th>{% trans "Этаж" %}</th>
+                                <th>{% trans "Вместимость" %}</th>
+                                <th>{% trans "Статус" %}</th>
+                                <th class="text-end pe-4">{% trans "Действия" %}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for classroom in classrooms %}
                             <tr>
+                                <td class="ps-4 text-muted small">{{ classroom.building.name }}</td>
                                 <td><strong>{{ classroom.number }}</strong></td>
                                 <td>{{ classroom.floor }}</td>
-                                <td>{{ classroom.capacity }} мест</td>
+                                <td>{{ classroom.capacity }}</td>
                                 <td>
                                     {% if classroom.is_active %}
-                                        <span class="badge bg-success">Активен</span>
+                                        <span class="badge bg-success-subtle text-success">Активен</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Неактивен</span>
+                                        <span class="badge bg-secondary-subtle text-secondary">Неактивен</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end">
-                                    <a href="{% url 'schedule:edit_classroom' classroom.id %}" class="btn btn-outline-primary btn-sm" title="Редактировать">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{% url 'schedule:delete_classroom' classroom.id %}" 
-                                       class="btn btn-outline-danger btn-sm"
-                                       onclick="return confirm('Удалить кабинет?')">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                <td class="text-end pe-4">
+                                    <a href="{% url 'schedule:edit_classroom' classroom.id %}" class="btn btn-sm btn-link text-primary"><i class="bi bi-pencil"></i></a>
+                                    <a href="{% url 'schedule:delete_classroom' classroom.id %}" class="btn btn-sm btn-link text-danger" onclick="return confirm('Удалить?')"><i class="bi bi-trash"></i></a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">Кабинеты не созданы</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center py-4 text-muted">{% trans "Кабинеты не найдены" %}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

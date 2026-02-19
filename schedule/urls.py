@@ -7,6 +7,12 @@ urlpatterns = [
     path('', views.schedule_view, name='view'),
     path('today/', views.today_classes, name='today'),
     path('export/', views.export_schedule, name='export'),
+    path('api/check-conflicts/', views.check_schedule_conflicts, name='check_conflicts'),
+    
+    path('buildings/', views.manage_buildings, name='manage_buildings'),
+    path('buildings/add/', views.add_building, name='add_building'),
+    path('buildings/<int:building_id>/edit/', views.edit_building, name='edit_building'),
+    path('buildings/<int:building_id>/delete/', views.delete_building, name='delete_building'),
 
     path('constructor/', views.schedule_constructor, name='constructor'),
     path('constructor/create/', views.create_schedule_slot, name='create_slot'),
@@ -21,7 +27,6 @@ urlpatterns = [
     path('semesters/add/', views.add_semester, name='add_semester'),
     path('semesters/<int:semester_id>/edit/', views.edit_semester, name='edit_semester'),
     path('semesters/<int:semester_id>/toggle/', views.toggle_semester_active, name='toggle_semester'),
-    path('academic-week/', views.manage_academic_week, name='manage_academic_week'),
 
     
     path('classrooms/', views.manage_classrooms, name='manage_classrooms'),
@@ -47,4 +52,7 @@ urlpatterns = [
     path('plans/<int:plan_id>/delete/', views.delete_plan, name='delete_plan'),
     path('semester/<int:semester_id>/activate-ref/', views.activate_semester_from_plan, name='activate_semester_from_plan'),
     path('semester/set-active/', views.set_active_semester_manual, name='set_active_semester_manual'),
+    path('time-slots/', views.manage_time_slots, name='manage_time_slots'),
+
+
 ]

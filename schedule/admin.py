@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Subject, TimeSlot, ScheduleSlot, Semester, 
-    Classroom, ScheduleException, AcademicWeek
+    Classroom, ScheduleException
 )
 
 @admin.register(Subject)
@@ -25,8 +25,18 @@ class SubjectAdmin(admin.ModelAdmin):
 
 @admin.register(TimeSlot)
 class TimeSlotAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_time', 'end_time']
-    ordering = ['start_time']
+    list_display = ['institute', 'number', 'shift', 'start_time', 'end_time', 'duration']
+    list_filter = ['institute', 'shift']
+    ordering = ['institute', 'shift', 'start_time']
+    
+    fieldsets = (
+        ('Привязка', {
+            'fields': ('institute', 'shift')
+        }),
+        ('Временные рамки', {
+            'fields': ('number', 'start_time', 'end_time', 'duration')
+        }),
+    )
 
 @admin.register(Semester)
 class SemesterAdmin(admin.ModelAdmin):
@@ -102,20 +112,3 @@ class ScheduleExceptionAdmin(admin.ModelAdmin):
         return obj.reason[:50] + '...' if len(obj.reason) > 50 else obj.reason
     reason_short.short_description = 'Причина'
 
-@admin.register(AcademicWeek)
-class AcademicWeekAdmin(admin.ModelAdmin):
-    list_display = ['week_number', 'semester', 'start_date', 'end_date', 'is_current']
-    list_filter = ['is_current', 'semester']
-    ordering = ['-start_date']
-    
-    fieldsets = (
-        ('Информация о неделе', {
-            'fields': ('semester', 'week_number')
-        }),
-        ('Период', {
-            'fields': ('start_date', 'end_date')
-        }),
-        ('Статус', {
-            'fields': ('is_current',)
-        }),
-    )

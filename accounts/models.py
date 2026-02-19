@@ -7,14 +7,23 @@ from datetime import datetime, date
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from django.utils import timezone
-import datetime
-
+from datetime import datetime, date
 
 
 class Institute(models.Model):
     name = models.CharField(max_length=200, verbose_name=_("Название института"))
     abbreviation = models.CharField(max_length=20, verbose_name=_("Аббревиатура"))
     address = models.TextField(verbose_name=_("Адрес"), blank=True)
+    academic_hour_duration = models.IntegerField(
+        default=50, 
+        verbose_name=_("Длительность академ. часа (мин)"),
+        help_text=_("Обычно 45 или 50 минут. Используется для расчета кредитов.")
+    )
+    pair_duration = models.IntegerField(
+        default=50,
+        verbose_name=_("Длительность одной пары (мин)"),
+        help_text=_("Физическое время занятия. Если пара 90 мин, а час 45, то 1 пара = 2 часа.")
+    )
 
     class Meta:
         verbose_name = _("Институт")
@@ -510,10 +519,13 @@ def generate_order_number():
 
 class StudentOrder(models.Model):
     ORDER_TYPES = [
-        ('EXPEL', _('Отчисление (Хориҷ)')),
+        ('EXPEL', _('Отчисление')),
         ('ACADEMIC_LEAVE', _('Академический отпуск')),
         ('RESTORE', _('Восстановление')),
-        ('GRADUATE', _('Выпуск (Хатм)')),
+        ('GRADUATE', _('Выпуск')),
+        ('TRANSFER', _('Перевод в другую группу')), 
+        ('REPRIMAND', _('Выговор')),      
+        ('SCHOLARSHIP', _('Назначение стипендии')), 
     ]
 
     STATUS_CHOICES = [
@@ -523,37 +535,46 @@ class StudentOrder(models.Model):
     ]
 
     number = models.CharField(
-        max_length=50, 
+        max_length=50,
         verbose_name=_("Номер приказа"),
         default=generate_order_number
     )
     date = models.DateField(
-        default=timezone.now, 
+        default=timezone.now,
         verbose_name=_("Дата приказа")
     )
     order_type = models.CharField(max_length=20, choices=ORDER_TYPES, verbose_name=_("Тип приказа"))
     initiated_by = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='initiated_orders',
         verbose_name=_("Исполнитель (Кто составил)")
     )
     signed_by = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='signed_orders',
         verbose_name=_("Подписант")
     )
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name=_("Статус документа"))
-    
+
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='orders', verbose_name=_("Студент"))
     reason = models.TextField(verbose_name=_("Причина/Основание"))
     file = models.FileField(upload_to='orders/', blank=True, null=True, verbose_name=_("Скан приказа"))
-    
+
+    target_group = models.ForeignKey(
+        Group,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incoming_orders',
+        verbose_name=_("Новая группа (для перевода)")
+    )
+
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_orders')
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_orders', verbose_name=_("Кем подписан"))
     created_at = models.DateTimeField(auto_now_add=True)
@@ -568,28 +589,38 @@ class StudentOrder(models.Model):
 
     def apply_effect(self, approver_user):
         if self.status == 'APPROVED':
-            return  
+            return
 
         with transaction.atomic():
             if self.order_type == 'EXPEL':
                 self.student.status = 'EXPELLED'
-                self.student.group = None 
+                self.student.group = None
             elif self.order_type == 'ACADEMIC_LEAVE':
                 self.student.status = 'ACADEMIC_LEAVE'
             elif self.order_type == 'GRADUATE':
-                self.student.status = 'GRADUATED' 
+                self.student.status = 'GRADUATED'
                 self.student.group = None
             elif self.order_type == 'RESTORE':
                 self.student.status = 'ACTIVE'
-            
+            elif self.order_type == 'TRANSFER':
+                if self.target_group:
+                    GroupTransferHistory.objects.create(
+                        student=self.student,
+                        from_group=self.student.group,
+                        to_group=self.target_group,
+                        reason=self.reason,
+                        transferred_by=approver_user
+                    )
+                    self.student.group = self.target_group
+
             self.student.save()
-            
+
             self.status = 'APPROVED'
             self.approved_by = approver_user
             self.save()
+
     def save(self, *args, **kwargs):
         if not self.number:
             self.number = generate_order_number()
         super().save(*args, **kwargs)
-
 
