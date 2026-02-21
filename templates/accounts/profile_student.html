@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container-fluid mt-4">
-    
+
     <div class="card border-0 shadow-sm mb-4 bg-white">
         <div class="card-body p-4">
             <div class="d-flex align-items-center flex-wrap gap-4">
@@ -27,8 +27,8 @@
                 <div class="flex-grow-1">
                     <h2 class="fw-bold mb-1">{{ user.get_full_name }}</h2>
                     <p class="text-muted mb-2">
-                        <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ profile.specialty.name }} 
-                        <span class="mx-2">•</span> 
+                        <i class="bi bi-mortarboard-fill me-1 text-primary"></i> {{ profile.specialty.name }}
+                        <span class="mx-2">•</span>
                         <i class="bi bi-people-fill me-1 text-primary"></i> {% trans "Группа:" %} <strong>{{ profile.group.name }}</strong>
                     </p>
                     <div class="d-flex gap-2 flex-wrap">
@@ -38,6 +38,25 @@
                             <a href="{% url 'accounts:edit_profile' %}" class="btn btn-sm btn-outline-primary ms-auto">
                                 <i class="bi bi-pencil"></i> {% trans "Редактировать" %}
                             </a>
+                        {% endif %}
+                        {% if user.role in 'HR,DEAN,VICE_DEAN' or user.is_superuser %}
+                            <div class="dropdown d-inline-block ms-2">
+                                <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-printer"></i> Распечатать
+                                </button>
+                                <ul class="dropdown-menu shadow">
+                                    <li><h6 class="dropdown-header">Выберите шаблон</h6></li>
+                                    {% for tmpl in templates_cert %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'accounts:generate_document' tmpl.id profile.id %}">
+                                                <i class="bi bi-file-word text-primary"></i> {{ tmpl.name }}
+                                            </a>
+                                        </li>
+                                    {% empty %}
+                                        <li><span class="dropdown-item text-muted small">Шаблоны не загружены</span></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -285,7 +304,7 @@
         border-radius: 2px;
     }
     .chart-bar-group:hover .chart-value { opacity: 1; }
-    
+
     .bar-gpa { background: #6366f1; }
     .bar-att { background: #10b981; }
     .bar-danger { background: #ef4444; }
@@ -297,7 +316,7 @@
     const attData = {{ chart_attendance|safe }};
 
     const ctxLine = document.getElementById('studentHistoryChart').getContext('2d');
-    
+
     let gradGPA = ctxLine.createLinearGradient(0, 0, 0, 300);
     gradGPA.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
     gradGPA.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
@@ -350,9 +369,9 @@
     const isDonutEmpty = {{ donut_empty|lower }};
     const ctxDonut = document.getElementById('attendanceDoughnutChart').getContext('2d');
 
-    const donutColors = isDonutEmpty 
-        ? ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#e2e8f0'] 
-        : ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']; 
+    const donutColors = isDonutEmpty
+        ? ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#e2e8f0']
+        : ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 
     new Chart(ctxDonut, {
         type: 'doughnut',

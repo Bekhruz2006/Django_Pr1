@@ -13,22 +13,29 @@ from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncMonth 
 from django.utils import timezone
 import json
-
+from .document_engine import DocumentGenerator
 from .models import (
     User, Student, Teacher, Dean, Group, GroupTransferHistory,
     Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector, ViceDean,
-    StudentOrder
+    StudentOrder, DocumentTemplate
 )
 from .forms import (
     UserCreateForm, StudentForm, TeacherForm, DeanForm,
     UserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
     GroupForm, GroupTransferForm, DepartmentCreateForm, SpecialtyCreateForm,
     InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm,
-    StudentOrderForm
+    StudentOrderForm, DocumentTemplateForm
 )
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import InstituteManagementForm, InstituteForm, FacultyFullForm
+from django.http import HttpResponse
 
+
+def is_hr_or_admin(user):
+    return user.is_authenticated and (user.is_superuser or user.role == 'HR')
+
+def is_dean_or_admin(user):
+    return user.is_authenticated and (user.is_superuser or user.role in ['DEAN', 'VICE_DEAN'])
 
 
 def generate_student_id():
@@ -326,38 +333,34 @@ def user_management(request):
     })
 
 
-
-
-
 @login_required
-@user_passes_test(is_management)
+@user_passes_test(lambda u: u.is_superuser or u.role == 'HR') 
 def import_students(request):
     if request.method == 'POST' and request.FILES.get('excel_file'):
         excel_file = request.FILES['excel_file']
-        group_id = request.POST.get('group_id')
+        specialty_id = request.POST.get('specialty_id') 
         
         if not excel_file.name.endswith('.xlsx'):
             messages.error(request, _('Пожалуйста, загрузите файл .xlsx'))
             return redirect('accounts:import_students')
 
         try:
-            results = StudentImportService.import_from_excel(excel_file, group_id)
+            results = StudentImportService.import_from_excel(excel_file, specialty_id)
             messages.success(request, _(f"Импортировано: {results['created']} студентов."))
             if results['errors']:
                 messages.warning(request, _(f"Ошибки ({len(results['errors'])}): {'; '.join(results['errors'][:3])}..."))
         except Exception as e:
             messages.error(request, _(f"Критическая ошибка импорта: {str(e)}"))
             
-        return redirect('accounts:group_management')
+        return redirect('accounts:user_management') 
     
-    groups = Group.objects.all()
-    return render(request, 'accounts/import_students.html', {'groups': groups})
+    specialties = Specialty.objects.select_related('department__faculty').all().order_by('department__faculty__name', 'name')
+    return render(request, 'accounts/import_students.html', {'specialties': specialties})
 
 
 
 
-
-@user_passes_test(is_management)
+@user_passes_test(is_hr_or_admin)
 def add_user(request):
     department_id = request.GET.get('department')
     initial_data = {}
@@ -538,7 +541,7 @@ def view_user_profile(request, user_id):
         'user': user_obj,
         'viewing_as_dean': True
     }
-    
+
     if user_obj.role == 'STUDENT':
         profile = get_object_or_404(Student, user=user_obj)
         from journal.models import StudentStatistics
@@ -546,18 +549,19 @@ def view_user_profile(request, user_id):
         stats.recalculate()
         profile.statistics = stats
         context['profile'] = profile
+        context['templates_cert'] = DocumentTemplate.objects.filter(context_type='STUDENT_CERT', is_active=True)
         template = 'accounts/profile_student.html'
-        
+
     elif user_obj.role == 'TEACHER':
         profile = get_object_or_404(Teacher, user=user_obj)
         context['profile'] = profile
         template = 'accounts/profile_teacher.html'
-        
+
     elif user_obj.role == 'DEAN':
         profile = get_object_or_404(Dean, user=user_obj)
         context['profile'] = profile
         template = 'accounts/profile_dean.html'
-        
+
     return render(request, template, context)
 
 @user_passes_test(is_management)
@@ -1249,3 +1253,129 @@ def approve_order(request, order_id):
             messages.warning(request, _("Приказ уже обработан."))
             
     return redirect('accounts:all_orders')
+
+
+
+
+@user_passes_test(is_dean_or_admin)
+def unassigned_students(request):
+    faculty = request.user.dean_profile.faculty
+    students = Student.objects.filter(
+        group__isnull=True, 
+        status='ACTIVE'
+    )
+    
+    groups = Group.objects.filter(specialty__department__faculty=faculty)
+    
+    if request.method == 'POST':
+        student_ids = request.POST.getlist('students')
+        target_group_id = request.POST.get('target_group')
+        if student_ids and target_group_id:
+            Student.objects.filter(id__in=student_ids).update(group_id=target_group_id)
+            messages.success(request, f"Успешно распределено {len(student_ids)} студентов.")
+        return redirect('accounts:unassigned_students')
+        
+    return render(request, 'accounts/unassigned_students.html', {
+        'students': students,
+        'groups': groups
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.role in ['DEAN', 'VICE_DEAN'])
+def unassigned_students(request):
+    user = request.user
+    
+    faculty = None
+    if hasattr(user, 'dean_profile') and getattr(user.dean_profile, 'faculty', None):
+        faculty = user.dean_profile.faculty
+    elif hasattr(user, 'vicedean_profile') and getattr(user.vicedean_profile, 'faculty', None):
+        faculty = user.vicedean_profile.faculty
+        
+    if user.is_superuser:
+        students = Student.objects.filter(group__isnull=True, status='ACTIVE').select_related('user', 'specialty')
+        groups = Group.objects.all().select_related('specialty')
+    else:
+        if not faculty:
+            messages.error(request, _("Ваш профиль не привязан к факультету."))
+            return redirect('core:dashboard')
+        
+        students = Student.objects.filter(
+            group__isnull=True, 
+            status='ACTIVE',
+            specialty__department__faculty=faculty
+        ).select_related('user', 'specialty')
+        
+        groups = Group.objects.filter(specialty__department__faculty=faculty).select_related('specialty').order_by('course', 'name')
+
+    if request.method == 'POST':
+        student_ids = request.POST.getlist('students')
+        target_group_id = request.POST.get('target_group')
+        
+        if student_ids and target_group_id:
+            target_group = get_object_or_404(Group, id=target_group_id)
+            
+            if not user.is_superuser and target_group.specialty.department.faculty != faculty:
+                messages.error(request, _("Ошибка доступа: попытка распределить в группу чужого факультета."))
+                return redirect('accounts:unassigned_students')
+            
+            updated_count = Student.objects.filter(id__in=student_ids).update(group=target_group)
+            
+            from journal.models import StudentStatistics
+            StudentStatistics.recalculate_group(target_group)
+            
+            messages.success(request, _(f"Успешно распределено {updated_count} студентов в группу {target_group.name}."))
+        else:
+            messages.warning(request, _(" Выберите студентов и укажите группу для распределения."))
+        
+        return redirect('accounts:unassigned_students')
+
+    return render(request, 'accounts/unassigned_students.html', {
+        'students': students,
+        'groups': groups,
+        'faculty': faculty
+    })
+
+
+@login_required
+def download_generated_document(request, template_id, object_id):
+    try:
+        file_stream, filename = DocumentGenerator.generate_document(template_id, object_id)
+        
+        response = HttpResponse(
+            file_stream.read(), 
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        messages.error(request, f"Ошибка генерации документа: {str(e)}")
+        return redirect(request.META.get('HTTP_REFERER', 'core:dashboard'))
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.role in ['HR', 'DEAN', 'VICE_DEAN'])
+def document_templates_list(request):
+    templates = DocumentTemplate.objects.all().order_by('context_type', '-created_at')
+    
+    if request.method == 'POST':
+        form = DocumentTemplateForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Шаблон успешно загружен!"))
+            return redirect('accounts:document_templates')
+    else:
+        form = DocumentTemplateForm()
+        
+    return render(request, 'accounts/document_templates.html', {
+        'templates': templates,
+        'form': form
+    })
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.role in ['HR', 'DEAN', 'VICE_DEAN'])
+def delete_document_template(request, template_id):
+    template = get_object_or_404(DocumentTemplate, id=template_id)
+    template.delete()
+    messages.success(request, _("Шаблон удален."))
+    return redirect('accounts:document_templates')
+

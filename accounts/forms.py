@@ -8,7 +8,21 @@ from datetime import datetime
 from core.validators import validate_image_only
 from django.utils.translation import gettext_lazy as _
 
-from .models import StudentOrder
+from .models import StudentOrder, DocumentTemplate
+
+
+class DocumentTemplateForm(forms.ModelForm):
+    class Meta:
+        model = DocumentTemplate
+        fields = ['name', 'context_type', 'file', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: Справка для военкомата')}),
+            'context_type': forms.Select(attrs={'class': 'form-select'}),
+            'file': forms.FileInput(attrs={'class': 'form-control', 'accept': '.docx'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
 
 class FacultyFullForm(forms.ModelForm):
     name = forms.CharField(label=_("Название факультета"), widget=forms.TextInput(attrs={'class': 'form-control'}))

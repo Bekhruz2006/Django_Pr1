@@ -47,4 +47,9 @@ urlpatterns = [
     path('student/<int:student_id>/orders/', views.student_orders, name='student_orders'),
     path('orders/all/', views.all_orders_list, name='all_orders'),
     path('orders/approve/<int:order_id>/', views.approve_order, name='approve_order'),
+    path('management/unassigned/', views.unassigned_students, name='unassigned_students'),
+    path('documents/generate/<int:template_id>/<int:object_id>/', views.download_generated_document, name='generate_document'),
+    path('documents/templates/', views.document_templates_list, name='document_templates'),
+    path('documents/templates/<int:template_id>/delete/', views.delete_document_template, name='delete_document_template'),
+
 ]

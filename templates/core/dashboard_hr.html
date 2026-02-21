@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Панель Отдела Кадров" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="fw-bold text-dark">{% trans "Отдел Кадров (HR)" %}</h3>
+            <p class="text-muted">{% trans "Управление контингентом студентов и сотрудников" %}</p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-primary h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Всего студентов" %}</h6>
+                    <h2 class="mb-0 fw-bold">{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Ждут распределения (Без группы)" %}</h6>
+                    <h2 class="mb-0 fw-bold text-warning">{{ unassigned_students }}</h2>
+                    <small class="text-muted">{% trans "Деканаты должны распределить их" %}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Сотрудники (ППС)" %}</h6>
+                    <h2 class="mb-0 fw-bold text-success">{{ total_teachers }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-person-lines-fill me-2 text-primary"></i>{% trans "Недавно добавленные в систему" %}
+                    </h5>
+                    <a href="{% url 'accounts:user_management' %}" class="btn btn-sm btn-light text-primary">{% trans "Все пользователи" %}</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="bg-light small">
+                                <tr>
+                                    <th class="ps-3">{% trans "ФИО" %}</th>
+                                    <th>{% trans "Логин" %}</th>
+                                    <th>{% trans "Роль" %}</th>
+                                    <th>{% trans "Дата регистрации" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in latest_users %}
+                                <tr>
+                                    <td class="ps-3 fw-bold">{{ u.get_full_name }}</td>
+                                    <td>{{ u.username }}</td>
+                                    <td>
+                                        <span class="badge {% if u.role == 'STUDENT' %}bg-primary{% elif u.role == 'TEACHER' %}bg-info{% else %}bg-secondary{% endif %}">
+                                            {{ u.get_role_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ u.date_joined|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-lightning-charge me-2 text-warning"></i>{% trans "Действия" %}
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'accounts:import_students' %}" class="list-group-item list-group-item-action py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success bg-opacity-10 p-2 rounded me-3"><i class="bi bi-file-earmark-excel text-success"></i></div>
+                            <div>
+                                <div class="fw-bold">{% trans "Массовое зачисление" %}</div>
+                                <small class="text-muted">{% trans "Импорт студентов из Excel" %}</small>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="{% url 'accounts:add_user' %}" class="list-group-item list-group-item-action py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded me-3"><i class="bi bi-person-plus text-primary"></i></div>
+                            <div>
+                                <div class="fw-bold">{% trans "Добавить вручную" %}</div>
+                                <small class="text-muted">{% trans "Создать единичного пользователя" %}</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

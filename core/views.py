@@ -64,6 +64,13 @@ def dashboard(request):
             'latest_orders': StudentOrder.objects.all().order_by('-created_at')[:5],
         })
         return render(request, 'core/dashboard_admin.html', context)
+    elif user.role == 'HR':
+        context['total_students'] = Student.objects.filter(status='ACTIVE').count()
+        context['unassigned_students'] = Student.objects.filter(group__isnull=True, status='ACTIVE').count()
+        context['total_teachers'] = Teacher.objects.count()
+        context['latest_users'] = User.objects.order_by('-date_joined')[:10]
+        
+        return render(request, 'core/dashboard_hr.html', context)
 
     elif user.role in ['DEAN', 'VICE_DEAN']:
         profile = getattr(user, 'dean_profile', None) or getattr(user, 'vicedean_profile', None)

@@ -1,18 +1,20 @@
 import openpyxl
 from django.db import transaction
-from .models import User, Student, Group
+from .models import User, Student
 from datetime import datetime
 
 class StudentImportService:
     @staticmethod
-    def import_from_excel(file, default_group_id=None):
+    def import_from_excel(file, specialty_id=None):
+        import openpyxl
+        from django.db import transaction
+        from datetime import datetime
+        from .models import User, Student
+        
         wb = openpyxl.load_workbook(file)
         sheet = wb.active
         
-        results = {
-            'created': 0,
-            'errors': []
-        }
+        results = {'created': 0, 'errors': []}
 
         for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
             first_name, last_name, middle_name, student_id_manual = row[0], row[1], row[2], row[3]
@@ -32,10 +34,10 @@ class StudentImportService:
                         role='STUDENT'
                     )
 
-                    student, _ = Student.objects.get_or_create(user=user)
+                    student = user.student_profile 
                     
-                    if default_group_id:
-                        student.group_id = default_group_id
+                    if specialty_id:
+                        student.specialty_id = specialty_id 
                     
                     if student_id_manual:
                         student.student_id = str(student_id_manual)

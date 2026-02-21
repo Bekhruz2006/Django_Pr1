@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Импорт студентов" %}{% endblock %}
+{% block title %}{% trans "Зачисление студентов (Импорт)" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-6 mx-auto">
         <div class="card shadow">
             <div class="card-header bg-success text-white">
-                <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Массовый импорт студентов" %}
+                <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Зачисление новых студентов" %}
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
@@ -16,34 +16,39 @@
                     {% trans "Колонка A: Имя" %}<br>
                     {% trans "Колонка B: Фамилия" %}<br>
                     {% trans "Колонка C: Отчество (необязательно)" %}<br>
-                    {% trans "Колонка D: Номер зачетки (необязательно, иначе авто)" %}<br>
-                    <em>{% trans "Первая строка (заголовки) пропускается." %}</em>
+                    {% trans "Колонка D: Номер зачетки (необязательно)" %}<br>
+                    <em>{% trans "Первая строка пропускается. Пароль по умолчанию: password123" %}</em>
                 </div>
 
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <div class="mb-3">
-                        <label class="form-label">{% trans "Выберите группу (опционально)" %}</label>
-                        <select name="group_id" class="form-select">
-                            <option value="">{% trans "-- Без группы --" %}</option>
-                            {% for group in groups %}
-                                <option value="{{ group.id }}">{{ group.name }}</option>
+                        <label class="form-label fw-bold">{% trans "Специальность (Направление) *" %}</label>
+                        <select name="specialty_id" class="form-select" required>
+                            <option value="">{% trans "-- Выберите специальность --" %}</option>
+                            {% regroup specialties by department.faculty as faculty_list %}
+                            {% for faculty in faculty_list %}
+                                <optgroup label="{{ faculty.grouper.name }}">
+                                    {% for spec in faculty.list %}
+                                        <option value="{{ spec.id }}">{{ spec.code }} - {{ spec.name }}</option>
+                                    {% endfor %}
+                                </optgroup>
                             {% endfor %}
                         </select>
-                        <div class="form-text">{% trans "Все импортированные студенты будут добавлены в эту группу." %}</div>
+                        <div class="form-text">{% trans "После зачисления студенты появятся у Декана этого факультета для распределения по группам." %}</div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">{% trans "Файл Excel" %}</label>
+                        <label class="form-label fw-bold">{% trans "Файл Excel *" %}</label>
                         <input type="file" name="excel_file" class="form-control" accept=".xlsx" required>
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-upload"></i> {% trans "Начать импорт" %}
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'accounts:user_management' %}" class="btn btn-light">{% trans "Отмена" %}</a>
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="bi bi-upload"></i> {% trans "Зачислить" %}
                         </button>
-                        <a href="{% url 'accounts:user_management' %}" class="btn btn-secondary">{% trans "Отмена" %}</a>
                     </div>
                 </form>
             </div>

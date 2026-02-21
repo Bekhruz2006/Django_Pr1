@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Распределение студентов" %}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item active">{% trans "Распределение новых студентов" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-person-lines-fill text-primary me-2"></i>{% trans "Студенты, ожидающие распределения" %}
+                    </h5>
+                    <small class="text-muted">
+                        {% if faculty %}Факультет: <strong>{{ faculty.name }}</strong>{% else %}Все институты{% endif %}
+                    </small>
+                </div>
+                <span class="badge bg-warning text-dark fs-6">{{ students.count }} {% trans "чел." %}</span>
+            </div>
+            
+            <div class="card-body">
+                {% if not students %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-check-circle text-success" style="font-size: 4rem; opacity: 0.5;"></i>
+                        <h4 class="mt-3 text-muted">{% trans "Отличная работа!" %}</h4>
+                        <p class="text-muted">{% trans "Все зачисленные студенты уже распределены по группам." %}</p>
+                    </div>
+                {% else %}
+                    <form method="post" id="distributionForm">
+                        {% csrf_token %}
+                        
+                        <div class="bg-light p-3 rounded border mb-4 d-flex align-items-end gap-3 sticky-top shadow-sm" style="top: 70px; z-index: 10;">
+                            <div>
+                                <label class="form-label fw-bold small text-muted text-uppercase">{% trans "Выбрано студентов:" %}</label>
+                                <h4 class="mb-0 text-primary" id="selectedCount">0</h4>
+                            </div>
+                            
+                            <div class="flex-grow-1 ms-4">
+                                <label class="form-label fw-bold small text-muted text-uppercase">{% trans "Назначить в группу:" %}</label>
+                                <select name="target_group" class="form-select border-primary" required>
+                                    <option value="">-- {% trans "Выберите академическую группу" %} --</option>
+                                    {% regroup groups by course as course_list %}
+                                    {% for course in course_list %}
+                                        <optgroup label="{{ course.grouper }} {% trans 'курс' %}">
+                                            {% for group in course.list %}
+                                                <option value="{{ group.id }}">{{ group.name }} (Спец: {{ group.specialty.code }})</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <button type="submit" class="btn btn-success fw-bold px-4" id="submitBtn" disabled>
+                                    <i class="bi bi-arrow-right-circle"></i> {% trans "Распределить" %}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th width="40" class="text-center">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </th>
+                                        <th>{% trans "ФИО Студента" %}</th>
+                                        <th>{% trans "ID (Зачетка)" %}</th>
+                                        <th>{% trans "Специальность (Куда зачислен)" %}</th>
+                                        <th>{% trans "Тип обучения" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in students %}
+                                    <tr>
+                                        <td class="text-center">
+                                            <input class="form-check-input student-checkbox" type="checkbox" name="students" value="{{ student.id }}">
+                                        </td>
+                                        <td class="fw-bold">
+                                            <a href="{% url 'accounts:view_user_profile' student.user.id %}" class="text-decoration-none" target="_blank">
+                                                {{ student.user.get_full_name }}
+                                            </a>
+                                        </td>
+                                        <td class="text-muted">{{ student.student_id }}</td>
+                                        <td>
+                                            {% if student.specialty %}
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                                                    {{ student.specialty.code }}
+                                                </span>
+                                                <small class="d-block text-muted">{{ student.specialty.name|truncatechars:35 }}</small>
+                                            {% else %}
+                                                <span class="badge bg-danger">{% trans "Не указана" %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if student.financing_type == 'BUDGET' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                                {{ student.get_financing_type_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.student-checkbox');
+        const selectedCount = document.getElementById('selectedCount');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function updateState() {
+            const checkedCount = document.querySelectorAll('.student-checkbox:checked').length;
+            selectedCount.textContent = checkedCount;
+            submitBtn.disabled = checkedCount === 0;
+            
+            if (selectAll) {
+                selectAll.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateState();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateState);
+        });
+    });
+</script>
+{% endblock %}

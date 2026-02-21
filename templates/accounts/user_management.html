@@ -11,9 +11,11 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-people"></i> {% trans "Управление пользователями" %}</span>
+                {% if user.is_superuser or user.role == 'HR' %}
                 <a href="{% url 'accounts:add_user' %}" class="btn btn-success btn-sm">
                     <i class="bi bi-plus-circle"></i> {% trans "Добавить пользователя" %}
                 </a>
+                {% endif %}
             </div>
             <div class="card-body">
                 <form method="get" class="row g-3 mb-3">

@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, date
+from django.core.validators import FileExtensionValidator
 
 
 class Institute(models.Model):
@@ -114,6 +115,7 @@ class User(AbstractUser):
         ('DEAN', _('Декан')),
         ('PRO_RECTOR', _('Проректор/Зам. директора')),
         ('DIRECTOR', _('Директор/Ректор')),
+        ('HR', _('Отдел кадров / Приемная комиссия')), 
     ]
     
     CATEGORY_CHOICES = [
@@ -334,6 +336,7 @@ class Student(models.Model):
     sponsor_name = models.CharField(max_length=200, blank=True, verbose_name=_("ФИО спонсора"))
     sponsor_phone = models.CharField(max_length=20, blank=True, verbose_name=_("Телефон спонсора"))
     sponsor_relation = models.CharField(max_length=50, blank=True, verbose_name=_("Отношение спонсора"))
+    specialty = models.ForeignKey('Specialty', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Специальность (Направление)"))
 
     def get_debt(self):
         return self.contract_amount - self.paid_amount
@@ -466,6 +469,9 @@ def create_user_profile(sender, instance, created, **kwargs):
             ProRector.objects.create(user=instance, title="Заместитель директора")
         elif instance.role == 'HEAD_OF_DEPT':
             HeadOfDepartment.objects.create(user=instance)
+        elif instance.role == 'HR':
+            HRProfile.objects.get_or_create(user=instance)
+
 
 @receiver(pre_save, sender=Faculty)
 def log_faculty_changes(sender, instance, **kwargs):
@@ -623,4 +629,44 @@ class StudentOrder(models.Model):
         if not self.number:
             self.number = generate_order_number()
         super().save(*args, **kwargs)
+
+class HRProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='hr_profile')
+    department_name = models.CharField(max_length=200, default="Отдел кадров", verbose_name=_("Название отдела"))
+    
+    class Meta:
+        verbose_name = _("Сотрудник отдела кадров")
+        verbose_name_plural = _("Сотрудники отдела кадров")
+        
+    def __str__(self):
+        return f"{self.department_name}: {self.user.get_full_name()}"
+
+
+class DocumentTemplate(models.Model):
+    CONTEXT_TYPES = [
+        ('STUDENT_CERT', _('Справка с места учебы (Студент)')),
+        ('STUDENT_ORDER', _('Приказ по студенту (Отчисление/Перевод)')),
+        ('EXAM_SHEET', _('Экзаменационная ведомость (Группа + Предмет)')), 
+    ]
+    
+    name = models.CharField(max_length=200, verbose_name=_("Название шаблона (например: Справка в военкомат)"))
+    context_type = models.CharField(max_length=50, choices=CONTEXT_TYPES, verbose_name=_("Тип данных"))
+    
+    file = models.FileField(
+        upload_to='document_templates/', 
+        validators=[FileExtensionValidator(allowed_extensions=['docx'])],
+        verbose_name=_("Файл шаблона (.docx)")
+    )
+    
+    is_active = models.BooleanField(default=True, verbose_name=_("Активен"))
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    institute = models.ForeignKey('Institute', on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Институт"))
+
+    class Meta:
+        verbose_name = _("Шаблон документа")
+        verbose_name_plural = _("Шаблоны документов")
+
+    def __str__(self):
+        return f"{self.name} ({self.get_context_type_display()})"
 
