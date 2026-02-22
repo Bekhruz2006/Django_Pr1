@@ -626,3 +626,68 @@ body.dark-mode .breadcrumb-item.active {
     from { transform: scale(0); }
     to { transform: scale(1); }
 }
+
+body.dark-mode .text-dark { color: #f1f5f9 !important; }
+body.dark-mode .text-primary { color: #60a5fa !important; } /* Светло-синий */
+body.dark-mode .text-success { color: #34d399 !important; } /* Светло-зеленый */
+body.dark-mode .text-danger { color: #f87171 !important; }  /* Светло-красный */
+body.dark-mode .text-warning { color: #fbbf24 !important; } /* Светло-желтый */
+body.dark-mode .text-info { color: #38bdf8 !important; }    /* Светло-голубой */
+body.dark-mode .text-secondary { color: #94a3b8 !important; }
+
+body.dark-mode .bg-white { background-color: var(--card-dark) !important; }
+body.dark-mode .bg-light { background-color: var(--bg-dark) !important; }
+
+body.dark-mode .table-light th,
+body.dark-mode .table-light td,
+body.dark-mode .table-secondary th,
+body.dark-mode .table-secondary td {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+body.dark-mode .table-hover tbody tr:hover td, 
+body.dark-mode .table-hover tbody tr:hover th {
+    background-color: rgba(96, 165, 250, 0.1) !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .border { border-color: #475569 !important; }
+body.dark-mode .border-bottom { border-bottom-color: #475569 !important; }
+body.dark-mode .border-top { border-top-color: #475569 !important; }
+body.dark-mode .border-start { border-left-color: #475569 !important; }
+body.dark-mode .border-end { border-right-color: #475569 !important; }
+
+body.dark-mode .bg-primary.bg-opacity-10 { background-color: rgba(37, 99, 235, 0.15) !important; }
+body.dark-mode .bg-success.bg-opacity-10 { background-color: rgba(16, 185, 129, 0.15) !important; }
+body.dark-mode .bg-danger.bg-opacity-10 { background-color: rgba(239, 68, 68, 0.15) !important; }
+body.dark-mode .bg-warning.bg-opacity-10 { background-color: rgba(245, 158, 11, 0.15) !important; }
+body.dark-mode .bg-info.bg-opacity-10 { background-color: rgba(6, 182, 212, 0.15) !important; }
+
+body.dark-mode .dropdown-menu {
+    background-color: var(--card-dark);
+    border-color: #475569;
+}
+body.dark-mode .dropdown-item {
+    color: var(--text-dark);
+}
+body.dark-mode .dropdown-item:hover {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+body.dark-mode .dropdown-header {
+    color: #94a3b8;
+}
+
+body.dark-mode .modal-content {
+    background-color: var(--card-dark);
+    color: var(--text-dark);
+    border-color: #475569;
+}
+body.dark-mode .modal-header {
+    border-bottom-color: #475569;
+}
+body.dark-mode .modal-footer {
+    border-top-color: #475569;
+}

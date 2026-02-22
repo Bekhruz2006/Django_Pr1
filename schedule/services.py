@@ -297,66 +297,68 @@ class ScheduleImporter:
 class RupImporter:
     @staticmethod
     def import_from_excel(file, plan_id, semester_number):
-        import openpyxl
-        from django.db import transaction
-        
         plan = AcademicPlan.objects.get(id=plan_id)
         wb = openpyxl.load_workbook(file, data_only=True)
         sheet = wb.active
         
         stats = {'created': 0, 'updated': 0, 'errors': []}
 
+        def to_int(val):
+            if val is None:
+                return 0
+            val_str = str(val).strip()
+            match = re.search(r'\d+', val_str)
+            if match:
+                return int(match.group())
+            return 0
 
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        current_disc_type = 'REQUIRED'
+
+        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
             subj_name = str(row[0] or '').strip()
+
             if not subj_name or subj_name.lower() == 'none':
                 continue
+
+            lower_name = subj_name.lower()
+            if 'ҳатмӣ' in lower_name or 'обязательн' in lower_name:
+                current_disc_type = 'REQUIRED'
+                continue
+            if 'интихобӣ' in lower_name or 'ихтиёрӣ' in lower_name or 'выбор' in lower_name:
+                current_disc_type = 'ELECTIVE'
+                continue
+            if 'номгӯйи' in lower_name or 'наименование' in lower_name or 'семестр' in lower_name:
+                continue 
 
             try:
                 with transaction.atomic():
                     template, _ = SubjectTemplate.objects.get_or_create(name=subj_name)
 
-                    cycle_raw = str(row[1] or '').upper().strip()
-                    cycle_val = 'OTHER'
-                    if 'ОД' in cycle_raw: cycle_val = 'OD'
-                    elif 'БД' in cycle_raw: cycle_val = 'BD'
-                    elif 'ПД' in cycle_raw: cycle_val = 'PD'
+                    credits = to_int(row[1]) if len(row) > 1 else 0
+                    lec = to_int(row[4]) if len(row) > 4 else 0
+                    prac = to_int(row[5]) if len(row) > 5 else 0
+                    srsp = to_int(row[6]) if len(row) > 6 else 0
+                    srs = to_int(row[7]) if len(row) > 7 else 0
 
-                    type_raw = str(row[2] or '').lower()
-                    disc_type = 'ELECTIVE' if 'интихоб' in type_raw or 'электив' in type_raw else 'REQUIRED'
-
-                    control_raw = str(row[9] or '').lower()
-                    control_type = 'CREDIT' if 'зачет' in control_raw or 'санҷиш' in control_raw else 'EXAM'
-
-                    subgroups_raw = str(row[10] or '').lower()
-                    has_subgroups = subgroups_raw in ['да', 'yes', '+', 'ҳа']
-
-                    def to_int(val):
-                        try: return int(float(str(val).replace(',', '.')))
-                        except: return 0
-
-                    credits = to_int(row[3])
-                    lec = to_int(row[4])
-                    prac = to_int(row[5])
-                    lab = to_int(row[6])
-                    srsp = to_int(row[7])
-                    srs = to_int(row[8])
+                    if lec == 0 and prac == 0 and srsp == 0 and srs == 0:
+                        total_h = to_int(row[3]) if len(row) > 3 else 0
+                        if total_h > 0:
+                            srs = total_h 
 
                     discipline, created = PlanDiscipline.objects.update_or_create(
                         plan=plan,
                         subject_template=template,
                         semester_number=semester_number,
                         defaults={
-                            'cycle': cycle_val,
-                            'discipline_type': disc_type,
+                            'discipline_type': current_disc_type,
                             'credits': credits,
                             'lecture_hours': lec,
                             'practice_hours': prac,
-                            'lab_hours': lab,
+                            'lab_hours': 0, 
                             'control_hours': srsp,
                             'independent_hours': srs,
-                            'control_type': control_type,
-                            'has_subgroups': has_subgroups
+                            'control_type': 'EXAM', 
+                            'cycle': 'OTHER' 
                         }
                     )
 

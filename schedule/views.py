@@ -1109,13 +1109,20 @@ def create_plan(request):
 @user_passes_test(is_dean_or_admin)
 def plan_detail(request, plan_id):
     plan = get_object_or_404(AcademicPlan, id=plan_id)
+
+    plan_faculty = None
+    if plan.specialty and plan.specialty.department:
+        plan_faculty = plan.specialty.department.faculty
+    elif plan.group and plan.group.specialty and plan.group.specialty.department:
+        plan_faculty = plan.group.specialty.department.faculty
+
     if request.user.role == 'DEAN':
         user_faculty = request.user.dean_profile.faculty
-        if plan.specialty.department.faculty != user_faculty:
+        if plan_faculty and plan_faculty != user_faculty:
             messages.error(request, _("Это план чужого факультета!"))
             return redirect('schedule:manage_plans')
     else:
-        user_faculty = plan.specialty.department.faculty 
+        user_faculty = plan_faculty
 
     try:
         current_sem_num = int(request.GET.get('semester', 1))
@@ -1144,7 +1151,7 @@ def plan_detail(request, plan_id):
         form = PlanDisciplineForm(initial={'semester_number': current_sem_num})
 
     disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_sem_num)
-    
+
     return render(request, 'schedule/plans/plan_detail.html', {
         'plan': plan,
         'disciplines': disciplines,
@@ -1152,8 +1159,8 @@ def plan_detail(request, plan_id):
         'current_sem_num': current_sem_num,
         'semesters_range': range(1, 9),
         'target_course': target_course,
-        'available_semesters': available_semesters, 
-        'active_semester': active_semester          
+        'available_semesters': available_semesters,
+        'active_semester': active_semester
     })
 
 
@@ -1445,9 +1452,16 @@ def copy_plan(request, plan_id):
             messages.error(request, _("Укажите новый год"))
             return redirect('schedule:manage_plans')
             
-        if AcademicPlan.objects.filter(specialty=original_plan.specialty, admission_year=new_year).exists():
-            messages.error(request, _("План для %(specialty_code)s на %(new_year)s год уже существует!") % {
-                'specialty_code': original_plan.specialty.code,
+        if original_plan.specialty:
+            exists = AcademicPlan.objects.filter(specialty=original_plan.specialty, admission_year=new_year).exists()
+            plan_name = original_plan.specialty.code
+        else:
+            exists = AcademicPlan.objects.filter(group=original_plan.group, admission_year=new_year).exists()
+            plan_name = original_plan.group.name
+
+        if exists:
+            messages.error(request, _("План для %(plan_name)s на %(new_year)s год уже существует!") % {
+                'plan_name': plan_name,
                 'new_year': new_year
             })
             return redirect('schedule:manage_plans')
@@ -1455,6 +1469,7 @@ def copy_plan(request, plan_id):
         with transaction.atomic():
             new_plan = AcademicPlan.objects.create(
                 specialty=original_plan.specialty,
+                group=original_plan.group,  
                 admission_year=new_year,
                 is_active=True
             )
@@ -1475,13 +1490,22 @@ def copy_plan(request, plan_id):
 
 
 
+
+
 @user_passes_test(is_dean)
 def delete_plan_discipline(request, discipline_id):
     discipline = get_object_or_404(PlanDiscipline, id=discipline_id)
     plan_id = discipline.plan.id
     
     if request.user.role == 'DEAN':
-        if discipline.plan.specialty.department.faculty != request.user.dean_profile.faculty:
+        plan = discipline.plan
+        plan_faculty = None
+        if plan.specialty and plan.specialty.department:
+            plan_faculty = plan.specialty.department.faculty
+        elif plan.group and plan.group.specialty and plan.group.specialty.department:
+            plan_faculty = plan.group.specialty.department.faculty
+            
+        if plan_faculty and plan_faculty != request.user.dean_profile.faculty:
             messages.error(request, _("Нет прав на удаление"))
             return redirect('schedule:plan_detail', plan_id=plan_id)
 
@@ -1586,12 +1610,18 @@ def activate_plan(request, plan_id):
 def delete_plan(request, plan_id):
     plan = get_object_or_404(AcademicPlan, id=plan_id)
     if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
-        if plan.specialty.department.faculty != request.user.dean_profile.faculty:
+        plan_faculty = None
+        if plan.specialty and plan.specialty.department:
+            plan_faculty = plan.specialty.department.faculty
+        elif plan.group and plan.group.specialty and plan.group.specialty.department:
+            plan_faculty = plan.group.specialty.department.faculty
+            
+        if plan_faculty and plan_faculty != request.user.dean_profile.faculty:
             messages.error(request, _("Нет прав на удаление этого плана"))
             return redirect('schedule:manage_plans')
             
     plan.delete()
-    messages.success(request, _("Учебный план для %(specialty_code)s удален") % {'specialty_code': plan.specialty.code})
+    messages.success(request, _("Учебный план удален"))
     return redirect('schedule:manage_plans')
 
 @user_passes_test(is_dean_or_admin)
