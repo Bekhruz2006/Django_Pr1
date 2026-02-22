@@ -4,7 +4,7 @@ import pdfplumber
 from django.db import transaction
 from django.db.models import Q
 from datetime import datetime, time
-from .models import ScheduleSlot, Subject, Classroom, TimeSlot
+from .models import ScheduleSlot, Subject, Classroom, TimeSlot, PlanDiscipline, SubjectTemplate, AcademicPlan
 from accounts.models import Group, Teacher, User, Department
 
 class ScheduleImporter:
@@ -302,3 +302,79 @@ class ScheduleImporter:
         teach = re.sub(r'[^\w\s\.]', '', teach).strip()
 
         return {'subject': subj, 'teacher': teach, 'type': l_type}
+
+class RupImporter:
+    @staticmethod
+    def import_from_excel(file, plan_id, semester_number):
+        import openpyxl
+        from django.db import transaction
+        
+        plan = AcademicPlan.objects.get(id=plan_id)
+        wb = openpyxl.load_workbook(file, data_only=True)
+        sheet = wb.active
+        
+        stats = {'created': 0, 'updated': 0, 'errors': []}
+
+
+        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            subj_name = str(row[0] or '').strip()
+            if not subj_name or subj_name.lower() == 'none':
+                continue
+
+            try:
+                with transaction.atomic():
+                    template, _ = SubjectTemplate.objects.get_or_create(name=subj_name)
+
+                    cycle_raw = str(row[1] or '').upper().strip()
+                    cycle_val = 'OTHER'
+                    if 'ОД' in cycle_raw: cycle_val = 'OD'
+                    elif 'БД' in cycle_raw: cycle_val = 'BD'
+                    elif 'ПД' in cycle_raw: cycle_val = 'PD'
+
+                    type_raw = str(row[2] or '').lower()
+                    disc_type = 'ELECTIVE' if 'интихоб' in type_raw or 'электив' in type_raw else 'REQUIRED'
+
+                    control_raw = str(row[9] or '').lower()
+                    control_type = 'CREDIT' if 'зачет' in control_raw or 'санҷиш' in control_raw else 'EXAM'
+
+                    subgroups_raw = str(row[10] or '').lower()
+                    has_subgroups = subgroups_raw in ['да', 'yes', '+', 'ҳа']
+
+                    def to_int(val):
+                        try: return int(float(str(val).replace(',', '.')))
+                        except: return 0
+
+                    credits = to_int(row[3])
+                    lec = to_int(row[4])
+                    prac = to_int(row[5])
+                    lab = to_int(row[6])
+                    srsp = to_int(row[7])
+                    srs = to_int(row[8])
+
+                    discipline, created = PlanDiscipline.objects.update_or_create(
+                        plan=plan,
+                        subject_template=template,
+                        semester_number=semester_number,
+                        defaults={
+                            'cycle': cycle_val,
+                            'discipline_type': disc_type,
+                            'credits': credits,
+                            'lecture_hours': lec,
+                            'practice_hours': prac,
+                            'lab_hours': lab,
+                            'control_hours': srsp,
+                            'independent_hours': srs,
+                            'control_type': control_type,
+                            'has_subgroups': has_subgroups
+                        }
+                    )
+
+                    if created:
+                        stats['created'] += 1
+                    else:
+                        stats['updated'] += 1
+
+            except Exception as e:
+                stats['errors'].append(f"Строка {row_idx} ({subj_name}): {str(e)}")
+
+        return stats

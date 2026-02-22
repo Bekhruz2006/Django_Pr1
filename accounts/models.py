@@ -264,7 +264,14 @@ class Teacher(models.Model):
         return f"{self.user.get_full_name()}"
 
 class Group(models.Model):
-    specialty = models.ForeignKey(Specialty, on_delete=models.PROTECT, related_name='groups', verbose_name=_("Направление"))
+    specialty = models.ForeignKey(
+        Specialty, 
+        on_delete=models.SET_NULL, 
+        null=True,                 
+        blank=True,                
+        related_name='groups', 
+        verbose_name=_("Направление")
+    )
     name = models.CharField(max_length=50, unique=True, verbose_name=_("Название группы (напр. 400101-А)"))
     course = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(6)], verbose_name=_("Курс"))
     academic_year = models.CharField(max_length=20, verbose_name=_("Учебный год"))

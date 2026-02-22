@@ -15,10 +15,10 @@ class Building(models.Model):
     name = models.CharField(max_length=100, verbose_name=_("Название корпуса"), help_text="Например: Главный корпус, Блок А")
     address = models.CharField(max_length=255, blank=True, verbose_name=_("Адрес"))
     institute = models.ForeignKey(
-        Institute, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        Institute,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='buildings',
         verbose_name=_("Принадлежность Институту")
     )
@@ -56,7 +56,7 @@ class Subject(models.Model):
     semester_weeks = models.IntegerField(default=16, verbose_name=_("Недель в семестре"))
 
     is_stream_subject = models.BooleanField(
-        default=False, 
+        default=False,
         verbose_name=_("Это поток (совместное занятие)")
     )
 
@@ -67,12 +67,12 @@ class Subject(models.Model):
         blank=True,
         verbose_name=_("Преподаватель")
     )
-
+    groups = models.ManyToManyField('accounts.Group', related_name='subjects', blank=True, verbose_name=_("Группы"))
     description = models.TextField(blank=True, verbose_name=_("Описание"))
     syllabus_file = models.FileField(
-        upload_to='syllabus/', 
-        blank=True, 
-        null=True, 
+        upload_to='syllabus/',
+        blank=True,
+        null=True,
         verbose_name=_("Силлабус (PDF/Word)")
     )
 
@@ -162,16 +162,16 @@ class Subject(models.Model):
 
     def check_is_multiple_groups(self):
         return self.groups.count() > 1
-    
+
     def get_hours_in_pairs(self, hours_count):
         try:
             institute = self.department.faculty.institute
             acad_duration = institute.academic_hour_duration
             pair_duration = institute.pair_duration
             ratio = pair_duration / acad_duration
-            
+
             if ratio <= 0: return 0
-            
+
             import math
             return math.ceil(hours_count / ratio)
         except AttributeError:
@@ -179,12 +179,11 @@ class Subject(models.Model):
 
     def get_weekly_slots_needed(self):
         if self.semester_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'SRSP': 0}
-        
+
         total_lec_pairs = self.get_hours_in_pairs(self.lecture_hours)
         total_prac_pairs = self.get_hours_in_pairs(self.practice_hours)
         total_srsp_pairs = self.get_hours_in_pairs(self.control_hours)
-        
-        
+
         return {
             'LECTURE': math.ceil(total_lec_pairs / self.semester_weeks),
             'PRACTICE': math.ceil(total_prac_pairs / self.semester_weeks),
@@ -199,11 +198,11 @@ class TimeSlot(models.Model):
     ]
 
     institute = models.ForeignKey(
-        Institute, 
-        on_delete=models.CASCADE, 
+        Institute,
+        on_delete=models.CASCADE,
         related_name='time_slots',
         verbose_name=_("Институт"),
-        null=True, blank=True 
+        null=True, blank=True
     )
 
     number = models.IntegerField(verbose_name=_("Номер пары"))
@@ -217,7 +216,7 @@ class TimeSlot(models.Model):
         verbose_name = _("Временной слот")
         verbose_name_plural = _("Временные слоты")
         ordering = ['institute', 'shift', 'start_time']
-        unique_together = ['institute', 'start_time'] 
+        unique_together = ['institute', 'start_time']
 
     def __str__(self):
         inst = self.institute.abbreviation if self.institute else "Global"
@@ -227,15 +226,15 @@ class Semester(models.Model):
     def get_week_type_for_date(self, target_date):
         if not self.start_date:
             return 'EVERY'
-            
+
         if target_date < self.start_date:
             return 'RED'
-            
+
         delta = target_date - self.start_date
         week_number = (delta.days // 7) + 1
-        
+
         return 'RED' if week_number % 2 != 0 else 'BLUE'
-    
+
     def get_current_week_number(self):
         if not self.start_date:
             return 1
@@ -244,7 +243,6 @@ class Semester(models.Model):
             return 1
         delta = today - self.start_date
         return (delta.days // 7) + 1
-
 
     NUMBER_CHOICES = [
         (1, _('Первый')),
@@ -264,11 +262,11 @@ class Semester(models.Model):
         (5, _('5 курс')),
     ]
     faculty = models.ForeignKey(
-        Faculty, 
-        on_delete=models.CASCADE, 
+        Faculty,
+        on_delete=models.CASCADE,
         related_name='semesters',
         verbose_name=_("Факультет"),
-        null=True, 
+        null=True,
         blank=True
     )
     name = models.CharField(max_length=200, verbose_name=_("Название (напр. Осенний)"))
@@ -301,8 +299,15 @@ class Semester(models.Model):
             return cls.objects.filter(is_active=True, course=course).first()
         return cls.objects.filter(is_active=True).first()
 
-
 class Classroom(models.Model):
+    ROOM_TYPES = [
+        ('LECTURE', _('Лекционная (Обычная)')),
+        ('COMPUTER', _('Компьютерный класс')),
+        ('LAB', _('Лаборатория')),
+        ('LINGUISTIC', _('Лингафонный кабинет')),
+        ('SPORT', _('Спортивный зал')),
+    ]
+
     building = models.ForeignKey(
         Building,
         on_delete=models.CASCADE,
@@ -310,16 +315,19 @@ class Classroom(models.Model):
         verbose_name=_("Корпус/Блок"),
         null=True
     )
-    number = models.CharField(max_length=20, verbose_name=_("Номер"))  
+    number = models.CharField(max_length=20, verbose_name=_("Номер"))
     floor = models.IntegerField(verbose_name=_("Этаж"))
     capacity = models.IntegerField(default=30, verbose_name=_("Вместимость"))
+
+    room_type = models.CharField(max_length=20, choices=ROOM_TYPES, default='LECTURE', verbose_name=_("Тип кабинета"))
+
     is_active = models.BooleanField(default=True, verbose_name=_("Активен"))
 
     class Meta:
         verbose_name = _("Кабинет")
         verbose_name_plural = _("Кабинеты")
         ordering = ['building', 'floor', 'number']
-        unique_together = ['building', 'number'] 
+        unique_together = ['building', 'number']
 
     def __str__(self):
         if self.building:
@@ -360,8 +368,8 @@ class ScheduleSlot(models.Model):
     )
 
     week_type = models.CharField(
-        max_length=10, 
-        choices=WEEK_TYPE_CHOICES, 
+        max_length=10,
+        choices=WEEK_TYPE_CHOICES,
         default='EVERY',
         verbose_name=_("Тип недели")
     )
@@ -427,8 +435,6 @@ class ScheduleException(models.Model):
     def __str__(self):
         return f"{self.schedule_slot} - {self.get_exception_type_display()} ({self.exception_date})"
 
-
-
 class SubjectTemplate(models.Model):
     name = models.CharField(max_length=200, unique=True, verbose_name=_("Название дисциплины"))
 
@@ -441,16 +447,22 @@ class SubjectTemplate(models.Model):
         return self.name
 
 class AcademicPlan(models.Model):
-    specialty = models.ForeignKey('accounts.Specialty', on_delete=models.CASCADE, verbose_name=_("Специальность"))
+    specialty = models.ForeignKey(
+        'accounts.Specialty', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        verbose_name=_("Специальность")
+    )
     admission_year = models.IntegerField(verbose_name=_("Год набора (поступления)"))
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, verbose_name=_("Актуальный"))
 
     group = models.ForeignKey(
-        'accounts.Group', 
-        on_delete=models.CASCADE, 
-        null=True, 
-        blank=True, 
+        'accounts.Group',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='academic_plans',
         verbose_name=_("Группа (для индивидуального плана)")
     )
@@ -478,6 +490,13 @@ class PlanDiscipline(models.Model):
         ('PRACTICE', _('Практика')),
     ]
 
+    CYCLE_CHOICES = [
+        ('OD', _('ОД (Умумитаълимӣ)')),
+        ('BD', _('БД (Появӣ)')),
+        ('PD', _('ПД (Ихтисосӣ)')),
+        ('OTHER', _('Дигар (Другое)')),
+    ]
+
     plan = models.ForeignKey(AcademicPlan, on_delete=models.CASCADE, related_name='disciplines')
     subject_template = models.ForeignKey(SubjectTemplate, on_delete=models.PROTECT, verbose_name=_("Дисциплина"))
 
@@ -486,26 +505,20 @@ class PlanDiscipline(models.Model):
         verbose_name=_("Номер семестра (1-8)")
     )
 
-    discipline_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='REQUIRED', verbose_name=_("Тип блока"))
+    cycle = models.CharField(max_length=10, choices=CYCLE_CHOICES, default='OTHER', verbose_name=_("Цикл (ОД, БД, ПД)"))
+    has_subgroups = models.BooleanField(default=False, verbose_name=_("Делится на подгруппы (Англ/Лабы)"))
 
+    discipline_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='REQUIRED', verbose_name=_("Тип блока"))
     credits = models.IntegerField(verbose_name=_("Кредиты (ECTS)"))
 
-    lecture_hours = models.IntegerField(default=0, verbose_name=_("Лекции"))
-    practice_hours = models.IntegerField(default=0, verbose_name=_("Практика (Семинары)"))
+    lecture_hours = models.IntegerField(default=0, verbose_name=_("Лекции (Л)"))
+    practice_hours = models.IntegerField(default=0, verbose_name=_("Практика (А)"))
     lab_hours = models.IntegerField(default=0, verbose_name=_("Лабораторные"))
-    control_hours = models.IntegerField(default=0, verbose_name=_("СРСП (Контактная)"))
-    independent_hours = models.IntegerField(default=0, verbose_name=_("СРС (Самостоятельная)"))
+    control_hours = models.IntegerField(default=0, verbose_name=_("СРСП (КМРО)"))
+    independent_hours = models.IntegerField(default=0, verbose_name=_("СРС (КМД)"))
 
-    control_type = models.CharField(
-        max_length=20, 
-        choices=CONTROL_CHOICES,
-        default='EXAM',
-        verbose_name=_("Форма контроля")
-    )
-    has_course_work = models.BooleanField(
-        default=False,
-        verbose_name=_("Есть курсовая работа (КР)")
-    )
+    control_type = models.CharField(max_length=20, choices=CONTROL_CHOICES, default='EXAM', verbose_name=_("Форма контроля"))
+    has_course_work = models.BooleanField(default=False, verbose_name=_("Есть курсовая работа (КР)"))
 
     class Meta:
         verbose_name = _("Дисциплина плана")

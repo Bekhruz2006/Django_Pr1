@@ -50,9 +50,80 @@
             animation-duration: 10s;
             animation-direction: alternate-reverse;
         }
+        .blob-3 {
+            width: 200px; height: 200px;
+            background: #1d4ed8;
+            top: 40%; left: 60%;
+            animation-duration: 18s;
+        }
         @keyframes drift {
             from { transform: translate(0, 0) scale(1); }
             to   { transform: translate(40px, 30px) scale(1.08); }
+        }
+
+        .dot-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 36px 36px;
+            animation: gridPan 60s linear infinite;
+        }
+        @keyframes gridPan {
+            from { background-position: 0 0; }
+            to   { background-position: 72px 72px; }
+        }
+
+        .pulse-ring {
+            position: fixed;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.12);
+            animation: pulseRing 6s ease-out infinite;
+        }
+        .pr-1 { width: 180px; height: 180px; top: 10%; left: 12%; animation-delay: 0s; }
+        .pr-2 { width: 260px; height: 260px; top: 60%; left: 70%; animation-delay: 2s; }
+        .pr-3 { width: 120px; height: 120px; top: 75%; left: 20%; animation-delay: 4s; }
+        @keyframes pulseRing {
+            0%   { transform: scale(0.8); opacity: 0.5; }
+            60%  { transform: scale(1.3); opacity: 0.15; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        .stream-line {
+            position: fixed;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.25), transparent);
+            animation: streamDown linear infinite;
+        }
+        .sl-1 { left: 15%; height: 120px; animation-duration: 6s;  animation-delay: 0s; }
+        .sl-2 { left: 35%; height: 80px;  animation-duration: 9s;  animation-delay: -3s; }
+        .sl-3 { left: 58%; height: 100px; animation-duration: 7s;  animation-delay: -5s; }
+        .sl-4 { left: 80%; height: 90px;  animation-duration: 8s;  animation-delay: -1s; }
+        .sl-5 { left: 92%; height: 70px;  animation-duration: 11s; animation-delay: -7s; }
+        @keyframes streamDown {
+            0%   { top: -10%; opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { top: 110%; opacity: 0; }
+        }
+
+        .activity-dot {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            animation: dotTrail linear infinite;
+        }
+        .ad-1 { animation-duration: 14s; animation-delay: 0s;   left: 20%; }
+        .ad-2 { animation-duration: 19s; animation-delay: -5s;  left: 50%; }
+        .ad-3 { animation-duration: 11s; animation-delay: -9s;  left: 75%; }
+        @keyframes dotTrail {
+            0%   { top: 105%; opacity: 0; transform: scale(1); }
+            5%   { opacity: 0.8; }
+            50%  { transform: scale(1.4); opacity: 0.6; }
+            95%  { opacity: 0.8; }
+            100% { top: -5%;  opacity: 0; transform: scale(1); }
         }
 
         .login-card {
@@ -167,8 +238,25 @@
 </head>
 <body>
 
+    <div class="dot-grid"></div>
+
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="pulse-ring pr-1"></div>
+    <div class="pulse-ring pr-2"></div>
+    <div class="pulse-ring pr-3"></div>
+
+    <div class="stream-line sl-1"></div>
+    <div class="stream-line sl-2"></div>
+    <div class="stream-line sl-3"></div>
+    <div class="stream-line sl-4"></div>
+    <div class="stream-line sl-5"></div>
+
+    <div class="activity-dot ad-1"></div>
+    <div class="activity-dot ad-2"></div>
+    <div class="activity-dot ad-3"></div>
 
     {% load i18n %}
     <div class="login-card">
@@ -203,7 +291,6 @@
                     required
                     autocomplete="username"
                     maxlength="150"
-                    pattern="^[a-zA-Z0-9@._+\-]{1,150}$"
                     inputmode="text"
                     spellcheck="false"
                     autocorrect="off"
@@ -238,16 +325,8 @@
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
 
-        const sqlPattern = /['";\-\-\/\*=<>\\]/g;
-
-        usernameInput.addEventListener('input', () => {
-            const cleaned = usernameInput.value.replace(sqlPattern, '');
-            if (cleaned !== usernameInput.value) usernameInput.value = cleaned;
-        });
-
         loginForm.addEventListener('submit', (e) => {
             let valid = true;
-
             [usernameInput, passwordInput].forEach(field => {
                 field.classList.remove('is-invalid');
                 if (!field.value.trim()) {
@@ -255,12 +334,6 @@
                     valid = false;
                 }
             });
-
-            if (/(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|OR|AND)\b|--|;|\/\*)/i.test(usernameInput.value)) {
-                usernameInput.classList.add('is-invalid');
-                valid = false;
-            }
-
             if (!valid) e.preventDefault();
         });
     </script>

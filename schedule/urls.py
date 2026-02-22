@@ -53,6 +53,6 @@ urlpatterns = [
     path('semester/<int:semester_id>/activate-ref/', views.activate_semester_from_plan, name='activate_semester_from_plan'),
     path('semester/set-active/', views.set_active_semester_manual, name='set_active_semester_manual'),
     path('time-slots/', views.manage_time_slots, name='manage_time_slots'),
-
+    path('plans/<int:plan_id>/import/<int:semester_num>/', views.import_rup_excel, name='import_rup_excel'),
 
 ]

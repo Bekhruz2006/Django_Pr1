@@ -36,12 +36,21 @@ class SubjectForm(forms.ModelForm):
 
     class Meta:
         model = Subject
-        fields = ['name', 'teacher', 'description']
+        fields = [
+            'name', 'code', 'department', 'semester_weeks', 'type',
+            'lecture_hours', 'practice_hours', 'control_hours', 'independent_work_hours',
+            'teacher', 'groups', 'description', 'is_stream_subject'
+        ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'type': forms.Select(attrs={'class': 'form-select'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
+            'groups': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+
 
         try:
             if 'is_stream_subject' in Subject._meta.fields_map or \
@@ -51,13 +60,6 @@ class SubjectForm(forms.ModelForm):
         except Exception:
             pass
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if self.user and self.user.role == 'DEAN' and hasattr(self.user, 'dean_profile'):
-            instance.faculty = self.user.dean_profile.faculty
-        if commit:
-            instance.save()
-        return instance
 
 class ScheduleSlotForm(forms.ModelForm):
     class Meta:
@@ -213,8 +215,8 @@ class AcademicPlanForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', *None)
-        super().__init__(*args, *kwargs)
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
 
         self.fields['admission_year'].widget.choices = get_year_choices()
         if not self.instance.pk:
@@ -231,42 +233,49 @@ class AcademicPlanForm(forms.ModelForm):
             self.fields['group'].queryset = self.fields['group'].queryset.filter(
                 specialty__department__faculty=faculty
             )
+    def clean(self):
+            cleaned_data = super().clean()
+            specialty = cleaned_data.get('specialty')
+            group = cleaned_data.get('group')
+            
+            if not specialty and not group:
+                raise forms.ValidationError(_("Необходимо указать либо специальность, либо конкретную группу."))
+                
+            return cleaned_data
+    
 
+    
 class PlanDisciplineForm(forms.ModelForm):
     class Meta:
         model = PlanDiscipline
         fields = [
-            'subject_template', 'semester_number', 'discipline_type',
+            'subject_template', 'semester_number', 'cycle', 'discipline_type',
             'credits', 'control_type',
-            'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours'
+            'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours',
+            'has_course_work', 'has_subgroups'  # Добавили новые поля
         ]
         widgets = {
             'subject_template': forms.Select(attrs={'class': 'form-select select2'}),
             'semester_number': forms.HiddenInput(),
+            'cycle': forms.Select(attrs={'class': 'form-select'}),
             'discipline_type': forms.Select(attrs={'class': 'form-select'}),
             'credits': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_credits'}),
             'control_type': forms.Select(attrs={'class': 'form-select'}),
-
             'lecture_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_lecture_hours'}),
             'practice_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_practice_hours'}),
             'lab_hours': forms.NumberInput(attrs={'class': 'form-control', 'value': 0}),
             'control_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_control_hours'}),
             'independent_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_hours'}),
             'has_course_work': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'has_subgroups': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['lecture_hours'].required = False
-        self.fields['practice_hours'].required = False
-        self.fields['lab_hours'].required = False
-        self.fields['control_hours'].required = False
-        self.fields['independent_hours'].required = False
-
-        self.fields['lab_hours'].initial = 0
-        super().__init__(*args, **kwargs)
         for field in ['lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours']:
             self.fields[field].required = False
+        self.fields['lab_hours'].initial = 0
+
 
 class ScheduleImportForm(forms.Form):
     file = forms.FileField(
@@ -370,6 +379,11 @@ class TimeSlotGeneratorForm(forms.Form):
     )
 
 
+class RupImportForm(forms.Form):
+    file = forms.FileField(
+        label=_("Файл РУП (Excel)"),
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
+    )
 
 
 

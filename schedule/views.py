@@ -22,8 +22,8 @@ except ImportError:
     DOCX_AVAILABLE = False
 from django import forms
 from .models import Subject, ScheduleSlot, Semester, Classroom, TimeSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
-from .forms import SubjectForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm
-from .services import ScheduleImporter
+from .forms import SubjectForm, RupImportForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm
+from .services import ScheduleImporter, RupImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department
 import math
 from django.utils.translation import gettext as _
@@ -111,7 +111,7 @@ def schedule_constructor(request):
                 schedule_data[slot.day_of_week] = {}
             schedule_data[slot.day_of_week][slot.time_slot.id] = slot
 
-        assigned_subjects = selected_group.assigned_subjects.select_related('teacher__user').all()
+        assigned_subjects = Subject.objects.filter(groups=selected_group).select_related('teacher__user').distinct()
 
         for subject in assigned_subjects:
             needed = subject.get_weekly_slots_needed()
@@ -133,7 +133,13 @@ def schedule_constructor(request):
     time_slots = []
     if selected_group:
         try:
-            institute = selected_group.specialty.department.faculty.institute
+            if selected_group.specialty:
+                institute = selected_group.specialty.department.faculty.institute
+            elif hasattr(request.user, 'dean_profile'):
+                institute = request.user.dean_profile.faculty.institute
+            else:
+                institute = Institute.objects.first()
+                
             shift = active_semester.shift
             time_slots = TimeSlot.objects.filter(
                 institute=institute,
@@ -823,12 +829,19 @@ def export_schedule(request):
         return HttpResponse(_("Нет активного семестра"), status=400)
 
     try:
-        specialty = group.specialty
-        department = specialty.department
-        faculty = department.faculty
-        institute = faculty.institute
+        if group.specialty:
+            specialty_code = group.specialty.code
+            specialty_name = group.specialty.name
+            department = group.specialty.department
+            faculty = department.faculty
+            institute = faculty.institute
+        else:
+            specialty_code = "—"
+            specialty_name = "Умумитаълимӣ (Общая)"
+            faculty = active_semester.faculty
+            institute = faculty.institute if faculty else Institute.objects.first()
     except AttributeError:
-        return HttpResponse(_("Ошибка структуры: Группа не привязана корректно."), status=400)
+        return HttpResponse(_("Ошибка структуры: Невозможно определить институт."), status=400)
 
     director_user = None
     director_obj = Director.objects.filter(institute=institute).first()
@@ -914,11 +927,12 @@ def export_schedule(request):
     hdr_cells[0].text = _("ҲАФТА")
     hdr_cells[1].text = _("СОАТ")
     
-    hdr_cells[2].text = _("%(specialty_code)s – “%(specialty_name)s” (%(student_count)s нафар)") % {
+    hdr_cells[2].text = _("%(specialty_code)s – «%(specialty_name)s» (%(student_count)s нафар)") % {
         'specialty_code': specialty.code,
         'specialty_name': specialty.name,
         'student_count': group.students.count()
     }
+
     hdr_cells[3].text = _("АУД")
     
     for cell in hdr_cells:
@@ -1141,7 +1155,10 @@ def generate_subjects_from_rup(request):
     for group in groups:
         current_semester_num = (group.course - 1) * 2 + active_semester.number
 
-        plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
+        plan = AcademicPlan.objects.filter(group=group, is_active=True).order_by('-admission_year').first()
+        
+        if not plan and group.specialty:
+            plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
 
         if not plan:
             continue
@@ -1186,8 +1203,7 @@ def generate_subjects_from_rup(request):
                         subject = Subject.objects.create(
                             name=disc.subject_template.name,
                             code=f"{disc.subject_template.id}-{active_semester.academic_year}-STREAM",
-                            department=group_list[0].specialty.department,
-                            type='LECTURE',
+                            department=group_list[0].specialty.department if group_list[0].specialty else Department.objects.first(),                            type='LECTURE',
                             lecture_hours=disc.lecture_hours,
                             practice_hours=disc.practice_hours,
                             control_hours=disc.control_hours,
@@ -1203,7 +1219,7 @@ def generate_subjects_from_rup(request):
                             subject = Subject.objects.create(
                                 name=disc.subject_template.name,
                                 code=f"{disc.subject_template.id}-{grp.name}-{active_semester.academic_year}",
-                                department=grp.specialty.department,
+                                department=grp.specialty.department if grp.specialty else Department.objects.first(),
                                 type='LECTURE',
                                 lecture_hours=disc.lecture_hours,
                                 practice_hours=disc.practice_hours,
@@ -1805,4 +1821,30 @@ def check_schedule_conflicts(request):
         return JsonResponse({'success': False, 'conflicts': conflicts})
     
     return JsonResponse({'success': True})
+
+@user_passes_test(is_dean_or_admin)
+def import_rup_excel(request, plan_id, semester_num):
+    plan = get_object_or_404(AcademicPlan, id=plan_id)
+    
+    if request.method == 'POST':
+        form = RupImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                stats = RupImporter.import_from_excel(
+                    file=request.FILES['file'], 
+                    plan_id=plan.id, 
+                    semester_number=semester_num
+                )
+                messages.success(request, f"Успешно! Добавлено: {stats['created']}, Обновлено: {stats['updated']}")
+                if stats['errors']:
+                    messages.warning(request, f"Ошибки ({len(stats['errors'])}): {'; '.join(stats['errors'][:3])}...")
+            except Exception as e:
+                messages.error(request, f"Ошибка обработки файла: {str(e)}")
+                
+            return redirect(f"/schedule/plans/{plan.id}/?semester={semester_num}")
+    
+    messages.error(request, "Неверный запрос")
+    return redirect(f"/schedule/plans/{plan.id}/?semester={semester_num}")
+
+
 
