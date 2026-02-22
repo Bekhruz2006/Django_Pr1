@@ -51,5 +51,8 @@ urlpatterns = [
     path('documents/generate/<int:template_id>/<int:object_id>/', views.download_generated_document, name='generate_document'),
     path('documents/templates/', views.document_templates_list, name='document_templates'),
     path('documents/templates/<int:template_id>/delete/', views.delete_document_template, name='delete_document_template'),
+    path('archives/alumni/', views.archive_alumni, name='archive_alumni'),
+    path('archives/expelled/', views.archive_expelled, name='archive_expelled'),
+    path('reports/contingent/download/', views.download_contingent_report, name='download_contingent_report'),
 
 ]

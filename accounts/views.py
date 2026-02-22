@@ -17,7 +17,7 @@ from .document_engine import DocumentGenerator
 from .models import (
     User, Student, Teacher, Dean, Group, GroupTransferHistory,
     Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector, ViceDean,
-    StudentOrder, DocumentTemplate
+    StudentOrder, DocumentTemplate, Order, OrderItem, Diploma
 )
 from .forms import (
     UserCreateForm, StudentForm, TeacherForm, DeanForm,
@@ -1442,4 +1442,45 @@ def delete_document_template(request, template_id):
     template.delete()
     messages.success(request, _("Шаблон удален."))
     return redirect('accounts:document_templates')
+
+
+@user_passes_test(is_management)
+def archive_alumni(request):
+    students = Student.objects.filter(status='GRADUATED').select_related('user', 'specialty', 'diploma')
+    search = request.GET.get('search', '')
+    if search:
+        students = students.filter(user__last_name__icontains=search)
+        
+    return render(request, 'accounts/archives/alumni_list.html', {
+        'students': students,
+        'search': search
+    })
+
+@user_passes_test(is_management)
+def archive_expelled(request):
+    students = Student.objects.filter(status='EXPELLED').select_related('user', 'specialty')
+    search = request.GET.get('search', '')
+    if search:
+        students = students.filter(user__last_name__icontains=search)
+        
+    return render(request, 'accounts/archives/expelled_list.html', {
+        'students': students,
+        'search': search
+    })
+
+@user_passes_test(is_management)
+def download_contingent_report(request):
+    faculty = None
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+
+    file_stream, filename = DocumentGenerator.generate_contingent_report(faculty=faculty)
+    
+    response = HttpResponse(
+        file_stream.read(), 
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
 

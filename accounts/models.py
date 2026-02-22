@@ -303,6 +303,7 @@ class Student(models.Model):
         ('ACTIVE', _('Активный')),
         ('ACADEMIC_LEAVE', _('Академический отпуск')),
         ('EXPELLED', _('Отчислен')),
+        ('GRADUATED', _('Выпускник')),
     ]
 
     EDUCATION_TYPE_CHOICES = [
@@ -344,6 +345,7 @@ class Student(models.Model):
     sponsor_phone = models.CharField(max_length=20, blank=True, verbose_name=_("Телефон спонсора"))
     sponsor_relation = models.CharField(max_length=50, blank=True, verbose_name=_("Отношение спонсора"))
     specialty = models.ForeignKey('Specialty', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Специальность (Направление)"))
+    specialization = models.ForeignKey('Specialization', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Специализация (Профиль)"))
 
     def get_debt(self):
         return self.contract_amount - self.paid_amount
@@ -515,10 +517,14 @@ def log_department_changes(sender, instance, **kwargs):
             pass
 
 
-
 def generate_order_number():
-    year = datetime.date.today().year
-    last_order = StudentOrder.objects.filter(date__year=year).order_by('id').last()
+    from django.utils import timezone
+    from django.apps import apps
+    
+    year = timezone.now().year
+    Order = apps.get_model('accounts', 'Order')
+    
+    last_order = Order.objects.filter(date__year=year).order_by('id').last()
     if last_order and last_order.number:
         try:
             last_num = int(last_order.number.split('-')[-1])
@@ -530,15 +536,15 @@ def generate_order_number():
     
     return f"{year}-{new_num:04d}"
 
-class StudentOrder(models.Model):
+
+class Order(models.Model):
     ORDER_TYPES = [
+        ('ENROLL', _('Зачисление')),
         ('EXPEL', _('Отчисление')),
         ('ACADEMIC_LEAVE', _('Академический отпуск')),
         ('RESTORE', _('Восстановление')),
         ('GRADUATE', _('Выпуск')),
-        ('TRANSFER', _('Перевод в другую группу')), 
-        ('REPRIMAND', _('Выговор')),      
-        ('SCHOLARSHIP', _('Назначение стипендии')), 
+        ('TRANSFER', _('Перевод в другую группу/вуз')), 
     ]
 
     STATUS_CHOICES = [
@@ -547,95 +553,72 @@ class StudentOrder(models.Model):
         ('REJECTED', _('Отклонен')),
     ]
 
-    number = models.CharField(
-        max_length=50,
-        verbose_name=_("Номер приказа"),
-        default=generate_order_number
-    )
-    date = models.DateField(
-        default=timezone.now,
-        verbose_name=_("Дата приказа")
-    )
+    number = models.CharField(max_length=50, verbose_name=_("Номер приказа"), default=generate_order_number)
+    date = models.DateField(default=timezone.now, verbose_name=_("Дата приказа"))
     order_type = models.CharField(max_length=20, choices=ORDER_TYPES, verbose_name=_("Тип приказа"))
-    initiated_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='initiated_orders',
-        verbose_name=_("Исполнитель (Кто составил)")
-    )
-    signed_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='signed_orders',
-        verbose_name=_("Подписант")
-    )
-
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name=_("Статус документа"))
-
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='orders', verbose_name=_("Студент"))
-    reason = models.TextField(verbose_name=_("Причина/Основание"))
+    title = models.CharField(max_length=255, verbose_name=_("Заголовок (например: О переводе студентов 2 курса)"))
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name=_("Статус"))
     file = models.FileField(upload_to='orders/', blank=True, null=True, verbose_name=_("Скан приказа"))
 
-    target_group = models.ForeignKey(
-        Group,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='incoming_orders',
-        verbose_name=_("Новая группа (для перевода)")
-    )
-
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_orders')
-    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_orders', verbose_name=_("Кем подписан"))
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_orders')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = _("Приказ по студенту")
+        verbose_name = _("Приказ (Массовый)")
         verbose_name_plural = _("Приказы (Фармонҳо)")
         ordering = ['-date']
 
     def __str__(self):
-        return f"Приказ №{self.number} ({self.get_status_display()})"
+        return f"Приказ №{self.number} от {self.date.strftime('%d.%m.%Y')} ({self.get_order_type_display()})"
 
     def apply_effect(self, approver_user):
         if self.status == 'APPROVED':
             return
 
         with transaction.atomic():
-            if self.order_type == 'EXPEL':
-                self.student.status = 'EXPELLED'
-                self.student.group = None
-            elif self.order_type == 'ACADEMIC_LEAVE':
-                self.student.status = 'ACADEMIC_LEAVE'
-            elif self.order_type == 'GRADUATE':
-                self.student.status = 'GRADUATED'
-                self.student.group = None
-            elif self.order_type == 'RESTORE':
-                self.student.status = 'ACTIVE'
-            elif self.order_type == 'TRANSFER':
-                if self.target_group:
-                    GroupTransferHistory.objects.create(
-                        student=self.student,
-                        from_group=self.student.group,
-                        to_group=self.target_group,
-                        reason=self.reason,
-                        transferred_by=approver_user
-                    )
-                    self.student.group = self.target_group
-
-            self.student.save()
+            for item in self.items.all():
+                student = item.student
+                if self.order_type == 'EXPEL':
+                    student.status = 'EXPELLED'
+                    student.group = None
+                elif self.order_type == 'ACADEMIC_LEAVE':
+                    student.status = 'ACADEMIC_LEAVE'
+                elif self.order_type == 'GRADUATE':
+                    student.status = 'GRADUATED'
+                    student.group = None
+                elif self.order_type == 'RESTORE':
+                    student.status = 'ACTIVE'
+                elif self.order_type == 'TRANSFER':
+                    if item.target_group:
+                        GroupTransferHistory.objects.create(
+                            student=student,
+                            from_group=student.group,
+                            to_group=item.target_group,
+                            reason=item.reason,
+                            transferred_by=approver_user
+                        )
+                        student.group = item.target_group
+                student.save()
 
             self.status = 'APPROVED'
             self.approved_by = approver_user
             self.save()
 
-    def save(self, *args, **kwargs):
-        if not self.number:
-            self.number = generate_order_number()
-        super().save(*args, **kwargs)
+
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='order_items')
+    target_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Новая группа (для перевода)"))
+    reason = models.CharField(max_length=255, blank=True, verbose_name=_("Основание (заявление, долг и т.д.)"))
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} -> {self.order.number}"
+
+
 
 class HRProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='hr_profile')
@@ -677,3 +660,27 @@ class DocumentTemplate(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_context_type_display()})"
 
+class Specialization(models.Model):
+    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, related_name='specializations', verbose_name=_("Специальность"))
+    name = models.CharField(max_length=200, verbose_name=_("Название специализации (профиля)"))
+    code = models.CharField(max_length=50, blank=True, verbose_name=_("Шифр профиля"))
+
+    class Meta:
+        verbose_name = _("Специализация")
+        verbose_name_plural = _("Специализации")
+
+    def __str__(self):
+        return f"{self.name} ({self.specialty.code})"
+
+class Diploma(models.Model):
+    student = models.OneToOneField(Student, on_delete=models.CASCADE, related_name='diploma', verbose_name=_("Студент"))
+    number = models.CharField(max_length=50, unique=True, verbose_name=_("Номер диплома"))
+    issue_date = models.DateField(default=timezone.now, verbose_name=_("Дата выдачи"))
+    file = models.FileField(upload_to='diplomas/', blank=True, null=True, verbose_name=_("Скан диплома"))
+
+    class Meta:
+        verbose_name = _("Диплом")
+        verbose_name_plural = _("Дипломы")
+
+    def __str__(self):
+        return f"Диплом №{self.number} - {self.student.user.get_full_name()}"

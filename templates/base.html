@@ -692,6 +692,18 @@
                 <a class="sidebar-link" href="{% url 'accounts:add_user' %}">
                     <i class="bi bi-person-plus"></i> {% trans "Добавить вручную" %}
                 </a>
+                <div class="sidebar-divider my-2"></div>
+                <div class="px-3 py-1 text-muted small text-uppercase">Движение контингента</div>
+
+                <a class="sidebar-link" href="{% url 'accounts:download_contingent_report' %}">
+                    <i class="bi bi-file-earmark-word text-primary"></i> <b>Отчет по движению (DOCX)</b>
+                </a>
+                <a class="sidebar-link" href="{% url 'accounts:archive_alumni' %}">
+                    <i class="bi bi-mortarboard-fill text-success"></i> Выпускники (Архив)
+                </a>
+                <a class="sidebar-link" href="{% url 'accounts:archive_expelled' %}">
+                    <i class="bi bi-person-x-fill text-danger"></i> Отчисленные (Архив)
+                </a>
                 {% endif %}
             </div>
         {% endif %}

@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
-from accounts.models import Student, Teacher, Group, Institute, Department, StudentOrder, User
+from accounts.models import Student, Teacher, Group, Institute, Department, Order, User
 from news.models import News
 from journal.models import StudentStatistics
 from schedule.models import ScheduleSlot
@@ -28,7 +28,7 @@ def dashboard(request):
         students_qs = Student.objects.filter(status='ACTIVE')
         teachers_qs = Teacher.objects.all()
         groups_qs = Group.objects.all()
-        orders_qs = StudentOrder.objects.filter(status='DRAFT').select_related('student__user', 'created_by').order_by('date')
+        orders_qs = Order.objects.filter(status='DRAFT').select_related('student__user', 'created_by').order_by('date')
 
         if selected_institute_id:
             try:
@@ -61,7 +61,7 @@ def dashboard(request):
             'institutes': institutes,
             'total_students': Student.objects.count(),
             'total_users': User.objects.count(),
-            'latest_orders': StudentOrder.objects.all().order_by('-created_at')[:5],
+            'latest_orders': Order.objects.all().order_by('-created_at')[:5],
         })
         return render(request, 'core/dashboard_admin.html', context)
     elif user.role == 'HR':
@@ -91,7 +91,7 @@ def dashboard(request):
                 'groups_count': groups_count,
                 'teachers_count': teachers_count,
                 'departments': Department.objects.filter(faculty=faculty).prefetch_related('specialties'),
-                'my_drafts': StudentOrder.objects.filter(created_by=user, status='DRAFT').count()
+                'my_drafts': Order.objects.filter(created_by=user, status='DRAFT').count()
             })
 
             course_stats = []

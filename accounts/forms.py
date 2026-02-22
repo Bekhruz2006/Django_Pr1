@@ -8,7 +8,7 @@ from datetime import datetime
 from core.validators import validate_image_only
 from django.utils.translation import gettext_lazy as _
 
-from .models import StudentOrder, DocumentTemplate
+from .models import Order, OrderItem, DocumentTemplate
 
 
 class DocumentTemplateForm(forms.ModelForm):
@@ -453,9 +453,9 @@ class GroupTransferForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         required=False
     )
-class StudentOrderForm(forms.ModelForm):
+class OrderForm(forms.ModelForm):
     class Meta:
-        model = StudentOrder
+        model = Order
         fields = ['number', 'date', 'order_type', 'reason', 'file']
         widgets = {
             'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Генерируется автоматически')}),
