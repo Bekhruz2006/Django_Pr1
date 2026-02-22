@@ -1,6 +1,5 @@
 import re
 import openpyxl
-import pdfplumber
 from django.db import transaction
 from django.db.models import Q
 from datetime import datetime, time
@@ -28,24 +27,16 @@ class ScheduleImporter:
         self.default_group = default_group
 
         try:
-            if filename.endswith('.pdf'):
+            if filename.endswith('.xlsx') or filename.endswith('.xls'):
                 self._process_pdf()
-            elif filename.endswith('.xlsx') or filename.endswith('.xls'):
-                self._process_excel()
+            else:
+                return []
         except Exception as e:
             import traceback
             traceback.print_exc()
             return []
         return self.preview_data
 
-    def _process_pdf(self):
-        with pdfplumber.open(self.file) as pdf:
-            for i, page in enumerate(pdf.pages):
-                tables = page.extract_tables(table_settings={"vertical_strategy": "lines", "horizontal_strategy": "lines"})
-                if not tables: tables = page.extract_tables()
-
-                for table in tables:
-                    self._parse_grid_rows(table, source=f"PDF Стр {i+1}")
 
     def _process_excel(self):
         wb = openpyxl.load_workbook(self.file, data_only=True)

@@ -418,6 +418,11 @@ def delete_schedule_slot(request, slot_id):
         if not (request.user.is_staff or hasattr(request.user, 'dean_profile')):
             return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
 
+        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+            faculty = request.user.dean_profile.faculty
+            if schedule_slot.group.specialty and schedule_slot.group.specialty.department.faculty != faculty:
+                return JsonResponse({'success': False, 'error': _('Нет доступа к этому занятию')}, status=403)
+
         with transaction.atomic():
             if schedule_slot.stream_id:
                 count = ScheduleSlot.objects.filter(stream_id=schedule_slot.stream_id).delete()[0]
@@ -630,6 +635,10 @@ def add_subject(request):
 @user_passes_test(is_dean_or_admin)
 def edit_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if subject.department.faculty != request.user.dean_profile.faculty:
+            messages.error(request, _("Нет доступа к этому предмету"))
+            return redirect('schedule:manage_subjects')
     if request.method == 'POST':
         form = SubjectForm(request.POST, instance=subject)
         if form.is_valid():
@@ -643,6 +652,11 @@ def edit_subject(request, subject_id):
 @user_passes_test(is_dean_or_admin)
 def delete_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if subject.department.faculty != request.user.dean_profile.faculty:
+            messages.error(request, _("Нет доступа к этому предмету"))
+            return redirect('schedule:manage_subjects')
+
     subject.delete()
     messages.success(request, _('Предмет удален'))
     return redirect('schedule:manage_subjects')
@@ -856,10 +870,16 @@ def export_schedule(request):
     if vice_obj:
         vice_user = vice_obj.user
 
-    director_name = director_user.get_full_name() if director_user else _("Мирзозода А. Н.") 
-    vice_name = vice_user.get_full_name() if vice_user else _("Ҷовиди Ҷамшед") 
-    
-    head_edu_name = _("Ҷалилов Р.Р.")
+    director_name = director_user.get_full_name() if director_user else _("__________________")
+    vice_name = vice_user.get_full_name() if vice_user else _("__________________")
+    head_edu_obj = ProRector.objects.filter(
+        institute=institute,
+        title__icontains='раёсат'
+    ).exclude(
+        title__icontains='директор'
+    ).first()
+
+    head_edu_name = head_edu_obj.user.get_full_name() if head_edu_obj else _("__________________")
 
     doc = Document()
     

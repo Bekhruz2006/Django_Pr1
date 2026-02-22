@@ -419,7 +419,22 @@ def add_user(request):
 @user_passes_test(is_management)
 def edit_user(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
-    
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        allowed = True
+        if user_obj.role == 'STUDENT' and hasattr(user_obj, 'student_profile'):
+            s = user_obj.student_profile
+            if s.group and s.group.specialty and s.group.specialty.department.faculty != faculty:
+                allowed = False
+            elif s.specialty and s.specialty.department.faculty != faculty:
+                allowed = False
+        elif user_obj.role in ['TEACHER', 'HEAD_OF_DEPT'] and hasattr(user_obj, 'teacher_profile'):
+            if user_obj.teacher_profile.department and user_obj.teacher_profile.department.faculty != faculty:
+                allowed = False
+        if not allowed:
+            messages.error(request, _("Нет доступа к этому пользователю"))
+            return redirect('accounts:user_management')
+
     if request.method == 'POST':
         user_form = UserEditForm(request.POST, request.FILES, instance=user_obj)
         
@@ -461,7 +476,22 @@ def edit_user(request, user_id):
 @user_passes_test(is_management)
 def reset_password(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
-    
+
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        allowed = True
+        if user_obj.role == 'STUDENT' and hasattr(user_obj, 'student_profile'):
+            s = user_obj.student_profile
+            if s.group and s.group.specialty and s.group.specialty.department.faculty != faculty:
+                allowed = False
+        elif user_obj.role in ['TEACHER', 'HEAD_OF_DEPT'] and hasattr(user_obj, 'teacher_profile'):
+            if user_obj.teacher_profile.department and user_obj.teacher_profile.department.faculty != faculty:
+                allowed = False
+        if not allowed:
+            messages.error(request, _("Нет доступа к этому пользователю"))
+            return redirect('accounts:user_management')
+
+
     if request.method == 'POST':
         form = PasswordResetByDeanForm(request.POST)
         if form.is_valid():
@@ -481,18 +511,32 @@ def reset_password(request, user_id):
 @user_passes_test(is_management)
 def toggle_user_active(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
-    
+
     if user_obj.id == request.user.id:
         messages.error(request, _('❌ Вы не можете заблокировать сам себя!'))
         return redirect('accounts:user_management')
-    
+
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        allowed = True
+        if user_obj.role == 'STUDENT' and hasattr(user_obj, 'student_profile'):
+            s = user_obj.student_profile
+            if s.group and s.group.specialty and s.group.specialty.department.faculty != faculty:
+                allowed = False
+        elif user_obj.role in ['TEACHER', 'HEAD_OF_DEPT'] and hasattr(user_obj, 'teacher_profile'):
+            if user_obj.teacher_profile.department and user_obj.teacher_profile.department.faculty != faculty:
+                allowed = False
+        if not allowed:
+            messages.error(request, _("Нет доступа к этому пользователю"))
+            return redirect('accounts:user_management')
+
     if user_obj.is_superuser and not request.user.is_superuser:
         messages.error(request, _('❌ Вы не можете заблокировать суперпользователя!'))
         return redirect('accounts:user_management')
-    
+
     user_obj.is_active = not user_obj.is_active
     user_obj.save()
-    
+
     status = _("активирован") if user_obj.is_active else _("заблокирован")
     messages.success(request, _(f'Пользователь {user_obj.username} {status}'))
     return redirect('accounts:user_management')
@@ -500,7 +544,12 @@ def toggle_user_active(request, user_id):
 @user_passes_test(is_management)
 def transfer_student(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-    
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        if student.group and student.group.specialty and student.group.specialty.department.faculty != faculty:
+            messages.error(request, _("Нет доступа к этому студенту"))
+            return redirect('accounts:user_management')
+
     if request.method == 'POST':
         form = GroupTransferForm(request.POST)
         if form.is_valid():
@@ -641,6 +690,11 @@ def add_group(request):
 @user_passes_test(is_management)
 def edit_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        if group.specialty and group.specialty.department.faculty != faculty:
+            messages.error(request, _("Нет доступа к этой группе"))
+            return redirect('accounts:group_management')
     if request.method == 'POST':
         form = GroupForm(request.POST, instance=group)
         if form.is_valid():
@@ -656,6 +710,11 @@ def edit_group(request, group_id):
 @user_passes_test(is_management)
 def delete_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        if group.specialty and group.specialty.department.faculty != faculty:
+            messages.error(request, _("Нет доступа к этой группе"))
+            return redirect('accounts:group_management')
     students_count = Student.objects.filter(group=group).count()
     if request.method == 'POST':
         if students_count > 0:
@@ -1159,6 +1218,11 @@ def add_institute(request):
 @user_passes_test(is_management)
 def student_orders(request, student_id):
     student = get_object_or_404(Student, id=student_id)
+    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        if student.group and student.group.specialty and student.group.specialty.department.faculty != faculty:
+            messages.error(request, _("Нет доступа к этому студенту"))
+            return redirect('accounts:user_management')
     orders = student.orders.all().order_by('-date')
     
     if request.method == 'POST':

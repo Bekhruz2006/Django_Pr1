@@ -440,12 +440,7 @@ class InstituteManagementForm(forms.Form):
         initial=_("Муовини директор оид ба корҳои таълимӣ"),
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-    head_of_edu = forms.CharField(
-        required=False,
-        label=_("Сардори раёсати таълим (ФИО)"),
-        initial=_("Ҷалилов Р.Р."),
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
+
 
 class GroupTransferForm(forms.Form):
     to_group = forms.ModelChoiceField(

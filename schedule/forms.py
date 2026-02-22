@@ -279,11 +279,12 @@ class PlanDisciplineForm(forms.ModelForm):
 
 class ScheduleImportForm(forms.Form):
     file = forms.FileField(
-        label=_("Файл расписания (Excel или PDF)"),
-        help_text=_("Поддерживаются .xlsx и .pdf (табличный вид)"),
-        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls, .pdf'}),
-        validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls', 'pdf'])]
+        label=_("Файл расписания (Excel)"),
+        help_text=_("Поддерживаются только .xlsx и .xls"),
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'}),
+        validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])]
     )
+
 
     semester = forms.ModelChoiceField(
         queryset=Semester.objects.filter(is_active=True),

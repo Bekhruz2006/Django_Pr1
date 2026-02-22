@@ -5,6 +5,8 @@ from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from accounts.models import Student, Teacher, User
 from schedule.models import Subject, ScheduleSlot
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class JournalEntry(models.Model):
     ATTENDANCE_CHOICES = [
@@ -256,3 +258,16 @@ class StudentStatistics(models.Model):
         for student in students:
             stats, _ = cls.objects.get_or_create(student=student)
             stats.recalculate()
+
+
+
+
+
+
+@receiver(post_save, sender=JournalEntry)
+def trigger_stats_recalculate(sender, instance, **kwargs):
+    try:
+        stats, _ = StudentStatistics.objects.get_or_create(student=instance.student)
+        stats.recalculate()
+    except Exception:
+        pass

@@ -353,7 +353,6 @@ def student_journal_view(request):
         data['attendance_pct'] = data['attended'] / data['total_lessons'] * 100 if data['total_lessons'] > 0 else 0
     
     stats, _ = StudentStatistics.objects.get_or_create(student=student)
-    stats.recalculate()
     
     return render(request, 'journal/student_view.html', {
         'student': student, 'subjects_data': subjects_data.values(), 'stats': stats
@@ -374,7 +373,7 @@ def dean_journal_view(request):
         
         for student in students:
             stats, _ = StudentStatistics.objects.get_or_create(student=student)
-            stats.recalculate()
+            
             all_stats.append(stats)
             if stats.overall_gpa < 4.0 or stats.attendance_percentage < 60:
                 at_risk_students.append({
@@ -444,7 +443,7 @@ def department_report(request):
 
         for student in students:
             stats, _ = StudentStatistics.objects.get_or_create(student=student)
-            stats.recalculate()
+            
             group_stats.append({
                 'student': student, 'stats': stats,
                 'is_at_risk': stats.overall_gpa < 3.0 or stats.attendance_percentage < 60
@@ -537,7 +536,6 @@ def group_detailed_report(request, group_id):
     
     for student in students:
         stats, _ = StudentStatistics.objects.get_or_create(student=student)
-        stats.recalculate()
         subjects_performance = []
         
         for subject in subjects:
