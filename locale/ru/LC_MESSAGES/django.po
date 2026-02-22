@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-09 21:45+0500\n"
-"PO-Revision-Date: 2026-02-10 15:18+0500\n"
-"Last-Translator:   <dasdm@gmail.com>\n"
+"POT-Creation-Date: 2026-02-22 21:58+0500\n"
+"PO-Revision-Date: 2026-02-22 22:00+0500\n"
+"Last-Translator:   <admin@gmail.com>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -19,681 +19,979 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);\n"
 "X-Translated-Using: django-rosetta 0.10.3\n"
 
-#: .\accounts\forms.py:14 .\accounts\models.py:23
+#: .\accounts\forms.py:19
+#, fuzzy
+#| msgid "Например: Кандидат технических наук"
+msgid "Например: Справка для военкомата"
+msgstr "Например: Кандидат технических наук"
+
+#: .\accounts\forms.py:28 .\accounts\models.py:38
 msgid "Название факультета"
 msgstr "Название факультета"
 
-#: .\accounts\forms.py:15 .\accounts\models.py:24
+#: .\accounts\forms.py:29 .\accounts\models.py:39
 msgid "Код факультета"
 msgstr "Код факультета"
 
-#: .\accounts\forms.py:20
+#: .\accounts\forms.py:34
 msgid "Декан факультета"
 msgstr "Декан факультета"
 
-#: .\accounts\forms.py:26
+#: .\accounts\forms.py:40
 msgid "Кабинет декана"
 msgstr "Кабинет декана"
 
-#: .\accounts\forms.py:27
+#: .\accounts\forms.py:41
 msgid "Например: 101/3"
 msgstr "Например: 101/3"
 
-#: .\accounts\forms.py:31
+#: .\accounts\forms.py:45
 msgid "Email деканата"
 msgstr "Email деканата"
 
-#: .\accounts\forms.py:38
+#: .\accounts\forms.py:52
 msgid "Зам. декана (по учебной работе)"
 msgstr "Зам. декана (по учебной работе)"
 
-#: .\accounts\forms.py:82 .\templates\accounts\edit_institute_full.html:80
+#: .\accounts\forms.py:96 .\templates\accounts\edit_institute_full.html:80
 msgid "Заместитель декана"
 msgstr "Заместитель декана"
 
-#: .\accounts\forms.py:114
+#: .\accounts\forms.py:128
 msgid "Заведующий кафедрой"
 msgstr "Заведующий кафедрой"
 
-#: .\accounts\forms.py:124 .\accounts\forms.py:125
+#: .\accounts\forms.py:138 .\accounts\forms.py:139
 msgid "Необязательно"
 msgstr "Необязательно"
 
-#: .\accounts\forms.py:188
+#: .\accounts\forms.py:202
 msgid "Например: Кандидат технических наук"
 msgstr "Например: Кандидат технических наук"
 
-#: .\accounts\forms.py:189
+#: .\accounts\forms.py:203
 msgid "Например: Доцент"
 msgstr "Например: Доцент"
 
-#: .\accounts\forms.py:200
+#: .\accounts\forms.py:214
 msgid "Муовини директор оид ба таълим"
 msgstr "Муовини директор оид ба таълим"
 
-#: .\accounts\forms.py:204 .\templates\accounts\add_user.html:23
-#: .\templates\accounts\user_management.html:44
+#: .\accounts\forms.py:218 .\templates\accounts\add_user.html:23
+#: .\templates\accounts\user_management.html:46
+#: .\templates\core\dashboard_hr.html:59
 msgid "Роль"
 msgstr "Роль"
 
-#: .\accounts\forms.py:205 .\templates\accounts\add_user.html:32
+#: .\accounts\forms.py:219 .\templates\accounts\add_user.html:32
 #: .\templates\accounts\edit_user.html:24
 msgid "Имя"
 msgstr "Имя"
 
-#: .\accounts\forms.py:206 .\templates\accounts\add_user.html:40
+#: .\accounts\forms.py:220 .\templates\accounts\add_user.html:40
 #: .\templates\accounts\edit_user.html:29
 msgid "Фамилия"
 msgstr "Фамилия"
 
-#: .\accounts\forms.py:207 .\templates\accounts\add_user.html:49
+#: .\accounts\forms.py:221 .\templates\accounts\add_user.html:49
 #: .\templates\accounts\edit_user.html:36
-#: .\templates\accounts\profile_student.html:228
-#: .\templates\accounts\user_management.html:45
+#: .\templates\accounts\profile_student.html:247
+#: .\templates\accounts\user_management.html:47
 msgid "Телефон"
 msgstr "Телефон"
 
-#: .\accounts\forms.py:208 .\templates\accounts\add_user.html:54
+#: .\accounts\forms.py:222 .\templates\accounts\add_user.html:54
 #: .\templates\accounts\edit_user.html:41
 #: .\templates\accounts\profile_teacher.html:12
 msgid "Фото"
 msgstr "Фото"
 
-#: .\accounts\forms.py:220 .\accounts\models.py:96 .\accounts\models.py:330
-#: .\accounts\models.py:493 .\journal\models.py:21 .\journal\models.py:176
-#: .\templates\accounts\all_orders_list.html:37
+#: .\accounts\forms.py:234 .\accounts\models.py:111 .\accounts\models.py:364
+#: .\accounts\models.py:676 .\journal\models.py:23 .\journal\models.py:178
+#: .\templates\accounts\all_orders_list.html:44
 #: .\templates\accounts\payment_list.html:29
+#: .\templates\core\dashboard_rector.html:65
 msgid "Студент"
 msgstr "Студент"
 
-#: .\accounts\forms.py:221 .\accounts\models.py:97 .\accounts\models.py:236
-#: .\schedule\models.py:47 .\schedule\models.py:249
+#: .\accounts\forms.py:235 .\accounts\models.py:112 .\accounts\models.py:260
+#: .\schedule\models.py:68 .\schedule\models.py:361
 msgid "Преподаватель"
 msgstr "Преподаватель"
 
-#: .\accounts\forms.py:222 .\accounts\models.py:98 .\accounts\models.py:210
+#: .\accounts\forms.py:236 .\accounts\models.py:113 .\accounts\models.py:234
 msgid "Зав. кафедрой"
 msgstr "Зав. кафедрой"
 
-#: .\accounts\forms.py:223 .\accounts\models.py:198
+#: .\accounts\forms.py:237 .\accounts\models.py:222
 msgid "Зам. декана"
 msgstr "Зам. декана"
 
-#: .\accounts\forms.py:287
+#: .\accounts\forms.py:301
 msgid "Дополнительные кафедры (где может преподавать)"
 msgstr "Дополнительные кафедры (где может преподавать)"
 
-#: .\accounts\forms.py:343
+#: .\accounts\forms.py:357
 msgid "Старый пароль"
 msgstr "Старый пароль"
 
-#: .\accounts\forms.py:347 .\accounts\forms.py:357
+#: .\accounts\forms.py:361 .\accounts\forms.py:371
 msgid "Новый пароль"
 msgstr "Новый пароль"
 
-#: .\accounts\forms.py:351
+#: .\accounts\forms.py:365
 msgid "Подтверждение пароля"
 msgstr "Подтверждение пароля"
 
-#: .\accounts\forms.py:361
+#: .\accounts\forms.py:375
 msgid "Подтвердите пароль"
 msgstr "Подтвердите пароль"
 
-#: .\accounts\forms.py:370
+#: .\accounts\forms.py:384
 msgid "Пароли не совпадают"
 msgstr "Пароли не совпадают"
 
-#: .\accounts\forms.py:377
+#: .\accounts\forms.py:391
 msgid "Добавить студентов в группу"
 msgstr "Добавить студентов в группу"
 
-#: .\accounts\forms.py:414
+#: .\accounts\forms.py:428
 msgid "Директор института"
 msgstr "Директор института"
 
-#: .\accounts\forms.py:420
+#: .\accounts\forms.py:434
 msgid "Зам. директора (по учебной работе)"
 msgstr "Зам. директора (по учебной работе)"
 
-#: .\accounts\forms.py:425
+#: .\accounts\forms.py:439
 msgid "Название должности (для подписи)"
 msgstr "Название должности (для подписи)"
 
-#: .\accounts\forms.py:426
+#: .\accounts\forms.py:440
 msgid "Муовини директор оид ба корҳои таълимӣ"
 msgstr "заместитель директора по воспитательной работе"
 
-#: .\accounts\forms.py:431
-msgid "Сардори раёсати таълим (ФИО)"
-msgstr "руководитель отдела образования (ФИО)"
-
-#: .\accounts\forms.py:432 .\schedule\views.py:809
-msgid "Ҷалилов Р.Р."
-msgstr "Ҷалилов Р.Р."
-
-#: .\accounts\forms.py:439
+#: .\accounts\forms.py:448
 msgid "Новая группа"
 msgstr "Новая группа"
 
-#: .\accounts\forms.py:443
+#: .\accounts\forms.py:452
 msgid "Причина перевода"
 msgstr "Причина перевода"
 
-#: .\accounts\models.py:10
+#: .\accounts\forms.py:461
+#, fuzzy
+#| msgid "Специальность обновлена"
+msgid "Генерируется автоматически"
+msgstr "Специальность обновлена"
+
+#: .\accounts\forms.py:464
+#, fuzzy
+#| msgid "Например: Кандидат технических наук"
+msgid "Например: О переводе студентов 2 курса"
+msgstr "Например: Кандидат технических наук"
+
+#: .\accounts\forms.py:472
+msgid "Оставьте пустым для авто-генерации"
+msgstr "Оставьте пустым для авто-генерации"
+
+#: .\accounts\models.py:15
 msgid "Название института"
 msgstr "Название института"
 
-#: .\accounts\models.py:11
+#: .\accounts\models.py:16
 msgid "Аббревиатура"
 msgstr "Аббревиатура"
 
-#: .\accounts\models.py:12 .\templates\accounts\profile_student.html:221
+#: .\accounts\models.py:17 .\schedule\models.py:16
+#: .\templates\accounts\profile_student.html:240
+#: .\templates\schedule\building_form.html:32
+#: .\templates\schedule\manage_buildings.html:28
 msgid "Адрес"
 msgstr "Адрес"
 
-#: .\accounts\models.py:15 .\accounts\models.py:22 .\accounts\models.py:405
-#: .\templates\accounts\edit_institute_full.html:42
+#: .\accounts\models.py:20
+#, fuzzy
+#| msgid "Специальность добавлена"
+msgid "Длительность академ. часа (мин)"
+msgstr "Специальность добавлена"
+
+#: .\accounts\models.py:21
+msgid "Обычно 45 или 50 минут. Используется для расчета кредитов."
+msgstr "Обычно 45 или 50 минут. Используется для расчета кредитов."
+
+#: .\accounts\models.py:25
+#, fuzzy
+#| msgid "Специальность обновлена"
+msgid "Длительность одной пары (мин)"
+msgstr "Специальность обновлена"
+
+#: .\accounts\models.py:26
+msgid ""
+"Физическое время занятия. Если пара 90 мин, а час 45, то 1 пара = 2 часа."
+msgstr ""
+"Физическое время занятия. Если пара 90 мин, а час 45, то 1 пара = 2 часа."
+
+#: .\accounts\models.py:30 .\accounts\models.py:37 .\accounts\models.py:187
+#: .\accounts\models.py:439 .\accounts\models.py:654 .\schedule\forms.py:101
+#: .\schedule\models.py:204 .\templates\accounts\edit_institute_full.html:42
 #: .\templates\accounts\structure_manage.html:20
+#: .\templates\schedule\manage_buildings.html:27
+#: .\templates\schedule\semester_form.html:17
 msgid "Институт"
 msgstr "Институт"
 
-#: .\accounts\models.py:16
+#: .\accounts\models.py:31
 msgid "Институты"
 msgstr "Институты"
 
-#: .\accounts\models.py:27 .\accounts\models.py:37 .\accounts\models.py:406
-#: .\schedule\models.py:182 .\templates\accounts\structure_manage.html:23
+#: .\accounts\models.py:42 .\accounts\models.py:52 .\accounts\models.py:440
+#: .\schedule\models.py:268 .\templates\accounts\structure_manage.html:23
+#: .\templates\schedule\semester_form.html:27
 msgid "Факультет"
 msgstr "Факультет"
 
-#: .\accounts\models.py:28
+#: .\accounts\models.py:43
 msgid "Факультеты"
 msgstr "Факультеты"
 
-#: .\accounts\models.py:38
+#: .\accounts\models.py:53
 msgid "Название кафедры"
 msgstr "Название кафедры"
 
-#: .\accounts\models.py:44
+#: .\accounts\models.py:59
 msgid "Штатные единицы (ставки)"
 msgstr "Штатные единицы (ставки)"
 
-#: .\accounts\models.py:45
+#: .\accounts\models.py:60
 msgid "Сколько ставок выделено на кафедру"
 msgstr "Сколько ставок выделено на кафедру"
 
-#: .\accounts\models.py:51
+#: .\accounts\models.py:66
 msgid "Бюджет часов (годовой)"
 msgstr "Бюджет часов (годовой)"
 
-#: .\accounts\models.py:52
+#: .\accounts\models.py:67
 msgid "Общая учебная нагрузка кафедры"
 msgstr "Общая учебная нагрузка кафедры"
 
-#: .\accounts\models.py:56 .\accounts\models.py:78 .\accounts\models.py:206
-#: .\accounts\models.py:407 .\schedule\models.py:21
+#: .\accounts\models.py:71 .\accounts\models.py:93 .\accounts\models.py:230
+#: .\accounts\models.py:441 .\schedule\models.py:42
 #: .\templates\accounts\structure_manage.html:97
 msgid "Кафедра"
 msgstr "Кафедра"
 
-#: .\accounts\models.py:57
+#: .\accounts\models.py:72
 msgid "Кафедры"
 msgstr "Кафедры"
 
-#: .\accounts\models.py:79
+#: .\accounts\models.py:94
 msgid "Название направления"
 msgstr "Название направления"
 
-#: .\accounts\models.py:80
+#: .\accounts\models.py:95
 msgid "Шифр (напр. 400.101.08)"
 msgstr "Шифр (напр. 400.101.08)"
 
-#: .\accounts\models.py:81
+#: .\accounts\models.py:96
 msgid "Квалификация (напр. Инженер-программист)"
 msgstr "Квалификация (напр. Инженер-программист)"
 
-#: .\accounts\models.py:84 .\accounts\models.py:243
+#: .\accounts\models.py:99 .\accounts\models.py:273
 msgid "Направление"
 msgstr "Направление"
 
-#: .\accounts\models.py:85
+#: .\accounts\models.py:100
 msgid "Направления"
 msgstr "Направления"
 
-#: .\accounts\models.py:99
+#: .\accounts\models.py:114
 msgid "Зам. декана/директора"
 msgstr "Зам. декана/директора"
 
-#: .\accounts\models.py:100 .\accounts\models.py:185
+#: .\accounts\models.py:115 .\accounts\models.py:209
 #: .\templates\accounts\edit_institute_full.html:61
 msgid "Декан"
 msgstr "Декан"
 
-#: .\accounts\models.py:101
+#: .\accounts\models.py:116
 msgid "Проректор/Зам. директора"
 msgstr "Проректор/Зам. директора"
 
-#: .\accounts\models.py:102 .\accounts\models.py:159
+#: .\accounts\models.py:117 .\accounts\models.py:175
 msgid "Директор/Ректор"
 msgstr "Директор/Ректор"
 
-#: .\accounts\models.py:106
+#: .\accounts\models.py:118
+msgid "Отдел кадров / Приемная комиссия"
+msgstr "Отдел кадров / Приемная комиссия"
+
+#: .\accounts\models.py:122
 msgid "ППС (Профессорско-преподавательский)"
 msgstr "ППС (Профессорско-преподавательский)"
 
-#: .\accounts\models.py:107
+#: .\accounts\models.py:123
 msgid "АУП (Административно-управленческий)"
 msgstr "АУП (Административно-управленческий)"
 
-#: .\accounts\models.py:108
+#: .\accounts\models.py:124
 msgid "УВП (Учебно-вспомогательный)"
 msgstr "УВП (Учебно-вспомогательный)"
 
-#: .\accounts\models.py:109
+#: .\accounts\models.py:125
 msgid "Совместитель (ППС + АУП)"
 msgstr "Совместитель (ППС + АУП)"
 
-#: .\accounts\models.py:117
+#: .\accounts\models.py:133
 msgid "Категория сотрудника"
 msgstr "Категория сотрудника"
 
-#: .\accounts\models.py:123 .\templates\accounts\profile_student.html:200
+#: .\accounts\models.py:139 .\templates\accounts\profile_student.html:219
 msgid "Дата рождения"
 msgstr "Дата рождения"
 
-#: .\accounts\models.py:124
+#: .\accounts\models.py:140
 msgid "Адрес проживания"
 msgstr "Адрес проживания"
 
-#: .\accounts\models.py:125
+#: .\accounts\models.py:141
 msgid "Номер паспорта"
 msgstr "Номер паспорта"
 
-#: .\accounts\models.py:156
+#: .\accounts\models.py:172
 msgid "Возглавляет"
 msgstr "Возглавляет"
 
-#: .\accounts\models.py:160
+#: .\accounts\models.py:176
 msgid "Директоры/Ректоры"
 msgstr "Директоры/Ректоры"
 
-#: .\accounts\models.py:168
+#: .\accounts\models.py:192
 msgid "Должность (напр. Зам. по учебной работе)"
 msgstr "Должность (напр. Зам. по учебной работе)"
 
-#: .\accounts\models.py:171
+#: .\accounts\models.py:195
 msgid "Проректор"
 msgstr "Проректор"
 
-#: .\accounts\models.py:172
+#: .\accounts\models.py:196
 msgid "Проректоры"
 msgstr "Проректоры"
 
-#: .\accounts\models.py:186 .\templates\accounts\user_management.html:28
+#: .\accounts\models.py:210 .\templates\accounts\user_management.html:30
 msgid "Деканы"
 msgstr "Деканы"
 
-#: .\accounts\models.py:194
+#: .\accounts\models.py:218
 msgid "Должность для подписи"
 msgstr "Должность для подписи"
 
-#: .\accounts\models.py:195
+#: .\accounts\models.py:219
 msgid "Область ответственности"
 msgstr "Область ответственности"
 
-#: .\accounts\models.py:199
+#: .\accounts\models.py:223
 msgid "Зам. деканы"
 msgstr "Зам. деканы"
 
-#: .\accounts\models.py:207
+#: .\accounts\models.py:231
 msgid "Ученая степень"
 msgstr "Ученая степень"
 
-#: .\accounts\models.py:211
+#: .\accounts\models.py:235
 msgid "Зав. кафедрами"
 msgstr "Зав. кафедрами"
 
-#: .\accounts\models.py:218 .\templates\accounts\profile_teacher.html:68
+#: .\accounts\models.py:242 .\templates\accounts\profile_teacher.html:68
 msgid "Основная кафедра"
 msgstr "Основная кафедра"
 
-#: .\accounts\models.py:224 .\templates\accounts\profile_teacher.html:71
+#: .\accounts\models.py:248 .\templates\accounts\profile_teacher.html:71
 msgid "Дополнительные кафедры"
 msgstr "Дополнительные кафедры"
 
-#: .\accounts\models.py:227
+#: .\accounts\models.py:251
 msgid "Ученая степень (к.т.н, PhD)"
 msgstr "Ученая степень (к.т.н, PhD)"
 
-#: .\accounts\models.py:228
+#: .\accounts\models.py:252
 msgid "Ученое звание (доцент, профессор)"
 msgstr "Ученое звание (доцент, профессор)"
 
-#: .\accounts\models.py:237 .\templates\accounts\user_management.html:27
+#: .\accounts\models.py:261 .\templates\accounts\user_management.html:29
+#: .\templates\base.html:683
 msgid "Преподаватели"
 msgstr "Преподаватели"
 
-#: .\accounts\models.py:244
+#: .\accounts\models.py:275
 msgid "Название группы (напр. 400101-А)"
 msgstr "Название группы (напр. 400101-А)"
 
-#: .\accounts\models.py:245 .\schedule\models.py:189
+#: .\accounts\models.py:276 .\schedule\models.py:275
 #: .\templates\accounts\delete_group.html:37
 #: .\templates\accounts\edit_group.html:36
 #: .\templates\accounts\group_management.html:42
 #: .\templates\accounts\profile_teacher.html:114
+#: .\templates\schedule\semester_form.html:38
 msgid "Курс"
 msgstr "Курс"
 
-#: .\accounts\models.py:246 .\schedule\models.py:187
+#: .\accounts\models.py:277 .\schedule\models.py:273
+#: .\templates\schedule\semester_form.html:34
 msgid "Учебный год"
 msgstr "Учебный год"
 
-#: .\accounts\models.py:247
+#: .\accounts\models.py:278
 msgid "TJ"
 msgstr "TJ"
 
-#: .\accounts\models.py:247
+#: .\accounts\models.py:278
 msgid "RU"
 msgstr "RU"
 
-#: .\accounts\models.py:247
+#: .\accounts\models.py:278
 msgid "EN"
 msgstr "EN"
 
-#: .\accounts\models.py:247
+#: .\accounts\models.py:278
 msgid "Язык"
 msgstr "Язык"
 
-#: .\accounts\models.py:248 .\schedule\models.py:269
+#: .\accounts\models.py:279 .\schedule\models.py:388
 #: .\templates\accounts\add_group.html:74
 #: .\templates\accounts\edit_group.html:71
 msgid "Военная кафедра"
 msgstr "Военная кафедра"
 
-#: .\accounts\models.py:251 .\schedule\models.py:247
-#: .\templates\accounts\all_orders_list.html:38
+#: .\accounts\models.py:282 .\schedule\models.py:359
+#: .\templates\accounts\all_orders_list.html:45
 #: .\templates\accounts\payment_list.html:30
 msgid "Группа"
 msgstr "Группа"
 
-#: .\accounts\models.py:252
+#: .\accounts\models.py:283 .\schedule\models.py:70
 msgid "Группы"
 msgstr "Группы"
 
-#: .\accounts\models.py:262
+#: .\accounts\models.py:293
 msgid "Мужской"
 msgstr "Мужской"
 
-#: .\accounts\models.py:263
+#: .\accounts\models.py:294
 msgid "Женский"
 msgstr "Женский"
 
-#: .\accounts\models.py:267
+#: .\accounts\models.py:298
 msgid "Бюджет"
 msgstr "Бюджет"
 
-#: .\accounts\models.py:268 .\templates\accounts\payment_list.html:31
+#: .\accounts\models.py:299 .\templates\accounts\payment_list.html:31
 msgid "Контракт"
 msgstr "Контракт"
 
-#: .\accounts\models.py:272 .\schedule\models.py:194
+#: .\accounts\models.py:303 .\schedule\models.py:280
 msgid "Активный"
 msgstr "Активный"
 
-#: .\accounts\models.py:273 .\accounts\models.py:485
+#: .\accounts\models.py:304 .\accounts\models.py:544
 msgid "Академический отпуск"
 msgstr "Академический отпуск"
 
-#: .\accounts\models.py:274
+#: .\accounts\models.py:305
 msgid "Отчислен"
 msgstr "Отчислен"
 
-#: .\accounts\models.py:278
+#: .\accounts\models.py:306
+#, fuzzy
+#| msgid "Выпуск (Хатм)"
+msgid "Выпускник"
+msgstr "Выпуск "
+
+#: .\accounts\models.py:310
 msgid "Очное"
 msgstr "Очное"
 
-#: .\accounts\models.py:279
+#: .\accounts\models.py:311
 msgid "Заочное"
 msgstr "Заочное"
 
-#: .\accounts\models.py:280
+#: .\accounts\models.py:312
 msgid "Вечернее"
 msgstr "Вечернее"
 
-#: .\accounts\models.py:284
+#: .\accounts\models.py:316
 msgid "Таджикский"
 msgstr "Таджикский"
 
-#: .\accounts\models.py:285 .\department_platform\settings.py:9
+#: .\accounts\models.py:317 .\department_platform\settings.py:9
 msgid "Русский"
 msgstr "Русский"
 
-#: .\accounts\models.py:286
+#: .\accounts\models.py:318
 msgid "Английский"
 msgstr "Английский"
 
-#: .\accounts\models.py:291
+#: .\accounts\models.py:323
 msgid "Номер зачетки"
 msgstr "Номер зачетки"
 
-#: .\accounts\models.py:309
+#: .\accounts\models.py:341
 msgid "Сумма контракта"
 msgstr "Сумма контракта"
 
-#: .\accounts\models.py:310 .\templates\accounts\payment_list.html:32
+#: .\accounts\models.py:342 .\templates\accounts\payment_list.html:32
 msgid "Оплачено"
 msgstr "Оплачено"
 
-#: .\accounts\models.py:312
+#: .\accounts\models.py:344
 msgid "ФИО спонсора"
 msgstr "ФИО спонсора"
 
-#: .\accounts\models.py:313
+#: .\accounts\models.py:345
 msgid "Телефон спонсора"
 msgstr "Телефон спонсора"
 
-#: .\accounts\models.py:314
+#: .\accounts\models.py:346
 msgid "Отношение спонсора"
 msgstr "Отношение спонсора"
 
-#: .\accounts\models.py:331 .\templates\accounts\user_management.html:26
+#: .\accounts\models.py:347
+#, fuzzy
+#| msgid "Специальность добавлена"
+msgid "Специальность (Направление)"
+msgstr "Специальность добавлена"
+
+#: .\accounts\models.py:348
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Специализация (Профиль)"
+msgstr "Редактировать предмет"
+
+#: .\accounts\models.py:365 .\templates\accounts\user_management.html:28
+#: .\templates\base.html:680
 msgid "Студенты"
 msgstr "Студенты"
 
-#: .\accounts\models.py:396 .\accounts\models.py:397
+#: .\accounts\models.py:430 .\accounts\models.py:431
 msgid "История переводов"
 msgstr "История переводов"
 
-#: .\accounts\models.py:412
+#: .\accounts\models.py:446
 msgid "Текущее название"
 msgstr "Текущее название"
 
-#: .\accounts\models.py:414
+#: .\accounts\models.py:448
 msgid "Поле"
 msgstr "Поле"
 
-#: .\accounts\models.py:415
+#: .\accounts\models.py:449
 msgid "Старое значение"
 msgstr "Старое значение"
 
-#: .\accounts\models.py:416
+#: .\accounts\models.py:450
 msgid "Новое значение"
 msgstr "Новое значение"
 
-#: .\accounts\models.py:422 .\accounts\models.py:423
+#: .\accounts\models.py:456 .\accounts\models.py:457
 msgid "История структуры"
 msgstr "История структуры"
 
-#: .\accounts\models.py:484
-msgid "Отчисление (Хориҷ)"
-msgstr "Отчисление"
+#: .\accounts\models.py:542
+#, fuzzy
+#| msgid "Отчислен"
+msgid "Зачисление"
+msgstr "Отчислен"
 
-#: .\accounts\models.py:486 .\templates\accounts\all_orders_list.html:59
+#: .\accounts\models.py:543
+#, fuzzy
+#| msgid "Отчислен"
+msgid "Отчисление"
+msgstr "Отчислен"
+
+#: .\accounts\models.py:545
 msgid "Восстановление"
 msgstr "Восстановление"
 
-#: .\accounts\models.py:487
-msgid "Выпуск (Хатм)"
+#: .\accounts\models.py:546
+#, fuzzy
+#| msgid "Выпуск (Хатм)"
+msgid "Выпуск"
 msgstr "Выпуск "
 
-#: .\accounts\models.py:490 .\templates\accounts\student_orders.html:19
+#: .\accounts\models.py:547
+#, fuzzy
+#| msgid "Перевести в другую группу"
+msgid "Перевод в другую группу/вуз"
+msgstr "Перевести в другую группу"
+
+#: .\accounts\models.py:551
+#, fuzzy
+#| msgid "Должность для подписи"
+msgid "Проект (На подписи)"
+msgstr "Должность для подписи"
+
+#: .\accounts\models.py:552
+msgid "Подписан (Утвержден)"
+msgstr "Подписан (Утвержден)"
+
+#: .\accounts\models.py:553
+msgid "Отклонен"
+msgstr "Отклонен"
+
+#: .\accounts\models.py:556 .\templates\accounts\student_orders.html:19
 msgid "Номер приказа"
 msgstr "Номер приказа"
 
-#: .\accounts\models.py:491
+#: .\accounts\models.py:557
 msgid "Дата приказа"
 msgstr "Дата приказа"
 
-#: .\accounts\models.py:492
+#: .\accounts\models.py:558 .\templates\core\dashboard_rector.html:64
 msgid "Тип приказа"
 msgstr "Тип приказа"
 
-#: .\accounts\models.py:494
-msgid "Причина/Основание"
-msgstr "Причина/Основание"
+#: .\accounts\models.py:559
+msgid "Заголовок (например: О переводе студентов 2 курса)"
+msgstr "Заголовок (например: О переводе студентов 2 курса)"
 
-#: .\accounts\models.py:495
+#: .\accounts\models.py:561 .\templates\accounts\payment_list.html:34
+#: .\templates\accounts\user_management.html:48
+#: .\templates\schedule\manage_classrooms.html:51
+msgid "Статус"
+msgstr "Статус"
+
+#: .\accounts\models.py:562
 msgid "Скан приказа"
 msgstr "Скан приказа"
 
-#: .\accounts\models.py:501
-msgid "Приказ по студенту"
-msgstr "Приказ по студенту"
+#: .\accounts\models.py:569
+#, fuzzy
+#| msgid "Приказы (Фармонҳо)"
+msgid "Приказ (Массовый)"
+msgstr "Приказы"
 
-#: .\accounts\models.py:502
+#: .\accounts\models.py:570
 msgid "Приказы (Фармонҳо)"
 msgstr "Приказы"
 
-#: .\accounts\views.py:72
+#: .\accounts\models.py:615
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Новая группа (для перевода)"
+msgstr "Новая группа"
+
+#: .\accounts\models.py:616
+#, fuzzy
+#| msgid "Основание (из плана)"
+msgid "Основание (заявление, долг и т.д.)"
+msgstr "Основание (из плана)"
+
+#: .\accounts\models.py:625
+#, fuzzy
+#| msgid "Название материала"
+msgid "Название отдела"
+msgstr "Название материала"
+
+#: .\accounts\models.py:628
+msgid "Сотрудник отдела кадров"
+msgstr "Сотрудник отдела кадров"
+
+#: .\accounts\models.py:629
+msgid "Сотрудники отдела кадров"
+msgstr "Сотрудники отдела кадров"
+
+#: .\accounts\models.py:637
+msgid "Справка с места учебы (Студент)"
+msgstr "Справка с места учебы (Студент)"
+
+#: .\accounts\models.py:638
+#, fuzzy
+#| msgid "Отчисление (Хориҷ)"
+msgid "Приказ по студенту (Отчисление/Перевод)"
+msgstr "Отчисление"
+
+#: .\accounts\models.py:639
+msgid "Экзаменационная ведомость (Группа + Предмет)"
+msgstr "Экзаменационная ведомость (Группа + Предмет)"
+
+#: .\accounts\models.py:642
+msgid "Название шаблона (например: Справка в военкомат)"
+msgstr "Название шаблона (например: Справка в военкомат)"
+
+#: .\accounts\models.py:643
+#, fuzzy
+#| msgid "Нет прав"
+msgid "Тип данных"
+msgstr "Нет прав"
+
+#: .\accounts\models.py:648
+msgid "Файл шаблона (.docx)"
+msgstr "Файл шаблона (.docx)"
+
+#: .\accounts\models.py:651 .\schedule\models.py:324
+#: .\templates\accounts\user_management.html:78
+msgid "Активен"
+msgstr "Активен"
+
+#: .\accounts\models.py:657
+#, fuzzy
+#| msgid "Шаблон дисциплины"
+msgid "Шаблон документа"
+msgstr "Шаблон дисциплины"
+
+#: .\accounts\models.py:658 .\templates\accounts\document_templates.html:7
+#: .\templates\base.html:690
+#, fuzzy
+#| msgid "Шаблон дисциплины"
+msgid "Шаблоны документов"
+msgstr "Шаблон дисциплины"
+
+#: .\accounts\models.py:664 .\schedule\models.py:455
+#: .\templates\accounts\delete_group.html:39
+#: .\templates\accounts\edit_group.html:53
+#: .\templates\accounts\group_management.html:44
+msgid "Специальность"
+msgstr "Специальность"
+
+#: .\accounts\models.py:665
+#, fuzzy
+#| msgid "Название дисциплины"
+msgid "Название специализации (профиля)"
+msgstr "Название дисциплины"
+
+#: .\accounts\models.py:666
+#, fuzzy
+#| msgid "Просмотры"
+msgid "Шифр профиля"
+msgstr "Просмотры"
+
+#: .\accounts\models.py:669
+#, fuzzy
+#| msgid "Специальность"
+msgid "Специализация"
+msgstr "Специальность"
+
+#: .\accounts\models.py:670
+#, fuzzy
+#| msgid "Специальность"
+msgid "Специализации"
+msgstr "Специальность"
+
+#: .\accounts\models.py:677
+#, fuzzy
+#| msgid "Номер приказа"
+msgid "Номер диплома"
+msgstr "Номер приказа"
+
+#: .\accounts\models.py:678
+#, fuzzy
+#| msgid "Дата начала"
+msgid "Дата выдачи"
+msgstr "Дата начала"
+
+#: .\accounts\models.py:679
+#, fuzzy
+#| msgid "Скан приказа"
+msgid "Скан диплома"
+msgstr "Скан приказа"
+
+#: .\accounts\models.py:682
+msgid "Диплом"
+msgstr "Диплом"
+
+#: .\accounts\models.py:683
+msgid "Дипломы"
+msgstr "Дипломы"
+
+#: .\accounts\views.py:83
 msgid "Неверный логин или пароль"
 msgstr "Неверный логин или пароль"
 
-#: .\accounts\views.py:79
+#: .\accounts\views.py:90
 msgid "Вы успешно вышли из системы"
 msgstr "Вы успешно вышли из системы"
 
-#: .\accounts\views.py:231
+#: .\accounts\views.py:242
 msgid "Профиль успешно обновлен"
 msgstr "Профиль успешно обновлен"
 
-#: .\accounts\views.py:258
+#: .\accounts\views.py:269
 msgid "Пароль успешно изменен"
 msgstr "Пароль успешно изменен"
 
-#: .\accounts\views.py:337
+#: .\accounts\views.py:345
 msgid "Пожалуйста, загрузите файл .xlsx"
 msgstr "Пожалуйста, загрузите файл .xlsx"
 
-#: .\accounts\views.py:344
+#: .\accounts\views.py:352
 msgid "; "
 msgstr ";"
 
-#: .\accounts\views.py:375
+#: .\accounts\views.py:382
 msgid "У вас нет прав создавать руководство института."
 msgstr "У вас нет прав создавать руководство института."
 
-#: .\accounts\views.py:434
+#: .\accounts\views.py:436 .\accounts\views.py:492 .\accounts\views.py:531
+#, fuzzy
+#| msgid "Нет доступа к этой кафедре"
+msgid "Нет доступа к этому пользователю"
+msgstr "Нет доступа к этой кафедре"
+
+#: .\accounts\views.py:456
 msgid "Пользователь успешно обновлен"
 msgstr "Пользователь успешно обновлен"
 
-#: .\accounts\views.py:480
+#: .\accounts\views.py:517
 msgid "❌ Вы не можете заблокировать сам себя!"
 msgstr "❌ Вы не можете заблокировать сам себя!"
 
-#: .\accounts\views.py:484
+#: .\accounts\views.py:535
 msgid "❌ Вы не можете заблокировать суперпользователя!"
 msgstr "❌ Вы не можете заблокировать суперпользователя!"
 
-#: .\accounts\views.py:490
+#: .\accounts\views.py:541
 msgid "активирован"
 msgstr "активирован"
 
-#: .\accounts\views.py:490
+#: .\accounts\views.py:541
 msgid "заблокирован"
 msgstr "заблокирован"
 
-#: .\accounts\views.py:528 .\schedule\views.py:61 .\schedule\views.py:763
-#: .\schedule\views.py:1249
+#: .\accounts\views.py:551
+#, fuzzy
+#| msgid "Нет доступа к этой кафедре"
+msgid "Нет доступа к этому студенту"
+msgstr "Нет доступа к этой кафедре"
+
+#: .\accounts\views.py:584 .\schedule\views.py:66 .\schedule\views.py:823
+#: .\schedule\views.py:1345
 msgid "Доступ запрещен"
 msgstr "Доступ запрещен"
 
-#: .\accounts\views.py:584
+#: .\accounts\views.py:641 .\schedule\views.py:1759
 msgid "Нет доступа"
 msgstr "Нет доступа"
 
-#: .\accounts\views.py:595
+#: .\accounts\views.py:652
 msgid "Это специальность чужого факультета"
 msgstr "Это специальность чужого факультета"
 
-#: .\accounts\views.py:616
+#: .\accounts\views.py:673
 msgid "Попытка создания группы на чужом факультете"
 msgstr "Попытка создания группы на чужом факультете"
 
-#: .\accounts\views.py:627
+#: .\accounts\views.py:684
 msgid "Пожалуйста, исправьте ошибки в форме."
 msgstr "Пожалуйста, исправьте ошибки в форме."
 
-#: .\accounts\views.py:644
+#: .\accounts\views.py:697 .\accounts\views.py:717
+#, fuzzy
+#| msgid "Нет доступа к этой кафедре"
+msgid "Нет доступа к этой группе"
+msgstr "Нет доступа к этой кафедре"
+
+#: .\accounts\views.py:706
 msgid "Ошибки формы:"
 msgstr "Ошибки формы:"
 
-#: .\accounts\views.py:764
+#: .\accounts\views.py:831
 msgid "Ваш профиль не привязан к факультету"
 msgstr "Ваш профиль не привязан к факультету"
 
-#: .\accounts\views.py:827
+#: .\accounts\views.py:894
 msgid "Институт и руководство обновлены"
 msgstr "Институт и руководство обновлены"
 
-#: .\accounts\views.py:845
+#: .\accounts\views.py:912
 msgid "Институт удален"
 msgstr "Институт удален"
 
-#: .\accounts\views.py:942
+#: .\accounts\views.py:1009
 msgid "Факультет и руководство обновлены"
 msgstr "Факультет и руководство обновлены"
 
-#: .\accounts\views.py:958
+#: .\accounts\views.py:1025
 msgid "Факультет удален"
 msgstr "Факультет удален"
 
-#: .\accounts\views.py:985
+#: .\accounts\views.py:1052
 msgid "Вы можете добавлять кафедры только в свой факультет"
 msgstr "Вы можете добавлять кафедры только в свой факультет"
 
-#: .\accounts\views.py:1020 .\accounts\views.py:1064 .\accounts\views.py:1108
-#: .\accounts\views.py:1130
+#: .\accounts\views.py:1087 .\accounts\views.py:1131 .\accounts\views.py:1175
+#: .\accounts\views.py:1197
 msgid "Это не ваша кафедра"
 msgstr "Это не ваша кафедра"
 
-#: .\accounts\views.py:1046
+#: .\accounts\views.py:1113
 msgid "Кафедра обновлена"
 msgstr "Кафедра обновлена"
 
-#: .\accounts\views.py:1068
+#: .\accounts\views.py:1135
 msgid "Кафедра удалена"
 msgstr "Кафедра удалена"
 
-#: .\accounts\views.py:1088
+#: .\accounts\views.py:1155
 msgid "Ошибка доступа к кафедре"
 msgstr "Ошибка доступа к кафедре"
 
-#: .\accounts\views.py:1091
+#: .\accounts\views.py:1158
 msgid "Специальность добавлена"
 msgstr "Специальность добавлена"
 
-#: .\accounts\views.py:1114
+#: .\accounts\views.py:1181
 msgid "Специальность обновлена"
 msgstr "Специальность обновлена"
 
-#: .\accounts\views.py:1134
+#: .\accounts\views.py:1201
 msgid "Специальность удалена"
 msgstr "Специальность удалена"
 
-#: .\accounts\views.py:1145
+#: .\accounts\views.py:1212
 msgid "Институт добавлен"
 msgstr "Институт добавлен"
+
+#: .\accounts\views.py:1307
+#, fuzzy
+#| msgid "Приказы (Фармонҳо)"
+msgid "Приказ уже обработан."
+msgstr "Приказы"
+
+#: .\accounts\views.py:1354
+#, fuzzy
+#| msgid "Ваш профиль не привязан к факультету"
+msgid "Ваш профиль не привязан к факультету."
+msgstr "Ваш профиль не привязан к факультету"
+
+#: .\accounts\views.py:1373
+#, fuzzy
+#| msgid "Попытка создания группы на чужом факультете"
+msgid "Ошибка доступа: попытка распределить в группу чужого факультета."
+msgstr "Попытка создания группы на чужом факультете"
+
+#: .\accounts\views.py:1383
+msgid " Выберите студентов и укажите группу для распределения."
+msgstr "Выберите студентов и укажите группу для распределения."
+
+#: .\accounts\views.py:1418
+#, fuzzy
+#| msgid "Пароль успешно изменен"
+msgid "Шаблон успешно загружен!"
+msgstr "Пароль успешно изменен"
+
+#: .\accounts\views.py:1433
+#, fuzzy
+#| msgid "Материал удален"
+msgid "Шаблон удален."
+msgstr "Материал удален"
+
+#: .\accounts\views.py:1514
+msgid "Необходимо добавить хотя бы одного студента в приказ."
+msgstr "Необходимо добавить хотя бы одного студента в приказ."
+
+#: .\accounts\views.py:1516
+msgid "Заполните обязательные поля: Заголовок и Тип приказа."
+msgstr "Заполните обязательные поля: Заголовок и Тип приказа."
 
 #: .\chat\forms.py:13
 msgid "Введите сообщение..."
@@ -707,9 +1005,11 @@ msgstr "Личный"
 msgid "Групповой"
 msgstr "Групповой"
 
-#: .\chat\models.py:15 .\schedule\models.py:18 .\schedule\models.py:150
+#: .\chat\models.py:15 .\schedule\models.py:39
 #: .\templates\accounts\edit_institute_full.html:47
 #: .\templates\accounts\group_management.html:41
+#: .\templates\schedule\manage_buildings.html:26
+#: .\templates\schedule\semester_form.html:44
 msgid "Название"
 msgstr "Название"
 
@@ -757,7 +1057,7 @@ msgstr "Прочитано"
 msgid "Дата отправки"
 msgstr "Дата отправки"
 
-#: .\chat\models.py:78 .\templates\base.html:720
+#: .\chat\models.py:78 .\templates\base.html:742 .\templates\base.html:807
 msgid "Сообщения"
 msgstr "Сообщения"
 
@@ -769,10 +1069,6 @@ msgstr "Чат с%(user)s создан"
 #: .\chat\views.py:92
 msgid "Сообщение удалено"
 msgstr "Сообщение удалено"
-
-#: .\core\views.py:70
-msgid "Внимание! Активный семестр не выбран. Расписание может не работать."
-msgstr "Внимание! Активный семестр не выбран. Расписание может не работать."
 
 #: .\department_platform\settings.py:10
 msgid "Тоҷикӣ"
@@ -810,7 +1106,7 @@ msgstr "Балл"
 msgid "---"
 msgstr "---"
 
-#: .\journal\forms.py:72 .\journal\models.py:50
+#: .\journal\forms.py:72 .\journal\models.py:52
 msgid "Статус посещения"
 msgstr "Статус посещения"
 
@@ -830,7 +1126,7 @@ msgstr "-- Выберите группу --"
 msgid "-- Выберите предмет --"
 msgstr "-- Выберите предмет --"
 
-#: .\journal\forms.py:119 .\schedule\models.py:326
+#: .\journal\forms.py:119
 msgid "Учебная неделя"
 msgstr "Учебная неделя"
 
@@ -854,203 +1150,203 @@ msgstr "Все студенты"
 msgid "Все преподаватели"
 msgstr "Все преподаватели"
 
-#: .\journal\models.py:11 .\templates\accounts\profile_student.html:360
+#: .\journal\models.py:13 .\templates\accounts\profile_student.html:379
 msgid "Присутствовал"
 msgstr "Присутствовал"
 
-#: .\journal\models.py:12 .\journal\models.py:186
+#: .\journal\models.py:14 .\journal\models.py:188
 msgid "НБ-Болезнь"
 msgstr "НБ-Болезнь"
 
-#: .\journal\models.py:13 .\journal\models.py:187
+#: .\journal\models.py:15 .\journal\models.py:189
 msgid "НБ-Уважительная"
 msgstr "НБ-Уважительная"
 
-#: .\journal\models.py:14 .\journal\models.py:188
+#: .\journal\models.py:16 .\journal\models.py:190
 msgid "НБ-Неуважительная"
 msgstr "НБ-Неуважительная"
 
-#: .\journal\models.py:28 .\schedule\models.py:71 .\schedule\models.py:248
-#: .\schedule\models.py:449 .\templates\accounts\profile_student.html:144
+#: .\journal\models.py:30 .\schedule\models.py:91 .\schedule\models.py:360
+#: .\schedule\models.py:537 .\templates\accounts\profile_student.html:163
 msgid "Предмет"
 msgstr "Предмет"
 
-#: .\journal\models.py:31
+#: .\journal\models.py:33
 msgid "Дата занятия"
 msgstr "Дата занятия"
 
-#: .\journal\models.py:32
+#: .\journal\models.py:34
 msgid "Время начала пары"
 msgstr "Время начала пары"
 
-#: .\journal\models.py:36 .\schedule\models.py:255
+#: .\journal\models.py:38 .\schedule\models.py:367
 msgid "Тип занятия"
 msgstr "Тип занятия"
 
-#: .\journal\models.py:43
+#: .\journal\models.py:45
 msgid "Балл (1-12)"
 msgstr "Балл (1-12)"
 
-#: .\journal\models.py:56
+#: .\journal\models.py:58
 msgid "Время блокировки"
 msgstr "Время блокировки"
 
-#: .\journal\models.py:64
+#: .\journal\models.py:66
 msgid "Создал"
 msgstr "Создал"
 
-#: .\journal\models.py:72
+#: .\journal\models.py:74
 msgid "Изменил"
 msgstr "Изменил"
 
-#: .\journal\models.py:79
+#: .\journal\models.py:81
 msgid "Запись в журнале"
 msgstr "Запись в журнале"
 
-#: .\journal\models.py:80
+#: .\journal\models.py:82
 msgid "Записи в журнале"
 msgstr "Записи в журнале"
 
-#: .\journal\models.py:128
+#: .\journal\models.py:130
 msgid "Запись"
 msgstr "Запись"
 
-#: .\journal\models.py:135
+#: .\journal\models.py:137
 msgid "Кто изменил"
 msgstr "Кто изменил"
 
-#: .\journal\models.py:138
+#: .\journal\models.py:140
 msgid "Когда"
 msgstr "Когда"
 
-#: .\journal\models.py:140
+#: .\journal\models.py:142
 msgid "Старый балл"
 msgstr "Старый балл"
 
-#: .\journal\models.py:141
+#: .\journal\models.py:143
 msgid "Старая посещаемость"
 msgstr "Старая посещаемость"
 
-#: .\journal\models.py:143
+#: .\journal\models.py:145
 msgid "Новый балл"
 msgstr "Новый балл"
 
-#: .\journal\models.py:144
+#: .\journal\models.py:146
 msgid "Новая посещаемость"
 msgstr "Новая посещаемость"
 
-#: .\journal\models.py:146 .\news\models.py:91 .\news\models.py:95
+#: .\journal\models.py:148 .\news\models.py:91 .\news\models.py:95
 msgid "Комментарий"
 msgstr "Комментарий"
 
-#: .\journal\models.py:149
+#: .\journal\models.py:151
 msgid "Лог изменений"
 msgstr "Лог изменений"
 
-#: .\journal\models.py:150
+#: .\journal\models.py:152
 msgid "Логи изменений"
 msgstr "Логи изменений"
 
-#: .\journal\models.py:179
+#: .\journal\models.py:181
 msgid "Общий средний балл"
 msgstr "Общий средний балл"
 
-#: .\journal\models.py:180
+#: .\journal\models.py:182
 msgid "Рейтинг в группе"
 msgstr "Рейтинг в группе"
 
-#: .\journal\models.py:182
+#: .\journal\models.py:184
 msgid "Процент посещаемости"
 msgstr "Процент посещаемости"
 
-#: .\journal\models.py:183
+#: .\journal\models.py:185
 msgid "Всего занятий"
 msgstr "Всего занятий"
 
-#: .\journal\models.py:184
+#: .\journal\models.py:186
 msgid "Посещено занятий"
 msgstr "Посещено занятий"
 
-#: .\journal\models.py:189
+#: .\journal\models.py:191
 msgid "Всего прогулов"
 msgstr "Всего прогулов"
 
-#: .\journal\models.py:191
+#: .\journal\models.py:193
 msgid "Данные по предметам"
 msgstr "Данные по предметам"
 
-#: .\journal\models.py:193
+#: .\journal\models.py:195
 msgid "Последнее обновление"
 msgstr "Последнее обновление"
 
-#: .\journal\models.py:196
+#: .\journal\models.py:198
 msgid "Статистика студента"
 msgstr "Статистика студента"
 
-#: .\journal\models.py:197
+#: .\journal\models.py:199
 msgid "Статистика студентов"
 msgstr "Статистика студентов"
 
-#: .\journal\views.py:59
+#: .\journal\views.py:85
 #, python-format
 msgid ""
 "Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено"
 msgstr ""
 "Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено"
 
-#: .\journal\views.py:120
+#: .\journal\views.py:158
 msgid "🔒 Запись заблокирована!"
 msgstr "🔒 Запись заблокирована!"
 
-#: .\journal\views.py:123
+#: .\journal\views.py:161
 msgid "Нет прав на редактирование"
 msgstr "Нет прав на редактирование"
 
-#: .\journal\views.py:152
+#: .\journal\views.py:197
 #, python-format
 msgid "✅ Балл %(grade_value)s выставлен за неделю"
 msgstr "✅ Балл %(grade_value)s выставлен за неделю"
 
-#: .\journal\views.py:157
+#: .\journal\views.py:205
 #, python-format
 msgid "✅ Балл %(grade_value)s выставлен"
 msgstr "✅ Балл %(grade_value)s выставлен"
 
-#: .\journal\views.py:171
+#: .\journal\views.py:223
 msgid "✅ НБ обновлено"
 msgstr "✅ НБ обновлено"
 
-#: .\journal\views.py:199
+#: .\journal\views.py:251
 msgid "Выберите статус посещаемости"
 msgstr "Выберите статус посещаемости"
 
-#: .\journal\views.py:234
+#: .\journal\views.py:286
 #, python-format
 msgid "✅ Обновлено: %(updated_count)s"
 msgstr "✅ Обновлено: %(updated_count)s"
 
-#: .\journal\views.py:236
+#: .\journal\views.py:288
 #, python-format
 msgid "⚠️ Заблокировано: %(locked_count)s"
 msgstr "⚠️ Заблокировано: %(locked_count)s"
 
-#: .\journal\views.py:238
+#: .\journal\views.py:290
 msgid "Ошибка формы"
 msgstr "Ошибка формы"
 
-#: .\journal\views.py:531
+#: .\journal\views.py:581
 msgid "Запись заблокирована (прошло 24 часа)"
 msgstr "Запись заблокирована (прошло 24 часа)"
 
-#: .\journal\views.py:533
+#: .\journal\views.py:583
 msgid "Это не ваш предмет"
 msgstr "Это не ваш предмет"
 
-#: .\journal\views.py:554
+#: .\journal\views.py:604
 msgid "Оценка должна быть от 1 до 12"
 msgstr "Оценка должна быть от 1 до 12"
 
-#: .\journal\views.py:563
+#: .\journal\views.py:613
 msgid "Введите число (оценка) или \"нб\" (прогул)"
 msgstr "Введите число (оценка) или \"нб\" (прогул)"
 
@@ -1083,7 +1379,7 @@ msgid "Достижение"
 msgstr "Достижение"
 
 #: .\news\models.py:10 .\templates\accounts\group_management.html:66
-#: .\templates\accounts\structure_manage.html:268
+#: .\templates\accounts\structure_manage.html:268 .\templates\base.html:636
 msgid "Расписание"
 msgstr "Расписание"
 
@@ -1143,13 +1439,14 @@ msgstr "Просмотры"
 msgid "Новость"
 msgstr "Новость"
 
-#: .\news\models.py:67 .\templates\base.html:715
+#: .\news\models.py:67 .\templates\base.html:736 .\templates\base.html:802
 msgid "Новости"
 msgstr "Новости"
 
-#: .\news\models.py:92 .\templates\accounts\all_orders_list.html:36
+#: .\news\models.py:92 .\templates\accounts\all_orders_list.html:43
 #: .\templates\accounts\student_orders.html:23
 #: .\templates\accounts\student_orders.html:48
+#: .\templates\core\dashboard_rector.html:63
 msgid "Дата"
 msgstr "Дата"
 
@@ -1189,579 +1486,763 @@ msgstr "Новость закреплена"
 msgid "Новость откреплена"
 msgstr "Новость откреплена"
 
-#: .\schedule\forms.py:31
+#: .\schedule\forms.py:27
 msgid "Авто-расчет по кредитам"
 msgstr "Авто-расчет по кредитам"
 
-#: .\schedule\forms.py:37
+#: .\schedule\forms.py:33
 msgid "Назначить всем группам кафедры (создаст отдельные предметы)"
 msgstr "Назначить всем группам кафедры (создаст отдельные предметы)"
 
-#: .\schedule\forms.py:77
+#: .\schedule\forms.py:75
 msgid "Номер кабинета"
 msgstr "Номер кабинета"
 
-#: .\schedule\forms.py:90
+#: .\schedule\forms.py:88
 msgid "Семестр не указан"
 msgstr "Семестр не указан"
 
-#: .\schedule\forms.py:97
-msgid "Выбрать кафедру (для фильтрации групп)"
+#: .\schedule\forms.py:95
+#, fuzzy
+#| msgid "Выбрать кафедру (для фильтрации групп)"
+msgid "Выбрать кафедру (для авто-добавления групп)"
 msgstr "Выбрать кафедру (для фильтрации групп)"
 
-#: .\schedule\forms.py:103
-msgid "Фильтр по Институту"
-msgstr "Фильтр по Институту"
-
-#: .\schedule\forms.py:115
+#: .\schedule\forms.py:113
 msgid "Например: Осенний"
 msgstr "Например: Осенний"
 
-#: .\schedule\forms.py:148 .\schedule\models.py:219
+#: .\schedule\forms.py:162 .\schedule\models.py:27
+#, fuzzy
+#| msgid "Учебный год"
+msgid "Учебный корпус"
+msgstr "Учебный год"
+
+#: .\schedule\forms.py:165 .\schedule\models.py:319
+#: .\templates\schedule\manage_classrooms.html:49
 msgid "Этаж"
 msgstr "Этаж"
 
-#: .\schedule\forms.py:149
+#: .\schedule\forms.py:166
 msgid "Начальный номер"
 msgstr "Начальный номер"
 
-#: .\schedule\forms.py:150
+#: .\schedule\forms.py:167
 msgid "Конечный номер"
 msgstr "Конечный номер"
 
-#: .\schedule\forms.py:151 .\schedule\models.py:220
+#: .\schedule\forms.py:168 .\schedule\models.py:320
+#: .\templates\schedule\manage_classrooms.html:50
 msgid "Вместимость"
 msgstr "Вместимость"
 
-#: .\schedule\forms.py:158
+#: .\schedule\forms.py:184
 msgid "Конечный номер должен быть больше начального"
 msgstr "Конечный номер должен быть больше начального"
 
-#: .\schedule\forms.py:176
-msgid "Дата начала семестра"
-msgstr "Дата начала семестра"
-
-#: .\schedule\forms.py:177 .\schedule\models.py:323
-msgid "Текущая неделя"
-msgstr "Текущая неделя"
-
-#: .\schedule\forms.py:205
+#: .\schedule\forms.py:226
 msgid "-- Общий план для всей специальности --"
 msgstr "-- Общий план для всей специальности --"
 
-#: .\schedule\forms.py:258
-msgid "Файл расписания (Excel или PDF)"
+#: .\schedule\forms.py:242
+msgid "Необходимо указать либо специальность, либо конкретную группу."
+msgstr "Необходимо указать либо специальность, либо конкретную группу."
+
+#: .\schedule\forms.py:282
+#, fuzzy
+#| msgid "Файл расписания (Excel или PDF)"
+msgid "Файл расписания (Excel)"
 msgstr "Файл расписания (Excel или PDF)"
 
-#: .\schedule\forms.py:259
-msgid "Поддерживаются .xlsx и .pdf (табличный вид)"
+#: .\schedule\forms.py:283
+#, fuzzy
+#| msgid "Поддерживаются .xlsx и .pdf (табличный вид)"
+msgid "Поддерживаются только .xlsx и .xls"
 msgstr "Поддерживаются .xlsx и .pdf (табличный вид)"
 
-#: .\schedule\forms.py:266 .\schedule\models.py:198 .\schedule\models.py:258
-#: .\schedule\models.py:319
+#: .\schedule\forms.py:291 .\schedule\models.py:283 .\schedule\models.py:377
+#: .\templates\schedule\constructor_with_limits.html:46
 msgid "Семестр"
 msgstr "Семестр"
 
-#: .\schedule\forms.py:267
+#: .\schedule\forms.py:292
 msgid "-- Выберите активный семестр --"
 msgstr "-- Выберите активный семестр --"
 
-#: .\schedule\forms.py:274
+#: .\schedule\forms.py:299
 msgid "Группа по умолчанию"
 msgstr "Группа по умолчанию"
 
-#: .\schedule\forms.py:275
+#: .\schedule\forms.py:300
 msgid ""
 "Выберите группу, если имя группы не удастся найти в файле автоматически."
 msgstr ""
 "Выберите группу, если имя группы не удастся найти в файле автоматически."
 
-#: .\schedule\forms.py:285
+#: .\schedule\forms.py:309
 msgid "Например: Лекция 1. Введение"
 msgstr "Например: Лекция 1. Введение"
 
-#: .\schedule\models.py:14 .\schedule\models.py:242 .\schedule\views.py:104
-msgid "Лекция"
-msgstr "Лекция"
+#: .\schedule\forms.py:316
+#, fuzzy
+#| msgid "Институт и руководство обновлены"
+msgid "Институт (Оставьте пустым для всего ВУЗа)"
+msgstr "Институт и руководство обновлены"
 
-#: .\schedule\models.py:15 .\schedule\models.py:243 .\schedule\models.py:402
-#: .\schedule\views.py:104
-msgid "Практика"
-msgstr "Практика"
+#: .\schedule\forms.py:318
+msgid "--- Глобальная настройка (Весь университет) ---"
+msgstr "--- Глобальная настройка (Весь университет) ---"
 
-#: .\schedule\models.py:16 .\schedule\models.py:244
-msgid "СРСП (КМРО)"
-msgstr "СРСП (КМРО)"
-
-#: .\schedule\models.py:19 .\templates\accounts\edit_institute_full.html:51
-msgid "Код"
-msgstr "Код"
-
-#: .\schedule\models.py:27
-msgid "Основной тип"
-msgstr "Основной тип"
-
-#: .\schedule\models.py:30
-msgid "Лекции (Л) часов за семестр"
-msgstr "Лекции (Л) часов за семестр"
-
-#: .\schedule\models.py:31
-msgid "Практика (А) часов за семестр"
-msgstr "Практика (А) часов за семестр"
-
-#: .\schedule\models.py:32
-msgid "Контроль (КМРО) часов за семестр"
-msgstr "Контроль (КМРО) часов за семестр"
-
-#: .\schedule\models.py:33
-msgid "КМД часов за семестр"
-msgstr "КМД часов за семестр"
-
-#: .\schedule\models.py:35
-msgid "Недель в семестре"
-msgstr "Недель в семестре"
-
-#: .\schedule\models.py:39
-msgid "Это поток (совместное занятие)"
-msgstr "Это поток (совместное занятие)"
-
-#: .\schedule\models.py:51
-msgid "Описание"
-msgstr "Описание"
-
-#: .\schedule\models.py:56
-msgid "Силлабус (PDF/Word)"
-msgstr "Силлабус (PDF/Word)"
-
-#: .\schedule\models.py:59
-msgid "Кредиты (устарело)"
-msgstr "Кредиты"
-
-#: .\schedule\models.py:60
-msgid "Часов (устарело)"
-msgstr "Часов"
-
-#: .\schedule\models.py:67
-msgid "Основание (из плана)"
-msgstr "Основание (из плана)"
-
-#: .\schedule\models.py:72
-msgid "Предметы"
-msgstr "Предметы"
-
-#: .\schedule\models.py:148 .\schedule\models.py:261
-msgid "Начало"
-msgstr "Начало"
-
-#: .\schedule\models.py:149 .\schedule\models.py:262
-msgid "Конец"
-msgstr "Конец"
-
-#: .\schedule\models.py:153
-msgid "Временной слот"
-msgstr "Временной слот"
-
-#: .\schedule\models.py:154
-msgid "Временные слоты"
-msgstr "Временные слоты"
-
-#: .\schedule\models.py:162
-msgid "Первый"
-msgstr "Первый"
-
-#: .\schedule\models.py:163
-msgid "Второй"
-msgstr "Второй"
-
-#: .\schedule\models.py:167
-msgid "Утренняя смена"
-msgstr "Утренняя смена"
-
-#: .\schedule\models.py:168
-msgid "Дневная смена"
-msgstr "Дневная смена"
-
-#: .\schedule\models.py:172
-msgid "1 курс"
-msgstr "1 курс"
-
-#: .\schedule\models.py:173
-msgid "2 курс"
-msgstr "2 курс"
-
-#: .\schedule\models.py:174
-msgid "3 курс"
-msgstr "3 курс"
-
-#: .\schedule\models.py:175
-msgid "4 курс"
-msgstr "4 курс"
-
-#: .\schedule\models.py:176
-msgid "5 курс"
-msgstr "5 курс"
-
-#: .\schedule\models.py:186
-msgid "Название (напр. Осенний)"
-msgstr "Название (напр. Осенний)"
-
-#: .\schedule\models.py:187
-msgid "Формат: 2024-2025"
-msgstr "Формат: 2024-2025"
-
-#: .\schedule\models.py:188
-msgid "Номер семестра"
-msgstr "Номер семестра"
-
-#: .\schedule\models.py:190
+#: .\schedule\forms.py:324 .\schedule\models.py:276
+#: .\templates\schedule\manage_time_slots.html:26
+#: .\templates\schedule\semester_form.html:54
 msgid "Смена"
 msgstr "Смена"
 
-#: .\schedule\models.py:192
+#: .\schedule\forms.py:329 .\templates\schedule\manage_time_slots.html:30
+#, fuzzy
+#| msgid "Время начала пары"
+msgid "Начало 1-й пары"
+msgstr "Время начала пары"
+
+#: .\schedule\forms.py:335
+msgid "Урок (мин)"
+msgstr "Урок (мин)"
+
+#: .\schedule\forms.py:342
+#, fuzzy
+#| msgid "Перенесено"
+msgid "Перемена (мин)"
+msgstr "Перенесено"
+
+#: .\schedule\forms.py:348
+msgid "Большая перемена после пары №"
+msgstr "Большая перемена после пары №"
+
+#: .\schedule\forms.py:355
+msgid "Длительность большой перемены (мин)"
+msgstr "Длительность большой перемены (мин)"
+
+#: .\schedule\forms.py:362
+#, fuzzy
+#| msgid "Новый пароль"
+msgid "Кол-во пар"
+msgstr "Новый пароль"
+
+#: .\schedule\forms.py:369
+msgid "Перезаписать существующие слоты этой смены"
+msgstr "Перезаписать существующие слоты этой смены"
+
+#: .\schedule\forms.py:376
+msgid "Включить двухнедельный режим (Красная/Синяя неделя)"
+msgstr "Включить двухнедельный режим (Красная/Синяя неделя)"
+
+#: .\schedule\forms.py:385
+#, fuzzy
+#| msgid "Файл"
+msgid "Файл РУП (Excel)"
+msgstr "Файл"
+
+#: .\schedule\forms.py:398
+#, fuzzy
+#| msgid "Например: Осенний"
+msgid "Например: Главный корпус"
+msgstr "Например: Осенний"
+
+#: .\schedule\forms.py:399
+#, fuzzy
+#| msgid "Необязательно"
+msgid "Адрес (необязательно)"
+msgstr "Необязательно"
+
+#: .\schedule\models.py:15 .\templates\schedule\building_form.html:18
+#, fuzzy
+#| msgid "Название института"
+msgid "Название корпуса"
+msgstr "Название института"
+
+#: .\schedule\models.py:23 .\templates\schedule\building_form.html:26
+#, fuzzy
+#| msgid "Иловаи Институт"
+msgid "Принадлежность Институту"
+msgstr "Добавление Института"
+
+#: .\schedule\models.py:28 .\templates\schedule\manage_buildings.html:4
+#: .\templates\schedule\manage_buildings.html:11
+#, fuzzy
+#| msgid "Учебный год"
+msgid "Учебные корпуса"
+msgstr "Учебный год"
+
+#: .\schedule\models.py:35 .\schedule\models.py:348 .\schedule\views.py:119
+msgid "Лекция"
+msgstr "Лекция"
+
+#: .\schedule\models.py:36 .\schedule\models.py:349 .\schedule\models.py:490
+#: .\schedule\views.py:119
+msgid "Практика"
+msgstr "Практика"
+
+#: .\schedule\models.py:37 .\schedule\models.py:350 .\schedule\models.py:517
+msgid "СРСП (КМРО)"
+msgstr "СРСП (КМРО)"
+
+#: .\schedule\models.py:40 .\templates\accounts\edit_institute_full.html:51
+msgid "Код"
+msgstr "Код"
+
+#: .\schedule\models.py:48
+msgid "Основной тип"
+msgstr "Основной тип"
+
+#: .\schedule\models.py:51
+msgid "Лекции (Л) часов за семестр"
+msgstr "Лекции (Л) часов за семестр"
+
+#: .\schedule\models.py:52
+msgid "Практика (А) часов за семестр"
+msgstr "Практика (А) часов за семестр"
+
+#: .\schedule\models.py:53
+msgid "Контроль (КМРО) часов за семестр"
+msgstr "Контроль (КМРО) часов за семестр"
+
+#: .\schedule\models.py:54
+msgid "КМД часов за семестр"
+msgstr "КМД часов за семестр"
+
+#: .\schedule\models.py:56
+msgid "Недель в семестре"
+msgstr "Недель в семестре"
+
+#: .\schedule\models.py:60
+msgid "Это поток (совместное занятие)"
+msgstr "Это поток (совместное занятие)"
+
+#: .\schedule\models.py:71
+msgid "Описание"
+msgstr "Описание"
+
+#: .\schedule\models.py:76
+msgid "Силлабус (PDF/Word)"
+msgstr "Силлабус (PDF/Word)"
+
+#: .\schedule\models.py:79
+msgid "Кредиты (устарело)"
+msgstr "Кредиты"
+
+#: .\schedule\models.py:80
+msgid "Часов (устарело)"
+msgstr "Часов"
+
+#: .\schedule\models.py:87
+msgid "Основание (из плана)"
+msgstr "Основание (из плана)"
+
+#: .\schedule\models.py:92
+msgid "Предметы"
+msgstr "Предметы"
+
+#: .\schedule\models.py:195
+#, fuzzy
+#| msgid "Утренняя смена"
+msgid "Утренняя смена (1-я)"
+msgstr "Утренняя смена"
+
+#: .\schedule\models.py:196
+#, fuzzy
+#| msgid "Дневная смена"
+msgid "Дневная смена (2-я)"
+msgstr "Дневная смена"
+
+#: .\schedule\models.py:197
+#, fuzzy
+#| msgid "Утренняя смена"
+msgid "Вечерняя смена (3-я)"
+msgstr "Утренняя смена"
+
+#: .\schedule\models.py:208
+#, fuzzy
+#| msgid "Номер паспорта"
+msgid "Номер пары"
+msgstr "Номер паспорта"
+
+#: .\schedule\models.py:209 .\schedule\models.py:380
+msgid "Начало"
+msgstr "Начало"
+
+#: .\schedule\models.py:210 .\schedule\models.py:381
+msgid "Конец"
+msgstr "Конец"
+
+#: .\schedule\models.py:213
+#, fuzzy
+#| msgid "Специальность"
+msgid "Длительность (мин)"
+msgstr "Специальность"
+
+#: .\schedule\models.py:216
+msgid "Временной слот"
+msgstr "Временной слот"
+
+#: .\schedule\models.py:217
+msgid "Временные слоты"
+msgstr "Временные слоты"
+
+#: .\schedule\models.py:248
+msgid "Первый"
+msgstr "Первый"
+
+#: .\schedule\models.py:249
+msgid "Второй"
+msgstr "Второй"
+
+#: .\schedule\models.py:253
+msgid "Утренняя смена"
+msgstr "Утренняя смена"
+
+#: .\schedule\models.py:254
+msgid "Дневная смена"
+msgstr "Дневная смена"
+
+#: .\schedule\models.py:258
+msgid "1 курс"
+msgstr "1 курс"
+
+#: .\schedule\models.py:259
+msgid "2 курс"
+msgstr "2 курс"
+
+#: .\schedule\models.py:260
+msgid "3 курс"
+msgstr "3 курс"
+
+#: .\schedule\models.py:261
+msgid "4 курс"
+msgstr "4 курс"
+
+#: .\schedule\models.py:262
+msgid "5 курс"
+msgstr "5 курс"
+
+#: .\schedule\models.py:272
+msgid "Название (напр. Осенний)"
+msgstr "Название (напр. Осенний)"
+
+#: .\schedule\models.py:273
+msgid "Формат: 2024-2025"
+msgstr "Формат: 2024-2025"
+
+#: .\schedule\models.py:274
+msgid "Номер семестра"
+msgstr "Номер семестра"
+
+#: .\schedule\models.py:278 .\templates\schedule\semester_form.html:61
 msgid "Дата начала"
 msgstr "Дата начала"
 
-#: .\schedule\models.py:193
+#: .\schedule\models.py:279 .\templates\schedule\semester_form.html:66
 msgid "Дата окончания"
 msgstr "Дата окончания"
 
-#: .\schedule\models.py:199
+#: .\schedule\models.py:284 .\templates\base.html:651
 msgid "Семестры"
 msgstr "Семестры"
 
-#: .\schedule\models.py:218
+#: .\schedule\models.py:304
+#, fuzzy
+#| msgid "Элективная (по выбору)"
+msgid "Лекционная (Обычная)"
+msgstr "Элективная (по выбору)"
+
+#: .\schedule\models.py:305
+#, fuzzy
+#| msgid "Конечный номер"
+msgid "Компьютерный класс"
+msgstr "Конечный номер"
+
+#: .\schedule\models.py:306
+#, fuzzy
+#| msgid "Лабораторные"
+msgid "Лаборатория"
+msgstr "Лабораторные"
+
+#: .\schedule\models.py:307
+#, fuzzy
+#| msgid "Новый кабинет"
+msgid "Лингафонный кабинет"
+msgstr "Новый кабинет"
+
+#: .\schedule\models.py:308
+#, fuzzy
+#| msgid "Активный"
+msgid "Спортивный зал"
+msgstr "Активный"
+
+#: .\schedule\models.py:315
+msgid "Корпус/Блок"
+msgstr "Корпус/Блок"
+
+#: .\schedule\models.py:318 .\templates\schedule\manage_classrooms.html:48
 msgid "Номер"
 msgstr "Номер"
 
-#: .\schedule\models.py:221 .\templates\accounts\user_management.html:76
-msgid "Активен"
-msgstr "Активен"
+#: .\schedule\models.py:322
+#, fuzzy
+#| msgid "Номер кабинета"
+msgid "Тип кабинета"
+msgstr "Номер кабинета"
 
-#: .\schedule\models.py:224 .\schedule\models.py:263
+#: .\schedule\models.py:327 .\schedule\models.py:382
 #: .\templates\accounts\edit_institute_full.html:67
 msgid "Кабинет"
 msgstr "Кабинет"
 
-#: .\schedule\models.py:225
+#: .\schedule\models.py:328
 msgid "Кабинеты"
 msgstr "Кабинеты"
 
-#: .\schedule\models.py:233 .\schedule\views.py:119 .\schedule\views.py:1218
-#: .\schedule\views.py:1304
+#: .\schedule\models.py:339 .\schedule\views.py:153 .\schedule\views.py:1312
+#: .\schedule\views.py:1400
 msgid "Понедельник"
 msgstr "Понедельник"
 
-#: .\schedule\models.py:234 .\schedule\views.py:119 .\schedule\views.py:1218
-#: .\schedule\views.py:1304
+#: .\schedule\models.py:340 .\schedule\views.py:153 .\schedule\views.py:1312
+#: .\schedule\views.py:1400
 msgid "Вторник"
 msgstr "Вторник"
 
-#: .\schedule\models.py:235 .\schedule\views.py:119 .\schedule\views.py:1218
-#: .\schedule\views.py:1304
+#: .\schedule\models.py:341 .\schedule\views.py:153 .\schedule\views.py:1312
+#: .\schedule\views.py:1400
 msgid "Среда"
 msgstr "Среда"
 
-#: .\schedule\models.py:236 .\schedule\views.py:119 .\schedule\views.py:1219
-#: .\schedule\views.py:1304
+#: .\schedule\models.py:342 .\schedule\views.py:153 .\schedule\views.py:1313
+#: .\schedule\views.py:1400
 msgid "Четверг"
 msgstr "Четверг"
 
-#: .\schedule\models.py:237 .\schedule\views.py:119 .\schedule\views.py:1219
-#: .\schedule\views.py:1304
+#: .\schedule\models.py:343 .\schedule\views.py:153 .\schedule\views.py:1313
+#: .\schedule\views.py:1400
 msgid "Пятница"
 msgstr "Пятница"
 
-#: .\schedule\models.py:238 .\schedule\views.py:119 .\schedule\views.py:1219
-#: .\schedule\views.py:1304
+#: .\schedule\models.py:344 .\schedule\views.py:153 .\schedule\views.py:1313
+#: .\schedule\views.py:1400
 msgid "Суббота"
 msgstr "Суббота"
 
-#: .\schedule\models.py:259
+#: .\schedule\models.py:354
+#, fuzzy
+#| msgid "Конец недели"
+msgid "Каждую неделю"
+msgstr "Конец недели"
+
+#: .\schedule\models.py:355
+msgid "Красная неделя (Числитель)"
+msgstr "Красная неделя (Числитель)"
+
+#: .\schedule\models.py:356
+msgid "Синяя неделя (Знаменатель)"
+msgstr "Синяя неделя (Знаменатель)"
+
+#: .\schedule\models.py:374
+#, fuzzy
+#| msgid "День недели"
+msgid "Тип недели"
+msgstr "День недели"
+
+#: .\schedule\models.py:378
 msgid "День недели"
 msgstr "День недели"
 
-#: .\schedule\models.py:260
+#: .\schedule\models.py:379
 msgid "Время"
 msgstr "Время"
 
-#: .\schedule\models.py:264
+#: .\schedule\models.py:383
 msgid "Номер кабинета (текст)"
 msgstr "Номер кабинета (текст)"
 
-#: .\schedule\models.py:265
+#: .\schedule\models.py:384
 msgid "Активно"
 msgstr "Активно"
 
-#: .\schedule\models.py:267
+#: .\schedule\models.py:386
 msgid "ID Потока"
 msgstr "ID Потока"
 
-#: .\schedule\models.py:272 .\schedule\models.py:299
+#: .\schedule\models.py:391 .\schedule\models.py:419
 msgid "Занятие"
 msgstr "Занятие"
 
-#: .\schedule\models.py:273
+#: .\schedule\models.py:392
 msgid "Занятия"
 msgstr "Занятия"
 
-#: .\schedule\models.py:295
+#: .\schedule\models.py:415
 msgid "Отменено"
 msgstr "Отменено"
 
-#: .\schedule\models.py:296
+#: .\schedule\models.py:416
 msgid "Перенесено"
 msgstr "Перенесено"
 
-#: .\schedule\models.py:300 .\templates\accounts\student_orders.html:49
+#: .\schedule\models.py:420 .\templates\accounts\student_orders.html:49
 msgid "Тип"
 msgstr "Тип"
 
-#: .\schedule\models.py:301
+#: .\schedule\models.py:421
 msgid "Дата исключения"
 msgstr "Дата исключения"
 
-#: .\schedule\models.py:302
+#: .\schedule\models.py:422
 msgid "Причина"
 msgstr "Причина"
 
-#: .\schedule\models.py:304
+#: .\schedule\models.py:424
 msgid "Новая дата"
 msgstr "Новая дата"
 
-#: .\schedule\models.py:305
+#: .\schedule\models.py:425
 msgid "Новое время начала"
 msgstr "Новое время начала"
 
-#: .\schedule\models.py:306
+#: .\schedule\models.py:426
 msgid "Новое время окончания"
 msgstr "Новое время окончания"
 
-#: .\schedule\models.py:307
+#: .\schedule\models.py:427
 msgid "Новый кабинет"
 msgstr "Новый кабинет"
 
-#: .\schedule\models.py:312
+#: .\schedule\models.py:432
 msgid "Исключение в расписании"
 msgstr "Исключение в расписании"
 
-#: .\schedule\models.py:313
+#: .\schedule\models.py:433
 msgid "Исключения в расписании"
 msgstr "Исключения в расписании"
 
-#: .\schedule\models.py:320
-msgid "Номер недели"
-msgstr "Номер недели"
-
-#: .\schedule\models.py:321
-msgid "Начало недели"
-msgstr "Начало недели"
-
-#: .\schedule\models.py:322
-msgid "Конец недели"
-msgstr "Конец недели"
-
-#: .\schedule\models.py:327
-msgid "Учебные недели"
-msgstr "Учебные недели"
-
-#: .\schedule\models.py:352
+#: .\schedule\models.py:439
 msgid "Название дисциплины"
 msgstr "Название дисциплины"
 
-#: .\schedule\models.py:355
+#: .\schedule\models.py:442
 msgid "Шаблон дисциплины"
 msgstr "Шаблон дисциплины"
 
-#: .\schedule\models.py:356
+#: .\schedule\models.py:443
 msgid "Справочник дисциплин"
 msgstr "Справочник дисциплин"
 
-#: .\schedule\models.py:365 .\templates\accounts\delete_group.html:39
-#: .\templates\accounts\edit_group.html:53
-#: .\templates\accounts\group_management.html:44
-msgid "Специальность"
-msgstr "Специальность"
-
-#: .\schedule\models.py:366
+#: .\schedule\models.py:457
 msgid "Год набора (поступления)"
 msgstr "Год набора (поступления)"
 
-#: .\schedule\models.py:368
+#: .\schedule\models.py:459
 msgid "Актуальный"
 msgstr "Актуальный"
 
-#: .\schedule\models.py:376
+#: .\schedule\models.py:467
 msgid "Группа (для индивидуального плана)"
 msgstr "Группа (для индивидуального плана)"
 
-#: .\schedule\models.py:380
+#: .\schedule\models.py:471
 msgid "Учебный план (РУП)"
 msgstr "Учебный план (РУП)"
 
-#: .\schedule\models.py:381
+#: .\schedule\models.py:472
 msgid "Учебные планы"
 msgstr "Учебные планы"
 
-#: .\schedule\models.py:393
+#: .\schedule\models.py:481
 msgid "Экзамен"
 msgstr "Экзамен"
 
-#: .\schedule\models.py:394
+#: .\schedule\models.py:482
 msgid "Зачет"
 msgstr "Зачет"
 
-#: .\schedule\models.py:395
+#: .\schedule\models.py:483
 msgid "Дифф. зачет"
 msgstr "Дифф. зачет"
 
-#: .\schedule\models.py:396
+#: .\schedule\models.py:484
 msgid "Курсовая работа"
 msgstr "Курсовая работа"
 
-#: .\schedule\models.py:400
+#: .\schedule\models.py:488
 msgid "Обязательная"
 msgstr "Обязательная"
 
-#: .\schedule\models.py:401
+#: .\schedule\models.py:489
 msgid "Элективная (по выбору)"
 msgstr "Элективная (по выбору)"
 
-#: .\schedule\models.py:406
+#: .\schedule\models.py:494
+#, fuzzy
+#| msgid "Шуъбаи таълим"
+msgid "ОД (Умумитаълимӣ)"
+msgstr "отдел образования"
+
+#: .\schedule\models.py:495
+msgid "БД (Появӣ)"
+msgstr "Общая база"
+
+#: .\schedule\models.py:496
+msgid "ПД (Ихтисосӣ)"
+msgstr "По специальностям"
+
+#: .\schedule\models.py:497
+#, fuzzy
+#| msgid "Другое"
+msgid "Дигар (Другое)"
+msgstr "Другое"
+
+#: .\schedule\models.py:501
 msgid "Дисциплина"
 msgstr "Дисциплина"
 
-#: .\schedule\models.py:410
+#: .\schedule\models.py:505
 msgid "Номер семестра (1-8)"
 msgstr "Номер семестра (1-8)"
 
-#: .\schedule\models.py:413
+#: .\schedule\models.py:508
+msgid "Цикл (ОД, БД, ПД)"
+msgstr "Цикл (ОД, БД, ПД)"
+
+#: .\schedule\models.py:509
+msgid "Делится на подгруппы (Англ/Лабы)"
+msgstr "Делится на подгруппы (Англ/Лабы)"
+
+#: .\schedule\models.py:511
 msgid "Тип блока"
 msgstr "Тип блока"
 
-#: .\schedule\models.py:415
+#: .\schedule\models.py:512
 msgid "Кредиты (ECTS)"
 msgstr "Кредиты (ECTS)"
 
-#: .\schedule\models.py:417
-msgid "Лекции"
+#: .\schedule\models.py:514
+#, fuzzy
+#| msgid "Лекции"
+msgid "Лекции (Л)"
 msgstr "Лекции"
 
-#: .\schedule\models.py:418
-msgid "Практика (Семинары)"
-msgstr "Практика (Семинары)"
+#: .\schedule\models.py:515
+#, fuzzy
+#| msgid "Практика"
+msgid "Практика (А)"
+msgstr "Практика"
 
-#: .\schedule\models.py:419
+#: .\schedule\models.py:516
 msgid "Лабораторные"
 msgstr "Лабораторные"
 
-#: .\schedule\models.py:420
-msgid "СРСП (Контактная)"
-msgstr "СРСП (Контактная)"
+#: .\schedule\models.py:518
+#, fuzzy
+#| msgid "СРСП (КМРО)"
+msgid "СРС (КМД)"
+msgstr "СРСП (КМРО)"
 
-#: .\schedule\models.py:421
-msgid "СРС (Самостоятельная)"
-msgstr "СРС (Самостоятельная)"
-
-#: .\schedule\models.py:427
+#: .\schedule\models.py:520
 msgid "Форма контроля"
 msgstr "Форма контроля"
 
-#: .\schedule\models.py:431
+#: .\schedule\models.py:521
 msgid "Есть курсовая работа (КР)"
 msgstr "Есть курсовая работа (КР)"
 
-#: .\schedule\models.py:435
+#: .\schedule\models.py:524
 msgid "Дисциплина плана"
 msgstr "Дисциплина плана"
 
-#: .\schedule\models.py:436
+#: .\schedule\models.py:525
 msgid "Дисциплины плана"
 msgstr "Дисциплины плана"
 
-#: .\schedule\models.py:450
+#: .\schedule\models.py:538
 msgid "Название материала"
 msgstr "Название материала"
 
-#: .\schedule\models.py:451 .\templates\accounts\all_orders_list.html:41
+#: .\schedule\models.py:539 .\templates\accounts\all_orders_list.html:48
 #: .\templates\accounts\student_orders.html:50
 msgid "Файл"
 msgstr "Файл"
 
-#: .\schedule\models.py:452
+#: .\schedule\models.py:540
 msgid "Дата загрузки"
 msgstr "Дата загрузки"
 
-#: .\schedule\models.py:455
+#: .\schedule\models.py:543
 msgid "Учебный материал"
 msgstr "Учебный материал"
 
-#: .\schedule\models.py:456
+#: .\schedule\models.py:544
 msgid "Учебные материалы"
 msgstr "Учебные материалы"
 
-#: .\schedule\views.py:71
-msgid "Нет активного семестра. Пожалуйста, создайте или активируйте семестр."
-msgstr "Нет активного семестра. Пожалуйста, создайте или активируйте семестр."
+#: .\schedule\views.py:85
+#, fuzzy
+#| msgid "Сначала создайте семестр"
+msgid "Сначала создайте семестр в настройках."
+msgstr "Сначала создайте семестр"
 
-#: .\schedule\views.py:104
+#: .\schedule\views.py:119
 msgid "СРСП"
 msgstr "СРСП"
 
-#: .\schedule\views.py:160
+#: .\schedule\views.py:199
 msgid "Кафедраи ҳарбӣ (Военная кафедра)"
 msgstr "Кафедраи ҳарбӣ (Военная кафедра)"
 
-#: .\schedule\views.py:180
+#: .\schedule\views.py:219
 msgid "Воен. каф"
 msgstr "Воен. каф"
 
-#: .\schedule\views.py:184
+#: .\schedule\views.py:223
 #, python-format
 msgid "Назначено %(created_count)s часов военной кафедры"
 msgstr "Назначено %(created_count)s часов военной кафедры"
 
-#: .\schedule\views.py:204 .\schedule\views.py:783 .\schedule\views.py:1211
+#: .\schedule\views.py:243 .\schedule\views.py:843 .\schedule\views.py:1289
 msgid "Нет активного семестра"
 msgstr "Нет активного семестра"
 
-#: .\schedule\views.py:208
+#: .\schedule\views.py:247
 msgid "Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ."
 msgstr "Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ."
 
-#: .\schedule\views.py:210
+#: .\schedule\views.py:249
 msgid "Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ."
 msgstr "Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ."
 
-#: .\schedule\views.py:219
+#: .\schedule\views.py:258
 msgid "Слишком большой поток! Максимум 3 группы."
 msgstr "Слишком большой поток! Максимум 3 группы."
 
-#: .\schedule\views.py:235
-#, python-format
-msgid "Группа %(group_name)s занята: %(subject_name)s"
-msgstr "Группа %(group_name)s занята: %(subject_name)s"
-
-#: .\schedule\views.py:246
-#, python-format
-msgid "Преподаватель %(teacher_name)s занят."
-msgstr "Преподаватель %(teacher_name)s занят."
-
-#: .\schedule\views.py:279
+#: .\schedule\views.py:322
 #, python-format
 msgid "Ошибка сервера: %(error)s"
 msgstr "Ошибка сервера: %(error)s"
 
-#: .\schedule\views.py:296
-#, python-format
-msgid "Кабинет %(room_number)s не найден"
+#: .\schedule\views.py:340
+#, fuzzy, python-format
+#| msgid "Кабинет %(room_number)s не найден"
+msgid "Кабинет %(num)s не найден в базе"
 msgstr "Кабинет %(room_number)s не найден"
 
-#: .\schedule\views.py:316
+#: .\schedule\views.py:371
 #, python-format
-msgid "Кабинет занят: %(group_name)s, %(subject_name)s"
-msgstr "Кабинет занят: %(group_name)s, %(subject_name)s"
+msgid ""
+"Конфликт в %(building)s, каб. %(num)s! Там уже сидит: %(group)s "
+"(%(subject)s)"
+msgstr ""
+"Конфликт в %(building)s, каб. %(num)s! Там уже сидит: %(group)s "
+"(%(subject)s)"
 
-#: .\schedule\views.py:332
+#: .\schedule\views.py:392
 #, python-format
 msgid ""
 "Вместимость кабинета (%(capacity)s) меньше количества студентов "
@@ -1770,179 +2251,185 @@ msgstr ""
 "Вместимость кабинета (%(capacity)s) меньше количества студентов "
 "(%(students)s). Продолжить?"
 
-#: .\schedule\views.py:357
+#: .\schedule\views.py:419
 msgid "Нет прав"
 msgstr "Нет прав"
 
-#: .\schedule\views.py:362
+#: .\schedule\views.py:424
+#, fuzzy
+#| msgid "Нет доступа к этой кафедре"
+msgid "Нет доступа к этому занятию"
+msgstr "Нет доступа к этой кафедре"
+
+#: .\schedule\views.py:429
 #, python-format
 msgid "Удален поток (%(count)s групп)"
 msgstr "Удален поток (%(count)s групп)"
 
-#: .\schedule\views.py:365
+#: .\schedule\views.py:432
 msgid "Занятие удалено"
 msgstr "Занятие удалено"
 
-#: .\schedule\views.py:370
+#: .\schedule\views.py:437
 #, python-format
 msgid "Ошибка: %(error)s"
 msgstr "Ошибка: %(error)s"
 
-#: .\schedule\views.py:391
-msgid "Активный семестр не найден."
-msgstr "Активный семестр не найден."
+#: .\schedule\views.py:459
+#, fuzzy
+#| msgid "У вас нет прав создавать руководство института."
+msgid "В системе не создано ни одного семестра."
+msgstr "У вас нет прав создавать руководство института."
 
-#: .\schedule\views.py:422
+#: .\schedule\views.py:486
 #, python-format
 msgid "Нет активного семестра для %(course)s курса"
 msgstr "Нет активного семестра для %(course)s курса"
 
-#: .\schedule\views.py:430 .\schedule\views.py:898
+#: .\schedule\views.py:490 .\schedule\views.py:972
 msgid "ДУШАНБЕ"
 msgstr "Понедельник"
 
-#: .\schedule\views.py:430 .\schedule\views.py:898
+#: .\schedule\views.py:490 .\schedule\views.py:972
 msgid "СЕШАНБЕ"
 msgstr "Вторник"
 
-#: .\schedule\views.py:430 .\schedule\views.py:898
+#: .\schedule\views.py:490 .\schedule\views.py:972
 msgid "ЧОРШАНБЕ"
 msgstr "Среда"
 
-#: .\schedule\views.py:430 .\schedule\views.py:898
+#: .\schedule\views.py:490 .\schedule\views.py:972
 msgid "ПАНҶШАНБЕ"
 msgstr "Четверг"
 
-#: .\schedule\views.py:430 .\schedule\views.py:898
+#: .\schedule\views.py:490 .\schedule\views.py:972
 msgid "ҶУМЪА"
 msgstr "Пятница "
 
-#: .\schedule\views.py:430 .\schedule\views.py:898
+#: .\schedule\views.py:490 .\schedule\views.py:972
 msgid "ШАНБЕ"
 msgstr "Суббота "
 
-#: .\schedule\views.py:523
+#: .\schedule\views.py:590
 msgid "Нет доступа к этой кафедре"
 msgstr "Нет доступа к этой кафедре"
 
-#: .\schedule\views.py:543
+#: .\schedule\views.py:610
 #, python-format
 msgid "Предмет \"%(subject_name)s\" создан"
 msgstr "Предмет \"%(subject_name)s\" создан"
 
-#: .\schedule\views.py:548
+#: .\schedule\views.py:615
 msgid "Ошибки формы предмета:"
 msgstr "Ошибки формы предмета:"
 
-#: .\schedule\views.py:564
+#: .\schedule\views.py:631
 msgid "Добавить предмет"
 msgstr "Добавить предмет"
 
-#: .\schedule\views.py:575
+#: .\schedule\views.py:640 .\schedule\views.py:657
+#, fuzzy
+#| msgid "Нет доступа к этой кафедре"
+msgid "Нет доступа к этому предмету"
+msgstr "Нет доступа к этой кафедре"
+
+#: .\schedule\views.py:646
 msgid "Предмет обновлен"
 msgstr "Предмет обновлен"
 
-#: .\schedule\views.py:579
+#: .\schedule\views.py:650
 msgid "Редактировать предмет"
 msgstr "Редактировать предмет"
 
-#: .\schedule\views.py:585
+#: .\schedule\views.py:661
 msgid "Предмет удален"
 msgstr "Предмет удален"
 
-#: .\schedule\views.py:606
+#: .\schedule\views.py:682
 #, python-format
 msgid "Семестр \"%(semester_name)s\" создан для факультета %(faculty_name)s"
 msgstr "Семестр \"%(semester_name)s\" создан для факультета %(faculty_name)s"
 
-#: .\schedule\views.py:610
+#: .\schedule\views.py:686
 msgid "Добавить семестр"
 msgstr "Добавить семестр"
 
-#: .\schedule\views.py:629
+#: .\schedule\views.py:705
 msgid "Семестр обновлен"
 msgstr "Семестр обновлен"
 
-#: .\schedule\views.py:634
+#: .\schedule\views.py:710
 msgid "Редактировать семестр"
 msgstr "Редактировать семестр"
 
-#: .\schedule\views.py:649
+#: .\schedule\views.py:725
 #, python-format
 msgid "Семестр \"%(semester_name)s\" (%(course)s курс) теперь АКТИВЕН!"
 msgstr "Семестр \"%(semester_name)s\" (%(course)s курс) теперь АКТИВЕН!"
 
-#: .\schedule\views.py:653
+#: .\schedule\views.py:729
 #, python-format
 msgid "Семестр \"%(semester_name)s\" деактивирован."
 msgstr "Семестр \"%(semester_name)s\" деактивирован."
 
-#: .\schedule\views.py:668
+#: .\schedule\views.py:763
 #, python-format
 msgid "Кабинет %(classroom_number)s добавлен"
 msgstr "Кабинет %(classroom_number)s добавлен"
 
-#: .\schedule\views.py:672
+#: .\schedule\views.py:767
 msgid "Добавить кабинет"
 msgstr "Добавить кабинет"
 
-#: .\schedule\views.py:691
-#, python-format
-msgid "Создано %(created_count)s кабинетов"
+#: .\schedule\views.py:787
+#, fuzzy, python-format
+#| msgid "Создано %(created_count)s кабинетов"
+msgid "Создано %(created_count)s кабинетов в корпусе %(building)s"
 msgstr "Создано %(created_count)s кабинетов"
 
-#: .\schedule\views.py:701
+#: .\schedule\views.py:800
 #, python-format
 msgid "Кабинет %(classroom_number)s удален"
 msgstr "Кабинет %(classroom_number)s удален"
 
-#: .\schedule\views.py:726
-#, python-format
-msgid "Учебная неделя %(week_num)s установлена"
-msgstr "Учебная неделя %(week_num)s установлена"
-
-#: .\schedule\views.py:728
-msgid "Сначала создайте семестр"
-msgstr "Сначала создайте семестр"
-
-#: .\schedule\views.py:776
+#: .\schedule\views.py:836
 msgid "Library python-docx not installed"
 msgstr "Library python-docx not installed"
 
-#: .\schedule\views.py:791
-msgid "Ошибка структуры: Группа не привязана корректно."
+#: .\schedule\views.py:858
+#, fuzzy
+#| msgid "Ошибка структуры: Группа не привязана корректно."
+msgid "Ошибка структуры: Невозможно определить институт."
 msgstr "Ошибка структуры: Группа не привязана корректно."
 
-#: .\schedule\views.py:806
-msgid "Мирзозода А. Н."
-msgstr "Мирзозода А. Н."
+#: .\schedule\views.py:873 .\schedule\views.py:874 .\schedule\views.py:882
+#, fuzzy
+#| msgid "«___»_________ 2025c"
+msgid "__________________"
+msgstr "«___»_________ 2025c"
 
-#: .\schedule\views.py:807
-msgid "Ҷовиди Ҷамшед"
-msgstr "Ҷовиди Ҷамшед"
-
-#: .\schedule\views.py:825
+#: .\schedule\views.py:898
 msgid "Мувофиқа карда шуд:\n"
 msgstr "Было решено:\n"
 
-#: .\schedule\views.py:826
+#: .\schedule\views.py:899
 msgid "Сардори раёсати таълим\n"
 msgstr "руководитель отдела образования\n"
 
-#: .\schedule\views.py:827
+#: .\schedule\views.py:900
 #, python-format
 msgid "________ дотсент %(head_edu_name)s\n"
 msgstr "________ дотсент %(head_edu_name)s\n"
 
-#: .\schedule\views.py:828
+#: .\schedule\views.py:901
 msgid "«___» _________ 2025с"
 msgstr "«___» _________ 2025с"
 
-#: .\schedule\views.py:833
+#: .\schedule\views.py:906
 msgid "Тасдиқ мекунам:\n"
 msgstr "Я подтверждаю:\n"
 
-#: .\schedule\views.py:834
+#: .\schedule\views.py:907
 msgid ""
 "Муовини директор\n"
 "оид ба корҳои таълимӣ\n"
@@ -1950,28 +2437,28 @@ msgstr ""
 "заместитель директора\n"
 "по образовательной деятельности\n"
 
-#: .\schedule\views.py:835
+#: .\schedule\views.py:908
 #, python-format
 msgid "________ дотсент %(vice_name)s\n"
 msgstr "________ дотсент %(vice_name)s\n"
 
-#: .\schedule\views.py:836
+#: .\schedule\views.py:909
 msgid "«___»_________ 2025c"
 msgstr "«___»_________ 2025c"
 
-#: .\schedule\views.py:842
+#: .\schedule\views.py:915
 msgid "ҶАДВАЛИ ДАРСӢ"
 msgstr "расписание уроков"
 
-#: .\schedule\views.py:849
+#: .\schedule\views.py:922
 msgid "якуми"
 msgstr "первое"
 
-#: .\schedule\views.py:849
+#: .\schedule\views.py:922
 msgid "дуюми"
 msgstr "второе"
 
-#: .\schedule\views.py:852
+#: .\schedule\views.py:925
 #, python-format
 msgid ""
 "дар нимсолаи %(sem_text)s соли таҳсили %(year_text)s барои донишҷӯёни курси "
@@ -1982,83 +2469,85 @@ msgstr ""
 "%(institute_name)s студентов Международного университета туризма и бизнеса "
 "Таджикистана"
 
-#: .\schedule\views.py:865
+#: .\schedule\views.py:938
 #, python-format
 msgid "(БАСТИ %(shift_num)s)"
 msgstr "(СМЕНА %(shift_num)s)"
 
-#: .\schedule\views.py:874
+#: .\schedule\views.py:947
 msgid "ҲАФТА"
 msgstr "НЕДЕЛЯ"
 
-#: .\schedule\views.py:875
+#: .\schedule\views.py:948
 msgid "СОАТ"
 msgstr "ЧАС"
 
-#: .\schedule\views.py:877
-#, python-format
-msgid "%(specialty_code)s – “%(specialty_name)s” (%(student_count)s нафар)"
+#: .\schedule\views.py:950
+#, fuzzy, python-format
+#| msgid ""
+#| "%(specialty_code)s – “%(specialty_name)s” (%(student_count)s нафар)"
+msgid "%(specialty_code)s – «%(specialty_name)s» (%(student_count)s нафар)"
 msgstr "%(specialty_code)s – “%(specialty_name)s” (%(student_count)s людей)"
 
-#: .\schedule\views.py:882
+#: .\schedule\views.py:956
 msgid "АУД"
 msgstr "АУД"
 
-#: .\schedule\views.py:923
+#: .\schedule\views.py:997
 #, python-format
 msgid "%(subject_name)s (%(lesson_type)s)\n"
 msgstr "%(subject_name)s (%(lesson_type)s)\n"
 
-#: .\schedule\views.py:928
+#: .\schedule\views.py:1002
 #, python-format
 msgid "%(teacher_name)s"
 msgstr "%(teacher_name)s"
 
-#: .\schedule\views.py:962
+#: .\schedule\views.py:1036
 msgid "Кафедраи ҳарбӣ"
 msgstr "Военная кафедра"
 
-#: .\schedule\views.py:980
+#: .\schedule\views.py:1054
 msgid "Директор"
 msgstr "Директор"
 
-#: .\schedule\views.py:985
+#: .\schedule\views.py:1059
 #, python-format
 msgid "%(director_name)s"
 msgstr "%(director_name)s"
 
-#: .\schedule\views.py:1041
+#: .\schedule\views.py:1115
 msgid "Это план чужого факультета!"
 msgstr "Это план чужого факультета!"
 
-#: .\schedule\views.py:1067
+#: .\schedule\views.py:1141
 msgid "Дисциплина добавлена"
 msgstr "Дисциплина добавлена"
 
-#: .\schedule\views.py:1090
+#: .\schedule\views.py:1164
 msgid "Нет активного семестра! Сначала активируйте семестр."
 msgstr "Нет активного семестра! Сначала активируйте семестр."
 
-#: .\schedule\views.py:1179
+#: .\schedule\views.py:1255
 #, python-format
 msgid "Создано предметов: %(created_count)s"
 msgstr "Создано предметов: %(created_count)s"
 
-#: .\schedule\views.py:1196
+#: .\schedule\views.py:1272
 #, python-format
 msgid "Кабинет %(classroom_number)s обновлен"
 msgstr "Кабинет %(classroom_number)s обновлен"
 
-#: .\schedule\views.py:1202
+#: .\schedule\views.py:1278
 #, python-format
 msgid "Редактировать кабинет %(classroom_number)s"
 msgstr "Редактировать кабинет %(classroom_number)s"
 
-#: .\schedule\views.py:1258
+#: .\schedule\views.py:1354
 msgid "Нет данных для сохранения"
 msgstr "Нет данных для сохранения"
 
-#: .\schedule\views.py:1283
+#: .\schedule\views.py:1379
 #, python-format
 msgid ""
 "✅ Импорт завершен! Слотов: %(slots)s, Новых предметов: %(subjects)s, Новых "
@@ -2067,86 +2556,128 @@ msgstr ""
 "✅ Импорт завершен! Слотов: %(slots)s, Новых предметов: %(subjects)s, Новых "
 "учителей: %(teachers)s"
 
-#: .\schedule\views.py:1298
+#: .\schedule\views.py:1394
 msgid "Данные не найдены в файле или формат некорректен."
 msgstr "Данные не найдены в файле или формат некорректен."
 
-#: .\schedule\views.py:1309
+#: .\schedule\views.py:1405
 #, python-format
 msgid "Ошибка обработки файла: %(error)s"
 msgstr "Ошибка обработки файла: %(error)s"
 
-#: .\schedule\views.py:1326
+#: .\schedule\views.py:1422
 msgid "Название не может быть пустым"
 msgstr "Название не может быть пустым"
 
-#: .\schedule\views.py:1329
+#: .\schedule\views.py:1425
 msgid "Такая дисциплина уже существует"
 msgstr "Такая дисциплина уже существует"
 
-#: .\schedule\views.py:1349
+#: .\schedule\views.py:1445
 msgid "Укажите новый год"
 msgstr "Укажите новый год"
 
-#: .\schedule\views.py:1353
+#: .\schedule\views.py:1449
 #, python-format
 msgid "План для %(specialty_code)s на %(new_year)s год уже существует!"
 msgstr "План для %(specialty_code)s на %(new_year)s год уже существует!"
 
-#: .\schedule\views.py:1375
+#: .\schedule\views.py:1471
 #, python-format
 msgid "План успешно скопирован на %(new_year)s год!"
 msgstr "План успешно скопирован на %(new_year)s год!"
 
-#: .\schedule\views.py:1389
+#: .\schedule\views.py:1485
 msgid "Нет прав на удаление"
 msgstr "Нет прав на удаление"
 
-#: .\schedule\views.py:1393
+#: .\schedule\views.py:1489
 msgid "Дисциплина удалена из плана"
 msgstr "Дисциплина удалена из плана"
 
-#: .\schedule\views.py:1451
+#: .\schedule\views.py:1547
 msgid "Материал добавлен"
 msgstr "Материал добавлен"
 
-#: .\schedule\views.py:1468
+#: .\schedule\views.py:1564
 msgid "Материал удален"
 msgstr "Материал удален"
 
-#: .\schedule\views.py:1483
+#: .\schedule\views.py:1579
 #, python-format
 msgid ""
 "Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!"
 msgstr ""
 "Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!"
 
-#: .\schedule\views.py:1494
+#: .\schedule\views.py:1590
 msgid "Нет прав на удаление этого плана"
 msgstr "Нет прав на удаление этого плана"
 
-#: .\schedule\views.py:1498
+#: .\schedule\views.py:1594
 #, python-format
 msgid "Учебный план для %(specialty_code)s удален"
 msgstr "Учебный план для %(specialty_code)s удален"
 
-#: .\schedule\views.py:1511
+#: .\schedule\views.py:1607
 #, python-format
 msgid "Семестр '%(semester_name)s' (%(course)s курс) успешно активирован!"
 msgstr "Семестр '%(semester_name)s' (%(course)s курс) успешно активирован!"
 
-#: .\schedule\views.py:1523
+#: .\schedule\views.py:1619
 msgid "Выберите семестр из списка"
 msgstr "Выберите семестр из списка"
 
-#: .\schedule\views.py:1529
+#: .\schedule\views.py:1625
 msgid "Ошибка доступа"
 msgstr "Ошибка доступа"
 
-#: .\schedule\views.py:1542
+#: .\schedule\views.py:1638
 #, python-format
 msgid "Семестр %(semester)s теперь АКТИВЕН для %(course)s курса!"
 msgstr "Семестр %(semester)s теперь АКТИВЕН для %(course)s курса!"
+
+#: .\schedule\views.py:1718
+#, fuzzy
+#| msgid "Институт добавлен"
+msgid "Учебный корпус добавлен"
+msgstr "Институт добавлен"
+
+#: .\schedule\views.py:1725
+#, fuzzy
+#| msgid "Добавить студентов в группу"
+msgid "Добавить учебный корпус"
+msgstr "Добавить студентов в группу"
+
+#: .\schedule\views.py:1735
+#, fuzzy
+#| msgid "❌ Вы не можете заблокировать суперпользователя!"
+msgid "Вы не можете редактировать корпуса чужого института"
+msgstr "❌ Вы не можете заблокировать суперпользователя!"
+
+#: .\schedule\views.py:1742
+#, fuzzy
+#| msgid "Кафедра обновлена"
+msgid "Корпус обновлен"
+msgstr "Кафедра обновлена"
+
+#: .\schedule\views.py:1749
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Редактировать корпус"
+msgstr "Редактировать предмет"
+
+#: .\schedule\views.py:1763
+msgid ""
+"Нельзя удалить корпус, в котором есть кабинеты. Сначала удалите кабинеты."
+msgstr ""
+"Нельзя удалить корпус, в котором есть кабинеты. Сначала удалите кабинеты."
+
+#: .\schedule\views.py:1766
+#, fuzzy
+#| msgid "Институт удален"
+msgid "Корпус удален"
+msgstr "Институт удален"
 
 #: .\templates\accounts\add_group.html:4
 #: .\templates\accounts\add_group.html:11
@@ -2213,16 +2744,18 @@ msgstr "Новая группа"
 #: .\templates\accounts\edit_profile.html:29
 #: .\templates\accounts\edit_user.html:71
 #: .\templates\accounts\form_generic.html:33
-#: .\templates\accounts\import_students.html:46
+#: .\templates\accounts\import_students.html:48
 #: .\templates\accounts\reset_password.html:19
 #: .\templates\accounts\transfer_student.html:22
+#: .\templates\schedule\building_form.html:37
+#: .\templates\schedule\semester_form.html:80
 #, fuzzy
 #| msgid "Смена"
 msgid "Отмена"
 msgstr "Смена"
 
 #: .\templates\accounts\add_user.html:4 .\templates\accounts\add_user.html:11
-#: .\templates\accounts\user_management.html:15
+#: .\templates\accounts\user_management.html:16
 #, fuzzy
 #| msgid "Добавить предмет"
 msgid "Добавить пользователя"
@@ -2262,56 +2795,76 @@ msgstr "Номер приказа"
 msgid "Реестр приказов по студентам"
 msgstr "Приказ по студенту"
 
-#: .\templates\accounts\all_orders_list.html:11
+#: .\templates\accounts\all_orders_list.html:14
+#, fuzzy
+#| msgid "Дата приказа"
+msgid "Создать массовый приказ"
+msgstr "Дата приказа"
+
+#: .\templates\accounts\all_orders_list.html:17
+#: .\templates\schedule\no_semester.html:33
 #, fuzzy
 #| msgid "Возглавляет"
 msgid "На главную"
 msgstr "Возглавляет"
 
-#: .\templates\accounts\all_orders_list.html:16
+#: .\templates\accounts\all_orders_list.html:23
 #, fuzzy
 #| msgid "Номер приказа"
 msgid "Номер приказа или Фамилия..."
 msgstr "Номер приказа"
 
-#: .\templates\accounts\all_orders_list.html:20
+#: .\templates\accounts\all_orders_list.html:27
 #, fuzzy
 #| msgid "Все студенты"
 msgid "Все типы"
 msgstr "Все студенты"
 
-#: .\templates\accounts\all_orders_list.html:27
+#: .\templates\accounts\all_orders_list.html:34
 #: .\templates\accounts\group_management.html:32
-#: .\templates\accounts\user_management.html:33
+#: .\templates\accounts\user_management.html:35
 msgid "Найти"
 msgstr "Найти"
 
-#: .\templates\accounts\all_orders_list.html:35
+#: .\templates\accounts\all_orders_list.html:42
 #, fuzzy
 #| msgid "Тип приказа"
 msgid "№ Приказа"
 msgstr "Тип приказа"
 
-#: .\templates\accounts\all_orders_list.html:39
+#: .\templates\accounts\all_orders_list.html:46
 #: .\templates\accounts\student_orders.html:27
 #, fuzzy
 #| msgid "Тип занятия"
 msgid "Тип действия"
 msgstr "Тип занятия"
 
-#: .\templates\accounts\all_orders_list.html:40
+#: .\templates\accounts\all_orders_list.html:47
+#: .\templates\core\dashboard_rector.html:67
 #, fuzzy
 #| msgid "Название"
 msgid "Основание"
 msgstr "Название"
 
 #: .\templates\accounts\all_orders_list.html:57
-#, fuzzy
-#| msgid "Отчислен"
-msgid "Отчисление"
-msgstr "Отчислен"
+msgid "ПРОЕКТ"
+msgstr "ПРОЕКТ"
 
-#: .\templates\accounts\all_orders_list.html:72
+#: .\templates\accounts\all_orders_list.html:59
+msgid "ПОДПИСАН"
+msgstr "ПОДПИСАН"
+
+#: .\templates\accounts\all_orders_list.html:83
+#, fuzzy
+#| msgid "Дата приказа"
+msgid "Подписать приказ"
+msgstr "Дата приказа"
+
+#: .\templates\accounts\all_orders_list.html:83
+msgid "Утвердить приказ и применить изменения к студенту?"
+msgstr "Утвердить приказ и применить изменения к студенту?"
+
+#: .\templates\accounts\all_orders_list.html:93
 #, fuzzy
 #| msgid "Приказы (Фармонҳо)"
 msgid "Приказов не найдено"
@@ -2320,7 +2873,7 @@ msgstr "Приказы"
 #: .\templates\accounts\change_password.html:3
 #: .\templates\accounts\change_password.html:8
 #: .\templates\accounts\change_password.html:21
-#: .\templates\accounts\profile_teacher.html:28
+#: .\templates\accounts\profile_teacher.html:28 .\templates\base.html:580
 #, fuzzy
 #| msgid "Подтвердите пароль"
 msgid "Сменить пароль"
@@ -2418,6 +2971,12 @@ msgstr "Код"
 msgid "Да, удалить группу"
 msgstr "Добавить предмет"
 
+#: .\templates\accounts\document_templates.html:4
+#, fuzzy
+#| msgid "Последнее обновление"
+msgid "Управление шаблонами документов"
+msgstr "Последнее обновление"
+
 #: .\templates\accounts\edit_group.html:4
 #, fuzzy
 #| msgid "Редактировать предмет"
@@ -2504,6 +3063,8 @@ msgstr "Военная кафедра"
 
 #: .\templates\accounts\edit_profile.html:28
 #: .\templates\accounts\form_generic.html:34
+#: .\templates\schedule\building_form.html:38
+#: .\templates\schedule\semester_form.html:79
 msgid "Сохранить"
 msgstr "Сохранить"
 
@@ -2575,6 +3136,11 @@ msgstr "1 курс"
 
 #: .\templates\accounts\group_management.html:26
 #: .\templates\accounts\profile_student.html:23
+#: .\templates\accounts\unassigned_students.html:49
+#: .\templates\schedule\constructor_with_limits.html:23
+#: .\templates\schedule\constructor_with_limits.html:26
+#: .\templates\schedule\constructor_with_limits.html:29
+#: .\templates\schedule\constructor_with_limits.html:32
 #, fuzzy
 #| msgid "1 курс"
 msgid "курс"
@@ -2588,13 +3154,16 @@ msgstr "Студент"
 
 #: .\templates\accounts\group_management.html:46
 #: .\templates\accounts\structure_manage.html:101
-#: .\templates\accounts\user_management.html:47
+#: .\templates\accounts\user_management.html:49
+#: .\templates\core\dashboard_hr.html:87
+#: .\templates\schedule\manage_buildings.html:30
+#: .\templates\schedule\manage_classrooms.html:52
 msgid "Действия"
 msgstr "Действия"
 
 #: .\templates\accounts\group_management.html:63
 #: .\templates\accounts\profile_student.html:39
-#: .\templates\accounts\user_management.html:91
+#: .\templates\accounts\user_management.html:93
 #, fuzzy
 #| msgid "Редактировать предмет"
 msgid "Редактировать"
@@ -2613,14 +3182,14 @@ msgstr "Группа по умолчанию"
 
 #: .\templates\accounts\import_students.html:4
 #, fuzzy
-#| msgid "Выберите студентов"
-msgid "Импорт студентов"
-msgstr "Выберите студентов"
+#| msgid "Статистика студентов"
+msgid "Зачисление студентов (Импорт)"
+msgstr "Статистика студентов"
 
 #: .\templates\accounts\import_students.html:11
 #, fuzzy
 #| msgid "Статистика студентов"
-msgid "Массовый импорт студентов"
+msgid "Зачисление новых студентов"
 msgstr "Статистика студентов"
 
 #: .\templates\accounts\import_students.html:15
@@ -2642,69 +3211,231 @@ msgid "Колонка C: Отчество (необязательно)"
 msgstr "Колонка C: Отчество (необязательно)"
 
 #: .\templates\accounts\import_students.html:19
-msgid "Колонка D: Номер зачетки (необязательно, иначе авто)"
+#, fuzzy
+#| msgid "Колонка D: Номер зачетки (необязательно, иначе авто)"
+msgid "Колонка D: Номер зачетки (необязательно)"
 msgstr "Колонка D: Номер зачетки (необязательно, иначе авто)"
 
 #: .\templates\accounts\import_students.html:20
-msgid "Первая строка (заголовки) пропускается."
-msgstr "Первая строка (заголовки) пропускается."
+msgid "Первая строка пропускается. Пароль по умолчанию: password123"
+msgstr "Первая строка пропускается. Пароль по умолчанию: password123"
 
 #: .\templates\accounts\import_students.html:27
 #, fuzzy
-#| msgid "-- Выберите группу --"
-msgid "Выберите группу (опционально)"
-msgstr "-- Выберите группу --"
+#| msgid "Специальность добавлена"
+msgid "Специальность (Направление) *"
+msgstr "Специальность добавлена"
 
 #: .\templates\accounts\import_students.html:29
 #, fuzzy
-#| msgid "-- Выберите группу --"
-msgid "-- Без группы --"
-msgstr "-- Выберите группу --"
+#| msgid "Добавить семестр"
+msgid "-- Выберите специальность --"
+msgstr "Добавить семестр"
 
-#: .\templates\accounts\import_students.html:34
-msgid "Все импортированные студенты будут добавлены в эту группу."
-msgstr "Все импортированные студенты будут добавлены в эту группу."
+#: .\templates\accounts\import_students.html:39
+msgid ""
+"После зачисления студенты появятся у Декана этого факультета для "
+"распределения по группам."
+msgstr ""
+"После зачисления студенты появятся у Декана этого факультета для "
+"распределения по группам."
 
-#: .\templates\accounts\import_students.html:38
+#: .\templates\accounts\import_students.html:43
 #, fuzzy
 #| msgid "Файл"
-msgid "Файл Excel"
+msgid "Файл Excel *"
 msgstr "Файл"
 
-#: .\templates\accounts\import_students.html:44
+#: .\templates\accounts\import_students.html:50
 #, fuzzy
-#| msgid "Начальный номер"
-msgid "Начать импорт"
-msgstr "Начальный номер"
+#| msgid "Удалить"
+msgid "Зачислить"
+msgstr "Удалить"
 
-#: .\templates\accounts\login.html:6
+#: .\templates\accounts\login.html:9
 msgid "Вход в систему"
 msgstr "Вход в систему"
 
-#: .\templates\accounts\login.html:57
+#: .\templates\accounts\login.html:266
 #, fuzzy
 #| msgid "Система Деканат"
 msgid "Платформа деканата"
 msgstr "Система Деканат"
 
-#: .\templates\accounts\login.html:58
+#: .\templates\accounts\login.html:267
 msgid "Войдите в систему"
 msgstr "Войдите в систему"
 
-#: .\templates\accounts\login.html:73
-#: .\templates\accounts\user_management.html:42
+#: .\templates\accounts\login.html:285
+#: .\templates\accounts\user_management.html:44
+#: .\templates\core\dashboard_hr.html:58
 msgid "Логин"
 msgstr "Логин"
 
-#: .\templates\accounts\login.html:77
+#: .\templates\accounts\login.html:302
 #, fuzzy
 #| msgid "Новый пароль"
 msgid "Пароль"
 msgstr "Новый пароль"
 
-#: .\templates\accounts\login.html:80
+#: .\templates\accounts\login.html:316
 msgid "Войти"
 msgstr "Войти"
+
+#: .\templates\accounts\mass_order_create.html:4
+#, fuzzy
+#| msgid "Название материала"
+msgid "Создание массового приказа"
+msgstr "Название материала"
+
+#: .\templates\accounts\mass_order_create.html:7 .\templates\base.html:674
+#, fuzzy
+#| msgid "Тип приказа"
+msgid "Приказы"
+msgstr "Тип приказа"
+
+#: .\templates\accounts\mass_order_create.html:8
+#, fuzzy
+#| msgid "История переводов"
+msgid "Массовый приказ"
+msgstr "История переводов"
+
+#: .\templates\accounts\mass_order_create.html:14
+#, fuzzy
+#| msgid "Название материала"
+msgid "Формирование массового приказа"
+msgstr "Название материала"
+
+#: .\templates\accounts\mass_order_create.html:20
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "1. Выбор студентов"
+msgstr "Выберите студентов"
+
+#: .\templates\accounts\mass_order_create.html:24
+#: .\templates\accounts\mass_order_create.html:26
+#: .\templates\accounts\mass_order_create.html:101
+#: .\templates\accounts\mass_order_create.html:141
+#: .\templates\schedule\constructor_with_limits.html:17
+#, fuzzy
+#| msgid "-- Выберите группу --"
+msgid "Выберите группу"
+msgstr "-- Выберите группу --"
+
+#: .\templates\accounts\mass_order_create.html:40
+#: .\templates\accounts\unassigned_students.html:72
+#, fuzzy
+#| msgid "Студент"
+msgid "ФИО Студента"
+msgstr "Студент"
+
+#: .\templates\accounts\mass_order_create.html:41
+#, fuzzy
+#| msgid "Зачет"
+msgid "Зачетка"
+msgstr "Зачет"
+
+#: .\templates\accounts\mass_order_create.html:48
+#, fuzzy
+#| msgid "-- Выберите группу --"
+msgid "Выберите группу для загрузки списка студентов"
+msgstr "-- Выберите группу --"
+
+#: .\templates\accounts\mass_order_create.html:55
+#, fuzzy
+#| msgid "Добавить студентов в группу"
+msgid "Добавить выбранных в приказ"
+msgstr "Добавить студентов в группу"
+
+#: .\templates\accounts\mass_order_create.html:68
+#, fuzzy
+#| msgid "Скан приказа"
+msgid "2. Студенты в приказе"
+msgstr "Скан приказа"
+
+#: .\templates\accounts\mass_order_create.html:77
+msgid "Список пуст. Выберите студентов слева и добавьте их сюда."
+msgstr "Список пуст. Выберите студентов слева и добавьте их сюда."
+
+#: .\templates\accounts\mass_order_create.html:86
+#, fuzzy
+#| msgid "Номер приказа"
+msgid "3. Параметры приказа"
+msgstr "Номер приказа"
+
+#: .\templates\accounts\mass_order_create.html:89
+#, fuzzy
+#| msgid "Тип приказа"
+msgid "Тип приказа *"
+msgstr "Тип приказа"
+
+#: .\templates\accounts\mass_order_create.html:91
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Выберите тип"
+msgstr "Выберите студентов"
+
+#: .\templates\accounts\mass_order_create.html:99
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Новая группа (для перевода) *"
+msgstr "Новая группа"
+
+#: .\templates\accounts\mass_order_create.html:109
+#, fuzzy
+#| msgid "Заголовок новости"
+msgid "Заголовок приказа *"
+msgstr "Заголовок новости"
+
+#: .\templates\accounts\mass_order_create.html:110
+msgid "Например: Об отчислении за неуспеваемость"
+msgstr "Например: Об отчислении за неуспеваемость"
+
+#: .\templates\accounts\mass_order_create.html:114
+#, fuzzy
+#| msgid "Основание (из плана)"
+msgid "Основание (Причина)"
+msgstr "Основание (из плана)"
+
+#: .\templates\accounts\mass_order_create.html:115
+msgid "Например: Служебная записка декана от 12.05.2025"
+msgstr "Например: Служебная записка декана от 12.05.2025"
+
+#: .\templates\accounts\mass_order_create.html:119
+#, fuzzy
+#| msgid "Скан файла (опционально)"
+msgid "Скан-копия (опционально)"
+msgstr "Скан файла (опционально)"
+
+#: .\templates\accounts\mass_order_create.html:124
+#, fuzzy
+#| msgid "Редактировать предмет"
+msgid "Сформировать проект приказа"
+msgstr "Редактировать предмет"
+
+#: .\templates\accounts\mass_order_create.html:155
+#, fuzzy
+#| msgid "Это план чужого факультета!"
+msgid "В этой группе нет активных студентов"
+msgstr "Это план чужого факультета!"
+
+#: .\templates\accounts\mass_order_create.html:178
+#, fuzzy
+#| msgid "Общая учебная нагрузка кафедры"
+msgid "Ошибка загрузки данных"
+msgstr "Общая учебная нагрузка кафедры"
+
+#: .\templates\accounts\mass_order_create.html:228
+#, fuzzy
+#| msgid "Статистика студентов"
+msgid "Список пуст. Добавьте студентов."
+msgstr "Статистика студентов"
+
+#: .\templates\accounts\mass_order_create.html:241
+#, fuzzy
+#| msgid "Дата приказа"
+msgid "Удалить из приказа"
+msgstr "Дата приказа"
 
 #: .\templates\accounts\payment_list.html:3
 #, fuzzy
@@ -2730,11 +3461,6 @@ msgstr "Только должники"
 msgid "Долг"
 msgstr "Долг"
 
-#: .\templates\accounts\payment_list.html:34
-#: .\templates\accounts\user_management.html:46
-msgid "Статус"
-msgstr "Статус"
-
 #: .\templates\accounts\payment_list.html:55
 #, fuzzy
 #| msgid "Нет прав"
@@ -2753,118 +3479,118 @@ msgstr "Статистика студента"
 msgid "Группа:"
 msgstr "Группа"
 
-#: .\templates\accounts\profile_student.html:53
+#: .\templates\accounts\profile_student.html:72
 #, fuzzy
 #| msgid "Среда"
 msgid "Средний GPA"
 msgstr "Среда"
 
-#: .\templates\accounts\profile_student.html:64
+#: .\templates\accounts\profile_student.html:83
 #, fuzzy
 #| msgid "Новая посещаемость"
 msgid "Посещаемость"
 msgstr "Новая посещаемость"
 
-#: .\templates\accounts\profile_student.html:75
+#: .\templates\accounts\profile_student.html:94
 #, fuzzy
 #| msgid "Рейтинг в группе"
 msgid "Рейтинг"
 msgstr "Рейтинг в группе"
 
-#: .\templates\accounts\profile_student.html:86
+#: .\templates\accounts\profile_student.html:105
 msgid "Прогулы (НБ)"
 msgstr "Прогулы (НБ)"
 
-#: .\templates\accounts\profile_student.html:99
+#: .\templates\accounts\profile_student.html:118
 #, fuzzy
 #| msgid "Дата исключения"
 msgid "Динамика обучения"
 msgstr "Дата исключения"
 
-#: .\templates\accounts\profile_student.html:112
+#: .\templates\accounts\profile_student.html:131
 #, fuzzy
 #| msgid "Статус посещения"
 msgid "Структура посещения"
 msgstr "Статус посещения"
 
-#: .\templates\accounts\profile_student.html:119
+#: .\templates\accounts\profile_student.html:138
 msgid "Пар всего"
 msgstr "Пар всего"
 
-#: .\templates\accounts\profile_student.html:123
+#: .\templates\accounts\profile_student.html:142
 #, fuzzy
 #| msgid "Присутствовал"
 msgid "Присут."
 msgstr "Присутствовал"
 
-#: .\templates\accounts\profile_student.html:124
-#: .\templates\accounts\profile_student.html:360
+#: .\templates\accounts\profile_student.html:143
+#: .\templates\accounts\profile_student.html:379
 #, fuzzy
 #| msgid "НБ-Болезнь"
 msgid "Болезнь"
 msgstr "НБ-Болезнь"
 
-#: .\templates\accounts\profile_student.html:125
+#: .\templates\accounts\profile_student.html:144
 msgid "Уваж."
 msgstr "Уваж."
 
-#: .\templates\accounts\profile_student.html:126
+#: .\templates\accounts\profile_student.html:145
 msgid "НБ"
 msgstr "НБ"
 
-#: .\templates\accounts\profile_student.html:137
+#: .\templates\accounts\profile_student.html:156
 #, fuzzy
 #| msgid "Данные по предметам"
 msgid "Успеваемость по предметам"
 msgstr "Данные по предметам"
 
-#: .\templates\accounts\profile_student.html:145
+#: .\templates\accounts\profile_student.html:164
 #, fuzzy
 #| msgid "Преподаватели"
 msgid "Показатели"
 msgstr "Преподаватели"
 
-#: .\templates\accounts\profile_student.html:146
+#: .\templates\accounts\profile_student.html:165
 #, fuzzy
 #| msgid "Вместимость"
 msgid "Эффективность"
 msgstr "Вместимость"
 
-#: .\templates\accounts\profile_student.html:182
+#: .\templates\accounts\profile_student.html:201
 #, fuzzy
 #| msgid "Данные по предметам"
 msgid "Нет данных по предметам"
 msgstr "Данные по предметам"
 
-#: .\templates\accounts\profile_student.html:195
+#: .\templates\accounts\profile_student.html:214
 #, fuzzy
 #| msgid "Учебные планы"
 msgid "Личные данные"
 msgstr "Учебные планы"
 
-#: .\templates\accounts\profile_student.html:207
+#: .\templates\accounts\profile_student.html:226
 msgid "Пол / Нац."
 msgstr "Пол / Нац."
 
-#: .\templates\accounts\profile_student.html:214
+#: .\templates\accounts\profile_student.html:233
 #, fuzzy
 #| msgid "Номер паспорта"
 msgid "Паспорт"
 msgstr "Номер паспорта"
 
-#: .\templates\accounts\profile_student.html:323
+#: .\templates\accounts\profile_student.html:342
 #, fuzzy, python-format
 #| msgid "Новая посещаемость"
 msgid "Посещаемость %%"
 msgstr "Новая посещаемость"
 
-#: .\templates\accounts\profile_student.html:360
+#: .\templates\accounts\profile_student.html:379
 #, fuzzy
 #| msgid "НБ-Уважительная"
 msgid "Уважительная"
 msgstr "НБ-Уважительная"
 
-#: .\templates\accounts\profile_student.html:360
+#: .\templates\accounts\profile_student.html:379
 msgid "Прогул"
 msgstr "Прогул"
 
@@ -2874,7 +3600,7 @@ msgstr "Прогул"
 msgid "Профиль преподавателя"
 msgstr "Все преподаватели"
 
-#: .\templates\accounts\profile_teacher.html:40 .\templates\base.html:728
+#: .\templates\accounts\profile_teacher.html:40 .\templates\base.html:815
 msgid "Контакты"
 msgstr "Контакты"
 
@@ -2946,7 +3672,7 @@ msgstr "Группа по умолчанию"
 
 #: .\templates\accounts\reset_password.html:3
 #: .\templates\accounts\reset_password.html:18
-#: .\templates\accounts\user_management.html:97
+#: .\templates\accounts\user_management.html:99
 #, fuzzy
 #| msgid "Старый пароль"
 msgid "Сбросить пароль"
@@ -2983,7 +3709,7 @@ msgid "факультетов"
 msgstr "Факультет"
 
 #: .\templates\accounts\structure_manage.html:57
-#: .\templates\accounts\structure_manage.html:236
+#: .\templates\accounts\structure_manage.html:236 .\templates\base.html:648
 msgid "Настройки"
 msgstr "Настройки"
 
@@ -3224,6 +3950,86 @@ msgstr "Новая группа"
 msgid "Перевести"
 msgstr "Перенесено"
 
+#: .\templates\accounts\unassigned_students.html:4
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Распределение студентов"
+msgstr "Выберите студентов"
+
+#: .\templates\accounts\unassigned_students.html:7
+#, fuzzy
+#| msgid "Статистика студентов"
+msgid "Распределение новых студентов"
+msgstr "Статистика студентов"
+
+#: .\templates\accounts\unassigned_students.html:17
+msgid "Студенты, ожидающие распределения"
+msgstr "Студенты, ожидающие распределения"
+
+#: .\templates\accounts\unassigned_students.html:23
+msgid "чел."
+msgstr "чел."
+
+#: .\templates\accounts\unassigned_students.html:30
+#, fuzzy
+#| msgid "Курсовая работа"
+msgid "Отличная работа!"
+msgstr "Курсовая работа"
+
+#: .\templates\accounts\unassigned_students.html:31
+#, fuzzy
+#| msgid "Все импортированные студенты будут добавлены в эту группу."
+msgid "Все зачисленные студенты уже распределены по группам."
+msgstr "Все импортированные студенты будут добавлены в эту группу."
+
+#: .\templates\accounts\unassigned_students.html:39
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Выбрано студентов:"
+msgstr "Выберите студентов"
+
+#: .\templates\accounts\unassigned_students.html:44
+#, fuzzy
+#| msgid "Новая группа"
+msgid "Назначить в группу:"
+msgstr "Новая группа"
+
+#: .\templates\accounts\unassigned_students.html:46
+#, fuzzy
+#| msgid "Выберите семестр из списка"
+msgid "Выберите академическую группу"
+msgstr "Выберите семестр из списка"
+
+#: .\templates\accounts\unassigned_students.html:60
+#, fuzzy
+#| msgid "Да, удалить"
+msgid "Распределить"
+msgstr "Да, удалить"
+
+#: .\templates\accounts\unassigned_students.html:73
+#, fuzzy
+#| msgid "Зачет"
+msgid "ID (Зачетка)"
+msgstr "Зачет"
+
+#: .\templates\accounts\unassigned_students.html:74
+#, fuzzy
+#| msgid "Специальность удалена"
+msgid "Специальность (Куда зачислен)"
+msgstr "Специальность удалена"
+
+#: .\templates\accounts\unassigned_students.html:75
+#, fuzzy
+#| msgid "Сообщения"
+msgid "Тип обучения"
+msgstr "Сообщения"
+
+#: .\templates\accounts\unassigned_students.html:97
+#, fuzzy
+#| msgid "Номер приказа"
+msgid "Не указана"
+msgstr "Номер приказа"
+
 #: .\templates\accounts\user_management.html:4
 #: .\templates\accounts\user_management.html:6
 #: .\templates\accounts\user_management.html:13
@@ -3232,207 +4038,242 @@ msgstr "Перенесено"
 msgid "Управление пользователями"
 msgstr "Последнее обновление"
 
-#: .\templates\accounts\user_management.html:21
+#: .\templates\accounts\user_management.html:23
 msgid "Поиск..."
 msgstr "Поиск..."
 
-#: .\templates\accounts\user_management.html:25
+#: .\templates\accounts\user_management.html:27
 #, fuzzy
 #| msgid "Все преподаватели"
 msgid "Все роли"
 msgstr "Все преподаватели"
 
-#: .\templates\accounts\user_management.html:43
+#: .\templates\accounts\user_management.html:45
+#: .\templates\core\dashboard_hr.html:57
 msgid "ФИО"
 msgstr "ФИО"
 
-#: .\templates\accounts\user_management.html:57
+#: .\templates\accounts\user_management.html:59
 #, fuzzy
 #| msgid "Преподаватель"
 msgid "Суперпользователь"
 msgstr "Преподаватель"
 
-#: .\templates\accounts\user_management.html:70
+#: .\templates\accounts\user_management.html:72
 #, fuzzy
 #| msgid "Пароли не совпадают"
 msgid "Профиль не создан"
 msgstr "Пароли не совпадают"
 
-#: .\templates\accounts\user_management.html:78
+#: .\templates\accounts\user_management.html:80
 #, fuzzy
 #| msgid "заблокирован"
 msgid "Заблокирован"
 msgstr "заблокирован"
 
-#: .\templates\accounts\user_management.html:85
+#: .\templates\accounts\user_management.html:87
 #, fuzzy
 #| msgid "Просмотры"
 msgid "Просмотр профиля"
 msgstr "Просмотры"
 
-#: .\templates\accounts\user_management.html:104
+#: .\templates\accounts\user_management.html:106
 #, fuzzy
 #| msgid "❌ Вы не можете заблокировать сам себя!"
 msgid "Нельзя заблокировать себя"
 msgstr "❌ Вы не можете заблокировать сам себя!"
 
-#: .\templates\accounts\user_management.html:111
-#: .\templates\accounts\user_management.html:112
+#: .\templates\accounts\user_management.html:113
+#: .\templates\accounts\user_management.html:114
 #, fuzzy
 #| msgid "заблокирован"
 msgid "Заблокировать"
 msgstr "заблокирован"
 
-#: .\templates\accounts\user_management.html:111
-#: .\templates\accounts\user_management.html:112
+#: .\templates\accounts\user_management.html:113
+#: .\templates\accounts\user_management.html:114
 #, fuzzy
 #| msgid "активирован"
 msgid "Активировать"
 msgstr "активирован"
 
-#: .\templates\accounts\user_management.html:111
+#: .\templates\accounts\user_management.html:113
 #, fuzzy
 #| msgid "Преподаватель"
 msgid "пользователя"
 msgstr "Преподаватель"
 
-#: .\templates\accounts\user_management.html:118
+#: .\templates\accounts\user_management.html:120
 #, fuzzy
 #| msgid "Отчисление (Хориҷ)"
 msgid "Приказы (Отчисление/Выпуск)"
 msgstr "Отчисление"
 
-#: .\templates\accounts\user_management.html:124
+#: .\templates\accounts\user_management.html:126
 msgid "Перевести в другую группу"
 msgstr "Перевести в другую группу"
 
-#: .\templates\accounts\user_management.html:130
+#: .\templates\accounts\user_management.html:132
 #, fuzzy
 #| msgid "Профиль успешно обновлен"
 msgid "Профиль студента не создан"
 msgstr "Профиль успешно обновлен"
 
-#: .\templates\base.html:511
+#: .\templates\base.html:509
 msgid "Система Деканат"
 msgstr "Система Деканат"
 
-#: .\templates\base.html:537
-msgid "Профиль"
+#: .\templates\base.html:579
+#, fuzzy
+#| msgid "Профиль"
+msgid "Мой профиль"
 msgstr "Профиль"
 
-#: .\templates\base.html:542
+#: .\templates\base.html:585
 msgid "Выход"
 msgstr "Выход"
 
-#: .\templates\base.html:555
-msgid "Сохтор (Структура)"
+#: .\templates\base.html:599
+#, fuzzy
+#| msgid "Причина/Основание"
+msgid "Администрирование"
+msgstr "Причина/Основание"
+
+#: .\templates\base.html:602
+#, fuzzy
+#| msgid "Сохтор (Структура)"
+msgid "Инфраструктура"
 msgstr "Структура"
 
-#: .\templates\base.html:559
-msgid "Рӯйхати факултетҳо ва кафедраҳо"
-msgstr "Список факультетов и кафедр"
+#: .\templates\base.html:607
+#, fuzzy
+#| msgid "Факультет удален"
+msgid "Факультеты и Кафедры"
+msgstr "Факультет удален"
 
-#: .\templates\base.html:565
-msgid "Иловаи Институт"
+#: .\templates\base.html:610 .\templates\schedule\manage_classrooms.html:11
+#, fuzzy
+#| msgid "Учебный год"
+msgid "Аудиторный фонд"
+msgstr "Учебный год"
+
+#: .\templates\base.html:614
+#, fuzzy
+#| msgid "Иловаи Институт"
+msgid "Добавить Институт"
 msgstr "Добавление Института"
 
-#: .\templates\base.html:572
-msgid "Шуъбаи таълим"
-msgstr "отдел образования"
+#: .\templates\base.html:620
+#, fuzzy
+#| msgid "Учебный год"
+msgid "Учебный процесс"
+msgstr "Учебный год"
 
-#: .\templates\base.html:576
-msgid "Нақшаҳои таълимӣ (РУП)"
-msgstr "образовательные планы (РУП)"
+#: .\templates\base.html:625
+#, fuzzy
+#| msgid "Учебный план (РУП)"
+msgid "Учебные планы (РУП)"
+msgstr "Учебный план (РУП)"
 
-#: .\templates\base.html:581
-msgid "Рӯйхати фанҳо"
-msgstr "Список предметов (Дисциплин("
+#: .\templates\base.html:628
+#, fuzzy
+#| msgid "Дисциплины плана"
+msgid "Дисциплины (Предметы)"
+msgstr "Дисциплины плана"
 
-#: .\templates\base.html:586
-msgid "Гурӯҳҳои академӣ"
-msgstr "академические группы"
+#: .\templates\base.html:631
+#, fuzzy
+#| msgid "Академический отпуск"
+msgid "Академические группы"
+msgstr "Академический отпуск"
 
-#: .\templates\base.html:590
-msgid "Ҷадвали дарсҳо"
-msgstr "расписание уроков"
-
-#: .\templates\base.html:595
-msgid "Конструктор (Селанамоӣ)"
+#: .\templates\base.html:641
+#, fuzzy
+#| msgid "Конструктор (Селанамоӣ)"
+msgid "Конструктор"
 msgstr "Конструктор"
 
-#: .\templates\base.html:598
-msgid "Намоиши ҷадвал"
-msgstr "Показ расписания"
+#: .\templates\base.html:644
+#, fuzzy
+#| msgid "Просмотры"
+msgid "Просмотр сетки"
+msgstr "Просмотры"
 
-#: .\templates\base.html:601
-msgid "Семестрҳо"
-msgstr "Семестры"
+#: .\templates\base.html:656
+#, fuzzy
+#| msgid "Временные слоты"
+msgid "Звонки (Временные слоты)"
+msgstr "Временные слоты"
 
-#: .\templates\base.html:608
-msgid "Контингент ва Кадрҳо"
+#: .\templates\base.html:662
+#, fuzzy
+#| msgid "Контингент ва Кадрҳо"
+msgid "Контингент"
 msgstr "контингент и личный состав"
 
-#: .\templates\base.html:612
-msgid "Фармонҳо (Приказы)"
-msgstr "Приказы"
+#: .\templates\base.html:668
+#, fuzzy
+#| msgid "Справочник дисциплин"
+msgid "Распределение по группам"
+msgstr "Справочник дисциплин"
 
-#: .\templates\base.html:616
-msgid "Кормандон ва Донишҷӯён"
-msgstr "сотрудники и студенты"
+#: .\templates\base.html:687
+#, fuzzy
+#| msgid "Отчислен"
+msgid "Импорт (Зачисление)"
+msgstr "Отчислен"
 
-#: .\templates\base.html:621
-msgid "Рӯйхати омӯзгорон"
-msgstr "Список преподователей"
+#: .\templates\base.html:693 .\templates\core\dashboard_hr.html:104
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Добавить вручную"
+msgstr "Добавить предмет"
 
-#: .\templates\base.html:624
-msgid "Рӯйхати донишҷӯён"
-msgstr "Список студентов"
+#: .\templates\base.html:712
+#, fuzzy
+#| msgid "Новый кабинет"
+msgid "Личный кабинет"
+msgstr "Новый кабинет"
 
-#: .\templates\base.html:627
-msgid "Иловаи корбар"
-msgstr "добавление пользователя"
+#: .\templates\base.html:716
+#, fuzzy
+#| msgid "Расписание"
+msgid "Мое расписание"
+msgstr "Расписание"
 
-#: .\templates\base.html:630
-msgid "Импорт (Excel)"
-msgstr "Импорт (Excel)"
+#: .\templates\base.html:719
+#, fuzzy
+#| msgid "Запись в журнале"
+msgid "Электронный журнал"
+msgstr "Запись в журнале"
 
-#: .\templates\base.html:636
-msgid "Кабинети инфиродӣ"
-msgstr "личный кабинет"
+#: .\templates\base.html:722
+#, fuzzy
+#| msgid "Все студенты"
+msgid "Мои студенты"
+msgstr "Все студенты"
 
-#: .\templates\base.html:640
-msgid "Ҷадвали ман"
-msgstr "мое расписание"
+#: .\templates\base.html:728
+#, fuzzy
+#| msgid "Посещено занятий"
+msgid "Расписание занятий"
+msgstr "Посещено занятий"
 
-#: .\templates\base.html:643
-msgid "Журнали электронӣ"
-msgstr "Электронный журнал"
+#: .\templates\base.html:731
+#, fuzzy
+#| msgid "Новая посещаемость"
+msgid "Оценки и посещаемость"
+msgstr "Новая посещаемость"
 
-#: .\templates\base.html:649
-msgid "Ҷадвали дарсӣ"
-msgstr "расписание уроков"
-
-#: .\templates\base.html:652
-msgid "Баҳоҳо ва Давомот"
-msgstr "оценки и посещаемость"
-
-#: .\templates\base.html:657
-msgid "Хабарҳо"
-msgstr "Новости"
-
-#: .\templates\base.html:660
-msgid "Паёмҳо"
-msgstr "сообщения"
-
-#: .\templates\base.html:672
+#: .\templates\base.html:759
 msgid "Главная"
 msgstr "Главная"
 
-#: .\templates\base.html:697
+#: .\templates\base.html:784
 msgid "О платформе"
 msgstr "О платформе"
 
-#: .\templates\base.html:700
+#: .\templates\base.html:787
 msgid ""
 "Современная образовательная платформа для эффективного управления учебным "
 "процессом и взаимодействия между студентами и преподавателями."
@@ -3440,34 +4281,567 @@ msgstr ""
 "Современная образовательная платформа для эффективного управления учебным "
 "процессом и взаимодействия между студентами и преподавателями."
 
-#: .\templates\base.html:705
+#: .\templates\base.html:792
 msgid "Быстрые ссылки"
 msgstr "Быстрые ссылки"
 
-#: .\templates\base.html:710 .\templates\core\dashboard_admin.html:13
+#: .\templates\base.html:797 .\templates\core\dashboard_admin.html:13
 msgid "Панель управления"
 msgstr "Панель управления"
 
-#: .\templates\base.html:745
+#: .\templates\base.html:832
 msgid "г. Душанбе, ул. Студенческая 1"
 msgstr "г. Душанбе, ул. Студенческая 1"
 
-#: .\templates\base.html:752
+#: .\templates\base.html:839
 msgid "Мы в соцсетях"
 msgstr "Мы в соцсетях"
 
-#: .\templates\base.html:769
+#: .\templates\base.html:856
 msgid "Следите за новостями и обновлениями в наших социальных сетях"
 msgstr "Следите за новостями и обновлениями в наших социальных сетях"
 
-#: .\templates\base.html:779
+#: .\templates\base.html:866
 msgid "Университетская Платформа. Все права защищены."
 msgstr "Университетская Платформа. Все права защищены."
 
-#: .\templates\base.html:854
+#: .\templates\base.html:941
 msgid "Переключить тему"
 msgstr "Переключить тему"
 
 #: .\templates\core\dashboard_admin.html:5
 msgid "Панель Администратора"
 msgstr "Панель Администратора"
+
+#: .\templates\core\dashboard_hr.html:4
+#, fuzzy
+#| msgid "Кабинет декана"
+msgid "Панель Отдела Кадров"
+msgstr "Кабинет декана"
+
+#: .\templates\core\dashboard_hr.html:10
+msgid "Отдел Кадров (HR)"
+msgstr "Отдел Кадров"
+
+#: .\templates\core\dashboard_hr.html:11
+msgid "Управление контингентом студентов и сотрудников"
+msgstr "Управление контингентом студентов и сотрудников"
+
+#: .\templates\core\dashboard_hr.html:19
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Всего студентов"
+msgstr "Выберите студентов"
+
+#: .\templates\core\dashboard_hr.html:27
+msgid "Ждут распределения (Без группы)"
+msgstr "Ждут распределения (Без группы)"
+
+#: .\templates\core\dashboard_hr.html:29
+msgid "Деканаты должны распределить их"
+msgstr "Деканаты должны распределить их"
+
+#: .\templates\core\dashboard_hr.html:36
+msgid "Сотрудники (ППС)"
+msgstr "Сотрудники (ППС)"
+
+#: .\templates\core\dashboard_hr.html:48
+#, fuzzy
+#| msgid "Войдите в систему"
+msgid "Недавно добавленные в систему"
+msgstr "Войдите в систему"
+
+#: .\templates\core\dashboard_hr.html:50
+#, fuzzy
+#| msgid "Преподаватели"
+msgid "Все пользователи"
+msgstr "Преподаватели"
+
+#: .\templates\core\dashboard_hr.html:60
+#, fuzzy
+#| msgid "Дата отправки"
+msgid "Дата регистрации"
+msgstr "Дата отправки"
+
+#: .\templates\core\dashboard_hr.html:95
+#, fuzzy
+#| msgid "Новое значение"
+msgid "Массовое зачисление"
+msgstr "Новое значение"
+
+#: .\templates\core\dashboard_hr.html:96
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Импорт студентов из Excel"
+msgstr "Выберите студентов"
+
+#: .\templates\core\dashboard_hr.html:105
+#, fuzzy
+#| msgid "Создать пользователя"
+msgid "Создать единичного пользователя"
+msgstr "Создать пользователя"
+
+#: .\templates\core\dashboard_rector.html:4
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Кабинет Руководителя"
+msgstr "Добавить предмет"
+
+#: .\templates\core\dashboard_rector.html:12
+#, fuzzy
+#| msgid "заблокирован"
+msgid "Добро пожаловать"
+msgstr "заблокирован"
+
+#: .\templates\core\dashboard_rector.html:14
+#, fuzzy
+#| msgid "Структура университета"
+msgid "Обзор деятельности университета"
+msgstr "Структура университета"
+
+#: .\templates\core\dashboard_rector.html:23
+#, fuzzy
+#| msgid "Выберите студентов"
+msgid "Контингент студентов"
+msgstr "Выберите студентов"
+
+#: .\templates\core\dashboard_rector.html:31
+#, fuzzy
+#| msgid "Должность для подписи"
+msgid "Документы на подпись"
+msgstr "Должность для подписи"
+
+#: .\templates\core\dashboard_rector.html:39
+#, fuzzy
+#| msgid "Категория сотрудника"
+msgid "Штат сотрудников"
+msgstr "Категория сотрудника"
+
+#: .\templates\core\dashboard_rector.html:52
+msgid "Требует утверждения (Проекты приказов)"
+msgstr "Требует утверждения (Проекты приказов)"
+
+#: .\templates\core\dashboard_rector.html:55
+#, fuzzy
+#| msgid "Недель в семестре"
+msgid "Перейти в реестр"
+msgstr "Недель в семестре"
+
+#: .\templates\core\dashboard_rector.html:66
+#, fuzzy
+#| msgid "Кабинет декана"
+msgid "Инициатор (Декан)"
+msgstr "Кабинет декана"
+
+#: .\templates\core\dashboard_rector.html:68
+#, fuzzy
+#| msgid "Действия"
+msgid "Действие"
+msgstr "Действия"
+
+#: .\templates\core\dashboard_rector.html:94
+msgid "Вы уверены, что хотите утвердить этот приказ?"
+msgstr "Вы уверены, что хотите утвердить этот приказ?"
+
+#: .\templates\core\dashboard_rector.html:95
+#, fuzzy
+#| msgid "Подтвердите пароль"
+msgid "Утвердить"
+msgstr "Подтвердите пароль"
+
+#: .\templates\core\dashboard_rector.html:105
+msgid "Нет документов, требующих подписи."
+msgstr "Нет документов, требующих подписи."
+
+#: .\templates\schedule\building_form.html:28
+msgid "Укажите, к какому институту относится этот корпус."
+msgstr "Укажите, к какому институту относится этот корпус."
+
+#: .\templates\schedule\classroom_occupancy.html:5
+#, fuzzy
+#| msgid "Новость удалена"
+msgid "Занятость аудиторий"
+msgstr "Новость удалена"
+
+#: .\templates\schedule\classroom_occupancy.html:11
+msgid "Карта занятости аудиторий"
+msgstr "Карта занятости аудиторий"
+
+#: .\templates\schedule\classroom_occupancy.html:13
+#, fuzzy
+#| msgid "Назад к списку"
+msgid "К списку"
+msgstr "Назад к списку"
+
+#: .\templates\schedule\classroom_occupancy.html:51
+#, fuzzy
+#| msgid "Категория"
+msgid "Аудитория"
+msgstr "Категория"
+
+#: .\templates\schedule\classroom_occupancy.html:53
+msgid "Мест"
+msgstr "Мест"
+
+#: .\templates\schedule\constructor_with_limits.html:12
+#, fuzzy
+#| msgid "Конструктор (Селанамоӣ)"
+msgid "Конструктор расписания"
+msgstr "Конструктор"
+
+#: .\templates\schedule\constructor_with_limits.html:20
+#, fuzzy
+#| msgid "Время"
+msgid "Все"
+msgstr "Время"
+
+#: .\templates\schedule\constructor_with_limits.html:36
+#, fuzzy
+#| msgid "Выберите семестр из списка"
+msgid "Выберите группу из списка"
+msgstr "Выберите семестр из списка"
+
+#: .\templates\schedule\constructor_with_limits.html:56
+#, fuzzy
+#| msgid "Специальность обновлена"
+msgid "Активный семестр выбран автоматически"
+msgstr "Специальность обновлена"
+
+#: .\templates\schedule\constructor_with_limits.html:62
+msgid "Открыть"
+msgstr "Открыть"
+
+#: .\templates\schedule\manage_buildings.html:14
+#, fuzzy
+#| msgid "Кабинет"
+msgid "К кабинетам"
+msgstr "Кабинет"
+
+#: .\templates\schedule\manage_buildings.html:17
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Добавить корпус"
+msgstr "Добавить предмет"
+
+#: .\templates\schedule\manage_buildings.html:29
+#, fuzzy
+#| msgid "Кабинет"
+msgid "Кабинетов"
+msgstr "Кабинет"
+
+#: .\templates\schedule\manage_buildings.html:63
+msgid "Список корпусов пуст."
+msgstr "Список корпусов пуст."
+
+#: .\templates\schedule\manage_buildings.html:64
+msgid "Добавьте первый корпус, чтобы создавать в нем кабинеты."
+msgstr "Добавьте первый корпус, чтобы создавать в нем кабинеты."
+
+#: .\templates\schedule\manage_classrooms.html:4
+#, fuzzy
+#| msgid "Справочник дисциплин"
+msgid "Управление кабинетами"
+msgstr "Справочник дисциплин"
+
+#: .\templates\schedule\manage_classrooms.html:15
+#, fuzzy
+#| msgid "Дата занятия"
+msgid "Карта занятости"
+msgstr "Дата занятия"
+
+#: .\templates\schedule\manage_classrooms.html:18
+msgid "Корпуса"
+msgstr "Корпуса"
+
+#: .\templates\schedule\manage_classrooms.html:24
+#, fuzzy
+#| msgid "Институты"
+msgid "Все институты"
+msgstr "Институты"
+
+#: .\templates\schedule\manage_classrooms.html:35
+msgid "Массово"
+msgstr "Массово"
+
+#: .\templates\schedule\manage_classrooms.html:38
+#, fuzzy
+#| msgid "Добавить предмет"
+msgid "Добавить"
+msgstr "Добавить предмет"
+
+#: .\templates\schedule\manage_classrooms.html:47
+msgid "Корпус"
+msgstr "Корпус"
+
+#: .\templates\schedule\manage_classrooms.html:75
+#, fuzzy
+#| msgid "Кабинет %(room_number)s не найден"
+msgid "Кабинеты не найдены"
+msgstr "Кабинет %(room_number)s не найден"
+
+#: .\templates\schedule\manage_time_slots.html:4
+#, fuzzy
+#| msgid "Справочник дисциплин"
+msgid "Управление звонками"
+msgstr "Справочник дисциплин"
+
+#: .\templates\schedule\manage_time_slots.html:12
+#, fuzzy
+#| msgid "Номер зачетки"
+msgid "Генератор сетки"
+msgstr "Номер зачетки"
+
+#: .\templates\schedule\manage_time_slots.html:19
+#, fuzzy
+#| msgid "Настройки"
+msgid "Уровень настройки"
+msgstr "Настройки"
+
+#: .\templates\schedule\manage_time_slots.html:58
+#, fuzzy
+#| msgid "Всего прогулов"
+msgid "Всего пар в смену"
+msgstr "Всего прогулов"
+
+#: .\templates\schedule\manage_time_slots.html:65
+msgid "Удалить старые звонки этой смены перед созданием"
+msgstr "Удалить старые звонки этой смены перед созданием"
+
+#: .\templates\schedule\manage_time_slots.html:70
+#, fuzzy
+#| msgid "Редактировать семестр"
+msgid "Сгенерировать сетку"
+msgstr "Редактировать семестр"
+
+#: .\templates\schedule\no_semester.html:4
+#, fuzzy
+#| msgid "Расписание"
+msgid "Расписание недоступно"
+msgstr "Расписание"
+
+#: .\templates\schedule\no_semester.html:13
+#, fuzzy
+#| msgid "Активный семестр не найден."
+msgid "Активный семестр не найден"
+msgstr "Активный семестр не найден."
+
+#: .\templates\schedule\no_semester.html:15
+#, fuzzy
+#| msgid ""
+#| "Внимание! Активный семестр не выбран. Расписание может не работать."
+msgid ""
+"В данный момент не выбран активный учебный семестр. Расписание недоступно."
+msgstr "Внимание! Активный семестр не выбран. Расписание может не работать."
+
+#: .\templates\schedule\no_semester.html:20
+msgid "Как администратор, вы должны активировать семестр в настройках:"
+msgstr "Как администратор, вы должны активировать семестр в настройках:"
+
+#: .\templates\schedule\no_semester.html:22
+#, fuzzy
+#| msgid "Нет активного семестра"
+msgid "Перейдите в 'Управление семестрами'"
+msgstr "Нет активного семестра"
+
+#: .\templates\schedule\no_semester.html:23
+msgid "Создайте новый семестр или нажмите 'Сделать активным' у существующего"
+msgstr "Создайте новый семестр или нажмите 'Сделать активным' у существующего"
+
+#: .\templates\schedule\no_semester.html:24
+msgid "Убедитесь, что семестр привязан к вашему факультету/институту"
+msgstr "Убедитесь, что семестр привязан к вашему факультету/институту"
+
+#: .\templates\schedule\no_semester.html:28
+#, fuzzy
+#| msgid "Нет активного семестра"
+msgid "Перейти к управлению семестрами"
+msgstr "Нет активного семестра"
+
+#: .\templates\schedule\no_semester.html:31
+msgid "Пожалуйста, обратитесь в деканат или учебную часть."
+msgstr "Пожалуйста, обратитесь в деканат или учебную часть."
+
+#: .\templates\schedule\semester_form.html:9
+#, fuzzy
+#| msgid "Номер семестра"
+msgid "Настройка семестра"
+msgstr "Номер семестра"
+
+#: .\templates\schedule\semester_form.html:19
+#, fuzzy
+#| msgid "Ваш профиль не привязан к факультету"
+msgid "Семестр будет привязан к этому институту."
+msgstr "Ваш профиль не привязан к факультету"
+
+#: .\templates\schedule\semester_form.html:50
+#, fuzzy
+#| msgid "Номер недели"
+msgid "Номер (1 или 2)"
+msgstr "Номер недели"
+
+#: .\templates\schedule\semester_form.html:63
+msgid "От этой даты считаются недели (Красная/Синяя)."
+msgstr "От этой даты считаются недели (Красная/Синяя)."
+
+#: .\templates\schedule\semester_form.html:74
+#, fuzzy
+#| msgid "-- Выберите активный семестр --"
+msgid "Сделать активным сейчас"
+msgstr "-- Выберите активный семестр --"
+
+#~ msgid "Messages"
+#~ msgstr "сообщения"
+
+#~ msgid "Site Maps"
+#~ msgstr "карты сайта"
+
+#~ msgid "Static Files"
+#~ msgstr "статические файлы"
+
+#~ msgid ""
+#~ "Enter a valid “slug” consisting of letters, numbers, underscores or hyphens."
+#~ msgstr ""
+#~ "введите действительный «слаг», состоящий из букв, цифр, символов "
+#~ "подчеркивания или дефисов."
+
+#, fuzzy, python-format
+#~ msgid "Index of %(directory)s"
+#~ msgstr "%(director_name)s"
+
+#~ msgid "Сардори раёсати таълим (ФИО)"
+#~ msgstr "руководитель отдела образования (ФИО)"
+
+#~ msgid "Ҷалилов Р.Р."
+#~ msgstr "Ҷалилов Р.Р."
+
+#~ msgid "Отчисление (Хориҷ)"
+#~ msgstr "Отчисление"
+
+#~ msgid "Приказ по студенту"
+#~ msgstr "Приказ по студенту"
+
+#~ msgid "Фильтр по Институту"
+#~ msgstr "Фильтр по Институту"
+
+#~ msgid "Дата начала семестра"
+#~ msgstr "Дата начала семестра"
+
+#~ msgid "Текущая неделя"
+#~ msgstr "Текущая неделя"
+
+#~ msgid "Начало недели"
+#~ msgstr "Начало недели"
+
+#~ msgid "Учебные недели"
+#~ msgstr "Учебные недели"
+
+#~ msgid "Практика (Семинары)"
+#~ msgstr "Практика (Семинары)"
+
+#~ msgid "СРСП (Контактная)"
+#~ msgstr "СРСП (Контактная)"
+
+#~ msgid "СРС (Самостоятельная)"
+#~ msgstr "СРС (Самостоятельная)"
+
+#~ msgid "Нет активного семестра. Пожалуйста, создайте или активируйте семестр."
+#~ msgstr "Нет активного семестра. Пожалуйста, создайте или активируйте семестр."
+
+#, python-format
+#~ msgid "Группа %(group_name)s занята: %(subject_name)s"
+#~ msgstr "Группа %(group_name)s занята: %(subject_name)s"
+
+#, python-format
+#~ msgid "Преподаватель %(teacher_name)s занят."
+#~ msgstr "Преподаватель %(teacher_name)s занят."
+
+#, python-format
+#~ msgid "Кабинет занят: %(group_name)s, %(subject_name)s"
+#~ msgstr "Кабинет занят: %(group_name)s, %(subject_name)s"
+
+#, python-format
+#~ msgid "Учебная неделя %(week_num)s установлена"
+#~ msgstr "Учебная неделя %(week_num)s установлена"
+
+#~ msgid "Мирзозода А. Н."
+#~ msgstr "Мирзозода А. Н."
+
+#~ msgid "Ҷовиди Ҷамшед"
+#~ msgstr "Ҷовиди Ҷамшед"
+
+#~ msgid "Первая строка (заголовки) пропускается."
+#~ msgstr "Первая строка (заголовки) пропускается."
+
+#, fuzzy
+#~ msgid "-- Без группы --"
+#~ msgstr "-- Выберите группу --"
+
+#, fuzzy
+#~ msgid "Начать импорт"
+#~ msgstr "Начальный номер"
+
+#~ msgid "Сохтор (Структура)"
+#~ msgstr "Структура"
+
+#~ msgid "Рӯйхати факултетҳо ва кафедраҳо"
+#~ msgstr "Список факультетов и кафедр"
+
+#~ msgid "Иловаи Институт"
+#~ msgstr "Добавление Института"
+
+#~ msgid "Нақшаҳои таълимӣ (РУП)"
+#~ msgstr "образовательные планы (РУП)"
+
+#~ msgid "Рӯйхати фанҳо"
+#~ msgstr "Список предметов (Дисциплин("
+
+#~ msgid "Гурӯҳҳои академӣ"
+#~ msgstr "академические группы"
+
+#~ msgid "Ҷадвали дарсҳо"
+#~ msgstr "расписание уроков"
+
+#~ msgid "Намоиши ҷадвал"
+#~ msgstr "Показ расписания"
+
+#~ msgid "Семестрҳо"
+#~ msgstr "Семестры"
+
+#~ msgid "Фармонҳо (Приказы)"
+#~ msgstr "Приказы"
+
+#~ msgid "Кормандон ва Донишҷӯён"
+#~ msgstr "сотрудники и студенты"
+
+#~ msgid "Рӯйхати омӯзгорон"
+#~ msgstr "Список преподователей"
+
+#~ msgid "Рӯйхати донишҷӯён"
+#~ msgstr "Список студентов"
+
+#~ msgid "Иловаи корбар"
+#~ msgstr "добавление пользователя"
+
+#~ msgid "Импорт (Excel)"
+#~ msgstr "Импорт (Excel)"
+
+#~ msgid "Кабинети инфиродӣ"
+#~ msgstr "личный кабинет"
+
+#~ msgid "Ҷадвали ман"
+#~ msgstr "мое расписание"
+
+#~ msgid "Журнали электронӣ"
+#~ msgstr "Электронный журнал"
+
+#~ msgid "Ҷадвали дарсӣ"
+#~ msgstr "расписание уроков"
+
+#~ msgid "Баҳоҳо ва Давомот"
+#~ msgstr "оценки и посещаемость"
+
+#~ msgid "Хабарҳо"
+#~ msgstr "Новости"
+
+#~ msgid "Паёмҳо"
+#~ msgstr "сообщения"

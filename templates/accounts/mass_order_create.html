@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Создание массового приказа" %}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'accounts:all_orders' %}">{% trans "Приказы" %}</a></li>
+    <li class="breadcrumb-item active">{% trans "Массовый приказ" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <h4 class="fw-bold text-primary mb-4"><i class="bi bi-file-earmark-plus"></i> {% trans "Формирование массового приказа" %}</h4>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="mb-0 fw-bold">{% trans "1. Выбор студентов" %}</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold text-uppercase">{% trans "Выберите группу" %}</label>
+                    <select id="groupSelect" class="form-select border-primary" onchange="loadStudents()">
+                        <option value="">-- {% trans "Выберите группу" %} --</option>
+                        {% for g in groups %}
+                            <option value="{{ g.id }}">{{ g.name }} ({{ g.course }} курс)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="table-responsive border rounded" style="height: 400px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0" id="sourceTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th width="40" class="text-center">
+                                    <input class="form-check-input" type="checkbox" id="selectAllSource" onchange="toggleAllSource(this)">
+                                </th>
+                                <th>{% trans "ФИО Студента" %}</th>
+                                <th>{% trans "Зачетка" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sourceStudentsBody">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-5">
+                                    <i class="bi bi-arrow-up-circle fs-3 d-block mb-2 opacity-50"></i>
+                                    {% trans "Выберите группу для загрузки списка студентов" %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-outline-primary w-100 mt-3 fw-bold" onclick="addSelectedToBasket()">
+                    <i class="bi bi-arrow-right-circle"></i> {% trans "Добавить выбранных в приказ" %}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <form method="post" enctype="multipart/form-data" id="massOrderForm" class="h-100 d-flex flex-column">
+            {% csrf_token %}
+            <div id="hiddenInputsContainer"></div>
+
+            <div class="card shadow-sm border-0 flex-grow-1">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold">{% trans "2. Студенты в приказе" %}</h6>
+                    <span class="badge bg-primary rounded-pill fs-6" id="basketCount">0</span>
+                </div>
+                <div class="card-body p-0 border-bottom">
+                    <div class="table-responsive" style="height: 200px; overflow-y: auto; background-color: #f8fafc;">
+                        <table class="table table-sm align-middle mb-0">
+                            <tbody id="basketBody">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">
+                                        {% trans "Список пуст. Выберите студентов слева и добавьте их сюда." %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-body bg-light">
+                    <h6 class="fw-bold mb-3">{% trans "3. Параметры приказа" %}</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{% trans "Тип приказа *" %}</label>
+                        <select name="order_type" id="orderTypeSelect" class="form-select" required onchange="toggleTargetGroup()">
+                            <option value="">-- {% trans "Выберите тип" %} --</option>
+                            {% for code, name in order_types %}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="targetGroupDiv" style="display: none;">
+                        <label class="form-label fw-bold small text-primary">{% trans "Новая группа (для перевода) *" %}</label>
+                        <select name="target_group" class="form-select border-primary" id="targetGroupSelect">
+                            <option value="">-- {% trans "Выберите группу" %} --</option>
+                            {% for g in groups %}
+                                <option value="{{ g.id }}">{{ g.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{% trans "Заголовок приказа *" %}</label>
+                        <input type="text" name="title" class="form-control" placeholder="{% trans 'Например: Об отчислении за неуспеваемость' %}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">{% trans "Основание (Причина)" %}</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="{% trans 'Например: Служебная записка декана от 12.05.2025' %}"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small">{% trans "Скан-копия (опционально)" %}</label>
+                        <input type="file" name="file" class="form-control form-control-sm" accept=".pdf,.jpg,.png">
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm" id="submitBtn" disabled>
+                        <i class="bi bi-check-circle"></i> {% trans "Сформировать проект приказа" %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const selectedStudents = new Map();
+
+    function loadStudents() {
+        const groupId = document.getElementById('groupSelect').value;
+        const tbody = document.getElementById('sourceStudentsBody');
+        const selectAllCb = document.getElementById('selectAllSource');
+        
+        if (!groupId) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-5">{% trans "Выберите группу" %}</td></tr>';
+            selectAllCb.checked = false;
+            return;
+        }
+        
+        fetch(`?group_id=${groupId}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            tbody.innerHTML = '';
+            selectAllCb.checked = false;
+
+            if (data.students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">{% trans "В этой группе нет активных студентов" %}</td></tr>';
+                return;
+            }
+            
+            data.students.forEach(s => {
+                const isAdded = selectedStudents.has(s.id.toString());
+                const tr = document.createElement('tr');
+                if (isAdded) tr.classList.add('table-success', 'opacity-50');
+
+                tr.innerHTML = `
+                    <td class="text-center">
+                        <input class="form-check-input source-cb" type="checkbox" value="${s.id}" 
+                            data-name="${s.full_name}" data-group="${s.group_name}" data-code="${s.student_id}"
+                            ${isAdded ? 'disabled checked' : ''}>
+                    </td>
+                    <td class="fw-bold">${s.full_name}</td>
+                    <td class="text-muted small">${s.student_id}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки студентов', err);
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">{% trans "Ошибка загрузки данных" %}</td></tr>';
+        });
+    }
+
+    function toggleAllSource(masterCheckbox) {
+        const checkboxes = document.querySelectorAll('.source-cb:not(:disabled)');
+        checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+    }
+
+    function addSelectedToBasket() {
+        const checkboxes = document.querySelectorAll('.source-cb:checked:not(:disabled)');
+        if (checkboxes.length === 0) return;
+
+        checkboxes.forEach(cb => {
+            selectedStudents.set(cb.value, {
+                name: cb.dataset.name,
+                group: cb.dataset.group,
+                code: cb.dataset.code
+            });
+            cb.disabled = true;
+            cb.closest('tr').classList.add('table-success', 'opacity-50');
+        });
+        
+        document.getElementById('selectAllSource').checked = false;
+        renderBasket();
+    }
+
+    function removeStudent(id) {
+        selectedStudents.delete(id.toString());
+        renderBasket();
+        
+        const cb = document.querySelector(`.source-cb[value="${id}"]`);
+        if (cb) {
+            cb.checked = false;
+            cb.disabled = false;
+            cb.closest('tr').classList.remove('table-success', 'opacity-50');
+        }
+    }
+
+    function renderBasket() {
+        const tbody = document.getElementById('basketBody');
+        const container = document.getElementById('hiddenInputsContainer');
+        const countSpan = document.getElementById('basketCount');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        tbody.innerHTML = '';
+        container.innerHTML = '';
+        countSpan.textContent = selectedStudents.size;
+        
+        if (selectedStudents.size === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">{% trans "Список пуст. Добавьте студентов." %}</td></tr>';
+            submitBtn.disabled = true;
+            return;
+        }
+        
+        submitBtn.disabled = false;
+        
+        selectedStudents.forEach((data, id) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="ps-3 fw-bold">${data.name}</td>
+                <td><span class="badge bg-secondary">${data.group}</span></td>
+                <td class="text-end pe-3">
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeStudent(${id})" title="{% trans 'Удалить из приказа' %}">
+                        <i class="bi bi-x-circle-fill fs-5"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'students';
+            input.value = id;
+            container.appendChild(input);
+        });
+    }
+
+    function toggleTargetGroup() {
+        const type = document.getElementById('orderTypeSelect').value;
+        const targetDiv = document.getElementById('targetGroupDiv');
+        const targetSelect = document.getElementById('targetGroupSelect');
+        
+        if (type === 'TRANSFER') {
+            targetDiv.style.display = 'block';
+            targetSelect.required = true;
+        } else {
+            targetDiv.style.display = 'none';
+            targetSelect.required = false;
+            targetSelect.value = '';
+        }
+    }
+</script>
+{% endblock %}

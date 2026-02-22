@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db import transaction
 from django.db import models
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpRequest, JsonResponse
 from django.utils.translation import gettext as _
 from .services import StudentImportService
 from schedule.models import Semester, Subject, AcademicPlan
@@ -17,19 +17,20 @@ from .document_engine import DocumentGenerator
 from .models import (
     User, Student, Teacher, Dean, Group, GroupTransferHistory,
     Department, Specialty, Institute, Faculty, HeadOfDepartment, Director, ProRector, ViceDean,
-    StudentOrder, DocumentTemplate, Order, OrderItem, Diploma
+    DocumentTemplate, Order, OrderItem, Diploma, Specialization
 )
 from .forms import (
     UserCreateForm, StudentForm, TeacherForm, DeanForm,
     UserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
     GroupForm, GroupTransferForm, DepartmentCreateForm, SpecialtyCreateForm,
     InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm,
-    StudentOrderForm, DocumentTemplateForm
+    OrderForm, DocumentTemplateForm, SpecializationForm
 )
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import InstituteManagementForm, InstituteForm, FacultyFullForm
 from django.http import HttpResponse
-
+from typing import List, Optional
+from django.core.exceptions import ValidationError
 
 def is_hr_or_admin(user):
     return user.is_authenticated and (user.is_superuser or user.role == 'HR')
@@ -1218,26 +1219,19 @@ def add_institute(request):
 @user_passes_test(is_management)
 def student_orders(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
-        faculty = request.user.dean_profile.faculty
-        if student.group and student.group.specialty and student.group.specialty.department.faculty != faculty:
-            messages.error(request, _("Нет доступа к этому студенту"))
-            return redirect('accounts:user_management')
-    orders = student.orders.all().order_by('-date')
+    orders = student.order_items.select_related('order').all().order_by('-order__date')
     
     if request.method == 'POST':
-        form = StudentOrderForm(request.POST, request.FILES)
+        form = OrderForm(request.POST, request.FILES)
         if form.is_valid():
             order = form.save(commit=False)
-            order.student = student
-            order.initiated_by = request.user 
-            order.status = 'DRAFT'
+            order.created_by = request.user
             order.save()
-            
+            OrderItem.objects.create(order=order, student=student)
             messages.success(request, _(f'Проект приказа №{order.number} создан.'))
             return redirect('accounts:user_management')
     else:
-        form = StudentOrderForm(initial={'date': timezone.now().date()})
+        form = OrderForm(initial={'date': timezone.now().date()})
         
     return render(request, 'accounts/student_orders.html', {
         'student': student,
@@ -1279,13 +1273,12 @@ def all_orders_list(request):
     search = request.GET.get('search', '')
     type_filter = request.GET.get('type', '')
     
-    orders = StudentOrder.objects.select_related('student__user', 'student__group').all()
+    orders = Order.objects.select_related('created_by').all()
     
     if search:
         orders = orders.filter(
             models.Q(number__icontains=search) |
-            models.Q(student__user__last_name__icontains=search) |
-            models.Q(student__user__first_name__icontains=search)
+            models.Q(title__icontains=search)
         )
     
     if type_filter:
@@ -1295,9 +1288,8 @@ def all_orders_list(request):
         'orders': orders,
         'search': search,
         'type_filter': type_filter,
-        'order_types': StudentOrder.ORDER_TYPES
+        'order_types': Order.ORDER_TYPES
     })
-
 
 
 
@@ -1305,14 +1297,12 @@ def all_orders_list(request):
 
 @user_passes_test(lambda u: u.is_superuser or u.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR'])
 def approve_order(request, order_id):
-    order = get_object_or_404(StudentOrder, id=order_id)
-    order.signed_by = request.user 
-    order.apply_effect(request.user)
-
+    order = get_object_or_404(Order, id=order_id)
+    
     if request.method == 'POST':
         if order.status == 'DRAFT':
             order.apply_effect(request.user)
-            messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студента обновлен."))
+            messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студентов обновлен."))
         else:
             messages.warning(request, _("Приказ уже обработан."))
             
@@ -1482,5 +1472,144 @@ def download_contingent_report(request):
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+@login_required
+@user_passes_test(is_management)
+def mass_order_create(request: HttpRequest) -> HttpResponse:
+    user: User = request.user
+    
+    faculty: Optional[Faculty] = None
+    if hasattr(user, 'dean_profile') and user.dean_profile.faculty:
+        faculty = user.dean_profile.faculty
+    elif hasattr(user, 'vicedean_profile') and user.vicedean_profile.faculty:
+        faculty = user.vicedean_profile.faculty
+
+    groups_qs = Group.objects.select_related('specialty').all()
+    if faculty and not user.is_superuser:
+        groups_qs = groups_qs.filter(specialty__department__faculty=faculty)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'GET':
+        group_id: str = request.GET.get('group_id', '')
+        if group_id and group_id.isdigit():
+            students = Student.objects.filter(group_id=int(group_id), status='ACTIVE').select_related('user', 'group')
+            data = [
+                {
+                    'id': s.id,
+                    'full_name': s.user.get_full_name(),
+                    'student_id': s.student_id,
+                    'group_name': s.group.name if s.group else ''
+                } for s in students
+            ]
+            return JsonResponse({'students': data})
+        return JsonResponse({'students': []})
+
+    if request.method == 'POST':
+        student_ids: List[str] = request.POST.getlist('students')
+        order_type: str = request.POST.get('order_type', '')
+        title: str = request.POST.get('title', '').strip()
+        reason: str = request.POST.get('reason', '').strip()
+        target_group_id: str = request.POST.get('target_group', '')
+        file_obj = request.FILES.get('file')
+
+        if not student_ids:
+            messages.error(request, _("Необходимо добавить хотя бы одного студента в приказ."))
+        elif not title or not order_type:
+            messages.error(request, _("Заполните обязательные поля: Заголовок и Тип приказа."))
+        else:
+            try:
+                with transaction.atomic():
+                    new_order = Order.objects.create(
+                        order_type=order_type,
+                        title=title,
+                        status='DRAFT', 
+                        created_by=user,
+                        file=file_obj
+                    )
+
+                    target_group: Optional[Group] = None
+                    if order_type == 'TRANSFER' and target_group_id.isdigit():
+                        target_group = Group.objects.get(id=int(target_group_id))
+
+                    order_items: List[OrderItem] = []
+                    for s_id in set(student_ids):
+                        if s_id.isdigit():
+                            order_items.append(
+                                OrderItem(
+                                    order=new_order,
+                                    student_id=int(s_id),
+                                    reason=reason,
+                                    target_group=target_group
+                                )
+                            )
+                    
+                    OrderItem.objects.bulk_create(order_items)
+
+                messages.success(request, _(f"Проект приказа №{new_order.number} успешно сформирован на {len(order_items)} студентов! Отправлен на подпись."))
+                return redirect('accounts:all_orders')
+                
+            except Exception as e:
+                messages.error(request, _(f"Ошибка при создании приказа: {str(e)}"))
+
+    context = {
+        'groups': groups_qs,
+        'order_types': Order.ORDER_TYPES,
+    }
+    return render(request, 'accounts/mass_order_create.html', context)
+
+@login_required
+@user_passes_test(is_management)
+def add_specialization(request):
+    initial = {}
+    specialty_id = request.GET.get('specialty')
+    if specialty_id:
+        initial['specialty'] = get_object_or_404(Specialty, id=specialty_id)
+
+    faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
+
+    if request.method == 'POST':
+        form = SpecializationForm(request.POST, faculty=faculty)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Специализация (профиль) успешно добавлена!"))
+            return redirect('accounts:manage_structure')
+    else:
+        form = SpecializationForm(initial=initial, faculty=faculty)
+        
+    return render(request, 'accounts/form_generic.html', {'form': form, 'title': _('Добавить специализацию (Тахассус)')})
+
+@login_required
+@user_passes_test(is_management)
+def edit_specialization(request, pk):
+    spec = get_object_or_404(Specialization, pk=pk)
+    faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
+
+    if request.method == 'POST':
+        form = SpecializationForm(request.POST, instance=spec, faculty=faculty)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Специализация обновлена!"))
+            return redirect('accounts:manage_structure')
+    else:
+        form = SpecializationForm(instance=spec, faculty=faculty)
+
+    return render(request, 'accounts/form_generic.html', {'form': form, 'title': _('Редактировать специализацию')})
+
+@login_required
+@user_passes_test(is_management)
+def delete_specialization(request, pk):
+    spec = get_object_or_404(Specialization, pk=pk)
+    if request.method == 'POST':
+        spec.delete()
+        messages.success(request, _("Специализация удалена!"))
+        return redirect('accounts:manage_structure')
+    return render(request, 'accounts/confirm_delete.html', {'obj': spec, 'title': _('Удалить специализацию')})
+
+
+
+
+
+
+
+
+
 
 

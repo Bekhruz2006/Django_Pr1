@@ -54,5 +54,9 @@ urlpatterns = [
     path('archives/alumni/', views.archive_alumni, name='archive_alumni'),
     path('archives/expelled/', views.archive_expelled, name='archive_expelled'),
     path('reports/contingent/download/', views.download_contingent_report, name='download_contingent_report'),
+    path('orders/mass-create/', views.mass_order_create, name='mass_order_mass_create'),
+    path('structure/specialization/add/', views.add_specialization, name='add_specialization'),
+    path('structure/specialization/edit/<int:pk>/', views.edit_specialization, name='edit_specialization'),
+    path('structure/specialization/delete/<int:pk>/', views.delete_specialization, name='delete_specialization'),
 
 ]

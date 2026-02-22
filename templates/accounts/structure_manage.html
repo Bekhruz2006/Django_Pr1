@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="container-fluid px-4 py-4">
-    
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-dark mb-1">{% trans "Структура университета" %}</h3>
@@ -30,10 +30,10 @@
         <div class="accordion" id="structureAccordion">
             {% for inst_data in structure_data %}
             <div class="card border-0 shadow-sm mb-3 overflow-hidden" id="inst-{{ inst_data.obj.id }}">
-                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between" 
-                     data-bs-toggle="collapse" data-bs-target="#collapseInst{{ inst_data.obj.id }}" 
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between"
+                     data-bs-toggle="collapse" data-bs-target="#collapseInst{{ inst_data.obj.id }}"
                      style="cursor: pointer;">
-                    
+
                     <div class="d-flex align-items-center">
                         <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
                             <i class="bi bi-bank text-primary fs-5"></i>
@@ -41,14 +41,14 @@
                         <div>
                             <h5 class="mb-0 fw-bold text-dark">{{ inst_data.obj.name }}</h5>
                             <div class="small text-muted mt-1">
-                                <i class="bi bi-person-badge me-1"></i>{% trans "Директор:" %} 
+                                <i class="bi bi-person-badge me-1"></i>{% trans "Директор:" %}
                                 <span class="fw-medium text-dark">
                                     {{ inst_data.director.user.get_full_name|default:"{% trans 'Не назначен' %}" }}
                                 </span>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="d-flex align-items-center gap-3">
                         <span class="badge bg-light text-dark border">
                             {{ inst_data.faculties|length }} {% trans "факультетов" %}
@@ -67,7 +67,7 @@
 
                 <div id="collapseInst{{ inst_data.obj.id }}" class="accordion-collapse collapse" data-bs-parent="#structureAccordion">
                     <div class="card-body bg-light p-3">
-                        
+
                         {% if inst_data.faculties %}
                             {% for fac_data in inst_data.faculties %}
                             <div class="card border border-light shadow-sm mb-3">
@@ -88,7 +88,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
                                         <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
@@ -136,7 +136,7 @@
                                                 {% empty %}
                                                 <tr>
                                                     <td colspan="5" class="text-center py-3 text-muted small">
-                                                        {% trans "Кафедры отсутствуют." %} 
+                                                        {% trans "Кафедры отсутствуют." %}
                                                         <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}">{% trans "Добавить первую" %}</a>
                                                     </td>
                                                 </tr>
@@ -155,7 +155,7 @@
                                 <a href="{% url 'accounts:add_faculty' %}?institute={{ inst_data.obj.id }}" class="btn btn-sm btn-primary mt-2">{% trans "Добавить факультет" %}</a>
                             </div>
                         {% endif %}
-                        
+
                     </div>
                 </div>
             </div>
@@ -181,7 +181,7 @@
                 <br><small>{% trans "Используйте этот раздел для настройки кафедр, специальностей и назначения заведующих." %}</small>
             </div>
         </div>
-        
+
         <div class="d-flex justify-content-end mb-3">
             <a href="{% url 'accounts:add_department' %}" class="btn btn-primary shadow-sm">
                 <i class="bi bi-plus-lg"></i> {% trans "Новая кафедра" %}
@@ -207,7 +207,7 @@
                                 <small class="text-muted d-block" style="font-size: 0.7rem;">{% trans "НАГРУЗКА" %}</small>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="progress" style="width: 80px; height: 6px;">
-                                        <div class="progress-bar {% if item.load_percent > 100 %}bg-danger{% else %}bg-success{% endif %}" 
+                                        <div class="progress-bar {% if item.load_percent > 100 %}bg-danger{% else %}bg-success{% endif %}"
                                              role="progressbar" style="width: {{ item.load_percent }}%"></div>
                                     </div>
                                     <small class="fw-bold text-dark">{{ item.load_percent }}%</small>
@@ -216,12 +216,12 @@
                         </div>
                     </button>
                 </h2>
-                
+
                 <div id="collapse{{ item.obj.id }}" class="accordion-collapse collapse">
                     <div class="accordion-body bg-light p-3">
                         <div class="d-flex gap-2 mb-3 p-2 bg-white rounded border flex-wrap align-items-center">
                             <span class="text-muted small text-uppercase fw-bold ms-2 me-auto">{% trans "Действия:" %}</span>
-                            
+
                             <a href="{% url 'accounts:add_specialty' %}?department={{ item.obj.id }}" class="btn btn-xs btn-outline-primary">
                                 <i class="bi bi-mortarboard-plus"></i> {% trans "+Специальность" %}
                             </a>
@@ -259,10 +259,10 @@
                                                 <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" class="badge bg-success text-decoration-none">{% trans "РУП" %} {{ spec_data.plan.admission_year }}</a>
                                             {% endif %}
                                         </div>
-                                        
+
                                         <div class="d-flex flex-wrap gap-1">
                                             {% for group in spec_data.groups %}
-                                                <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" 
+                                                <a href="{% url 'schedule:constructor' %}?group={{ group.id }}"
                                                    class="btn btn-sm btn-white border d-flex align-items-center px-2 py-1"
                                                    style="font-size: 0.75rem;"
                                                    title="{% trans 'Расписание' %}">

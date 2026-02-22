@@ -1,7 +1,7 @@
 import io
 from docxtpl import DocxTemplate
 from django.utils import timezone
-from .models import DocumentTemplate, Student, StudentOrder
+from .models import DocumentTemplate, Student, Order
 from docx import Document
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH

@@ -2,13 +2,31 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import (
     User, Student, Teacher, Dean, Group, ProRector, HeadOfDepartment, ViceDean,
-    Institute, Faculty, Department, Specialty, Director
+    Institute, Faculty, Department, Specialty, Director, Specialization
 )
 from datetime import datetime
 from core.validators import validate_image_only
 from django.utils.translation import gettext_lazy as _
 
 from .models import Order, OrderItem, DocumentTemplate
+
+class SpecializationForm(forms.ModelForm):
+    class Meta:
+        model = Specialization
+        fields = ['specialty', 'name', 'code']
+        widgets = {
+            'specialty': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: Веб-дизайн')}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Шифр (опционально)')}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        faculty = kwargs.pop('faculty', None)
+        super().__init__(*args, **kwargs)
+        if faculty:
+            self.fields['specialty'].queryset = Specialty.objects.filter(department__faculty=faculty)
+
+
 
 
 class DocumentTemplateForm(forms.ModelForm):
@@ -456,18 +474,19 @@ class GroupTransferForm(forms.Form):
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['number', 'date', 'order_type', 'reason', 'file']
+        fields = ['number', 'date', 'order_type', 'title', 'status', 'file']
         widgets = {
             'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Генерируется автоматически')}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'order_type': forms.Select(attrs={'class': 'form-select'}),
-            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': _('Основание для приказа...')}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: О переводе студентов 2 курса')}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['number'].required = False 
+        self.fields['number'].required = False
         self.fields['number'].help_text = _("Оставьте пустым для авто-генерации")
 
         
