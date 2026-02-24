@@ -5,11 +5,30 @@ from datetime import timedelta, date
 import uuid
 import math
 from django.utils.translation import gettext_lazy as _
-from accounts.models import Institute
+from accounts.models import Institute, Student
 import math
 
 from django.db import models
 import math
+
+
+class Subgroup(models.Model):
+    subject = models.ForeignKey('schedule.Subject', on_delete=models.CASCADE, related_name='subgroups', verbose_name="Предмет")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='subgroups', verbose_name="Основная группа")
+    name = models.CharField(max_length=50, verbose_name="Название подгруппы (напр. Подгруппа 1)")
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Преподаватель подгруппы")
+    students = models.ManyToManyField(Student, related_name='assigned_subgroups', blank=True, verbose_name="Студенты подгруппы")
+
+    class Meta:
+        verbose_name = "Подгруппа"
+        verbose_name_plural = "Подгруппы"
+        unique_together = ['subject', 'group', 'name']
+
+    def __str__(self):
+        return f"{self.group.name} - {self.name} ({self.subject.name})"
+
+
+
 
 class Building(models.Model):
     name = models.CharField(max_length=100, verbose_name=_("Название корпуса"), help_text="Например: Главный корпус, Блок А")
@@ -359,6 +378,7 @@ class ScheduleSlot(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name=_("Группа"))
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name=_("Предмет"))
     teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Преподаватель"))
+    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Подгруппа (если есть)"))
 
     lesson_type = models.CharField(
         max_length=10,
@@ -545,3 +565,5 @@ class SubjectMaterial(models.Model):
 
     def __str__(self):
         return self.title
+
+
