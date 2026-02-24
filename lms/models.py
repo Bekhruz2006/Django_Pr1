@@ -1,83 +1,113 @@
 from django.db import models
-from accounts.models import Teacher, Group
-from schedule.models import Subject, Subgroup
+from accounts.models import User, Faculty
 
-class CourseWorkspace(models.Model):
-    """
-    Рабочее пространство курса (Аналог 'course' в Moodle).
-    Уникальное пространство для связки Предмет + Преподаватель + Группа (или Подгруппа).
-    """
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='workspaces', verbose_name="Предмет")
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='workspaces', verbose_name="Преподаватель")
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='workspaces', verbose_name="Группа")
-    
-    # Логика подгрупп
-    is_subgroup = models.BooleanField(default=False, verbose_name="Это подгруппа?")
-    subgroup = models.ForeignKey(Subgroup, on_delete=models.CASCADE, null=True, blank=True, related_name='workspaces', verbose_name="Связь с подгруппой")
-    subgroup_name = models.CharField(max_length=100, blank=True, verbose_name="Имя подгруппы (Текстом)")
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True, verbose_name="Активен")
+class CourseCategory(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Название категории")
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories')
+    faculty = models.ForeignKey(Faculty, on_delete=models.SET_NULL, null=True, blank=True)
+    description = models.TextField(blank=True)
 
     class Meta:
-        verbose_name = "Рабочее пространство"
-        verbose_name_plural = "Рабочие пространства"
-        unique_together = ['subject', 'group', 'subgroup'] # Один воркспейс на конкретную сущность
+        verbose_name = "Категория курса"
+        verbose_name_plural = "Категории курсов"
 
-    def __str__(self):
-        target = self.subgroup_name if self.is_subgroup else self.group.name
-        return f"{self.subject.name} | {target} | {self.teacher.user.get_last_name()}"
+class Course(models.Model):
+    category = models.ForeignKey(CourseCategory, on_delete=models.CASCADE, related_name='courses')
+    full_name = models.CharField(max_length=255, verbose_name="Полное название курса")
+    short_name = models.CharField(max_length=100, verbose_name="Краткое название")
+    id_number = models.CharField(max_length=100, blank=True, verbose_name="Идентификационный номер")
+    
+    summary = models.TextField(blank=True, verbose_name="Описание курса")
+    is_visible = models.BooleanField(default=True, verbose_name="Видимость курса")
+    
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Курс"
+        verbose_name_plural = "Курсы"
 
+class CourseEnrolment(models.Model):
+    ROLE_CHOICES = [
+        ('STUDENT', 'Студент'),
+        ('TEACHER', 'Преподаватель (Ассистент)'),
+        ('MANAGER', 'Управляющий курсом'),
+    ]
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrolments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_enrolments')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='STUDENT')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['course', 'user']
 
 class CourseSection(models.Model):
-    """
-    Секция курса (Аналог 'course_sections' в Moodle).
-    Может быть Неделей или Темой. Сюда же можно привязывать тип занятия (Лекция/Практика).
-    """
-    workspace = models.ForeignKey(CourseWorkspace, on_delete=models.CASCADE, related_name='sections', verbose_name="Пространство")
-    title = models.CharField(max_length=255, verbose_name="Название секции (Тема/Неделя)")
-    description = models.TextField(blank=True, verbose_name="Описание (HTML)")
-    order = models.PositiveIntegerField(default=0, verbose_name="Порядок (Сортировка)")
-    is_visible = models.BooleanField(default=True, verbose_name="Видимость для студентов")
-    
-    # Привязка к типу занятия (полезно для генерации пустых блоков)
-    lesson_type = models.CharField(max_length=20, choices=Subject.TYPE_CHOICES, null=True, blank=True, verbose_name="Тип занятия (Опционально)")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sections')
+    name = models.CharField(max_length=255, verbose_name="Название (Неделя/Тема)")
+    summary = models.TextField(blank=True)
+    sequence = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    is_visible = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name = "Секция курса"
-        verbose_name_plural = "Секции курса"
-        ordering = ['order']
+        ordering = ['sequence']
 
-    def __str__(self):
-        return f"{self.workspace} - {self.title}"
-
-
-class Material(models.Model):
-    MATERIAL_TYPES = [
-        ('PDF', 'PDF Документ'),
-        ('DOC', 'Word Документ'),
-        ('VIDEO', 'Видео (Файл)'),
-        ('LINK', 'Внешняя ссылка (YouTube и др.)'),
-        ('PAGE', 'Текстовая страница (HTML)'),
-        ('ASSIGNMENT', 'Задание (Загрузка ответа)'), 
-        ('QUIZ', 'Тест/Экзамен'),
+class CourseModule(models.Model):
+    MODULE_TYPES = [
+        ('RESOURCE', 'Файл/Страница/Папка'),
+        ('ASSIGNMENT', 'Задание (КМД)'),
+        ('QUIZ', 'Тест'),
+        ('FORUM', 'Форум/Объявления'),
+        ('URL', 'Внешняя ссылка / Видеоконференция'),
+        ('FEEDBACK', 'Обратная связь / Опрос'),
+        ('GLOSSARY', 'Глоссарий'),
     ]
-
-    section = models.ForeignKey(CourseSection, on_delete=models.CASCADE, related_name='materials', verbose_name="Секция")
-    title = models.CharField(max_length=255, verbose_name="Название материала")
-    material_type = models.CharField(max_length=20, choices=MATERIAL_TYPES, verbose_name="Тип материала")
     
-    content = models.TextField(blank=True, verbose_name="Текст/HTML контент")
-    file = models.FileField(upload_to='lms_materials/%Y/%m/', null=True, blank=True, verbose_name="Файл")
-    external_link = models.URLField(blank=True, verbose_name="Внешняя ссылка")
+    section = models.ForeignKey(CourseSection, on_delete=models.CASCADE, related_name='modules')
+    module_type = models.CharField(max_length=20, choices=MODULE_TYPES)
+    title = models.CharField(max_length=255)
+    sequence = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
     
-    order = models.PositiveIntegerField(default=0, verbose_name="Порядок в секции")
-    is_visible = models.BooleanField(default=True, verbose_name="Видимость")
 
     class Meta:
-        verbose_name = "Материал"
-        verbose_name_plural = "Материалы"
-        ordering = ['section', 'order']
+        ordering = ['sequence']
 
-    def __str__(self):
-        return f"[{self.get_material_type_display()}] {self.title}"
+class ModuleCondition(models.Model):
+    module = models.ForeignKey(CourseModule, on_delete=models.CASCADE, related_name='conditions')
+    depends_on_module = models.ForeignKey(CourseModule, on_delete=models.CASCADE, related_name='dependents')
+    min_score = models.FloatField(null=True, blank=True, verbose_name="Минимальный балл")
+    must_be_completed = models.BooleanField(default=True)
+
+
+class Assignment(models.Model):
+    module = models.OneToOneField(CourseModule, on_delete=models.CASCADE, related_name='assignment_detail')
+    description = models.TextField()
+    allow_submissions_from = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateTimeField(null=True, blank=True)
+    max_score = models.FloatField(default=100.0)
+
+class AssignmentSubmission(models.Model):
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to='submissions/')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    score = models.FloatField(null=True, blank=True)
+    teacher_feedback = models.TextField(blank=True)
+
+
+class Resource(models.Model):
+    module = models.OneToOneField(CourseModule, on_delete=models.CASCADE, related_name='resource_detail')
+    content = models.TextField(blank=True, verbose_name="Текст страницы (HTML)")
+    file = models.FileField(upload_to='course_resources/', null=True, blank=True)
+    display_type = models.CharField(max_length=20, choices=[
+        ('EMBED', 'Встроить на страницу'),
+        ('DOWNLOAD', 'Принудительное скачивание'),
+        ('PAGE', 'Веб-страница (текст)'),
+    ], default='DOWNLOAD')
+
+class UrlResource(models.Model):
+    module = models.OneToOneField(CourseModule, on_delete=models.CASCADE, related_name='url_detail')
+    external_url = models.URLField(verbose_name="Ссылка")
+    open_in_new_window = models.BooleanField(default=True)

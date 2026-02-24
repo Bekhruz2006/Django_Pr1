@@ -116,6 +116,9 @@ class User(AbstractUser):
         ('PRO_RECTOR', _('Проректор/Зам. директора')),
         ('DIRECTOR', _('Директор/Ректор')),
         ('HR', _('Отдел кадров / Приемная комиссия')), 
+        ('SPECIALIST', 'Специалист (УМО/Деканат)'),
+        ('GUEST', 'Гость'),
+
     ]
     
     CATEGORY_CHOICES = [
@@ -417,6 +420,22 @@ class Student(models.Model):
             return stats.group_rank
         except Exception:
             return 0
+
+
+
+class SpecialistProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='specialist_profile')
+    faculty = models.ForeignKey('Faculty', on_delete=models.CASCADE, related_name='specialists', verbose_name="Факультет")
+    
+    class Meta:
+        verbose_name = "Специалист"
+        verbose_name_plural = "Специалисты"
+
+    def __str__(self):
+        return f"Специалист: {self.user.get_full_name()} ({self.faculty.abbreviation})"
+
+
+
 
 class GroupTransferHistory(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='transfer_history')

@@ -721,6 +721,15 @@
             <a class="sidebar-link" href="{% url 'schedule:group_list' %}">
                 <i class="bi bi-people"></i> {% trans "Мои студенты" %}
             </a>
+            <div class="sidebar-section-header" data-target="lms-menu">
+                <span><i class="bi bi-laptop me-2"></i>{% trans "Обучение (LMS)" %}</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="lms-menu">
+                <a class="sidebar-link" href="{% url 'lms:course_list' %}">
+                    <i class="bi bi-mortarboard"></i> <b>{% trans "Мои курсы" %}</b>
+                </a>
+            </div>
         {% endif %}
 
         {% if user.role == 'STUDENT' %}

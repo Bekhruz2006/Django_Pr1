@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ module.title }}{% endblock %}
+{% load i18n %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-sm border-0 mx-auto" style="max-width: 800px;">
+        <div class="card-header bg-white py-4 text-center border-bottom-0">
+            <div class="display-4 text-primary mb-3"><i class="bi bi-ui-checks"></i></div>
+            <h2 class="fw-bold">{{ module.title }}</h2>
+            <p class="text-muted">{{ quiz.description|safe }}</p>
+        </div>
+        <div class="card-body bg-light p-4">
+            <div class="row g-3 text-center mb-4">
+                <div class="col-md-4">
+                    <div class="p-3 bg-white rounded shadow-sm">
+                        <h6 class="text-muted small text-uppercase">{% trans "Лимит времени" %}</h6>
+                        <h4 class="mb-0">{% if quiz.time_limit_minutes > 0 %}{{ quiz.time_limit_minutes }} мин{% else %}Без лимита{% endif %}</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white rounded shadow-sm">
+                        <h6 class="text-muted small text-uppercase">Попыток</h6>
+                        <h4 class="mb-0">{{ attempts.count }} / {% if quiz.max_attempts > 0 %}{{ quiz.max_attempts }}{% else %}∞{% endif %}</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white rounded shadow-sm">
+                        <h6 class="text-muted small text-uppercase">{% trans "Проходной балл" %}</h6>
+                        <h4 class="mb-0 text-success">{{ quiz.passing_score }}</h4>
+                    </div>
+                </div>
+            </div>
+
+            {% if attempts %}
+            <h5 class="mb-3">{% trans "Ваши попытки" %}:</h5>
+            <table class="table table-bordered bg-white">
+                <thead class="table-light">
+                    <tr>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Балл</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attempts %}
+                    <tr>
+                        <td>{{ att.start_time|date:"d.m.Y H:i" }}</td>
+                        <td>{{ att.get_state_display }}</td>
+                        <td class="fw-bold {% if att.is_passed %}text-success{% else %}text-danger{% endif %}">
+                            {{ att.total_score|default:"-" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            <div class="text-center mt-4">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if quiz.max_attempts == 0 or attempts.count < quiz.max_attempts %}
+                        <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                            <i class="bi bi-play-circle me-2"></i>{% trans "Начать тестирование" %}
+                        </button>
+                    {% else %}
+                        <button type="button" class="btn btn-secondary btn-lg px-5" disabled>
+                            {% trans "Лимит попыток исчерпан" %}
+                        </button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Результаты теста{% endblock %}
+{% load i18n %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="card shadow border-0 mx-auto" style="max-width: 600px;">
+        <div class="card-body p-5">
+            {% if attempt.state == 'NEEDS_GRADING' %}
+                <i class="bi bi-hourglass-split display-1 text-warning mb-3"></i>
+                <h2 class="fw-bold">{% trans "Ожидает проверки" %}</h2>
+                <p class="text-muted">{% trans "Тест содержит вопросы-эссе, которые должен проверить преподаватель." %}</p>
+            {% else %}
+                {% if attempt.is_passed %}
+                    <i class="bi bi-trophy-fill display-1 text-success mb-3"></i>
+                    <h2 class="fw-bold text-success">{% trans "Тест пройден!" %}</h2>
+                {% else %}
+                    <i class="bi bi-x-circle-fill display-1 text-danger mb-3"></i>
+                    <h2 class="fw-bold text-danger">{% trans "Тест не пройден" %}</h2>
+                {% endif %}
+                
+                <h1 class="display-4 fw-bold mt-4">{{ attempt.total_score|floatformat:1 }} <span class="fs-4 text-muted">баллов</span></h1>
+                <p class="text-muted">Проходной балл: {{ attempt.quiz.passing_score }}</p>
+            {% endif %}
+            
+            <a href="{% url 'lms:course_detail' attempt.quiz.module.section.course.id %}" class="btn btn-primary mt-4 px-4">
+                Вернуться к курсу
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

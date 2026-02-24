@@ -32,7 +32,10 @@ INSTALLED_APPS = [
     'news.apps.NewsConfig',             
     'chat.apps.ChatConfig',             
     'core.apps.CoreConfig',    
-    'rosetta',      
+    'rosetta', 
+    'lms.apps.LmsConfig',
+    'testing.apps.TestingConfig',
+     
 ]
 
 MIDDLEWARE = [

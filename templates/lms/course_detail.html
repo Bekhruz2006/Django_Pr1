@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.short_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm mb-4 bg-primary bg-gradient text-white">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1">{{ course.full_name }}</h2>
+                <p class="mb-0 opacity-75"><i class="bi bi-folder2-open me-1"></i> {{ course.category.name }}</p>
+            </div>
+            {% if can_edit %}
+            <div class="form-check form-switch fs-5">
+                <input class="form-check-input" type="checkbox" id="editModeToggle" style="cursor: pointer;">
+                <label class="form-check-label text-white" for="editModeToggle">Режим редактирования</label>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 col-xl-9">
+            <div class="accordion shadow-sm" id="courseAccordion">
+                {% for data in course_data %}
+                <div class="accordion-item border-0 mb-3 rounded overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button bg-white text-dark fw-bold fs-5 shadow-none border-bottom" type="button" data-bs-toggle="collapse" data-bs-target="#sec{{ data.section.id }}">
+                            {{ data.section.name }}
+                        </button>
+                    </h2>
+                    <div id="sec{{ data.section.id }}" class="accordion-collapse collapse show">
+                        <div class="accordion-body bg-light p-4">
+                            
+                            {% if data.section.summary %}
+                                <div class="text-muted mb-3 small">{{ data.section.summary }}</div>
+                            {% endif %}
+
+                            <ul class="list-group list-group-flush rounded mb-3" id="module-list-{{ data.section.id }}">
+                                {% for mod in data.modules %}
+                                <li class="list-group-item bg-white border-0 mb-2 rounded shadow-sm d-flex align-items-center p-3 module-item">
+                                    <div class="fs-4 me-3"><i class="{{ mod.icon }}"></i></div>
+                                    <div class="flex-grow-1">
+                                        <a href="{% if mod.base.module_type == 'QUIZ' %}{% url 'testing:quiz_info' mod.base.id %}{% else %}#{% endif %}" 
+                                        class="text-decoration-none fw-bold text-dark fs-6">
+                                            {{ mod.base.title }}
+                                        </a>                                    
+                                    </div>
+                                    
+                                    <div class="edit-controls d-none gap-2">
+                                        <button class="btn btn-sm btn-light text-muted"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
+                                        <i class="bi bi-grip-vertical text-muted ms-2" style="cursor: grab;"></i>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item bg-transparent border-0 text-muted small fst-italic px-0">
+                                    В этой секции пока нет материалов.
+                                </li>
+                                {% endfor %}
+                            </ul>
+
+                            <div class="edit-controls d-none">
+                                <button class="btn btn-outline-primary btn-sm border-dashed w-100" onclick="openAddModuleModal({{ data.section.id }})">
+                                    <i class="bi bi-plus-lg"></i> Добавить элемент или ресурс
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-xl-3">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold"><i class="bi bi-info-circle text-primary me-2"></i>О курсе</div>
+                <div class="card-body text-muted small">
+                    {{ course.summary|default:"Описание отсутствует." }}
+                </div>
+            </div>
+            
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-bold"><i class="bi bi-people text-success me-2"></i>Участники</div>
+                <div class="card-body p-0">
+                    <a href="#" class="list-group-item list-group-item-action border-0 p-3">
+                        <i class="bi bi-person-lines-fill me-2"></i> Список студентов
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action border-0 p-3">
+                        <i class="bi bi-journal-check me-2"></i> Журнал оценок
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addModuleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title"><i class="bi bi-plus-square text-primary me-2"></i>Добавить элемент курса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addModuleForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="section_id" id="modalSectionId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Тип элемента</label>
+                        <select name="module_type" id="moduleTypeSelect" class="form-select" required>
+                            <option value="">-- Выберите тип --</option>
+                            <option value="RESOURCE">Файл / Страница</option>
+                            <option value="URL">Внешняя ссылка (Zoom/YouTube)</option>
+                            <option value="ASSIGNMENT">Задание (Загрузка ответа)</option>
+                            <option value="QUIZ">Тест</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Название</label>
+                        <input type="text" name="title" class="form-control" required placeholder="Например: Лекция 1. Введение">
+                    </div>
+
+                    <div id="dynamicFields">
+                        <div class="type-fields" id="fields-RESOURCE" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Прикрепить файл</label>
+                                <input type="file" name="file" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Или текст страницы</label>
+                                <textarea name="content" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="type-fields" id="fields-URL" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Ссылка (URL) *</label>
+                                <input type="url" name="external_url" class="form-control" placeholder="https://...">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="submitModuleForm()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-dashed { border: 2px dashed #cbd5e1; color: #64748b; }
+    .border-dashed:hover { background-color: #f8fafc; color: #2563eb; border-color: #93c5fd; }
+    .module-item { transition: all 0.2s; border: 1px solid #f1f5f9 !important; }
+    .module-item:hover { border-color: #cbd5e1 !important; }
+</style>
+
+<script>
+    const toggle = document.getElementById('editModeToggle');
+    const editControls = document.querySelectorAll('.edit-controls');
+
+    if (toggle) {
+        toggle.addEventListener('change', function() {
+            editControls.forEach(el => {
+                if (this.checked) {
+                    el.classList.remove('d-none');
+                    el.classList.add('d-flex');
+                } else {
+                    el.classList.add('d-none');
+                    el.classList.remove('d-flex');
+                }
+            });
+        });
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('addModuleModal'));
+    const typeSelect = document.getElementById('moduleTypeSelect');
+    
+    function openAddModuleModal(sectionId) {
+        document.getElementById('modalSectionId').value = sectionId;
+        document.getElementById('addModuleForm').reset();
+        document.querySelectorAll('.type-fields').forEach(el => el.style.display = 'none');
+        modal.show();
+    }
+
+    typeSelect.addEventListener('change', function() {
+        document.querySelectorAll('.type-fields').forEach(el => el.style.display = 'none');
+        const selectedType = this.value;
+        if (selectedType) {
+            const fields = document.getElementById('fields-' + selectedType);
+            if (fields) fields.style.display = 'block';
+        }
+    });
+
+    function submitModuleForm() {
+        const form = document.getElementById('addModuleForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        
+        fetch('{% url "lms:api_add_module" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(err => alert('Ошибка соединения с сервером'));
+    }
+</script>
+{% endblock %}

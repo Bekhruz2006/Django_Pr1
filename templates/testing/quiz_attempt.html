@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Тестирование{% endblock %}
+{% load i18n %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <form method="post" action="{% url 'testing:quiz_submit' attempt.id %}" id="quizForm">
+                {% csrf_token %}
+                
+                {% for q in questions %}
+                <div class="card shadow-sm border-0 mb-4" id="q{{ forloop.counter }}">
+                    <div class="card-header bg-light d-flex justify-content-between">
+                        <span class="fw-bold">Вопрос {{ forloop.counter }}</span>
+                        <span class="badge bg-secondary">{{ q.default_mark }} балла</span>
+                    </div>
+                    <div class="card-body fs-5">
+                        <p>{{ q.text|safe }}</p>
+                        <hr>
+                        
+                        {% if q.q_type == 'SINGLE' %}
+                            {% for opt in q.options.all %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="question_{{ q.id }}" value="{{ opt.id }}" id="opt_{{ opt.id }}">
+                                <label class="form-check-label" for="opt_{{ opt.id }}">{{ opt.text }}</label>
+                            </div>
+                            {% endfor %}
+                        {% elif q.q_type == 'MULTI' %}
+                            {% for opt in q.options.all %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="question_{{ q.id }}" value="{{ opt.id }}" id="opt_{{ opt.id }}">
+                                <label class="form-check-label" for="opt_{{ opt.id }}">{{ opt.text }}</label>
+                            </div>
+                            {% endfor %}
+                        {% elif q.q_type == 'TEXT' or q.q_type == 'ESSAY' %}
+                            <textarea name="question_{{ q.id }}" class="form-control" rows="4" placeholder="Введите ваш ответ..."></textarea>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <button type="submit" class="btn btn-success btn-lg w-100 shadow" id="submitBtn">
+                    Завершить тест и отправить ответы
+                </button>
+            </form>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
+                <div class="card-body text-center">
+                    <h5 class="text-muted">{% trans "Оставшееся время" %}</h5>
+                    <div class="display-3 fw-bold text-primary mb-3" id="timerDisplay">
+                        --:--
+                    </div>
+                    
+                    <h6 class="text-start">{% trans "Навигация" %}:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for q in questions %}
+                            <a href="#q{{ forloop.counter }}" class="btn btn-outline-secondary btn-sm" style="width: 40px;">{{ forloop.counter }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if quiz.time_limit_minutes > 0 %}
+{% if quiz.time_limit_minutes > 0 %}
+<script>
+    const startTimeStr = "{{ attempt.start_time|date:'c' }}"; 
+    const startTime = new Date(startTimeStr).getTime();
+    const limitMinutes = parseInt("{{ quiz.time_limit_minutes|default:'0' }}", 10);
+    const limitMs = limitMinutes * 60 * 1000;
+    
+    const endTime = startTime + limitMs;
+    const display = document.getElementById('timerDisplay');
+
+    const timer = setInterval(function() {
+        const now = new Date().getTime();
+        const distance = endTime - now;
+
+        if (distance <= 0) {
+            clearInterval(timer);
+            display.innerHTML = "00:00";
+            display.classList.replace('text-primary', 'text-danger');
+            document.getElementById('submitBtn').innerHTML = 'Время вышло. Отправка...';
+            document.getElementById('quizForm').submit();
+            return;
+        }
+
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        display.innerHTML = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+        
+        if (distance < 60000) { 
+            display.classList.replace('text-primary', 'text-danger');
+            display.classList.add('animate-pulse');
+        }
+    }, 1000);
+</script>
+{% endif %}{% endif %}
+{% endblock %}
