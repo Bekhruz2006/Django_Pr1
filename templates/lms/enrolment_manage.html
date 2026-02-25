@@ -34,13 +34,25 @@
       <div class="card-body">
         <form method="post">
           {% csrf_token %}
-          {% for field in form %}
+
           <div class="mb-3">
-            <label class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            <label class="form-label fw-semibold">{% trans "Выберите группы" %}</label>
+            <div class="form-text mb-1">{% trans "Будут добавлены все студенты из выбранных групп." %}</div>
+            {{ form.groups }}
           </div>
-          {% endfor %}
+
+          <hr>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{% trans "Или введите ID/email" %}</label>
+            <div class="form-text mb-1">{% trans "Каждый пользователь с новой строки." %}</div>
+            {{ form.users }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ form.role.label }}</label>
+            {{ form.role }}
+          </div>
+
           <button class="btn btn-primary btn-sm">{% trans "Добавить" %}</button>
         </form>
       </div>

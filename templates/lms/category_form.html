@@ -1,15 +1,91 @@
 {% extends "lms/base_lms.html" %}
 {% load i18n %}
+
 {% block lms_content %}
-<div class="card shadow-sm" style="max-width:600px;margin:0 auto">
-  <div class="card-header"><h5 class="mb-0">{% if category %}{% trans "Редактировать категорию" %}{% else %}{% trans "Новая категория" %}{% endif %}</h5></div>
+<div class="card shadow-sm" style="max-width:650px;margin:0 auto">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-folder-plus fs-5"></i>
+    <h5 class="mb-0">
+      {% if category %}{% trans "Редактировать категорию" %}{% else %}{% trans "Новая категория курсов" %}{% endif %}
+    </h5>
+  </div>
   <div class="card-body">
+    <div class="alert alert-info small mb-4">
+      <div class="fw-bold mb-1"><i class="bi bi-lightbulb me-1"></i>{% trans "Что такое категория?" %}</div>
+      {% trans "Категории организуют курсы по структуре университета. Рекомендуемая иерархия:" %}
+      <div class="mt-2 ps-2 border-start border-info border-3">
+        <div>🏛 {% trans "Институт" %} → <i class="text-muted">{% trans "например: «Институт IT и телекоммуникаций»" %}</i></div>
+        <div class="ps-3">📂 {% trans "Факультет" %} → <i class="text-muted">{% trans "например: «Факультет программирования»" %}</i></div>
+        <div class="ps-5">📁 {% trans "Кафедра / Дисциплина" %} → <i class="text-muted">{% trans "например: «Базы данных»" %}</i></div>
+      </div>
+    </div>
+
     <form method="post">{% csrf_token %}
-      {% for field in form %}
-      <div class="mb-3"><label class="form-label">{{ field.label }}</label>{{ field }}</div>
-      {% endfor %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">
+          {% trans "Название категории" %} <span class="text-danger">*</span>
+        </label>
+        <div class="form-text mb-1">
+          {% trans "Понятное и краткое название. Например: «Общие дисциплины», «ИТ-факультет», «Математика 1 курс»." %}
+        </div>
+        {{ form.name }}
+        {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{% trans "Описание" %}</label>
+        <div class="form-text mb-1">
+          {% trans "Необязательно. Поясните, какие курсы входят в эту категорию." %}
+        </div>
+        {{ form.description }}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{% trans "Родительская категория" %}</label>
+        <div class="form-text mb-1">
+          {% trans "Оставьте пустым, если это категория верхнего уровня. Выберите родителя, чтобы создать подкатегорию (↳)." %}
+        </div>
+        {{ form.parent }}
+      </div>
+
+      <hr class="my-3">
+      <div class="text-muted small fw-bold text-uppercase mb-3">
+        <i class="bi bi-building me-1"></i>{% trans "Привязка к структуре университета (необязательно)" %}
+      </div>
+      <div class="alert alert-light small border mb-3">
+        {% trans "Если категория предназначена только для конкретного института, факультета или кафедры — выберите нужное. Иначе оставьте пустым (категория будет общедоступной)." %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{% trans "Институт" %}</label>
+        {{ form.institute }}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{% trans "Факультет" %}</label>
+        {{ form.faculty }}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{% trans "Кафедра" %}</label>
+        {{ form.department }}
+      </div>
+
+      <hr class="my-3">
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold">{% trans "Порядок сортировки" %}</label>
+        <div class="form-text mb-1">
+          {% trans "Число. Меньше = выше в списке. По умолчанию: 0." %}
+        </div>
+        {{ form.sort_order }}
+      </div>
+
       <div class="d-flex gap-2">
-        <button class="btn btn-primary">{% trans "Сохранить" %}</button>
+        <button class="btn btn-primary px-4" type="submit">
+          <i class="bi bi-check-circle me-1"></i>{% trans "Сохранить" %}
+        </button>
         <a href="{% url 'lms:category_list' %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
       </div>
     </form>

@@ -6,7 +6,7 @@ from .models import (
     GlossaryEntry, CourseEnrolment, GradeEntry, GradeItem,
     PageContent, FileResource, FolderFile, UrlResource, VideoResource,
 )
-
+from accounts.models import Group
 
 class CourseCategoryForm(forms.ModelForm):
     class Meta:

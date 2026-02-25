@@ -704,6 +704,13 @@
                 <a class="sidebar-link" href="{% url 'accounts:archive_expelled' %}">
                     <i class="bi bi-person-x-fill text-danger"></i> Отчисленные (Архив)
                 </a>
+                <a class="sidebar-link" href="{% url 'lms:dashboard' %}">
+                    <i class="bi bi-laptop"></i> {% trans "LMS — Платформа обучения" %}
+                </a>
+                <a class="sidebar-link" href="{% url 'lms:course_list' %}">
+                    <i class="bi bi-mortarboard"></i> {% trans "Все курсы" %}
+                </a>
+
                 {% endif %}
             </div>
         {% endif %}
@@ -739,6 +746,19 @@
             <a class="sidebar-link" href="{% url 'journal:student_view' %}">
                 <i class="bi bi-journal-text"></i> {% trans "Оценки и посещаемость" %}
             </a>
+            <div class="sidebar-section-header" data-target="lms-student-menu">
+                <span><i class="bi bi-laptop me-2"></i>{% trans "Обучение (LMS)" %}</span>
+                <i class="bi bi-chevron-down toggle-icon"></i>
+            </div>
+            <div class="sidebar-menu-group" id="lms-student-menu">
+                <a class="sidebar-link" href="{% url 'lms:dashboard' %}">
+                    <i class="bi bi-grid-1x2"></i> {% trans "Мои курсы" %}
+                </a>
+                <a class="sidebar-link" href="{% url 'lms:course_list' %}">
+                    <i class="bi bi-search"></i> {% trans "Каталог курсов" %}
+                </a>
+            </div>
+
         {% endif %}
 
         <a class="sidebar-link" href="{% url 'news:list' %}">

@@ -8,13 +8,14 @@ from django.db import transaction
 from django.db.models import Q, Count, Avg
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
+from accounts.models import Student, User
 
 from .models import (
     Course, CourseCategory, CourseSection, CourseModule,
     CourseEnrolment, ModuleCompletion, PageContent, FileResource,
     FolderResource, FolderFile, UrlResource, VideoResource,
     Assignment, AssignmentSubmission, Forum, ForumThread, ForumPost,
-    Glossary, GlossaryEntry, GradeItem, GradeEntry, CourseAnnouncement,
+    Glossary, GlossaryEntry, GradeItem, GradeEntry, CourseAnnouncement, 
 )
 from .forms import (
     CourseForm, CourseCategoryForm, CourseSectionForm, CourseModuleForm,
@@ -599,28 +600,42 @@ def enrolment_manage(request, course_id):
     if not can_manage_course(request.user, course):
         return HttpResponseForbidden()
 
-    from accounts.models import User
     enrolments = course.enrolments.select_related('user').order_by('role', 'user__last_name')
-    form       = EnrolUsersForm(request.POST or None)
+    form = EnrolUsersForm(request.POST or None)
 
     if form.is_valid():
-        raw  = form.cleaned_data['users']
         role = form.cleaned_data['role']
-        ids  = [line.strip() for line in raw.splitlines() if line.strip()]
         added = 0
-        for val in ids:
-            try:
-                if val.isdigit():
-                    u = User.objects.get(pk=val)
-                else:
-                    u = User.objects.get(email=val)
-                CourseEnrolment.objects.update_or_create(
-                    course=course, user=u,
+        groups = form.cleaned_data['groups']
+        for group in groups:
+            students = Student.objects.filter(group=group, status='ACTIVE').select_related('user')
+            for student in students:
+                _, created = CourseEnrolment.objects.update_or_create(
+                    course=course,
+                    user=student.user,
                     defaults={'role': role, 'is_active': True}
                 )
-                added += 1
-            except User.DoesNotExist:
-                pass
+                if created:
+                    added += 1
+
+        raw_users = form.cleaned_data['users']
+        if raw_users:
+            ids = [line.strip() for line in raw_users.splitlines() if line.strip()]
+            for val in ids:
+                try:
+                    if val.isdigit():
+                        u = User.objects.get(pk=val)
+                    else:
+                        u = User.objects.get(email=val)
+                    _, created = CourseEnrolment.objects.update_or_create(
+                        course=course, user=u,
+                        defaults={'role': role, 'is_active': True}
+                    )
+                    if created:
+                        added += 1
+                except User.DoesNotExist:
+                    pass
+
         messages.success(request, _(f"Добавлено {added} участников"))
         return redirect('lms:enrolment_manage', course_id=course_id)
 

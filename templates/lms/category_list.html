@@ -1,20 +1,126 @@
 {% extends "lms/base_lms.html" %}
 {% load i18n %}
+
 {% block lms_content %}
-<div class="d-flex justify-content-between mb-3">
-  <h5>{% trans "Категории курсов" %}</h5>
-  <a href="{% url 'lms:category_create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>{% trans "Добавить" %}</a>
-</div>
-<div class="list-group">
-  {% for cat in categories %}
-  <div class="list-group-item d-flex justify-content-between align-items-center">
-    <span>{% if cat.parent %}<span class="text-muted me-2">↳</span>{% endif %}{{ cat.name }}
-    {% if cat.faculty %}<span class="badge bg-light text-dark ms-2">{{ cat.faculty.name }}</span>{% endif %}
-    </span>
-    <a href="{% url 'lms:category_edit' cat.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+{% if not categories %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h5 class="mb-1">{% trans "Категории курсов" %}</h5>
+    <p class="text-muted small mb-0">
+      {% trans "Категории — это папки для организации курсов по факультетам, кафедрам и дисциплинам." %}
+    </p>
   </div>
-  {% empty %}
-  <div class="list-group-item text-muted text-center">{% trans "Нет категорий" %}</div>
+  <a href="{% url 'lms:category_create' %}" class="btn btn-sm btn-primary flex-shrink-0 ms-3">
+    <i class="bi bi-plus me-1"></i>{% trans "Добавить категорию" %}
+  </a>
+</div>
+<div class="card border-warning shadow-sm mb-4">
+  <div class="card-body">
+    <h6 class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>{% trans "Категорий пока нет" %}</h6>
+    <p class="small text-muted mb-3">
+      {% trans "Начните с создания базовой структуры. Вот рекомендуемая иерархия:" %}
+    </p>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="border rounded p-3 h-100 bg-light">
+          <div class="fw-bold mb-2"><i class="bi bi-folder-fill text-warning me-1"></i>{% trans "Уровень 1 — Институт" %}</div>
+          <div class="small text-muted">{% trans "Институт IT и телекоммуникаций" %}</div>
+          <div class="small text-muted">{% trans "Экономический институт" %}</div>
+          <div class="small text-muted">{% trans "Общеуниверситетские курсы" %}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3 h-100 bg-light">
+          <div class="fw-bold mb-2"><i class="bi bi-folder2-open text-primary me-1"></i>{% trans "Уровень 2 — Факультет" %}</div>
+          <div class="small text-muted">↳ {% trans "Факультет программирования" %}</div>
+          <div class="small text-muted">↳ {% trans "Факультет сетей" %}</div>
+          <div class="small text-muted">↳ {% trans "Иностранные языки" %}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3 h-100 bg-light">
+          <div class="fw-bold mb-2"><i class="bi bi-file-earmark text-info me-1"></i>{% trans "Уровень 3 — Кафедра / Предмет" %}</div>
+          <div class="small text-muted">↳↳ {% trans "Базы данных" %}</div>
+          <div class="small text-muted">↳↳ {% trans "Алгоритмы и структуры" %}</div>
+          <div class="small text-muted">↳↳ {% trans "Веб-разработка" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <a href="{% url 'lms:category_create' %}" class="btn btn-warning btn-sm">
+        <i class="bi bi-plus me-1"></i>{% trans "Создать первую категорию" %}
+      </a>
+    </div>
+  </div>
+</div>
+{% else %}
+
+<div class="list-group shadow-sm">
+  {% for cat in categories %}
+  <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
+    <div class="d-flex align-items-center gap-2">
+
+      {% if cat.parent %}
+        <span class="text-muted" style="margin-left: 1.5rem;">↳</span>
+        <i class="bi bi-folder2 text-secondary"></i>
+      {% else %}
+        <i class="bi bi-folder-fill text-warning"></i>
+      {% endif %}
+
+      <div>
+        <span class="fw-semibold">{{ cat.name }}</span>
+        {% if cat.description %}
+          <small class="text-muted ms-2 d-none d-md-inline">— {{ cat.description|truncatechars:60 }}</small>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-1 mt-1">
+          {% if cat.institute %}
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary" style="font-size:.7rem">
+              <i class="bi bi-bank me-1"></i>{{ cat.institute.name|truncatechars:20 }}
+            </span>
+          {% endif %}
+          {% if cat.faculty %}
+            <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:.7rem">
+              <i class="bi bi-building me-1"></i>{{ cat.faculty.name|truncatechars:20 }}
+            </span>
+          {% endif %}
+          {% if cat.department %}
+            <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size:.7rem">
+              <i class="bi bi-diagram-3 me-1"></i>{{ cat.department.name|truncatechars:20 }}
+            </span>
+          {% endif %}
+          {% if not cat.institute and not cat.faculty and not cat.department %}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:.7rem">
+              <i class="bi bi-globe me-1"></i>{% trans "Общая" %}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      {% with count=cat.courses.count %}
+      {% if count > 0 %}
+        <span class="badge bg-light text-dark border" title="{% trans 'Курсов в категории' %}">
+          {{ count }} {% trans "курс" %}
+        </span>
+      {% endif %}
+      {% endwith %}
+
+      <a href="{% url 'lms:category_edit' cat.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-2">
+        <i class="bi bi-pencil"></i>
+      </a>
+    </div>
+  </div>
   {% endfor %}
 </div>
+
+<div class="mt-3 text-muted small">
+  <i class="bi bi-info-circle me-1"></i>
+  {% trans "Категории без привязки (помечены «Общая») доступны всем. Курсы с привязкой к факультету/кафедре видны только соответствующим пользователям." %}
+</div>
+{% endif %}
+
 {% endblock %}

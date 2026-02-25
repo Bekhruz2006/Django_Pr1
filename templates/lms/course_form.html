@@ -1,28 +1,236 @@
 {% extends "lms/base_lms.html" %}
 {% load i18n %}
+
 {% block title %}{{ title }}{% endblock %}
+
 {% block lms_content %}
-<div class="card shadow-sm" style="max-width:700px;margin:0 auto">
-  <div class="card-header"><h5 class="mb-0">{{ title }}</h5></div>
-  <div class="card-body">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label fw-semibold">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
-      </div>
-      {% endfor %}
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary" type="submit">{% trans "Сохранить" %}</button>
+<div style="max-width:860px;margin:0 auto">
+
+  {# ——— Заголовок ——— #}
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+      <i class="bi bi-mortarboard fs-3 text-primary"></i>
+    </div>
+    <div>
+      <h4 class="mb-0 fw-bold">{{ title }}</h4>
+      <p class="text-muted small mb-0">
         {% if course %}
-        <a href="{% url 'lms:course_detail' course.pk %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
+          {% trans "Измените параметры курса. Студенты увидят изменения сразу после сохранения." %}
         {% else %}
-        <a href="{% url 'lms:course_list' %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
+          {% trans "После создания курса добавьте секции с материалами и запишите участников." %}
         {% endif %}
-      </div>
-    </form>
+      </p>
+    </div>
   </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="row g-4">
+
+      <div class="col-lg-8">
+
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold text-dark">
+              <i class="bi bi-card-text me-2 text-primary"></i>{% trans "Основная информация" %}
+            </h6>
+          </div>
+          <div class="card-body">
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">
+                {% trans "Полное название" %} <span class="text-danger">*</span>
+              </label>
+              <div class="form-text mb-1">{% trans "Официальное название дисциплины или курса. Например: «Основы баз данных и SQL»." %}</div>
+              {{ form.full_name }}
+              {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">
+                {% trans "Краткое название" %} <span class="text-danger">*</span>
+              </label>
+              <div class="form-text mb-1">{% trans "Используется в навигации и хлебных крошках. Например: «БД-2025» или «SQL-1»." %}</div>
+              {{ form.short_name }}
+              {% if form.short_name.errors %}<div class="text-danger small mt-1">{{ form.short_name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">
+                {% trans "Категория" %} <span class="text-danger">*</span>
+              </label>
+              <div class="form-text mb-1 d-flex align-items-center gap-2">
+                {% trans "Раздел, к которому относится курс." %}
+                <a href="{% url 'lms:category_create' %}" target="_blank" class="small text-primary">
+                  <i class="bi bi-plus-circle me-1"></i>{% trans "Создать категорию" %}
+                </a>
+              </div>
+              {{ form.category }}
+              {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">{% trans "Описание курса" %}</label>
+              <div class="form-text mb-1">{% trans "О чём курс, для кого, чему научит. Отображается студентам на странице курса." %}</div>
+              {{ form.summary }}
+            </div>
+
+            <div class="mb-0">
+              <label class="form-label fw-semibold">{% trans "ID-номер / Код дисциплины" %}</label>
+              <div class="form-text mb-1">{% trans "Внутренний код по учебному плану (РУП). Например: «CS-204» или «0401.1». Необязательно." %}</div>
+              {{ form.id_number }}
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold text-dark">
+              <i class="bi bi-calendar-range me-2 text-success"></i>{% trans "Даты и доступ" %}
+            </h6>
+          </div>
+          <div class="card-body">
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">{% trans "Дата начала" %}</label>
+                <div class="form-text mb-1">{% trans "С какой даты курс открыт студентам." %}</div>
+                {{ form.start_date }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">{% trans "Дата окончания" %}</label>
+                <div class="form-text mb-1">{% trans "После этой даты сдача заданий закрывается." %}</div>
+                {{ form.end_date }}
+              </div>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">{% trans "Кому виден курс" %}</label>
+              <div class="form-text mb-1">
+                {% trans "«Видимый» — всем записанным. «Только факультет/кафедра/группа» — фильтрация по выбранной единице ниже." %}
+              </div>
+              {{ form.visibility }}
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label fw-semibold small">{% trans "Факультет" %}</label>
+                {{ form.allowed_faculty }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold small">{% trans "Кафедра" %}</label>
+                {{ form.allowed_department }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold small">{% trans "Группа" %}</label>
+                {{ form.allowed_group }}
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-check">
+                  {{ form.allow_self_enrol }}
+                  <label class="form-check-label fw-semibold" for="{{ form.allow_self_enrol.id_for_label }}">
+                    {% trans "Разрешить самозапись" %}
+                  </label>
+                  <div class="form-text">{% trans "Студенты смогут записаться сами без подтверждения." %}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">{% trans "Ключ самозаписи (пароль)" %}</label>
+                <div class="form-text mb-1">{% trans "Если задать — студент вводит этот пароль при записи." %}</div>
+                {{ form.enrol_key }}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold text-dark">
+              <i class="bi bi-sliders me-2 text-warning"></i>{% trans "Параметры" %}
+            </h6>
+          </div>
+          <div class="card-body">
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">{% trans "Формат курса" %}</label>
+              <div class="form-text mb-1 small">
+                {% trans "«Тематический» — секции по темам. «Недельный» — по неделям. «Социальный» — один форум." %}
+              </div>
+              {{ form.format }}
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                {{ form.is_visible }}
+                <label class="form-check-label fw-semibold" for="{{ form.is_visible.id_for_label }}">
+                  {% trans "Опубликован" %}
+                </label>
+                <div class="form-text small">{% trans "Снимите галочку, чтобы скрыть курс пока он в разработке." %}</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold text-dark">
+              <i class="bi bi-image me-2 text-info"></i>{% trans "Обложка курса" %}
+            </h6>
+          </div>
+          <div class="card-body">
+            {% if course and course.image %}
+            <div class="mb-2">
+              <img src="{{ course.image.url }}" class="img-fluid rounded" alt="{% trans 'Текущая обложка' %}">
+              <div class="form-text mt-1">{% trans "Текущая обложка. Загрузите новую, чтобы заменить." %}</div>
+            </div>
+            {% endif %}
+            <div class="form-text mb-2 small">{% trans "Рекомендуемый размер: 800×450 px. Форматы: JPG, PNG." %}</div>
+            {{ form.image }}
+          </div>
+        </div>
+
+        <div class="d-grid gap-2">
+          <button class="btn btn-primary btn-lg" type="submit">
+            <i class="bi bi-check-circle me-2"></i>
+            {% if course %}{% trans "Сохранить изменения" %}{% else %}{% trans "Создать курс" %}{% endif %}
+          </button>
+          {% if course %}
+            <a href="{% url 'lms:course_detail' course.pk %}" class="btn btn-outline-secondary">
+              {% trans "Отмена" %}
+            </a>
+          {% else %}
+            <a href="{% url 'lms:course_list' %}" class="btn btn-outline-secondary">
+              {% trans "Отмена" %}
+            </a>
+          {% endif %}
+        </div>
+
+        {% if not course %}
+        <div class="alert alert-light border mt-3 small">
+          <div class="fw-bold mb-1"><i class="bi bi-arrow-right-circle me-1 text-primary"></i>{% trans "После создания:" %}</div>
+          <ol class="mb-0 ps-3">
+            <li>{% trans "Добавьте секции (темы/недели)" %}</li>
+            <li>{% trans "Загрузите материалы в секции" %}</li>
+            <li>{% trans "Запишите студентов и преподавателей" %}</li>
+          </ol>
+        </div>
+        {% endif %}
+
+      </div>
+
+    </div>
+  </form>
 </div>
 {% endblock %}
