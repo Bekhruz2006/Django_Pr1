@@ -1,0 +1,7 @@
+{% extends "lms/modules/base_module.html" %}
+{% block module_body %}
+<div class="alert alert-light border">
+  <strong>{{ module.title }}</strong>
+  {% if module.description %}<p class="mb-0 mt-1 text-muted">{{ module.description }}</p>{% endif %}
+</div>
+{% endblock %}

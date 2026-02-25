@@ -1,0 +1,46 @@
+
+
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block title %}{% trans "Редактировать модуль" %}{% endblock %}
+{% block breadcrumb_extra %}<li class="breadcrumb-item active">{% trans "Редактировать" %}</li>{% endblock %}
+
+{% block lms_content %}
+<div class="card shadow-sm" style="max-width:800px;margin:0 auto">
+  <div class="card-header">
+    <h5 class="mb-0"><i class="bi {{ module.get_icon }} me-2"></i>{% trans "Редактировать" %}: {{ module.title }}</h5>
+  </div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <h6 class="text-muted border-bottom pb-2 mb-3">{% trans "Основные настройки" %}</h6>
+      {% for field in base_form %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+      </div>
+      {% endfor %}
+
+      {% if content_form %}
+      <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">{% trans "Содержимое" %}</h6>
+      {% for field in content_form %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-primary" type="submit">{% trans "Сохранить" %}</button>
+        <a href="{% url 'lms:course_detail' course.pk %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
+        <a href="{% url 'lms:module_detail' module.pk %}" class="btn btn-outline-info ms-auto">
+          <i class="bi bi-eye me-1"></i>{% trans "Предпросмотр" %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

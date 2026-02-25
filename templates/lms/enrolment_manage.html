@@ -1,0 +1,50 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block title %}{% trans "Участники" %} — {{ course.short_name }}{% endblock %}
+{% block breadcrumb_extra %}<li class="breadcrumb-item active">{% trans "Участники" %}</li>{% endblock %}
+
+{% block lms_content %}
+<div class="row">
+  <div class="col-lg-7">
+    <h5 class="mb-3">{% trans "Участники курса" %}: {{ course.short_name }}</h5>
+    <div class="list-group mb-4">
+      {% for enrolment in enrolments %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ enrolment.user.get_full_name }}</strong>
+          <span class="badge bg-secondary ms-2">{{ enrolment.get_role_display }}</span>
+          {% if enrolment.last_access %}
+          <span class="text-muted small ms-2">{{ enrolment.last_access|date:"d.m" }}</span>
+          {% endif %}
+        </div>
+        <a href="{% url 'lms:enrolment_remove' enrolment.pk %}"
+           class="btn btn-sm btn-outline-danger"
+           onclick="return confirm('{% trans "Удалить участника?" %}')">
+          <i class="bi bi-x"></i>
+        </a>
+      </div>
+      {% empty %}
+      <div class="list-group-item text-center text-muted">{% trans "Нет участников" %}</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header"><strong>{% trans "Добавить участников" %}</strong></div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <button class="btn btn-primary btn-sm">{% trans "Добавить" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

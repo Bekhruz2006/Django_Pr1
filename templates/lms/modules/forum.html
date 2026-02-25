@@ -1,0 +1,31 @@
+{% extends "lms/modules/base_module.html" %}
+{% load i18n %}
+{% block module_body %}
+{% if forum %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <span class="text-muted small">{{ forum.get_forum_type_display }}</span>
+  {% if forum.forum_type != 'ANNOUNCE' or can_manage %}
+  <a href="{% url 'lms:forum_thread_create' module.pk %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus me-1"></i>{% trans "Новая тема" %}
+  </a>
+  {% endif %}
+</div>
+<div class="list-group">
+  {% for thread in threads %}
+  <a href="{% url 'lms:forum_thread' thread.pk %}" class="list-group-item list-group-item-action">
+    <div class="d-flex justify-content-between">
+      <span>
+        {% if thread.is_pinned %}<i class="bi bi-pin-angle text-primary me-1"></i>{% endif %}
+        {% if thread.is_locked %}<i class="bi bi-lock text-muted me-1"></i>{% endif %}
+        <strong>{{ thread.title }}</strong>
+      </span>
+      <small class="text-muted">{{ thread.post_count }} {% trans "отв." %}</small>
+    </div>
+    <small class="text-muted">{{ thread.author.get_full_name }} · {{ thread.created_at|date:"d.m.Y" }}</small>
+  </a>
+  {% empty %}
+  <div class="list-group-item text-center text-muted">{% trans "Тем пока нет" %}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

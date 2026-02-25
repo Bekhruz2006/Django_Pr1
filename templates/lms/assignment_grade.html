@@ -1,0 +1,30 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block lms_content %}
+<div class="row" style="max-width:900px;margin:0 auto">
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header"><strong>{% trans "Работа" %}: {{ submission.student.get_full_name }}</strong></div>
+      <div class="card-body">
+        {% if submission.file %}<p><a href="{{ submission.file.url }}" download class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>{% trans "Скачать файл" %}</a></p>{% endif %}
+        {% if submission.text_answer %}<div class="border rounded p-3 bg-light">{{ submission.text_answer }}</div>{% endif %}
+        {% if submission.is_late %}<div class="badge bg-danger mt-2">{% trans "Сдано с опозданием" %}</div>{% endif %}
+        <div class="text-muted small mt-2">{% trans "Сдано" %}: {{ submission.submitted_at|date:"d.m.Y H:i" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header"><strong>{% trans "Оценка" %}</strong></div>
+      <div class="card-body">
+        <form method="post">{% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3"><label class="form-label">{{ field.label }}</label>{{ field }}</div>
+          {% endfor %}
+          <button class="btn btn-primary btn-sm w-100">{% trans "Сохранить оценку" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "lms/modules/base_module.html" %}
+{% load i18n %}
+{% block module_body %}
+{% if resource %}
+<div class="card shadow-sm">
+  <div class="card-body d-flex align-items-center gap-3">
+    <i class="bi bi-file-earmark fs-1 text-primary"></i>
+    <div>
+      <div class="fw-bold">{{ resource.file.name|cut:"lms/resources/" }}</div>
+      <div class="text-muted small">{{ resource.get_size_display }}</div>
+    </div>
+    <a href="{{ resource.file.url }}" class="btn btn-primary ms-auto"
+       {% if resource.display_type == 'NEW_TAB' %}target="_blank"{% endif %}
+       {% if resource.display_type == 'DOWNLOAD' %}download{% endif %}>
+      <i class="bi bi-download me-1"></i>{% trans "Скачать" %}
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

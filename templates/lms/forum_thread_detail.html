@@ -1,0 +1,32 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block lms_content %}
+<div class="mb-3">
+  <a href="{% url 'lms:module_detail' module.pk %}" class="text-decoration-none text-muted">
+    <i class="bi bi-arrow-left me-1"></i>{{ module.title }}
+  </a>
+  <h5 class="mt-1">{{ thread.title }}</h5>
+</div>
+{% for post in posts %}
+<div class="card mb-2 shadow-sm {% if post.parent %}ms-4{% endif %}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between mb-2">
+      <strong>{{ post.author.get_full_name }}</strong>
+      <small class="text-muted">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+    </div>
+    {{ post.body|linebreaks }}
+  </div>
+</div>
+{% endfor %}
+{% if not thread.is_locked %}
+<div class="card mt-3 shadow-sm">
+  <div class="card-body">
+    <h6>{% trans "Ответить" %}</h6>
+    <form method="post">{% csrf_token %}
+      {% for field in form %}{{ field }}{% endfor %}
+      <button class="btn btn-primary btn-sm mt-2">{% trans "Отправить" %}</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

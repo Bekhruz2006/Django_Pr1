@@ -1,0 +1,25 @@
+{% extends "lms/modules/base_module.html" %}
+{% load i18n %}
+{% block module_body %}
+{% if can_manage %}
+<div class="mb-2">
+  <a href="{% url 'lms:folder_file_add' module.pk %}" class="btn btn-sm btn-outline-primary">
+    <i class="bi bi-plus me-1"></i>{% trans "Добавить файл" %}
+  </a>
+</div>
+{% endif %}
+<div class="list-group">
+  {% for f in files %}
+  <div class="list-group-item d-flex align-items-center gap-2">
+    <i class="bi bi-file-earmark text-info"></i>
+    <a href="{{ f.file.url }}" download class="flex-grow-1">{{ f.name }}</a>
+    {% if can_manage %}
+    <a href="{% url 'lms:folder_file_delete' f.pk %}" class="btn btn-sm btn-outline-danger py-0"
+       onclick="return confirm('Удалить?')"><i class="bi bi-trash"></i></a>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="list-group-item text-muted text-center">{% trans "Папка пуста" %}</div>
+  {% endfor %}
+</div>
+{% endblock %}

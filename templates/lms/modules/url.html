@@ -1,0 +1,15 @@
+{% extends "lms/modules/base_module.html" %}
+{% load i18n %}
+{% block module_body %}
+{% if url_res %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <a href="{{ url_res.external_url }}" class="btn btn-primary"
+       {% if url_res.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}>
+      <i class="bi bi-box-arrow-up-right me-1"></i>
+      {{ url_res.external_url }}
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

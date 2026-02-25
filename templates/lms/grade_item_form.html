@@ -1,0 +1,16 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block lms_content %}
+<div class="card shadow-sm" style="max-width:500px;margin:0 auto">
+  <div class="card-header"><h5 class="mb-0">{% trans "Добавить элемент оценки" %}</h5></div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      {% for field in form %}<div class="mb-3"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary">{% trans "Сохранить" %}</button>
+        <a href="{% url 'lms:gradebook' course.pk %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

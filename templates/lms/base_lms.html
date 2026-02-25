@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block sidebar_extra %}
+<div class="sidebar-section mt-3">
+  <div class="sidebar-label text-muted small px-3 mb-1">{% trans "LMS" %}</div>
+  <a href="{% url 'lms:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+    <i class="bi bi-grid-1x2"></i> {% trans "Дашборд" %}
+  </a>
+  <a href="{% url 'lms:course_list' %}" class="sidebar-link">
+    <i class="bi bi-mortarboard"></i> {% trans "Курсы" %}
+  </a>
+  {% if user.role in 'ADMIN DIRECTOR RECTOR DEAN VICE_DEAN HEAD_OF_DEPT SPECIALIST' %}
+  <a href="{% url 'lms:category_list' %}" class="sidebar-link">
+    <i class="bi bi-folder-tree"></i> {% trans "Категории" %}
+  </a>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="lms-layout">
+  {% if course %}
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'lms:dashboard' %}">LMS</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'lms:course_list' %}">{% trans "Курсы" %}</a></li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'lms:course_detail' course.pk %}">{{ course.short_name }}</a>
+      </li>
+      {% block breadcrumb_extra %}{% endblock %}
+    </ol>
+  </nav>
+  {% endif %}
+  {% block lms_content %}{% endblock %}
+</div>
+{% endblock %}

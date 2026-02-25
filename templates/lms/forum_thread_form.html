@@ -1,0 +1,20 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block lms_content %}
+<div class="card shadow-sm" style="max-width:700px;margin:0 auto">
+  <div class="card-header"><h5 class="mb-0">{% trans "Новая тема" %}</h5></div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="mb-3"><label class="form-label">{% trans "Тема" %}</label>{{ form.title }}</div>
+      <div class="mb-3">
+        <label class="form-label">{% trans "Первое сообщение" %}</label>
+        <textarea name="body" class="form-control" rows="6"></textarea>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary">{% trans "Создать" %}</button>
+        <a href="{% url 'lms:module_detail' module.pk %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

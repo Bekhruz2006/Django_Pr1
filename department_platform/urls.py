@@ -14,7 +14,7 @@ urlpatterns = [
     path('news/', include('news.urls')),  
     path('chat/', include('chat.urls')),  
     path('rosetta/', include('rosetta.urls')),
-    path('lms/', include('lms.urls')), 
+    path('lms/', include('lms.urls', namespace='lms')), 
     path('testing/', include('testing.urls')),
     path('', include('core.urls')),
     

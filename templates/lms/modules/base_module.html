@@ -1,0 +1,41 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">{{ module.title }}</li>
+{% endblock %}
+{% block lms_content %}
+<div class="row">
+  <div class="col-lg-9">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <i class="bi {{ module.get_icon }} fs-4"></i>
+      <h5 class="mb-0">{{ module.title }}</h5>
+      {% if can_manage %}
+      <a href="{% url 'lms:module_edit' module.pk %}" class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="bi bi-pencil"></i> {% trans "Редактировать" %}
+      </a>
+      {% endif %}
+    </div>
+    {% if module.description %}
+    <p class="text-muted">{{ module.description }}</p>
+    {% endif %}
+    {% block module_body %}{% endblock %}
+  </div>
+  <div class="col-lg-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        {% if completion.is_completed %}
+        <div class="d-flex align-items-center gap-2 text-success mb-2">
+          <i class="bi bi-check-circle-fill"></i>
+          <strong>{% trans "Пройдено" %}</strong>
+        </div>
+        {% elif module.completion_required %}
+        <div class="text-muted small">{% trans "Обязателен для прохождения курса" %}</div>
+        {% endif %}
+        <a href="{% url 'lms:course_detail' course.pk %}" class="btn btn-sm btn-outline-secondary w-100 mt-2">
+          <i class="bi bi-arrow-left me-1"></i>{% trans "К курсу" %}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

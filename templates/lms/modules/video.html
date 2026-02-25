@@ -1,0 +1,16 @@
+{% extends "lms/modules/base_module.html" %}
+{% load i18n %}
+{% block module_body %}
+{% if video %}
+  {% if video.embed_url %}
+  <div class="ratio ratio-16x9 mb-3">
+    <iframe src="{{ video.embed_url }}" allowfullscreen></iframe>
+  </div>
+  {% elif video.file %}
+  <video controls class="w-100 rounded mb-3">
+    <source src="{{ video.file.url }}">
+    {% trans "Ваш браузер не поддерживает видео" %}
+  </video>
+  {% endif %}
+{% endif %}
+{% endblock %}

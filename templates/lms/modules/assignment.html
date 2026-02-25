@@ -1,0 +1,76 @@
+
+
+{% extends "lms/modules/base_module.html" %}
+{% load i18n %}
+{% block module_body %}
+{% if assignment %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="mb-3">{{ assignment.description|safe }}</div>
+    <div class="row g-2 text-muted small mb-3">
+      {% if assignment.due_date %}
+      <div class="col-auto">
+        <i class="bi bi-calendar-event me-1"></i>{% trans "Срок сдачи" %}: <strong>{{ assignment.due_date|date:"d.m.Y H:i" }}</strong>
+      </div>
+      {% endif %}
+      <div class="col-auto">
+        <i class="bi bi-star me-1"></i>{% trans "Макс. балл" %}: <strong>{{ assignment.max_score }}</strong>
+      </div>
+      <div class="col-auto">
+        <i class="bi bi-file-earmark me-1"></i>{% trans "Форматы" %}: {{ assignment.allowed_file_types }}
+      </div>
+    </div>
+
+    {% if not can_manage %}
+      {% if submission %}
+      <div class="alert {% if submission.status == 'GRADED' %}alert-success{% elif submission.status == 'RETURNED' %}alert-warning{% else %}alert-info{% endif %}">
+        <strong>{% trans "Статус" %}: {{ submission.get_status_display }}</strong>
+        {% if submission.score is not None %}
+        <span class="ms-3">{% trans "Оценка" %}: {{ submission.score }} / {{ assignment.max_score }}</span>
+        {% endif %}
+        {% if submission.teacher_feedback %}
+        <div class="mt-1 small">{{ submission.teacher_feedback }}</div>
+        {% endif %}
+      </div>
+      {% if submission.status == 'RETURNED' %}
+      <a href="{% url 'lms:assignment_submit' module.pk %}" class="btn btn-warning btn-sm">
+        <i class="bi bi-pencil me-1"></i>{% trans "Переработать" %}
+      </a>
+      {% endif %}
+      {% else %}
+      <a href="{% url 'lms:assignment_submit' module.pk %}" class="btn btn-primary">
+        <i class="bi bi-journal-arrow-up me-1"></i>{% trans "Сдать работу" %}
+      </a>
+      {% endif %}
+    {% else %}
+    <h6 class="mt-3">{% trans "Работы студентов" %} ({{ all_submissions.count }})</h6>
+    <div class="list-group">
+      {% for sub in all_submissions %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ sub.student.get_full_name }}</strong>
+          <span class="badge ms-2 {% if sub.status == 'GRADED' %}bg-success{% elif sub.status == 'RETURNED' %}bg-warning text-dark{% elif sub.status == 'SUBMITTED' %}bg-primary{% else %}bg-secondary{% endif %}">
+            {{ sub.get_status_display }}
+          </span>
+          {% if sub.is_late %}<span class="badge bg-danger ms-1">{% trans "Просрочено" %}</span>{% endif %}
+          {% if sub.score is not None %}<span class="ms-2 text-muted">{{ sub.score }}/{{ assignment.max_score }}</span>{% endif %}
+        </div>
+        {% if sub.status == 'SUBMITTED' %}
+        <a href="{% url 'lms:assignment_grade' sub.pk %}" class="btn btn-sm btn-primary">
+          {% trans "Проверить" %}
+        </a>
+        {% elif sub.status == 'GRADED' %}
+        <a href="{% url 'lms:assignment_grade' sub.pk %}" class="btn btn-sm btn-outline-secondary">
+          {% trans "Изменить оценку" %}
+        </a>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="list-group-item text-muted text-center">{% trans "Работ пока нет" %}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

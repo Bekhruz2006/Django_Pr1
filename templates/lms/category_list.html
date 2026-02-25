@@ -1,0 +1,20 @@
+{% extends "lms/base_lms.html" %}
+{% load i18n %}
+{% block lms_content %}
+<div class="d-flex justify-content-between mb-3">
+  <h5>{% trans "Категории курсов" %}</h5>
+  <a href="{% url 'lms:category_create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>{% trans "Добавить" %}</a>
+</div>
+<div class="list-group">
+  {% for cat in categories %}
+  <div class="list-group-item d-flex justify-content-between align-items-center">
+    <span>{% if cat.parent %}<span class="text-muted me-2">↳</span>{% endif %}{{ cat.name }}
+    {% if cat.faculty %}<span class="badge bg-light text-dark ms-2">{{ cat.faculty.name }}</span>{% endif %}
+    </span>
+    <a href="{% url 'lms:category_edit' cat.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+  </div>
+  {% empty %}
+  <div class="list-group-item text-muted text-center">{% trans "Нет категорий" %}</div>
+  {% endfor %}
+</div>
+{% endblock %}
