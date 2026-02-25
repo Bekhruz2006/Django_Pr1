@@ -53,12 +53,16 @@ class CourseForm(forms.ModelForm):
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for f in self.fields.values():
+        for name, f in self.fields.items():
             if not f.widget.attrs.get('class'):
                 if isinstance(f.widget, forms.Textarea):
                     f.widget.attrs.update({'class': 'form-control', 'rows': 2})
+                elif isinstance(f.widget, forms.CheckboxInput):
+                    f.widget.attrs.update({'class': 'form-check-input'}) 
+                elif isinstance(f.widget, (forms.Select, forms.SelectMultiple)):
+                    f.widget.attrs.update({'class': 'form-select'})
                 else:
-                    f.widget.attrs['class'] = 'form-select'
+                    f.widget.attrs.update({'class': 'form-control'})
 
         subjects = Subject.objects.select_related('department').all().order_by('name')
         choices =[('', '--- Не привязан к расписанию (Самостоятельный курс) ---')]

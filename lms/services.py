@@ -2,8 +2,10 @@ from django.db import transaction
 from .models import Course, CourseCategory, CourseEnrolment, CourseSection
 from accounts.models import Student
 from schedule.models import Subject, Semester, ScheduleSlot
-from lms.models import CourseModule
+from lms.models import CourseModule, FolderResource, Assignment
 from datetime import timedelta
+
+
 class LMSManager:
     @staticmethod
     def sync_subject_to_course(subject):

@@ -70,16 +70,25 @@
     {% if group %}
     <div class="card mb-3 shadow-sm border-0 bg-white">
         <div class="card-body p-2">
-            <label class="fw-bold small text-muted d-block mb-2 text-center text-uppercase">Назначать на неделю:</label>
+            <label class="fw-bold small text-muted d-block mb-1 text-center text-uppercase">
+                <i class="bi bi-info-circle text-primary"></i>
+                Тип недели для следующего перетаскивания:
+            </label>
             <div class="btn-group w-100" role="group">
                 <input type="radio" class="btn-check" name="drag_week_type" id="wt_every" value="EVERY" checked>
-                <label class="btn btn-outline-secondary btn-sm fw-bold" for="wt_every">ОБЕ</label>
+                <label class="btn btn-outline-secondary btn-sm fw-bold" for="wt_every">⬜ ОБЕ недели</label>
 
                 <input type="radio" class="btn-check" name="drag_week_type" id="wt_red" value="RED">
-                <label class="btn btn-outline-danger btn-sm fw-bold" for="wt_red">КРАСНАЯ</label>
+                <label class="btn btn-outline-danger btn-sm fw-bold" for="wt_red">🔴 КРАСНАЯ</label>
 
                 <input type="radio" class="btn-check" name="drag_week_type" id="wt_blue" value="BLUE">
-                <label class="btn btn-outline-primary btn-sm fw-bold" for="wt_blue">СИНЯЯ</label>
+                <label class="btn btn-outline-primary btn-sm fw-bold" for="wt_blue">🔵 СИНЯЯ</label>
+            </div>
+            <div class="text-center mt-1">
+                <small class="text-muted" style="font-size: 0.72rem;">
+                    Выберите тип недели → затем перетащите предмет в сетку.<br>
+                    Красную и синюю можно назначить <b>разные предметы</b> на один слот.
+                </small>
             </div>
         </div>
     </div>
@@ -150,6 +159,26 @@
         <div class="card shadow">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0 text-primary"><i class="bi bi-calendar-week"></i> Расписание: {{ group.name }}</h5>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2 bg-light p-1 rounded border">
+                        <span class="small text-muted fw-bold ms-2">Вид:</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="view_week" id="vw_all" value="ALL" checked>
+                            <label class="btn btn-outline-secondary" for="vw_all">Все</label>
+                            
+                            <input type="radio" class="btn-check" name="view_week" id="vw_red" value="RED">
+                            <label class="btn btn-outline-danger" for="vw_red">🔴 Красн</label>
+                            
+                            <input type="radio" class="btn-check" name="view_week" id="vw_blue" value="BLUE">
+                            <label class="btn btn-outline-primary" for="vw_blue">🔵 Син</label>
+                        </div>
+                    </div>
+
+                    <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-word"></i> Скачать DOCX
+                    </a>
+                </div>
+
                 <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-outline-success btn-sm">
                     <i class="bi bi-file-word"></i> Скачать DOCX
                 </a>
@@ -161,7 +190,6 @@
                             <tr>
                                 <th style="width: 100px;" class="text-center align-middle">Время</th>
                                 <th>Предмет / Преподаватель / Кабинет</th>
-                                <th style="width: 80px;" class="text-center align-middle">Каб.</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -179,7 +207,7 @@
                                     <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
                                 </td>
 
-                                {% with slot_list=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                {% with slot_list=schedule_data|get_slot:day_num|get_slot:time_slot.id %}
                                 <td class="schedule-drop-zone p-1 align-middle"
                                     data-group-id="{{ group.id }}"
                                     data-day="{{ day_num }}"
@@ -188,25 +216,31 @@
                                     {% if slot_list %}
                                         <div class="d-flex flex-column gap-1 h-100">
                                             {% for slot in slot_list %}
-                                            <div class="lesson-card p-2 rounded shadow-sm position-relative border-start border-4 border-{{ slot.get_color_class }}" 
-                                                 style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %};">
-                                                <div class="d-flex justify-content-between align-items-start">
+                                            {% if not forloop.first %}<hr class="my-1 border-dashed opacity-50">{% endif %}
+                                            <div class="lesson-card p-2 rounded shadow-sm position-relative
+                                                {% if slot.week_type == 'RED' %}border-start border-4 border-danger
+                                                {% elif slot.week_type == 'BLUE' %}border-start border-4 border-primary
+                                                {% else %}border-start border-4 border-{{ slot.get_color_class }}{% endif %}" 
+                                                 style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %}; min-width: 0;">
+                                                data-week-type="{{ slot.week_type }}">
+                                                 <div class="d-flex justify-content-between align-items-start">
                                                     <div>
                                                         <span class="badge bg-{{ slot.get_color_class }} mb-1">
                                                             {{ slot.get_lesson_type_display }}
                                                             {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
                                                         </span>
-                                                        {% if slot.week_type == 'RED' %}<span class="badge bg-danger ms-1">Красная</span>{% endif %}
-                                                        {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary ms-1">Синяя</span>{% endif %}
+                                                        {% if slot.week_type == 'RED' %}<span class="badge bg-danger ms-1">🔴 Красная</span>{% endif %}
+                                                        {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary ms-1">🔵 Синяя</span>{% endif %}
+                                                        {% if slot.week_type == 'EVERY' %}<span class="badge bg-secondary ms-1" style="opacity:0.6;">Обе нед.</span>{% endif %}
                                                     </div>
                                                     <button class="btn btn-link text-danger p-0 delete-slot" data-slot-id="{{ slot.id }}" title="Удалить"><i class="bi bi-x-circle-fill"></i></button>
                                                 </div>
                                                 <div class="fw-bold text-dark mt-1 lh-sm">{{ slot.subject.name }}</div>
                                                 <div class="small text-muted mb-1">{{ slot.teacher.user.get_full_name|default:'Не назначен' }}</div>
                                                 
-                                                <div class="mt-auto d-flex align-items-center">
+                                                <div class="aud-cell mt-auto d-flex align-items-center flex-wrap gap-1">
                                                     <span class="small text-muted me-1"><i class="bi bi-door-open"></i> Каб:</span>
-                                                    <div class="aud-display badge bg-secondary text-wrap" style="cursor: pointer; min-width: 40px;" onclick="editAud(this)" title="Изменить">
+                                                    <div class="aud-display badge bg-secondary text-wrap" style="cursor: pointer; min-width: 40px;" onclick="editAud(this)" title="Изменить кабинет">
                                                         {{ slot.room|default:'?' }}
                                                     </div>
                                                     <input type="text" class="form-control form-control-sm aud-input text-center p-0" value="{{ slot.room|default:'' }}" style="display: none; max-width: 60px;" onblur="saveAud(this, {{ slot.id }})" onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
@@ -659,7 +693,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!select) return;
     
     const allOptions = Array.from(select.querySelectorAll('option'));
-
+    document.querySelectorAll('input[name="view_week"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const val = this.value;
+            document.querySelectorAll('.lesson-card').forEach(card => {
+                if (val === 'ALL') {
+                    card.style.display = 'block';
+                } else {
+                    const wt = card.dataset.weekType;
+                    if (wt === 'EVERY' || wt === val) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
     filters.forEach(radio => {
         radio.addEventListener('change', function() {
             const course = this.value;
@@ -746,8 +796,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .aud-cell {
-    background-color: #f8f9fa;
     vertical-align: middle !important;
+}
+
+.border-dashed {
+    border-style: dashed !important;
 }
 
 .aud-display:hover {

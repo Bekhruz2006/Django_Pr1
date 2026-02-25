@@ -74,7 +74,7 @@ class Course(models.Model):
     def get_progress(self, user):
         total = CourseModule.objects.filter(section__course=self, is_visible=True, completion_required=True).count()
         if not total:
-            return 100
+            return 0
         done = ModuleCompletion.objects.filter(module__section__course=self, user=user, is_completed=True).count()
         return round(done / total * 100)
 
