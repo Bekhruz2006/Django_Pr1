@@ -66,16 +66,28 @@ def schedule_constructor(request):
         messages.error(request, _("Доступ запрещен"))
         return redirect('core:dashboard')
 
+    groups = Group.objects.all().select_related('specialty').order_by('course', 'name')
+
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        groups = groups.filter(specialty__department__faculty=faculty)
+
+    selected_group_id = request.GET.get('group')
+    selected_group = None
+    if selected_group_id:
+        selected_group = get_object_or_404(Group, id=selected_group_id)
+
     semester_id = request.GET.get('semester')
     active_semester = None
 
     if semester_id:
         active_semester = get_object_or_404(Semester, id=semester_id)
+    elif selected_group:
+        active_semester = get_active_semester_for_group(selected_group)
     else:
         if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             active_semester = Semester.objects.filter(faculty=faculty, is_active=True).first()
-
         if not active_semester:
             active_semester = Semester.objects.filter(is_active=True).first()
 
@@ -85,27 +97,16 @@ def schedule_constructor(request):
             messages.warning(request, _('Сначала создайте семестр в настройках.'))
             return redirect('schedule:manage_semesters')
 
-    groups = Group.objects.all().select_related('specialty').order_by('course', 'name')
-
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
-        faculty = request.user.dean_profile.faculty
-        groups = groups.filter(specialty__department__faculty=faculty)
-
-    selected_group_id = request.GET.get('group')
-    selected_group = None
     schedule_data = {}
     subjects_to_schedule = []
 
-    if selected_group_id:
-        selected_group = get_object_or_404(Group, id=selected_group_id)
-
+    if selected_group:
         slots = ScheduleSlot.objects.filter(
             group=selected_group,
             semester=active_semester,
             is_active=True
         ).select_related('subject', 'teacher__user', 'time_slot', 'classroom')
 
-        schedule_data = {}
         for slot in slots:
             if slot.day_of_week not in schedule_data:
                 schedule_data[slot.day_of_week] = {}
@@ -115,6 +116,9 @@ def schedule_constructor(request):
 
         for subject in assigned_subjects:
             needed = subject.get_weekly_slots_needed()
+
+            if sum(needed.values()) == 0:
+                needed['LECTURE'] = 1
 
             for l_type, label, color in [('LECTURE', _('Лекция'), 'primary'), ('PRACTICE', _('Практика'), 'success'), ('SRSP', _('СРСП'), 'warning')]:
                 if needed[l_type] > 0:
@@ -139,7 +143,7 @@ def schedule_constructor(request):
                 institute = request.user.dean_profile.faculty.institute
             else:
                 institute = Institute.objects.first()
-                
+
             shift = active_semester.shift
             time_slots = TimeSlot.objects.filter(
                 institute=institute,
@@ -571,10 +575,15 @@ def today_classes(request):
 
 @user_passes_test(is_dean_or_admin)
 def manage_subjects(request):
-    subjects = Subject.objects.all().select_related('teacher__user')
+    subjects = Subject.objects.all().select_related('teacher__user', 'department')
+    
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        subjects = subjects.filter(department__faculty=request.user.dean_profile.faculty)
+        
     search = request.GET.get('search', '')
     if search:
         subjects = subjects.filter(Q(name__icontains=search) | Q(code__icontains=search))
+        
     return render(request, 'schedule/manage_subjects.html', {'subjects': subjects, 'search': search})
 
 @user_passes_test(is_dean_or_admin)
@@ -639,14 +648,29 @@ def edit_subject(request, subject_id):
         if subject.department.faculty != request.user.dean_profile.faculty:
             messages.error(request, _("Нет доступа к этому предмету"))
             return redirect('schedule:manage_subjects')
+            
     if request.method == 'POST':
         form = SubjectForm(request.POST, instance=subject)
+        if request.user.role == 'DEAN':
+            faculty = request.user.dean_profile.faculty
+            form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
+            form.fields['teacher'].queryset = Teacher.objects.filter(
+                Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)
+            ).distinct()
+            
         if form.is_valid():
             form.save()
             messages.success(request, _('Предмет обновлен'))
             return redirect('schedule:manage_subjects')
     else:
         form = SubjectForm(instance=subject)
+        if request.user.role == 'DEAN':
+            faculty = request.user.dean_profile.faculty
+            form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
+            form.fields['teacher'].queryset = Teacher.objects.filter(
+                Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)
+            ).distinct()
+            
     return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': _('Редактировать предмет')})
 
 @user_passes_test(is_dean_or_admin)
@@ -1172,31 +1196,35 @@ def plan_detail(request, plan_id):
 
 @user_passes_test(is_dean_or_admin)
 def generate_subjects_from_rup(request):
-    active_semester = Semester.objects.filter(is_active=True).first()
-    if not active_semester:
-        messages.error(request, _("Нет активного семестра! Сначала активируйте семестр."))
-        return redirect('schedule:manage_semesters')
-
     groups = Group.objects.all()
-    
     if request.user.role == 'DEAN':
         if hasattr(request.user, 'dean_profile'):
             groups = groups.filter(specialty__department__faculty=request.user.dean_profile.faculty)
 
     suggestions = {}
+    diagnostics =[]
 
     for group in groups:
+        active_semester = get_active_semester_for_group(group)
+        if not active_semester:
+            diagnostics.append(f"Группа {group.name} ({group.course} курс): Нет активного семестра для этого курса.")
+            continue
+
         current_semester_num = (group.course - 1) * 2 + active_semester.number
 
         plan = AcademicPlan.objects.filter(group=group, is_active=True).order_by('-admission_year').first()
-        
         if not plan and group.specialty:
             plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
 
         if not plan:
+            diagnostics.append(f"Группа {group.name}: Нет активного РУП (учебного плана).")
             continue
 
         disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_semester_num)
+        
+        if not disciplines.exists():
+            diagnostics.append(f"Группа {group.name}: В РУП '{plan.specialty.name if plan.specialty else plan.group.name}' нет дисциплин для {current_semester_num} семестра.")
+            continue
 
         for disc in disciplines:
             exists = Subject.objects.filter(
@@ -1207,52 +1235,58 @@ def generate_subjects_from_rup(request):
             if exists:
                 continue
 
-            key = f"{disc.subject_template.id}_{disc.id}"
+            key = f"{disc.subject_template.id}_{disc.id}_{active_semester.id}"
 
             if key not in suggestions:
                 suggestions[key] = {
+                    'key': key,  # ВАЖНО: передаем ключ в шаблон!
                     'template': disc.subject_template,
                     'discipline': disc,
-                    'groups': [],
-                    'hours': f"{disc.lecture_hours}/{disc.practice_hours}/{disc.control_hours}"
+                    'groups':[],
+                    'hours': f"{disc.lecture_hours}/{disc.practice_hours}/{disc.control_hours}",
+                    'semester': active_semester
                 }
 
             suggestions[key]['groups'].append(group)
 
     if request.method == 'POST':
         created_count = 0
-        with transaction.atomic():
-            selected_keys = request.POST.getlist('selected_items')
+        errors =[]
+        selected_keys = request.POST.getlist('selected_items')
+        
+        if not selected_keys:
+            errors.append("Вы ничего не выбрали или значения чекбоксов пустые (ошибка шаблона).")
+            
+        try:
+            with transaction.atomic():
+                for key in selected_keys:
+                    if key not in suggestions:
+                        errors.append(f"Ключ '{key}' не найден в списке. Возможно, страница устарела. Обновите страницу.")
+                        continue
 
-            for key in selected_keys:
-                if key in suggestions:
                     item = suggestions[key]
                     disc = item['discipline']
                     group_list = item['groups']
+                    active_sem = item['semester']
 
                     is_stream = len(group_list) > 1 and request.POST.get(f'make_stream_{key}') == 'on'
 
-                    if is_stream:
-                        subject = Subject.objects.create(
-                            name=disc.subject_template.name,
-                            code=f"{disc.subject_template.id}-{active_semester.academic_year}-STREAM",
-                            department=group_list[0].specialty.department if group_list[0].specialty else Department.objects.first(),                            type='LECTURE',
-                            lecture_hours=disc.lecture_hours,
-                            practice_hours=disc.practice_hours,
-                            control_hours=disc.control_hours,
-                            independent_work_hours=disc.independent_hours,
-                            credits=disc.credits,
-                            plan_discipline=disc,
-                            is_stream_subject=True
-                        )
-                        subject.groups.set(group_list)
-                        created_count += 1
+                    target_dept = None
+                    if group_list[0].specialty and group_list[0].specialty.department:
+                        target_dept = group_list[0].specialty.department
+                    elif hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
+                        target_dept = Department.objects.filter(faculty=request.user.dean_profile.faculty).first()
                     else:
-                        for grp in group_list:
+                        target_dept = Department.objects.first()
+
+                    import uuid
+                    if is_stream:
+                        short_uuid = uuid.uuid4().hex[:6]
+                        try:
                             subject = Subject.objects.create(
                                 name=disc.subject_template.name,
-                                code=f"{disc.subject_template.id}-{grp.name}-{active_semester.academic_year}",
-                                department=grp.specialty.department if grp.specialty else Department.objects.first(),
+                                code=f"STR{disc.id}-{short_uuid}",
+                                department=target_dept,
                                 type='LECTURE',
                                 lecture_hours=disc.lecture_hours,
                                 practice_hours=disc.practice_hours,
@@ -1260,17 +1294,55 @@ def generate_subjects_from_rup(request):
                                 independent_work_hours=disc.independent_hours,
                                 credits=disc.credits,
                                 plan_discipline=disc,
-                                is_stream_subject=False
+                                is_stream_subject=True
                             )
-                            subject.groups.add(grp)
+                            subject.groups.set(group_list)
                             created_count += 1
+                        except Exception as e:
+                            errors.append(f"Ошибка БД при создании потока: {str(e)}")
+                    else:
+                        for grp in group_list:
+                            short_uuid = uuid.uuid4().hex[:6]
+                            
+                            grp_dept = target_dept
+                            if grp.specialty and grp.specialty.department:
+                                grp_dept = grp.specialty.department
+                                
+                            try:
+                                subject = Subject.objects.create(
+                                    name=disc.subject_template.name,
+                                    code=f"S{disc.id}-{short_uuid}",
+                                    department=grp_dept,
+                                    type='LECTURE',
+                                    lecture_hours=disc.lecture_hours,
+                                    practice_hours=disc.practice_hours,
+                                    control_hours=disc.control_hours,
+                                    independent_work_hours=disc.independent_hours,
+                                    credits=disc.credits,
+                                    plan_discipline=disc,
+                                    is_stream_subject=False
+                                )
+                                subject.groups.add(grp)
+                                created_count += 1
+                            except Exception as e:
+                                errors.append(f"Ошибка БД при создании предмета для группы {grp.name}: {str(e)}")
 
-        messages.success(request, _("Создано предметов: %(created_count)s") % {'created_count': created_count})
-        return redirect('schedule:manage_subjects')
+        except Exception as e:
+            errors.append(f"Критическая ошибка: {str(e)}")
+
+        if errors:
+            for err in errors:
+                messages.error(request, err)
+        
+        if created_count > 0:
+            messages.success(request, f"Успешно создано предметов: {created_count}")
+            return redirect('schedule:manage_subjects')
+        else:
+            messages.warning(request, "Предметы не были созданы. Посмотрите красные ошибки выше.")
 
     return render(request, 'schedule/plans/generate_preview.html', {
         'suggestions': suggestions.values(),
-        'semester': active_semester
+        'diagnostics': diagnostics,
     })
 
 

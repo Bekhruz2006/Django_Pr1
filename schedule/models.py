@@ -56,7 +56,7 @@ class Subject(models.Model):
         ('SRSP', _('СРСП (КМРО)')),
     ]
     name = models.CharField(max_length=200, verbose_name=_("Название"))
-    code = models.CharField(max_length=20, unique=True, verbose_name=_("Код"))
+    code = models.CharField(max_length=100, unique=True, verbose_name=_("Код"))
 
     department = models.ForeignKey('accounts.Department', on_delete=models.CASCADE, related_name='subjects', verbose_name=_("Кафедра"))
 
@@ -197,18 +197,27 @@ class Subject(models.Model):
             return hours_count
 
     def get_weekly_slots_needed(self):
-        if self.semester_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'SRSP': 0}
+            if self.semester_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'SRSP': 0}
 
-        total_lec_pairs = self.get_hours_in_pairs(self.lecture_hours)
-        total_prac_pairs = self.get_hours_in_pairs(self.practice_hours)
-        total_srsp_pairs = self.get_hours_in_pairs(self.control_hours)
+            lec_h = self.lecture_hours
+            prac_h = self.practice_hours
+            srsp_h = self.control_hours
 
-        return {
-            'LECTURE': math.ceil(total_lec_pairs / self.semester_weeks),
-            'PRACTICE': math.ceil(total_prac_pairs / self.semester_weeks),
-            'SRSP': math.ceil(total_srsp_pairs / self.semester_weeks),
-        }
+            if lec_h == 0 and prac_h == 0 and srsp_h == 0 and self.credits > 0:
+                total_auditory = (self.credits * 24) * 2 // 3
+                lec_h = total_auditory // 3
+                prac_h = total_auditory // 3
+                srsp_h = total_auditory - lec_h - prac_h
 
+            total_lec_pairs = self.get_hours_in_pairs(lec_h)
+            total_prac_pairs = self.get_hours_in_pairs(prac_h)
+            total_srsp_pairs = self.get_hours_in_pairs(srsp_h)
+
+            return {
+                'LECTURE': math.ceil(total_lec_pairs / self.semester_weeks),
+                'PRACTICE': math.ceil(total_prac_pairs / self.semester_weeks),
+                'SRSP': math.ceil(total_srsp_pairs / self.semester_weeks),
+            }
 class TimeSlot(models.Model):
     SHIFT_CHOICES = [
         ('MORNING', _('Утренняя смена (1-я)')),

@@ -47,7 +47,9 @@
                                     {% if subject.teacher %}
                                         {{ subject.teacher.user.get_full_name }}
                                     {% else %}
-                                        <span class="text-danger small">Не назначен</span>
+                                        <span class="text-danger small fw-bold">Не назначен</span>
+                                        <br>
+                                        <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-sm btn-outline-primary mt-1 py-0 px-2" style="font-size: 0.75rem;">Назначить</a>
                                     {% endif %}
                                 </td>
                                 <td>
