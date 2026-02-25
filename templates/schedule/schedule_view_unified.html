@@ -64,13 +64,12 @@
                                     <strong>ҲАФТА<br>СОАТ</strong>
                                 </th>
                                 <th style="width: 45%;">Дарс / Устод</th>
-                                <th style="width: 60px;">АУД</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for day_num, day_name in days %}
                                 <tr class="table-secondary">
-                                    <td colspan="3" class="text-center">
+                                    <td colspan="2" class="text-center">
                                         <strong>{{ day_name }}</strong>
                                     </td>
                                 </tr>
@@ -83,26 +82,29 @@
                                             </strong>
                                         </td>
 
-                                        {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
-                                        <td class="p-2">
-                                            {% if slot %}
-                                            <div>
-                                                <strong style="font-size: 0.9rem;">{{ slot.subject.name }}</strong>
-                                                <a href="{% url 'schedule:subject_materials' slot.subject.id %}" class="text-primary ms-1" title="Материалы">
-                                                    <i class="bi bi-folder"></i>
-                                                </a>
-                                                <span class="badge bg-{{ slot.get_color_class }} ms-1">
-                                                    {{ slot.get_lesson_type_display }}
-                                                </span>
-                                                <br>
-                                                <small class="text-muted">{{ slot.teacher.user.get_full_name|default:'—' }}</small><br>
-                                                <small class="text-muted">{{ slot.subject.total_credits }} кр. | {{ slot.subject.total_hours }} ч.</small>
-                                            </div>
-                                            {% endif %}
-                                        </td>
-                                        <td class="align-middle text-center" style="font-size: 0.85rem;">
-                                            {% if slot %}
-                                                <strong>{{ slot.room|default:'—' }}</strong>
+                                        {% with slot_list=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                        <td class="p-1">
+                                            {% if slot_list %}
+                                                <div class="d-flex flex-column gap-2">
+                                                {% for slot in slot_list %}
+                                                    <div class="p-2 rounded {% if slot.week_type == 'RED' %}bg-danger bg-opacity-10 border-start border-danger border-3{% elif slot.week_type == 'BLUE' %}bg-primary bg-opacity-10 border-start border-primary border-3{% else %}bg-light border-start border-secondary border-3{% endif %}">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <strong style="font-size: 0.95rem;" class="text-dark">{{ slot.subject.name }}</strong>
+                                                            <div>
+                                                                <span class="badge bg-{{ slot.get_color_class }}">{{ slot.get_lesson_type_display }}</span>
+                                                                {% if slot.week_type == 'RED' %}<span class="badge bg-danger">Красная</span>{% endif %}
+                                                                {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary">Синяя</span>{% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between align-items-end mt-2">
+                                                            <small class="text-muted"><i class="bi bi-person"></i> {{ slot.teacher.user.get_full_name|default:'—' }}</small>
+                                                            <span class="badge bg-white text-dark border"><i class="bi bi-door-open"></i> Каб. {{ slot.room|default:'—' }}</span>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="text-center text-muted opacity-25 mt-3"><i class="bi bi-dash-lg"></i></div>
                                             {% endif %}
                                         </td>
                                         {% endwith %}

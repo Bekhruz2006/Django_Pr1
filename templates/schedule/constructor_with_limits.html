@@ -27,7 +27,7 @@
 
                             <input type="radio" class="btn-check course-filter" name="c_filter" id="c_3" value="3">
                             <label class="btn btn-outline-secondary" for="c_3">3 {% trans "курс" %}</label>
-                            
+
                             <input type="radio" class="btn-check course-filter" name="c_filter" id="c_4" value="4">
                             <label class="btn btn-outline-secondary" for="c_4">4 {% trans "курс" %}</label>
                         </div>
@@ -47,7 +47,7 @@
                         <select class="form-select border-primary" name="semester">
                             {% for sem in all_semesters %}
                                 <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
-                                    {% if sem.is_active %}✅{% endif %} 
+                                    {% if sem.is_active %}✅{% endif %}
                                     {{ sem.name }} ({{ sem.academic_year }}) — {{ sem.get_shift_display }}
                                 </option>
                             {% endfor %}
@@ -68,6 +68,22 @@
     </div>
 
     {% if group %}
+    <div class="card mb-3 shadow-sm border-0 bg-white">
+        <div class="card-body p-2">
+            <label class="fw-bold small text-muted d-block mb-2 text-center text-uppercase">Назначать на неделю:</label>
+            <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="drag_week_type" id="wt_every" value="EVERY" checked>
+                <label class="btn btn-outline-secondary btn-sm fw-bold" for="wt_every">ОБЕ</label>
+
+                <input type="radio" class="btn-check" name="drag_week_type" id="wt_red" value="RED">
+                <label class="btn btn-outline-danger btn-sm fw-bold" for="wt_red">КРАСНАЯ</label>
+
+                <input type="radio" class="btn-check" name="drag_week_type" id="wt_blue" value="BLUE">
+                <label class="btn btn-outline-primary btn-sm fw-bold" for="wt_blue">СИНЯЯ</label>
+            </div>
+        </div>
+    </div>
+
     <div class="col-lg-3">
         {% if group.has_military_training %}
         <div class="card mb-3 border-dark shadow-sm">
@@ -144,7 +160,7 @@
                         <thead class="bg-light">
                             <tr>
                                 <th style="width: 100px;" class="text-center align-middle">Время</th>
-                                <th>Предмет / Преподаватель</th>
+                                <th>Предмет / Преподаватель / Кабинет</th>
                                 <th style="width: 80px;" class="text-center align-middle">Каб.</th>
                             </tr>
                         </thead>
@@ -163,47 +179,45 @@
                                     <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
                                 </td>
 
-                                {% with slot=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                {% with slot_list=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
                                 <td class="schedule-drop-zone p-1 align-middle"
                                     data-group-id="{{ group.id }}"
                                     data-day="{{ day_num }}"
                                     data-time-slot="{{ time_slot.id }}">
-                                    {% if slot %}
-                                    <div class="lesson-card p-2 rounded shadow-sm h-100 position-relative border-start border-4 border-{{ slot.get_color_class }}" style="background-color: #fff;">
-                                        <div class="d-flex justify-content-between">
-                                            <span class="badge bg-{{ slot.get_color_class }} mb-1">
-                                                {{ slot.get_lesson_type_display }}
-                                                {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
-                                            </span>
-                                            <button class="btn btn-link text-danger p-0 delete-slot"
-                                                    data-slot-id="{{ slot.id }}"
-                                                    title="Удалить"
-                                                    style="line-height: 1;">
-                                                <i class="bi bi-x-circle-fill"></i>
-                                            </button>
+                                    
+                                    {% if slot_list %}
+                                        <div class="d-flex flex-column gap-1 h-100">
+                                            {% for slot in slot_list %}
+                                            <div class="lesson-card p-2 rounded shadow-sm position-relative border-start border-4 border-{{ slot.get_color_class }}" 
+                                                 style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %};">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <span class="badge bg-{{ slot.get_color_class }} mb-1">
+                                                            {{ slot.get_lesson_type_display }}
+                                                            {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
+                                                        </span>
+                                                        {% if slot.week_type == 'RED' %}<span class="badge bg-danger ms-1">Красная</span>{% endif %}
+                                                        {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary ms-1">Синяя</span>{% endif %}
+                                                    </div>
+                                                    <button class="btn btn-link text-danger p-0 delete-slot" data-slot-id="{{ slot.id }}" title="Удалить"><i class="bi bi-x-circle-fill"></i></button>
+                                                </div>
+                                                <div class="fw-bold text-dark mt-1 lh-sm">{{ slot.subject.name }}</div>
+                                                <div class="small text-muted mb-1">{{ slot.teacher.user.get_full_name|default:'Не назначен' }}</div>
+                                                
+                                                <div class="mt-auto d-flex align-items-center">
+                                                    <span class="small text-muted me-1"><i class="bi bi-door-open"></i> Каб:</span>
+                                                    <div class="aud-display badge bg-secondary text-wrap" style="cursor: pointer; min-width: 40px;" onclick="editAud(this)" title="Изменить">
+                                                        {{ slot.room|default:'?' }}
+                                                    </div>
+                                                    <input type="text" class="form-control form-control-sm aud-input text-center p-0" value="{{ slot.room|default:'' }}" style="display: none; max-width: 60px;" onblur="saveAud(this, {{ slot.id }})" onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
+                                                </div>
+                                            </div>
+                                            {% endfor %}
                                         </div>
-                                        <div class="fw-bold text-dark">{{ slot.subject.name }}</div>
-                                        <div class="small text-muted">{{ slot.teacher.user.get_full_name|default:'Преподаватель не назначен' }}</div>
-                                    </div>
                                     {% else %}
-                                    <div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;">
-                                        <small class="opacity-50">Свободно</small>
-                                    </div>
-                                    {% endif %}
-                                </td>
-                                <td class="align-middle text-center bg-light aud-cell">
-                                    {% if slot %}
-                                    <div class="aud-display badge bg-secondary text-wrap"
-                                         style="cursor: pointer; min-width: 40px;"
-                                         onclick="editAud(this)"
-                                         title="Нажмите, чтобы изменить">
-                                        {{ slot.room|default:'?' }}
-                                    </div>
-                                    <input type="text" class="form-control form-control-sm aud-input text-center p-0"
-                                           value="{{ slot.room|default:'' }}"
-                                           style="display: none;"
-                                           onblur="saveAud(this, {{ slot.id }})"
-                                           onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
+                                        <div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;">
+                                            <small class="opacity-50">Свободно</small>
+                                        </div>
                                     {% endif %}
                                 </td>
                                 {% endwith %}
@@ -275,26 +289,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function createSlot(group, day, timeSlot, subject, type, semesterId, isForce = false) {
-        
-        if (!isForce) {
-        }
-
-        
+    function createSlot(group, day, timeSlot, subject, type, semesterId, weekType, isForce = false) {
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
             body: JSON.stringify({
-                group: group,
-                day_of_week: day,
-                time_slot: timeSlot,
-                subject: subject,
-                lesson_type: type,
-                semester_id: semesterId,
-                force: isForce
+                group: group, day_of_week: day, time_slot: timeSlot, subject: subject,
+                lesson_type: type, semester_id: semesterId, force: isForce,
+                week_type: weekType 
             })
         })
         .then(response => response.json())
@@ -313,7 +315,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         dayOfWeek: day,
                         timeSlot: timeSlot,
                         lessonType: type,
-                        semesterId: semesterId
+                        semesterId: semesterId,
+                        weekType: weekType     
                     };
                     const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
                     modal.show();
@@ -336,7 +339,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     lastAttemptData.subjectId,
                     lastAttemptData.lessonType,
                     lastAttemptData.semesterId,
-                    true
+                    lastAttemptData.weekType,  
+                    true                        
                 );
                 const modalEl = document.getElementById('conflictModal');
                 const modal = bootstrap.Modal.getInstance(modalEl);
@@ -566,12 +570,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.remove('drag-over');
                 stopAutoScroll();
 
-                if (!draggedData) {
-                    try {
-                        const txt = e.dataTransfer.getData('text/plain');
-                        if (txt) draggedData = JSON.parse(txt);
-                    } catch (ex) { /* ignore */ }
-                }
+                try {
+                    const txt = e.dataTransfer.getData('text/plain');
+                    if (txt) draggedData = JSON.parse(txt);
+                } catch (ex) { /* ignore */ }
 
                 if (!draggedData) return alert('Не удалось определить перетаскиваемый предмет.');
 
@@ -608,12 +610,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const semesterSelect = document.querySelector('select[name="semester"]');
                 const semesterId = semesterSelect ? semesterSelect.value : null;
 
-                if (this.querySelector('.lesson-card')) {
-                    alert('Ячейка уже занята. Удалите старое занятие.');
-                    return;
-                }
+                const weekTypeRadio = document.querySelector('input[name="drag_week_type"]:checked');
+                const weekType = weekTypeRadio ? weekTypeRadio.value : 'EVERY';
 
-                createSlot(groupId, day, timeSlot, draggedData.subjectId, draggedData.subjectType, semesterId);
+                lastAttemptData = {
+                    groupId: groupId,
+                    subjectId: draggedData.subjectId,
+                    dayOfWeek: day,
+                    timeSlot: timeSlot,
+                    lessonType: draggedData.subjectType,
+                    semesterId: semesterId,
+                    weekType: weekType
+                };
+
+                createSlot(groupId, day, timeSlot, draggedData.subjectId, draggedData.subjectType, semesterId, weekType);
 
             } catch (ex) { console.error(ex); }
             finally {
@@ -641,32 +651,33 @@ document.addEventListener('DOMContentLoaded', function() {
         mo.observe(document.body, { childList: true, subtree: true });
     } catch (e) { }
 });
+
 document.addEventListener('DOMContentLoaded', function() {
     const filters = document.querySelectorAll('.course-filter');
     const select = document.getElementById('groupSelect');
-    const options = Array.from(select.options);
+    
+    if (!select) return;
+    
+    const allOptions = Array.from(select.querySelectorAll('option'));
 
     filters.forEach(radio => {
         radio.addEventListener('change', function() {
             const course = this.value;
             
-            select.value = "";
+            select.innerHTML = '';
             
-            options.forEach(opt => {
-                if (opt.value === "") return; 
-                
+            allOptions.forEach(opt => {
                 const optCourse = opt.getAttribute('data-course');
-                if (course === 'all' || optCourse === course) {
-                    opt.style.display = '';
-                } else {
-                    opt.style.display = 'none';
+                if (opt.value === "" || course === 'all' || optCourse === course) {
+                    select.appendChild(opt.cloneNode(true));
                 }
             });
+            select.value = ""; 
         });
     });
 });
-
 </script>
+
 
 <style>
 .schedule-table {

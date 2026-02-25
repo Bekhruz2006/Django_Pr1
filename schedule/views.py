@@ -110,7 +110,9 @@ def schedule_constructor(request):
         for slot in slots:
             if slot.day_of_week not in schedule_data:
                 schedule_data[slot.day_of_week] = {}
-            schedule_data[slot.day_of_week][slot.time_slot.id] = slot
+            if slot.time_slot.id not in schedule_data[slot.day_of_week]:
+                schedule_data[slot.day_of_week][slot.time_slot.id] = []
+            schedule_data[slot.day_of_week][slot.time_slot.id].append(slot)
 
         assigned_subjects = Subject.objects.filter(groups=selected_group).select_related('teacher__user').distinct()
 
@@ -175,7 +177,7 @@ def schedule_constructor(request):
 
 
 @login_required
-@user_passes_test(is_dean)
+@user_passes_test(is_dean_or_admin)
 @require_POST
 def create_schedule_slot(request):
     try:
@@ -264,29 +266,35 @@ def create_schedule_slot(request):
             is_stream = True
             stream_id = uuid.uuid4()
 
-        conflicts = []
+        week_type = data.get('week_type', 'EVERY')
+
+        conflicts =[]
         if not force:
             for target_group in groups_to_schedule:
-                busy_group = ScheduleSlot.objects.filter(
-                    group=target_group,
-                    day_of_week=day_of_week,
-                    time_slot=time_slot,
-                    semester=active_semester,
-                    is_active=True
-                ).first()
+                qs_group = ScheduleSlot.objects.filter(
+                    group=target_group, day_of_week=day_of_week,
+                    time_slot=time_slot, semester=active_semester, is_active=True
+                )
+                if week_type == 'EVERY':
+                    busy_group = qs_group.first()
+                else:
+                    busy_group = qs_group.filter(Q(week_type='EVERY') | Q(week_type=week_type)).first()
+
                 if busy_group:
-                    conflicts.append(f"❌ Группа <b>{busy_group.group.name}</b> уже занята: {busy_group.subject.name} ({busy_group.room or 'каб?'})")
+                    conflicts.append(f"❌ Группа <b>{busy_group.group.name}</b> уже занята: {busy_group.subject.name} ({busy_group.get_week_type_display()})")
 
             if subject.teacher:
-                busy_teacher = ScheduleSlot.objects.filter(
-                    teacher=subject.teacher,
-                    day_of_week=day_of_week,
-                    time_slot=time_slot,
-                    semester=active_semester,
-                    is_active=True
-                ).first()
+                qs_teacher = ScheduleSlot.objects.filter(
+                    teacher=subject.teacher, day_of_week=day_of_week,
+                    time_slot=time_slot, semester=active_semester, is_active=True
+                )
+                if week_type == 'EVERY':
+                    busy_teacher = qs_teacher.first()
+                else:
+                    busy_teacher = qs_teacher.filter(Q(week_type='EVERY') | Q(week_type=week_type)).first()
+
                 if busy_teacher:
-                    conflicts.append(f"❌ Преподаватель <b>{subject.teacher.user.get_full_name()}</b> занят в группе {busy_teacher.group.name} ({busy_teacher.room or 'каб?'})")
+                    conflicts.append(f"❌ Преподаватель <b>{subject.teacher.user.get_full_name()}</b> занят ({busy_teacher.get_week_type_display()})")
 
         if conflicts:
             return JsonResponse({
@@ -296,15 +304,15 @@ def create_schedule_slot(request):
             }, status=400)
 
         with transaction.atomic():
-            created_slots = []
+            created_slots =[]
             for target_group in groups_to_schedule:
                 if force:
-                    ScheduleSlot.objects.filter(
-                        group=target_group,
-                        day_of_week=day_of_week,
-                        time_slot=time_slot,
-                        semester=active_semester
-                    ).delete()
+                    qs_del = ScheduleSlot.objects.filter(
+                        group=target_group, day_of_week=day_of_week, time_slot=time_slot, semester=active_semester
+                    )
+                    if week_type != 'EVERY':
+                        qs_del = qs_del.filter(Q(week_type='EVERY') | Q(week_type=week_type))
+                    qs_del.delete()
 
                 new_slot = ScheduleSlot.objects.create(
                     group=target_group,
@@ -314,6 +322,7 @@ def create_schedule_slot(request):
                     day_of_week=day_of_week,
                     time_slot=time_slot,
                     lesson_type=lesson_type,
+                    week_type=week_type,  
                     start_time=time_slot.start_time,
                     end_time=time_slot.end_time,
                     stream_id=stream_id if is_stream else None
@@ -505,7 +514,9 @@ def schedule_view(request):
         for slot in slots:
             if slot.day_of_week not in schedule_data[group.id]:
                 schedule_data[group.id][slot.day_of_week] = {}
-            schedule_data[group.id][slot.day_of_week][slot.time_slot.id] = slot
+            if slot.time_slot.id not in schedule_data[group.id][slot.day_of_week]:
+                schedule_data[group.id][slot.day_of_week][slot.time_slot.id] = []
+            schedule_data[group.id][slot.day_of_week][slot.time_slot.id].append(slot)
 
         context = {
             'group': group,
@@ -650,7 +661,9 @@ def edit_subject(request, subject_id):
             return redirect('schedule:manage_subjects')
             
     if request.method == 'POST':
+        old_groups = list(subject.groups.all()) 
         form = SubjectForm(request.POST, instance=subject)
+        
         if request.user.role == 'DEAN':
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
@@ -659,7 +672,15 @@ def edit_subject(request, subject_id):
             ).distinct()
             
         if form.is_valid():
-            form.save()
+            saved_subject = form.save(commit=False)
+            saved_subject.save()
+            
+            submitted_groups = form.cleaned_data.get('groups')
+            if submitted_groups and submitted_groups.count() > 0:
+                form.save_m2m() 
+            else:
+                saved_subject.groups.set(old_groups) 
+                
             messages.success(request, _('Предмет обновлен'))
             return redirect('schedule:manage_subjects')
     else:
