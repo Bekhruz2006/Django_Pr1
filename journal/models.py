@@ -241,7 +241,7 @@ class StudentStatistics(models.Model):
             group_students = Student.objects.filter(group=self.student.group)
             ranked = []
             for s in group_students:
-                stats, _ = StudentStatistics.objects.get_or_create(student=s)
+                stats, created = StudentStatistics.objects.get_or_create(student=s)
                 ranked.append((s.id, stats.overall_gpa))
             
             ranked.sort(key=lambda x: x[1], reverse=True)
@@ -256,7 +256,7 @@ class StudentStatistics(models.Model):
     def recalculate_group(cls, group):
         students = Student.objects.filter(group=group)
         for student in students:
-            stats, _ = cls.objects.get_or_create(student=student)
+            stats, created = cls.objects.get_or_create(student=student)
             stats.recalculate()
 
 
@@ -267,7 +267,7 @@ class StudentStatistics(models.Model):
 @receiver(post_save, sender=JournalEntry)
 def trigger_stats_recalculate(sender, instance, **kwargs):
     try:
-        stats, _ = StudentStatistics.objects.get_or_create(student=instance.student)
+        stats, created = StudentStatistics.objects.get_or_create(student=instance.student)
         stats.recalculate()
     except Exception:
         pass

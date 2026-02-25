@@ -679,7 +679,11 @@ def add_semester(request):
         form = SemesterForm(request.POST, user=request.user)
         if form.is_valid():
             semester = form.save()
-            messages.success(request, _('Семестр "%(semester_name)s" создан для факультета %(faculty_name)s') % {'semester_name': semester.name, 'faculty_name': semester.faculty.name})
+            faculty_name = semester.faculty.name if semester.faculty else _("Всего университета")
+            messages.success(request, _('Семестр "%(semester_name)s" создан (%(faculty_name)s)') % {
+                'semester_name': semester.name, 
+                'faculty_name': faculty_name
+            })
             return redirect('schedule:manage_semesters')
     else:
         form = SemesterForm(user=request.user)
@@ -1131,11 +1135,11 @@ def plan_detail(request, plan_id):
 
     target_course = (current_sem_num + 1) // 2
 
-    available_semesters = Semester.objects.filter(
-        faculty=user_faculty,
-        course=target_course
-    ).order_by('-academic_year', 'number')
-
+    available_semesters = Semester.objects.filter(course=target_course)
+    if user_faculty:
+        available_semesters = available_semesters.filter(Q(faculty=user_faculty) | Q(faculty__isnull=True))
+    
+    available_semesters = available_semesters.order_by('-academic_year', 'number')
     active_semester = available_semesters.filter(is_active=True).first()
 
     if request.method == 'POST' and 'add_discipline' in request.POST:
@@ -1145,8 +1149,10 @@ def plan_detail(request, plan_id):
             disc.plan = plan
             disc.semester_number = current_sem_num
             disc.save()
-            messages.success(request, _("Дисциплина добавлена"))
+            messages.success(request, _("Дисциплина успешно добавлена!"))
             return redirect(f"{request.path}?semester={current_sem_num}")
+        else:
+            messages.error(request, f"Ошибка при добавлении: проверьте правильность заполнения всех полей.")
     else:
         form = PlanDisciplineForm(initial={'semester_number': current_sem_num})
 

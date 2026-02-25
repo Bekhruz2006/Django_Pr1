@@ -100,7 +100,7 @@ def profile_view(request):
         profile = get_object_or_404(Student, user=user)
         from journal.models import StudentStatistics, JournalEntry
         
-        stats, _ = StudentStatistics.objects.get_or_create(student=profile)
+        stats, created = StudentStatistics.objects.get_or_create(student=profile)
         stats.recalculate()
         profile.statistics = stats
         
@@ -171,7 +171,7 @@ def profile_view(request):
             if students_count > 0:
                 stats_list = []
                 for student in students:
-                    stats, _ = StudentStatistics.objects.get_or_create(student=student)
+                    stats, created = StudentStatistics.objects.get_or_create(student=student)
                     stats_list.append(stats)
                 
                 avg_gpa = sum(s.overall_gpa for s in stats_list) / len(stats_list) if stats_list else 0
@@ -595,7 +595,7 @@ def view_user_profile(request, user_id):
     if user_obj.role == 'STUDENT':
         profile = get_object_or_404(Student, user=user_obj)
         from journal.models import StudentStatistics
-        stats, _ = StudentStatistics.objects.get_or_create(student=profile)
+        stats, created = StudentStatistics.objects.get_or_create(student=profile)
         stats.recalculate()
         profile.statistics = stats
         context['profile'] = profile
@@ -674,7 +674,8 @@ def add_group(request):
 
                 group = form.save()
                 messages.success(request, _(f'Группа {group.name} успешно создана'))
-                
+                messages.success(request, _(f'Группа {group.name} успешно создана! Учебный план (РУП) для неё сгенерирован автоматически.'))
+
                 if specialty_id:
                     return redirect('accounts:manage_structure')
                 return redirect('accounts:group_management')
@@ -932,7 +933,7 @@ def add_faculty(request):
                         dean_user.role = 'DEAN'
                         dean_user.save()
                     
-                    dean_profile, _ = Dean.objects.get_or_create(user=dean_user)
+                    dean_profile, created = Dean.objects.get_or_create(user=dean_user)
                     dean_profile.faculty = faculty
                     dean_profile.office_location = form.cleaned_data['office_location']
                     dean_profile.contact_email = form.cleaned_data['contact_email']
@@ -944,7 +945,7 @@ def add_faculty(request):
                         vice_user.role = 'VICE_DEAN'
                         vice_user.save()
                     
-                    vice_profile, _ = ViceDean.objects.get_or_create(user=vice_user)
+                    vice_profile, created = ViceDean.objects.get_or_create(user=vice_user)
                     vice_profile.faculty = faculty
                     vice_profile.title = "Муовини декан оид ба таълим" 
                     vice_profile.save()
@@ -978,7 +979,7 @@ def edit_faculty(request, pk):
                         new_dean_user.role = 'DEAN'
                         new_dean_user.save()
 
-                    new_profile, _ = Dean.objects.get_or_create(user=new_dean_user)
+                    new_profile, created = Dean.objects.get_or_create(user=new_dean_user)
                     new_profile.faculty = faculty
                     new_profile.office_location = form.cleaned_data['office_location']
                     new_profile.contact_email = form.cleaned_data['contact_email']
@@ -999,7 +1000,7 @@ def edit_faculty(request, pk):
                         new_vice_user.role = 'VICE_DEAN'
                         new_vice_user.save()
 
-                    new_vice_prof, _ = ViceDean.objects.get_or_create(user=new_vice_user)
+                    new_vice_prof, created = ViceDean.objects.get_or_create(user=new_vice_user)
                     new_vice_prof.faculty = faculty
                     new_vice_prof.save()
                 elif current_vice_profile:
@@ -1030,14 +1031,14 @@ def delete_faculty(request, pk):
 def add_department(request):
     if not is_management(request.user):
         return HttpResponseForbidden()
-        
+
     initial = {}
     faculty_context = None
 
     if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
         faculty_context = request.user.dean_profile.faculty
         initial['faculty'] = faculty_context
-    
+
     faculty_id = request.GET.get('faculty')
     if faculty_id and is_admin_or_rector(request.user):
         faculty_context = get_object_or_404(Faculty, pk=faculty_id)
@@ -1051,16 +1052,16 @@ def add_department(request):
                 if form.cleaned_data['faculty'] != dean_faculty:
                     messages.error(request, _("Вы можете добавлять кафедры только в свой факультет"))
                     return redirect('accounts:manage_structure')
-            
+
             with transaction.atomic():
                 dept = form.save()
-                
+
                 head_user = form.cleaned_data.get('head_of_department')
                 if head_user:
                     if head_user.role == 'TEACHER':
                         head_user.role = 'HEAD_OF_DEPT'
                         head_user.save()
-                    
+
                     HeadOfDepartment.objects.update_or_create(
                         user=head_user,
                         defaults={'department': dept}
@@ -1070,10 +1071,10 @@ def add_department(request):
             return redirect('accounts:manage_structure')
     else:
         form = DepartmentForm(initial=initial, faculty_context=faculty_context)
-        if is_dean(request.user):
-             faculty = request.user.dean_profile.faculty
-             form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
-    
+        if is_dean(request.user) and hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
+            faculty = request.user.dean_profile.faculty
+            form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
+
     return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить кафедру'})
 
 @login_required
@@ -1081,7 +1082,7 @@ def edit_department(request, pk):
     dept = get_object_or_404(Department, pk=pk)
     if not is_management(request.user):
         return HttpResponseForbidden()
-    
+
     if is_dean(request.user):
         if dept.faculty != request.user.dean_profile.faculty:
             return HttpResponseForbidden(_("Это не ваша кафедра"))
@@ -1091,14 +1092,14 @@ def edit_department(request, pk):
         if form.is_valid():
             with transaction.atomic():
                 dept = form.save()
-                
+
                 head_user = form.cleaned_data.get('head_of_department')
                 if head_user:
                     if hasattr(dept, 'head') and dept.head.user != head_user:
                         old_head = dept.head
                         old_head.department = None
                         old_head.save()
-                    
+
                     if head_user.role == 'TEACHER':
                         head_user.role = 'HEAD_OF_DEPT'
                         head_user.save()
@@ -1114,9 +1115,9 @@ def edit_department(request, pk):
             return redirect('accounts:manage_structure')
     else:
         form = DepartmentForm(instance=dept, faculty_context=dept.faculty)
-        if is_dean(request.user):
-             faculty = request.user.dean_profile.faculty
-             form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
+        if is_dean(request.user) and hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
+            faculty = request.user.dean_profile.faculty
+            form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
 
     return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Редактировать кафедру'})
 

@@ -6,7 +6,9 @@ from .models import (
     GlossaryEntry, CourseEnrolment, GradeEntry, GradeItem,
     PageContent, FileResource, FolderFile, UrlResource, VideoResource,
 )
-from accounts.models import Group
+from accounts.models import Group, User
+from schedule.models import Subject
+
 
 class CourseCategoryForm(forms.ModelForm):
     class Meta:
@@ -49,6 +51,23 @@ class CourseForm(forms.ModelForm):
             'allowed_department': forms.Select(attrs={'class': 'form-select'}),
             'allowed_group':      forms.Select(attrs={'class': 'form-select'}),
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in self.fields.values():
+            if not f.widget.attrs.get('class'):
+                if isinstance(f.widget, forms.Textarea):
+                    f.widget.attrs.update({'class': 'form-control', 'rows': 2})
+                else:
+                    f.widget.attrs['class'] = 'form-select'
+
+        subjects = Subject.objects.select_related('department').all().order_by('name')
+        choices =[('', '--- Не привязан к расписанию (Самостоятельный курс) ---')]
+        for sub in subjects:
+            choices.append((sub.code, f"{sub.name} ({sub.get_type_display()}) - {sub.department.name}"))
+
+        self.fields['id_number'].widget = forms.Select(choices=choices, attrs={'class': 'form-select border-primary'})
+        self.fields['id_number'].label = "Связь с предметом расписания"
+        self.fields['id_number'].help_text = "Выберите предмет, чтобы кнопка 'Сгенерировать структуру из расписания' работала без ошибок."
 
 
 class CourseSectionForm(forms.ModelForm):
@@ -183,14 +202,19 @@ class GlossaryEntryForm(forms.ModelForm):
 
 
 class EnrolUsersForm(forms.Form):
-    users = forms.CharField(
-        label=_('Пользователи (по одному ID или email на строку)'),
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5})
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        label=_('Выберите группы (Студенты)'),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '5'})
     )
-    role  = forms.ChoiceField(
-        choices=CourseEnrolment.ROLE_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+    teachers = forms.ModelMultipleChoiceField(
+        queryset=User.objects.filter(role='TEACHER'),
+        required=False,
+        label=_('Выберите преподавателей'),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '5'})
     )
+
 
 
 class GradeItemForm(forms.ModelForm):

@@ -84,10 +84,8 @@ def course_list(request):
     category_id = request.GET.get('category')
     search = request.GET.get('q', '').strip()
 
-    if role == 'ADMIN':
-        qs = Course.objects.all()
-    elif role == 'SPECIALIST':
-        qs = get_manageable_courses(user)
+    if role in ['ADMIN', 'SPECIALIST']:
+        qs = Course.objects.all() 
     else:
         qs = Course.objects.filter(is_visible=True, enrolments__user=user, enrolments__is_active=True)
 
@@ -604,37 +602,29 @@ def enrolment_manage(request, course_id):
     form = EnrolUsersForm(request.POST or None)
 
     if form.is_valid():
-        role = form.cleaned_data['role']
         added = 0
-        groups = form.cleaned_data['groups']
+        
+        groups = form.cleaned_data.get('groups',[])
         for group in groups:
             students = Student.objects.filter(group=group, status='ACTIVE').select_related('user')
             for student in students:
                 _, created = CourseEnrolment.objects.update_or_create(
                     course=course,
                     user=student.user,
-                    defaults={'role': role, 'is_active': True}
+                    defaults={'role': 'STUDENT', 'is_active': True}
                 )
                 if created:
                     added += 1
 
-        raw_users = form.cleaned_data['users']
-        if raw_users:
-            ids = [line.strip() for line in raw_users.splitlines() if line.strip()]
-            for val in ids:
-                try:
-                    if val.isdigit():
-                        u = User.objects.get(pk=val)
-                    else:
-                        u = User.objects.get(email=val)
-                    _, created = CourseEnrolment.objects.update_or_create(
-                        course=course, user=u,
-                        defaults={'role': role, 'is_active': True}
-                    )
-                    if created:
-                        added += 1
-                except User.DoesNotExist:
-                    pass
+        teachers = form.cleaned_data.get('teachers',[])
+        for teacher in teachers:
+            _, created = CourseEnrolment.objects.update_or_create(
+                course=course,
+                user=teacher,
+                defaults={'role': 'TEACHER', 'is_active': True}
+            )
+            if created:
+                added += 1
 
         messages.success(request, _(f"Добавлено {added} участников"))
         return redirect('lms:enrolment_manage', course_id=course_id)
@@ -760,3 +750,24 @@ def category_edit(request, category_id):
         messages.success(request, _("Категория обновлена"))
         return redirect('lms:category_list')
     return render(request, 'lms/category_form.html', {'form': form, 'category': cat})
+
+
+
+
+
+@login_required
+@require_POST
+def sync_schedule(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    if not can_manage_course(request.user, course):
+        return HttpResponseForbidden()
+
+    from lms.services import LMSManager
+    success, msg = LMSManager.generate_structure_from_schedule(course)
+    
+    if success:
+        messages.success(request, msg)
+    else:
+        messages.error(request, msg)
+        
+    return redirect('lms:course_detail', course_id=course.pk)

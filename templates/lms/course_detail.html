@@ -14,19 +14,30 @@
             <p class="text-muted mb-0">{{ course.category.get_full_path }}</p>
           </div>
           {% if can_manage %}
-          <div class="dropdown">
-            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-              <i class="bi bi-gear"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="{% url 'lms:course_edit' course.pk %}"><i class="bi bi-pencil me-2"></i>{% trans "Редактировать" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:section_create' course.pk %}"><i class="bi bi-plus me-2"></i>{% trans "Добавить секцию" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:enrolment_manage' course.pk %}"><i class="bi bi-people me-2"></i>{% trans "Участники" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:gradebook' course.pk %}"><i class="bi bi-table me-2"></i>{% trans "Журнал оценок" %}</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger" href="{% url 'lms:course_delete' course.pk %}"><i class="bi bi-trash me-2"></i>{% trans "Удалить курс" %}</a></li>
-            </ul>
-          </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <form action="{% url 'lms:sync_schedule' course.pk %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-warning btn-sm shadow-sm fw-bold" onclick="return confirm('Внимание! Это удалит текущие секции и сгенерирует новые на основе расписания. Продолжить?');">
+                      <i class="bi bi-magic"></i>{% trans "Сгенерировать структуру из расписания"  %}
+                  </button>
+              </form>
+              <small class="text-muted">
+                <i class="bi bi-arrows-move me-1"></i>{% trans "Перетащите секции для сортировки" %}
+              </small>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-gear"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'lms:course_edit' course.pk %}"><i class="bi bi-pencil me-2"></i>{% trans "Редактировать" %}</a></li>
+                <li><a class="dropdown-item" href="{% url 'lms:section_create' course.pk %}"><i class="bi bi-plus me-2"></i>{% trans "Добавить секцию" %}</a></li>
+                <li><a class="dropdown-item" href="{% url 'lms:enrolment_manage' course.pk %}"><i class="bi bi-people me-2"></i>{% trans "Участники" %}</a></li>
+                <li><a class="dropdown-item" href="{% url 'lms:gradebook' course.pk %}"><i class="bi bi-table me-2"></i>{% trans "Журнал оценок" %}</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{% url 'lms:course_delete' course.pk %}"><i class="bi bi-trash me-2"></i>{% trans "Удалить курс" %}</a></li>
+              </ul>
+            </div>
           {% endif %}
         </div>
         {% if course.summary %}

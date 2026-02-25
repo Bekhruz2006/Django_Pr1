@@ -374,7 +374,7 @@ class Student(models.Model):
     def get_average_grade(self):
         try:
             from journal.models import StudentStatistics
-            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            stats, created = StudentStatistics.objects.get_or_create(student=self)
             stats.recalculate()
             return round(stats.overall_gpa, 2)
         except Exception:
@@ -383,7 +383,7 @@ class Student(models.Model):
     def get_total_absent(self):
         try:
             from journal.models import StudentStatistics
-            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            stats, created = StudentStatistics.objects.get_or_create(student=self)
             stats.recalculate()
             return stats.total_absent
         except Exception:
@@ -392,7 +392,7 @@ class Student(models.Model):
     def get_absent_breakdown(self):
         try:
             from journal.models import StudentStatistics
-            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            stats, created = StudentStatistics.objects.get_or_create(student=self)
             stats.recalculate()
             return {
                 'illness': stats.absent_illness,
@@ -406,7 +406,7 @@ class Student(models.Model):
     def get_attendance_percentage(self):
         try:
             from journal.models import StudentStatistics
-            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            stats, created = StudentStatistics.objects.get_or_create(student=self)
             stats.recalculate()
             return round(stats.attendance_percentage, 1)
         except Exception:
@@ -415,7 +415,7 @@ class Student(models.Model):
     def get_group_rank(self):
         try:
             from journal.models import StudentStatistics
-            stats, _ = StudentStatistics.objects.get_or_create(student=self)
+            stats, created = StudentStatistics.objects.get_or_create(student=self)
             stats.recalculate()
             return stats.group_rank
         except Exception:

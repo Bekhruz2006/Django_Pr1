@@ -222,7 +222,7 @@ def update_entry(request, entry_id):
                 )
                 messages.success(request, _('✅ НБ обновлено'))
 
-            stats, _ = StudentStatistics.objects.get_or_create(student=entry.student)
+            stats, created = StudentStatistics.objects.get_or_create(student=entry.student)
             stats.recalculate()
 
     return redirect(request.META.get('HTTP_REFERER', 'journal:journal_view'))
@@ -352,7 +352,7 @@ def student_journal_view(request):
         data['avg_grade'] = data['total_grade'] / data['count_grades'] if data['count_grades'] > 0 else 0
         data['attendance_pct'] = data['attended'] / data['total_lessons'] * 100 if data['total_lessons'] > 0 else 0
     
-    stats, _ = StudentStatistics.objects.get_or_create(student=student)
+    stats, created = StudentStatistics.objects.get_or_create(student=student)
     
     return render(request, 'journal/student_view.html', {
         'student': student, 'subjects_data': subjects_data.values(), 'stats': stats
@@ -372,7 +372,7 @@ def dean_journal_view(request):
         all_stats = []
         
         for student in students:
-            stats, _ = StudentStatistics.objects.get_or_create(student=student)
+            stats, created = StudentStatistics.objects.get_or_create(student=student)
             
             all_stats.append(stats)
             if stats.overall_gpa < 4.0 or stats.attendance_percentage < 60:
@@ -442,7 +442,7 @@ def department_report(request):
         count = 0
 
         for student in students:
-            stats, _ = StudentStatistics.objects.get_or_create(student=student)
+            stats, created = StudentStatistics.objects.get_or_create(student=student)
             
             group_stats.append({
                 'student': student, 'stats': stats,
@@ -535,7 +535,7 @@ def group_detailed_report(request, group_id):
     students_data = []
     
     for student in students:
-        stats, _ = StudentStatistics.objects.get_or_create(student=student)
+        stats, created = StudentStatistics.objects.get_or_create(student=student)
         subjects_performance = []
         
         for subject in subjects:
@@ -623,7 +623,7 @@ def update_journal_cell(request):
                     comment="Быстрый ввод"
                 )
                 
-            stats, _ = StudentStatistics.objects.get_or_create(student=entry.student)
+            stats, created = StudentStatistics.objects.get_or_create(student=entry.student)
             stats.recalculate()
 
         response_data['success'] = True

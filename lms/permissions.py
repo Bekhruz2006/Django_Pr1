@@ -55,6 +55,11 @@ def can_view_course(user, course):
     from .models import CourseEnrolment
     if can_manage_course(user, course):
         return True
+    
+    role = get_lms_role(user)
+    if role == 'SPECIALIST':
+        return True
+        
     return CourseEnrolment.objects.filter(course=course, user=user, is_active=True).exists()
 
 

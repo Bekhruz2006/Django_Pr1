@@ -45,4 +45,5 @@ urlpatterns = [
 
     path('courses/<int:course_id>/reorder-sections/', views.reorder_sections, name='reorder_sections'),
     path('sections/<int:section_id>/reorder-modules/', views.reorder_modules, name='reorder_modules'),
+    path('courses/<int:course_id>/sync-schedule/', views.sync_schedule, name='sync_schedule'),
 ]
