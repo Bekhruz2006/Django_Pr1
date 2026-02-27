@@ -1,6 +1,5 @@
 {% load static %}
 {% load i18n %}
-
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -11,31 +10,32 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/bundle.css' %}">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
         :root {
-            --sidebar-width: 280px;
-            --navbar-height: 60px;
-            --primary-blue: #2563eb;
-            --primary-blue-dark: #1d4ed8;
-            --bg-light: #f8fafc;
-            --bg-dark: #0f172a;
+            --primary: #1a3a6b;
+            --primary-light: #2563eb;
+            --primary-dark: #0f2347;
+            --gold: #c9a84c;
+            --gold-light: #e2c97e;
+            --sidebar-width: 272px;
+            --navbar-height: 62px;
+            --bg-light: #f4f6fb;
+            --bg-dark: #0d1a2e;
             --text-light: #1f2937;
-            --text-dark: #f1f5f9;
+            --text-dark: #e8edf5;
             --card-light: #ffffff;
-            --card-dark: #1e293b;
+            --card-dark: #162035;
             --sidebar-bg-light: #ffffff;
-            --sidebar-bg-dark: #1e293b;
-            --accent-color: #10b981;
-            --hover-bg: #f1f5f9;
+            --sidebar-bg-dark: #111d32;
+            --border-light: #e4e9f2;
+            --border-dark: #1e3052;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
             background-color: var(--bg-light);
             color: var(--text-light);
             overflow-x: hidden;
@@ -49,74 +49,175 @@
             color: var(--text-dark);
         }
 
+        .animated-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        body.dark-mode .animated-bg {
+            background: transparent;
+        }
+
+        .animated-bg img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            opacity: 0.6;
+            filter: saturate(0.75) brightness(1.05);
+        }
+
+        body.dark-mode .animated-bg img {
+            opacity: 0.5;
+            filter: saturate(0.4) brightness(0.65);
+        }
+
         .navbar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: var(--navbar-height);
-            background: linear-gradient(135deg, var(--primary-blue) 0%, #3b82f6 100%);
+            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 60%, #1e4a8a 100%);
             z-index: 1030;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 16px rgba(10, 22, 40, 0.35);
+            display: flex;
+            align-items: center;
         }
 
         body.dark-mode .navbar {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: linear-gradient(90deg, #060d1a 0%, #0d1a2e 60%, #112040 100%);
+            border-bottom: 1px solid rgba(201, 168, 76, 0.15);
         }
 
-        .navbar-brand {
+        .navbar .navbar-brand {
+            font-family: 'Playfair Display', serif;
             font-weight: 700;
-            font-size: 1.3rem;
-            letter-spacing: 0.5px;
-        }
-
-        .navbar-brand, .nav-link {
+            font-size: 1.25rem;
             color: white !important;
-            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .nav-link:hover {
-            transform: translateY(-2px);
+        .navbar .navbar-brand .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--primary-dark);
+            box-shadow: 0 2px 8px rgba(201, 168, 76, 0.4);
+            flex-shrink: 0;
+        }
+
+        .navbar .nav-link {
+            color: rgba(255, 255, 255, 0.88) !important;
+            transition: all 0.25s ease;
+        }
+
+        .navbar .nav-link:hover {
+            color: white !important;
         }
 
         #sidebarToggle {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 8px 12px;
             border-radius: 8px;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             color: white;
+            cursor: pointer;
         }
 
         #sidebarToggle:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
+            background-color: rgba(255, 255, 255, 0.16);
         }
 
         .lang-switcher .form-select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             color: white;
-            padding: 5px 30px 5px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            padding: 5px 28px 5px 10px;
+            border-radius: 7px;
+            font-size: 0.82rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
         }
 
         .lang-switcher .form-select:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         .lang-switcher .form-select:focus {
-            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.3);
+            border-color: rgba(201, 168, 76, 0.5);
+            outline: none;
         }
 
         .lang-switcher .form-select option {
-            color: #000;
+            color: #1f2937;
             background: white;
+        }
+
+        .navbar-notif-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .navbar-notif-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+            color: white;
+        }
+
+        .navbar-user-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px 5px 6px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.9) !important;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            font-size: 0.875rem;
+        }
+
+        .navbar-user-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+            color: white !important;
+        }
+
+        .navbar-user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--primary-dark);
+            font-weight: 600;
         }
 
         #sidebar {
@@ -126,91 +227,103 @@
             width: var(--sidebar-width);
             height: calc(100vh - var(--navbar-height));
             background-color: var(--sidebar-bg-light);
-            border-right: 1px solid #e5e7eb;
+            border-right: 1px solid var(--border-light);
             overflow-y: auto;
             overflow-x: hidden;
             z-index: 1020;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            box-shadow: 2px 0 12px rgba(26, 58, 107, 0.06);
         }
 
         body.dark-mode #sidebar {
             background-color: var(--sidebar-bg-dark);
-            border-right-color: #374151;
+            border-right-color: var(--border-dark);
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
         }
 
-        #sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
+        #sidebar::-webkit-scrollbar { width: 4px; }
         #sidebar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
+            background: #dde3ee;
+            border-radius: 2px;
+        }
+        body.dark-mode #sidebar::-webkit-scrollbar-thumb {
+            background: #1e3052;
         }
 
-        body.dark-mode #sidebar::-webkit-scrollbar-thumb {
-            background: #475569;
+        .sidebar-brand-strip {
+            padding: 16px 18px 12px;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 8px;
+        }
+
+        body.dark-mode .sidebar-brand-strip {
+            border-bottom-color: var(--border-dark);
         }
 
         .admin-menu-header {
-            font-size: 0.9rem;
+            font-size: 0.68rem;
             text-transform: uppercase;
-            color: #6c757d;
-            padding: 10px 20px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            
+            color: #94a3b8;
+            padding: 14px 18px 6px;
+            font-weight: 700;
+            letter-spacing: 1.3px;
         }
 
         body.dark-mode .admin-menu-header {
-            color: #9ca3af;
+            color: #475569;
         }
 
         .sidebar-divider {
-            border-top: 1px solid rgba(0,0,0,0.1);
-            margin: 10px 20px;
+            border: none;
+            border-top: 1px solid var(--border-light);
+            margin: 8px 18px;
         }
 
         body.dark-mode .sidebar-divider {
-            border-top-color: rgba(255,255,255,0.1);
+            border-top-color: var(--border-dark);
         }
 
         .sidebar-section-header {
-            padding: 14px 20px;
+            padding: 9px 18px;
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #6b7280;
-            margin-top: 12px;
+            letter-spacing: 1px;
+            color: #64748b;
+            margin: 4px 8px 0;
             cursor: pointer;
             user-select: none;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-radius: 8px;
-            margin: 12px 10px 0;
         }
 
         .sidebar-section-header:hover {
-            background-color: var(--hover-bg);
-            color: var(--primary-blue);
-            transform: translateX(3px);
+            background-color: rgba(37, 99, 235, 0.05);
+            color: var(--primary);
         }
 
         body.dark-mode .sidebar-section-header {
-            color: #9ca3af;
+            color: #475569;
         }
 
         body.dark-mode .sidebar-section-header:hover {
-            background-color: rgba(37, 99, 235, 0.1);
+            background-color: rgba(37, 99, 235, 0.08);
             color: #60a5fa;
         }
 
+        .sidebar-section-header .section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .sidebar-section-header i.toggle-icon {
-            transition: transform 0.3s ease;
-            font-size: 0.9rem;
+            transition: transform 0.28s ease;
+            font-size: 0.8rem;
+            opacity: 0.6;
         }
 
         .sidebar-section-header.active i.toggle-icon {
@@ -220,7 +333,7 @@
         .sidebar-menu-group {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-menu-group.active {
@@ -230,152 +343,153 @@
         .sidebar-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            padding: 9px 18px;
             color: #4b5563;
             text-decoration: none;
             border-left: 3px solid transparent;
-            transition: all 0.25s ease;
-            margin: 2px 10px;
+            transition: all 0.2s ease;
+            margin: 1px 8px;
             border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
             position: relative;
-            overflow: hidden;
-        }
-
-        .sidebar-link::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 3px;
-            background: var(--primary-blue);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
         }
 
         body.dark-mode .sidebar-link {
-            color: var(--text-dark);
+            color: #94a3b8;
         }
 
         .sidebar-link:hover {
-            background-color: var(--hover-bg);
-            color: var(--primary-blue);
-            transform: translateX(5px);
-        }
-
-        .sidebar-link:hover::before {
-            transform: scaleY(1);
+            background-color: rgba(37, 99, 235, 0.06);
+            color: var(--primary);
         }
 
         body.dark-mode .sidebar-link:hover {
-            background-color: rgba(37, 99, 235, 0.15);
+            background-color: rgba(37, 99, 235, 0.1);
             color: #60a5fa;
         }
 
         .sidebar-link.active {
-            background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, transparent 100%);
-            color: var(--primary-blue);
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.03) 100%);
+            color: var(--primary);
             font-weight: 600;
-            border-left-color: var(--primary-blue);
-        }
-
-        .sidebar-link.active::before {
-            transform: scaleY(1);
+            border-left-color: var(--primary);
         }
 
         body.dark-mode .sidebar-link.active {
-            background: linear-gradient(90deg, rgba(96, 165, 250, 0.15) 0%, transparent 100%);
+            background: linear-gradient(90deg, rgba(96, 165, 250, 0.12) 0%, transparent 100%);
             color: #60a5fa;
+            border-left-color: #60a5fa;
         }
 
         .sidebar-link i {
-            width: 24px;
-            margin-right: 14px;
-            font-size: 1.15rem;
-            transition: transform 0.3s ease;
+            width: 20px;
+            margin-right: 12px;
+            font-size: 1rem;
+            opacity: 0.75;
+            flex-shrink: 0;
         }
 
+        .sidebar-link.active i,
         .sidebar-link:hover i {
-            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        .sidebar-sub-label {
+            padding: 6px 18px 3px 18px;
+            font-size: 0.67rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin: 0 8px;
         }
 
         #main-content {
             margin-left: var(--sidebar-width);
             margin-top: var(--navbar-height);
-            padding: 28px;
+            padding: 28px 32px;
             flex: 1 0 auto;
             transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding-bottom: 80px;
+            padding-bottom: 200px;
         }
 
         .card {
-            border: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-light);
+            box-shadow: 0 1px 4px rgba(26, 58, 107, 0.07);
             border-radius: 12px;
             background-color: var(--card-light);
             transition: all 0.3s ease;
         }
 
         .card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(26, 58, 107, 0.12) !important;
+            transform: translateY(-3px);
         }
 
         body.dark-mode .card {
             background-color: var(--card-dark);
             color: var(--text-dark);
+            border-color: var(--border-dark);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
         }
 
         .card-header {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, #3b82f6 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
-            border-radius: 12px 12px 0 0 !important;
+            border-radius: 11px 11px 0 0 !important;
             border: none;
-            padding: 16px 20px;
+            padding: 14px 18px;
             font-weight: 600;
+            font-size: 0.925rem;
         }
 
         .badge {
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 6px;
             font-weight: 500;
+            font-size: 0.78rem;
         }
 
         .btn {
             border-radius: 8px;
-            padding: 10px 20px;
+            padding: 8px 18px;
             font-weight: 500;
-            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            transition: all 0.25s ease;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
         }
 
+        .btn:active { transform: translateY(0); }
+
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, #3b82f6 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             border: none;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--primary-blue) 100%);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
         }
 
         .footer {
             flex-shrink: 0;
             width: calc(100% - var(--sidebar-width));
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #0a1628 0%, #1a3a6b 100%);
+            color: #94a3b8;
+            border-top: 1px solid rgba(201, 168, 76, 0.2);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
             margin-top: auto;
             margin-left: var(--sidebar-width);
             transition: margin-left 0.3s ease, width 0.3s ease;
         }
 
         body.dark-mode .footer {
-            background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            background: linear-gradient(135deg, #060d1a 0%, #0f1e38 100%);
+            border-top-color: rgba(201, 168, 76, 0.12);
         }
 
         .footer.no-sidebar {
@@ -387,15 +501,15 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            width: 56px;
-            height: 56px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-blue), #60a5fa);
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
             border: none;
             color: white;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             cursor: pointer;
-            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 4px 14px rgba(26, 58, 107, 0.45);
             z-index: 1050;
             display: flex;
             align-items: center;
@@ -404,15 +518,16 @@
         }
 
         .theme-toggle:hover {
-            transform: scale(1.1) rotate(15deg);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+            transform: scale(1.1) rotate(12deg);
+            box-shadow: 0 6px 20px rgba(26, 58, 107, 0.55);
         }
 
         .alert {
             border-radius: 10px;
             border: none;
-            padding: 16px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 14px 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            font-size: 0.9rem;
         }
 
         .table {
@@ -421,97 +536,180 @@
         }
 
         .table thead {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #f4f6fb 0%, #e8edf5 100%);
         }
 
         body.dark-mode .table thead {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        }
-
-        @media (max-width: 768px) {
-            #sidebar {
-                transform: translateX(-100%);
-            }
-
-            #sidebar.show {
-                transform: translateX(0);
-            }
-
-            #main-content {
-                margin-left: 0;
-                padding: 20px;
-            }
-
-            .footer {
-                margin-left: 0;
-                width: 100%;
-            }
-
-            .theme-toggle {
-                width: 48px;
-                height: 48px;
-                bottom: 20px;
-                right: 20px;
-            }
-        }
-
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .animate-slide-in {
-            animation: slideInLeft 0.4s ease-out;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out;
+            background: linear-gradient(135deg, #162035 0%, #1e3052 100%);
         }
 
         .form-control, .form-select {
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            padding: 10px 14px;
-            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+            padding: 9px 13px;
+            font-size: 0.9rem;
+            transition: all 0.25s ease;
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--primary-blue);
+            border-color: var(--primary-light);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         body.dark-mode .form-control,
         body.dark-mode .form-select {
-            background-color: #334155;
+            background-color: #1e3052;
             color: var(--text-dark);
-            border-color: #475569;
+            border-color: #243556;
         }
+
+        @media (max-width: 768px) {
+            :root { --navbar-height: 56px; }
+
+            .animated-bg img {
+                object-position: center center;
+                opacity: 0.5;
+            }
+            body.dark-mode .animated-bg img { opacity: 0.4; }
+
+            #sidebar {
+                transform: translateX(-100%);
+                width: 260px;
+                box-shadow: none;
+            }
+            #sidebar.show {
+                transform: translateX(0);
+                box-shadow: 4px 0 24px rgba(0,0,0,0.22);
+            }
+            body.sidebar-open::after {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.45);
+                z-index: 1010;
+            }
+            #main-content {
+                margin-left: 0;
+                padding: 14px 16px 70px;
+            }
+            .footer { margin-left: 0; width: 100%; }
+            .theme-toggle { width: 44px; height: 44px; bottom: 16px; right: 16px; font-size: 1.1rem; }
+            .navbar .navbar-brand { font-size: 1.05rem; }
+            .navbar .brand-icon { width: 30px; height: 30px; font-size: 0.95rem; }
+            .navbar-notif-btn { width: 34px; height: 34px; }
+            .navbar-user-btn { padding: 4px 8px; }
+            .card { border-radius: 10px; }
+            .breadcrumb-area { margin-bottom: 1rem; }
+        }
+
+        @media (max-width: 480px) {
+            #main-content { padding: 12px 12px 70px; }
+            .lang-switcher { display: none !important; }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-16px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-in { animation: slideInLeft 0.35s ease-out; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+
+        .dropdown-menu {
+            border-radius: 11px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 8px 30px rgba(26, 58, 107, 0.14);
+            padding: 6px;
+        }
+
+        .dropdown-item {
+            border-radius: 7px;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(37, 99, 235, 0.07);
+            color: var(--primary);
+        }
+
+        .dropdown-header {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            padding: 6px 12px 4px;
+        }
+
+        .footer h5 {
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .footer h5::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 40px; height: 2px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .hover-link {
+            transition: all 0.25s ease;
+        }
+
+        .hover-link:hover {
+            color: white !important;
+            transform: translateX(4px);
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.25s ease;
+        }
+
+        .social-link:hover {
+            background: var(--gold);
+            color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 14px rgba(201, 168, 76, 0.4);
+        }
+
+        .social-link i { font-size: 1.15rem; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <button class="btn text-white me-3" id="sidebarToggle" type="button">
-                <i class="bi bi-list fs-4"></i>
-            </button>
-            <a class="navbar-brand" href="{% url 'core:dashboard' %}">
-                <i class="bi bi-mortarboard-fill me-2"></i>{% trans "AcademiX" %}
-            </a>
+    <div class="animated-bg" aria-hidden="true">
+        <img src="/static/img/Example.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.6;">
+    </div>
 
-            <div class="d-flex align-items-center ms-auto">
-                <form action="{% url 'set_language' %}" method="post" class="me-3 lang-switcher">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid px-3 gap-2">
+            <button id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+            <a class="navbar-brand me-auto" href="{% url 'core:dashboard' %}">
+                <span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span>
+                {% trans "AcademiX" %}
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <form action="{% url 'set_language' %}" method="post" class="lang-switcher d-none d-sm-block">
                     {% csrf_token %}
                     <input name="next" type="hidden" value="{{ redirect_to }}">
                     <select name="language" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto;">
@@ -525,158 +723,143 @@
                         {% endfor %}
                     </select>
                 </form>
-
                 {% if user.is_authenticated %}
-                <div class="d-flex align-items-center ms-auto">
-                    <div class="dropdown me-3">
-                        <a class="nav-link text-white position-relative" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-bell fs-5"></i>
-                            {% if notification_counts.total > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                                    {{ notification_counts.total }}
-                                </span>
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 300px;">
-                            <li><h6 class="dropdown-header text-uppercase">Уведомления</h6></li>
-
-                            {% if notification_counts.orders > 0 %}
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'accounts:all_orders' %}?status=DRAFT">
-                                    <span><i class="bi bi-file-earmark-text text-warning me-2"></i> Приказы на подпись</span>
-                                    <span class="badge bg-warning text-dark">{{ notification_counts.orders }}</span>
-                                </a>
-                            </li>
-                            {% endif %}
-
-                            {% if notification_counts.chat > 0 %}
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'chat:list' %}">
-                                    <span><i class="bi bi-chat-dots text-primary me-2"></i> Новые сообщения</span>
-                                    <span class="badge bg-primary">{{ notification_counts.chat }}</span>
-                                </a>
-                            </li>
-                            {% endif %}
-
-                            {% if notification_counts.total == 0 %}
-                            <li><span class="dropdown-item text-muted text-center small py-3">Нет новых уведомлений</span></li>
-                            {% endif %}
-                        </ul>
-                    </div>
-
-                    <div class="dropdown">
-                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-2 fs-5"></i>
-                            <span class="d-none d-md-inline">{{ user.first_name }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 animate-fade-in">
-                            <li>
-                                <div class="px-3 py-2">
-                                    <div class="dropdown-item">{{ user.get_full_name }}</div>
-                                    <div class="small text-muted">{{ user.get_role_display }}</div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>{% trans "Мой профиль" %}</a></li>
-                            <li><a class="dropdown-item" href="{% url 'accounts:change_password' %}"><i class="bi bi-key me-2"></i>{% trans "Сменить пароль" %}</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form action="{% url 'accounts:logout' %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>{% trans "Выход" %}</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
+                <div class="dropdown">
+                    <a class="navbar-notif-btn" href="#" role="button" data-bs-toggle="dropdown" aria-label="Notifications">
+                        <i class="bi bi-bell fs-6"></i>
+                        {% if notification_counts.total > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.58rem; padding: 3px 5px;">
+                                {{ notification_counts.total }}
+                            </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" style="width: 290px; min-width: 290px;">
+                        <li><div class="dropdown-header">Уведомления</div></li>
+                        {% if notification_counts.orders > 0 %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'accounts:all_orders' %}?status=DRAFT">
+                                <span><i class="bi bi-file-earmark-text text-warning me-2"></i>Приказы на подпись</span>
+                                <span class="badge bg-warning text-dark">{{ notification_counts.orders }}</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if notification_counts.chat > 0 %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'chat:list' %}">
+                                <span><i class="bi bi-chat-dots text-primary me-2"></i>Новые сообщения</span>
+                                <span class="badge bg-primary">{{ notification_counts.chat }}</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if notification_counts.total == 0 %}
+                        <li><span class="dropdown-item text-muted text-center small py-3">Нет новых уведомлений</span></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="dropdown">
+                    <a class="navbar-user-btn dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <span class="navbar-user-avatar">
+                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        </span>
+                        <span class="d-none d-md-inline">{{ user.first_name }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end animate-fade-in">
+                        <li>
+                            <div class="px-3 py-2 border-bottom" style="border-color: var(--border-light) !important;">
+                                <div class="fw-600 small">{{ user.get_full_name }}</div>
+                                <div class="text-muted" style="font-size: 0.78rem;">{{ user.get_role_display }}</div>
+                            </div>
+                        </li>
+                        <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2 text-primary"></i>{% trans "Мой профиль" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'accounts:change_password' %}"><i class="bi bi-key me-2 text-warning"></i>{% trans "Сменить пароль" %}</a></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <form action="{% url 'accounts:logout' %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>{% trans "Выход" %}</button>
+                            </form>
+                        </li>
+                    </ul>
                 </div>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-
     {% if user.is_authenticated %}
     <aside id="sidebar">
         {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
             <div class="admin-menu-header">{% trans "Администрирование" %}</div>
-
             <div class="sidebar-section-header" data-target="structure-menu">
-                <span><i class="bi bi-magic "></i>{% trans "Инфраструктура" %}</span>
+                <span class="section-label"><i class="bi bi-building"></i>{% trans "Инфраструктура" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="structure-menu">
                 <a class="sidebar-link" href="{% url 'accounts:manage_structure' %}">
-                    <i class="bi bi-diagram-3"></i> {% trans "Факультеты и Кафедры" %}
+                    <i class="bi bi-diagram-3"></i>{% trans "Факультеты и Кафедры" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'schedule:manage_classrooms' %}">
-                    <i class="bi bi-door-open"></i> {% trans "Аудиторный фонд" %}
+                    <i class="bi bi-door-open"></i>{% trans "Аудиторный фонд" %}
                 </a>
                 {% if user.is_superuser or user.role in 'RECTOR,DIRECTOR' %}
                 <a class="sidebar-link" href="{% url 'accounts:add_institute' %}">
-                    <i class="bi bi-plus-square"></i> {% trans "Добавить Институт" %}
+                    <i class="bi bi-plus-square"></i>{% trans "Добавить Институт" %}
                 </a>
                 {% endif %}
             </div>
-
             <div class="sidebar-section-header" data-target="education-menu">
-                <span><i class="bi bi-journal-bookmark me-2"></i>{% trans "Учебный процесс" %}</span>
+                <span class="section-label"><i class="bi bi-journal-bookmark"></i>{% trans "Учебный процесс" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="education-menu">
                 <a class="sidebar-link" href="{% url 'schedule:manage_plans' %}">
-                    <i class="bi bi-journal-richtext"></i> {% trans "Учебные планы (РУП)" %}
+                    <i class="bi bi-journal-richtext"></i>{% trans "Учебные планы (РУП)" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}">
-                    <i class="bi bi-book"></i> {% trans "Дисциплины (Предметы)" %}
+                    <i class="bi bi-book"></i>{% trans "Дисциплины (Предметы)" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:group_management' %}">
-                    <i class="bi bi-collection"></i> {% trans "Академические группы" %}
+                    <i class="bi bi-collection"></i>{% trans "Академические группы" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'lms:dashboard' %}">
-                    <i class="bi bi-laptop"></i> {% trans "LMS — Платформа обучения" %}
+                    <i class="bi bi-laptop"></i>{% trans "LMS — Платформа обучения" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'lms:course_list' %}">
-                    <i class="bi bi-mortarboard"></i> {% trans "Все курсы" %}
+                    <i class="bi bi-mortarboard"></i>{% trans "Все курсы" %}
                 </a>
             </div>
-
             <div class="sidebar-section-header" data-target="schedule-menu">
-                <span><i class="bi bi-calendar-week me-2"></i>{% trans "Расписание" %}</span>
+                <span class="section-label"><i class="bi bi-calendar-week"></i>{% trans "Расписание" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="schedule-menu">
                 <a class="sidebar-link" href="{% url 'schedule:constructor' %}">
-                    <i class="bi bi-grid-3x3"></i> <b>{% trans "Конструктор" %}</b>
+                    <i class="bi bi-grid-3x3"></i><b>{% trans "Конструктор" %}</b>
                 </a>
                 <a class="sidebar-link" href="{% url 'schedule:view' %}">
-                    <i class="bi bi-eye"></i> {% trans "Просмотр сетки" %}
+                    <i class="bi bi-eye"></i>{% trans "Просмотр сетки" %}
                 </a>
-
-                <div class="sidebar-divider my-2"></div>
-                <div class="px-3 py-1 text-muted small text-uppercase">{% trans "Настройки" %}</div>
-
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-sub-label">{% trans "Настройки" %}</div>
                 <a class="sidebar-link" href="{% url 'schedule:manage_semesters' %}">
-                    <i class="bi bi-calendar-range"></i> {% trans "Семестры" %}
+                    <i class="bi bi-calendar-range"></i>{% trans "Семестры" %}
                 </a>
-
                 {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
                 <a class="sidebar-link" href="{% url 'schedule:manage_time_slots' %}">
-                    <i class="bi bi-clock-history"></i> {% trans "Звонки (Временные слоты)" %}
+                    <i class="bi bi-clock-history"></i>{% trans "Звонки (Временные слоты)" %}
                 </a>
                 {% endif %}
             </div>
-
             <div class="sidebar-section-header" data-target="users-menu">
-                <span><i class="bi bi-people-fill me-2"></i>{% trans "Контингент" %}</span>
+                <span class="section-label"><i class="bi bi-people-fill"></i>{% trans "Контингент" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="users-menu">
                 {% if user.is_superuser or user.role == 'DEAN' or user.role == 'VICE_DEAN' %}
                 <a class="sidebar-link" href="{% url 'accounts:unassigned_students' %}">
-                    <i class="bi bi-person-lines-fill text-warning"></i> {% trans "Распределение по группам" %}
+                    <i class="bi bi-person-lines-fill text-warning"></i>{% trans "Распределение по группам" %}
                 </a>
                 {% endif %}
-
                 <a class="sidebar-link" href="{% url 'accounts:all_orders' %}">
                     <i class="bi bi-file-earmark-text"></i>
                     <span>{% trans "Приказы" %}</span>
@@ -685,99 +868,90 @@
                     {% endif %}
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:user_management' %}?role=STUDENT">
-                    <i class="bi bi-mortarboard"></i> {% trans "Студенты" %}
+                    <i class="bi bi-mortarboard"></i>{% trans "Студенты" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:user_management' %}?role=TEACHER">
-                    <i class="bi bi-person-video3"></i> {% trans "Преподаватели" %}
+                    <i class="bi bi-person-video3"></i>{% trans "Преподаватели" %}
                 </a>
                 {% if user.is_superuser or user.role == 'HR' %}
                 <a class="sidebar-link" href="{% url 'accounts:import_students' %}">
-                    <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Импорт (Зачисление)" %}
+                    <i class="bi bi-file-earmark-spreadsheet"></i>{% trans "Импорт (Зачисление)" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:document_templates' %}">
-                    <i class="bi bi-file-earmark-word"></i> {% trans "Шаблоны документов" %}
+                    <i class="bi bi-file-earmark-word"></i>{% trans "Шаблоны документов" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:add_user' %}">
-                    <i class="bi bi-person-plus"></i> {% trans "Добавить вручную" %}
+                    <i class="bi bi-person-plus"></i>{% trans "Добавить вручную" %}
                 </a>
-                <div class="sidebar-divider my-2"></div>
-                <div class="px-3 py-1 text-muted small text-uppercase">Движение контингента</div>
-
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-sub-label">Движение контингента</div>
                 <a class="sidebar-link" href="{% url 'accounts:download_contingent_report' %}">
-                    <i class="bi bi-file-earmark-word text-primary"></i> <b>Отчет по движению (DOCX)</b>
+                    <i class="bi bi-file-earmark-word text-primary"></i><b>Отчет по движению (DOCX)</b>
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:archive_alumni' %}">
-                    <i class="bi bi-mortarboard-fill text-success"></i> Выпускники (Архив)
+                    <i class="bi bi-mortarboard-fill text-success"></i>Выпускники (Архив)
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:archive_expelled' %}">
-                    <i class="bi bi-person-x-fill text-danger"></i> Отчисленные (Архив)
+                    <i class="bi bi-person-x-fill text-danger"></i>Отчисленные (Архив)
                 </a>
-
-
                 {% endif %}
             </div>
         {% endif %}
-
-        <div class="sidebar-divider"></div>
+        <div class="sidebar-divider" style="margin-top: 12px;"></div>
         <div class="admin-menu-header">{% trans "Личный кабинет" %}</div>
-
         {% if user.role == 'TEACHER' %}
             <a class="sidebar-link" href="{% url 'schedule:view' %}">
-                <i class="bi bi-calendar-check"></i> {% trans "Мое расписание" %}
+                <i class="bi bi-calendar-check"></i>{% trans "Мое расписание" %}
             </a>
             <a class="sidebar-link" href="{% url 'journal:journal_view' %}">
-                <i class="bi bi-journal-check"></i> {% trans "Электронный журнал" %}
+                <i class="bi bi-journal-check"></i>{% trans "Электронный журнал" %}
             </a>
             <a class="sidebar-link" href="{% url 'schedule:group_list' %}">
-                <i class="bi bi-people"></i> {% trans "Мои студенты" %}
+                <i class="bi bi-people"></i>{% trans "Мои студенты" %}
             </a>
             <div class="sidebar-section-header" data-target="lms-menu">
-                <span><i class="bi bi-laptop me-2"></i>{% trans "Обучение (LMS)" %}</span>
+                <span class="section-label"><i class="bi bi-laptop"></i>{% trans "Обучение (LMS)" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="lms-menu">
                 <a class="sidebar-link" href="{% url 'lms:course_list' %}">
-                    <i class="bi bi-mortarboard"></i> <b>{% trans "Мои курсы" %}</b>
+                    <i class="bi bi-mortarboard"></i><b>{% trans "Мои курсы" %}</b>
                 </a>
             </div>
         {% endif %}
-
         {% if user.role == 'STUDENT' %}
             <a class="sidebar-link" href="{% url 'schedule:view' %}">
-                <i class="bi bi-calendar-event"></i> {% trans "Расписание занятий" %}
+                <i class="bi bi-calendar-event"></i>{% trans "Расписание занятий" %}
             </a>
             <a class="sidebar-link" href="{% url 'journal:student_view' %}">
-                <i class="bi bi-journal-text"></i> {% trans "Оценки и посещаемость" %}
+                <i class="bi bi-journal-text"></i>{% trans "Оценки и посещаемость" %}
             </a>
             <div class="sidebar-section-header" data-target="lms-student-menu">
-                <span><i class="bi bi-laptop me-2"></i>{% trans "Обучение (LMS)" %}</span>
+                <span class="section-label"><i class="bi bi-laptop"></i>{% trans "Обучение (LMS)" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="lms-student-menu">
                 <a class="sidebar-link" href="{% url 'lms:dashboard' %}">
-                    <i class="bi bi-grid-1x2"></i> {% trans "Мои курсы" %}
+                    <i class="bi bi-grid-1x2"></i>{% trans "Мои курсы" %}
                 </a>
                 <a class="sidebar-link" href="{% url 'lms:course_list' %}">
-                    <i class="bi bi-search"></i> {% trans "Каталог курсов" %}
+                    <i class="bi bi-search"></i>{% trans "Каталог курсов" %}
                 </a>
             </div>
-
         {% endif %}
-
         <a class="sidebar-link" href="{% url 'news:list' %}">
-            <i class="bi bi-newspaper"></i> {% trans "Новости" %}
+            <i class="bi bi-newspaper"></i>{% trans "Новости" %}
             {% if notification_counts.news > 0 %}
                 <span class="badge-pulse ms-auto"></span>
             {% endif %}
         </a>
         <a class="sidebar-link" href="{% url 'chat:list' %}">
-            <i class="bi bi-chat-dots"></i> {% trans "Сообщения" %}
+            <i class="bi bi-chat-dots"></i>{% trans "Сообщения" %}
             {% if notification_counts.chat > 0 %}
                 <span class="badge-counter ms-auto">{{ notification_counts.chat }}</span>
             {% endif %}
         </a>
-
-        <div class="mb-5"></div>
+        <div style="height: 40px;"></div>
     </aside>
     {% endif %}
 
@@ -795,7 +969,6 @@
             </ol>
         </nav>
         {% endblock %}
-
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show animate-fade-in" role="alert">
@@ -804,18 +977,17 @@
                 </div>
             {% endfor %}
         {% endif %}
-
         {% block content %}{% endblock %}
     </main>
 
     <footer class="footer {% if not user.is_authenticated %}no-sidebar{% endif %}">
-        <div class="container-fluid py-4">
+        <div class="container-fluid py-4 px-4">
             <div class="row g-4">
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
                         <i class="bi bi-mortarboard-fill me-2"></i>{% trans "О платформе" %}
                     </h5>
-                    <p class="text-white-50 small">
+                    <p class="text-white-50 small mb-0">
                         {% trans "Современная образовательная платформа для эффективного управления учебным процессом и взаимодействия между студентами и преподавателями." %}
                     </p>
                 </div>
@@ -823,7 +995,7 @@
                     <h5 class="text-white mb-3 fw-bold">
                         <i class="bi bi-link-45deg me-2"></i>{% trans "Быстрые ссылки" %}
                     </h5>
-                    <ul class="list-unstyled">
+                    <ul class="list-unstyled mb-0">
                         <li class="mb-2">
                             <a href="{% url 'core:dashboard' %}" class="text-white-50 text-decoration-none d-flex align-items-center hover-link">
                                 <i class="bi bi-chevron-right me-2 small"></i>{% trans "Панель управления" %}
@@ -834,141 +1006,53 @@
                                 <i class="bi bi-chevron-right me-2 small"></i>{% trans "Новости" %}
                             </a>
                         </li>
-                        <li class="mb-2">
+                        <li>
                             <a href="{% url 'chat:list' %}" class="text-white-50 text-decoration-none d-flex align-items-center hover-link">
                                 <i class="bi bi-chevron-right me-2 small"></i>{% trans "Сообщения" %}
                             </a>
                         </li>
                     </ul>
                 </div>
-
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
                         <i class="bi bi-telephone-fill me-2"></i>{% trans "Контакты" %}
                     </h5>
-                    <ul class="list-unstyled">
-                        <li class="mb-3 d-flex align-items-center">
-                            <i class="bi bi-telephone text-primary me-3 fs-5"></i>
-                            <a href="tel:+992900000000" class="text-white-50 text-decoration-none hover-link">
-                                +992 (900) 00-00-00
-                            </a>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2 d-flex align-items-center">
+                            <i class="bi bi-telephone text-warning me-3"></i>
+                            <a href="tel:+992900000000" class="text-white-50 text-decoration-none hover-link">+992 (900) 00-00-00</a>
                         </li>
-                        <li class="mb-3 d-flex align-items-center">
-                            <i class="bi bi-envelope text-primary me-3 fs-5"></i>
-                            <a href="mailto:support@univer.tj" class="text-white-50 text-decoration-none hover-link">
-                                support@univer.tj
-                            </a>
+                        <li class="mb-2 d-flex align-items-center">
+                            <i class="bi bi-envelope text-warning me-3"></i>
+                            <a href="mailto:support@univer.tj" class="text-white-50 text-decoration-none hover-link">support@univer.tj</a>
                         </li>
                         <li class="d-flex align-items-start">
-                            <i class="bi bi-geo-alt text-primary me-3 fs-5"></i>
+                            <i class="bi bi-geo-alt text-warning me-3 mt-1"></i>
                             <span class="text-white-50 small">{% trans "г. Душанбе, ул. Студенческая 1" %}</span>
                         </li>
                     </ul>
                 </div>
-
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-3 fw-bold">
                         <i class="bi bi-share me-2"></i>{% trans "Мы в соцсетях" %}
                     </h5>
-                    <div class="d-flex gap-2">
-                        <a href="#" class="social-link" aria-label="Telegram" title="Telegram">
-                            <i class="bi bi-telegram"></i>
-                        </a>
-                        <a href="#" class="social-link" aria-label="Instagram" title="Instagram">
-                            <i class="bi bi-instagram"></i>
-                        </a>
-                        <a href="#" class="social-link" aria-label="Facebook" title="Facebook">
-                            <i class="bi bi-facebook"></i>
-                        </a>
-                        <a href="#" class="social-link" aria-label="YouTube" title="YouTube">
-                            <i class="bi bi-youtube"></i>
-                        </a>
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="#" class="social-link" aria-label="Telegram"><i class="bi bi-telegram"></i></a>
+                        <a href="#" class="social-link" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="social-link" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="social-link" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
                     </div>
-                    <p class="text-white-50 small mt-3 mb-0">
-                        {% trans "Следите за новостями и обновлениями в наших социальных сетях" %}
-                    </p>
+                    <p class="text-white-50 small mb-0">{% trans "Следите за новостями и обновлениями" %}</p>
                 </div>
             </div>
-
-            <hr class="border-secondary opacity-25 my-4">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <p class="text-white-50 small mb-0">
-                        <i class="bi bi-c-circle me-1"></i>
-                        2026 {% trans "Университетская Платформа. Все права защищены." %}
-                    </p>
-                </div>
+            <hr class="border-secondary opacity-25 my-3">
+            <div class="text-center">
+                <p class="text-white-50 small mb-0">
+                    <i class="bi bi-c-circle me-1"></i>2026 {% trans "AcademiX. Все права защищены." %}
+                </p>
             </div>
         </div>
     </footer>
-
-    <style>
-        .footer {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .footer::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-        }
-
-        .footer h5 {
-            position: relative;
-            padding-bottom: 10px;
-        }
-
-        .footer h5::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 50px;
-            height: 3px;
-            background: var(--primary-blue);
-            border-radius: 2px;
-        }
-
-        .hover-link {
-            transition: all 0.3s ease;
-        }
-
-        .hover-link:hover {
-            color: white !important;
-            transform: translateX(5px);
-        }
-
-        .social-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 42px;
-            height: 42px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #cbd5e1;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .social-link:hover {
-            background: var(--primary-blue);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
-        }
-
-        .social-link i {
-            font-size: 1.2rem;
-        }
-    </style>
 
     <button class="theme-toggle" id="themeToggle" aria-label="{% trans 'Переключить тему' %}">
         <i class="bi bi-moon-fill"></i>
@@ -980,24 +1064,23 @@
         document.getElementById('sidebarToggle')?.addEventListener('click', function(e) {
             e.stopPropagation();
             const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('show');
+            const isOpen = sidebar?.classList.toggle('show');
+            document.body.classList.toggle('sidebar-open', isOpen);
         });
 
         document.querySelectorAll('.sidebar-section-header').forEach(header => {
             header.addEventListener('click', function() {
-                const targetId = this.getAttribute('data-target');
-                const targetMenu = document.getElementById(targetId);
-
-                targetMenu.classList.toggle('active');
+                const target = document.getElementById(this.dataset.target);
+                if (!target) return;
+                target.classList.toggle('active');
                 this.classList.toggle('active');
             });
         });
 
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i');
-        const savedTheme = localStorage.getItem('theme');
 
-        if (savedTheme === 'dark') {
+        if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark-mode');
             themeIcon.className = 'bi bi-sun-fill';
         }
@@ -1015,11 +1098,11 @@
             if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('show')) {
                 if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
                     sidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
                 }
             }
         });
     </script>
-
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -152,9 +152,6 @@
                                     {{ sem.faculty.name }} | Курс: {{ sem.course }} | Смена: {{ sem.get_shift_display }}
                                 </small>
                             </div>
-                            <a href="{% url 'schedule:schedule_view_unified' %}?semester={{ sem.id }}" class="btn btn-sm btn-outline-primary">
-                                Расписание
-                            </a>
                         </div>
                         {% empty %}
                         <div class="p-3 text-center text-muted">Нет активных семестров для выбранного фильтра.</div>

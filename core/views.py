@@ -55,14 +55,42 @@ def dashboard(request):
         return render(request, 'core/dashboard_rector.html', context)
 
     elif user.is_superuser:
-        institutes = Institute.objects.prefetch_related('faculties').all()
-        context.update({
-            'institutes': institutes,
-            'total_students': Student.objects.count(),
-            'total_users': User.objects.count(),
-            'latest_orders': Order.objects.all().order_by('-created_at')[:5],
-        })
-        return render(request, 'core/dashboard_admin.html', context)
+            selected_institute_id = request.GET.get('institute_id')
+            selected_institute = None
+            institutes = Institute.objects.prefetch_related('faculties').all()
+
+            students_qs = Student.objects.filter(status='ACTIVE')
+            teachers_qs = Teacher.objects.all()
+            groups_qs = Group.objects.all()
+            departments_qs = Department.objects.all()
+            active_semesters = Semester.objects.filter(is_active=True).select_related('faculty')
+
+            if selected_institute_id:
+                try:
+                    selected_institute = institutes.get(id=selected_institute_id)
+                    faculties_ids = selected_institute.faculties.values_list('id', flat=True)
+                    
+                    students_qs = students_qs.filter(group__specialty__department__faculty__in=faculties_ids)
+                    teachers_qs = teachers_qs.filter(department__faculty__in=faculties_ids)
+                    groups_qs = groups_qs.filter(specialty__department__faculty__in=faculties_ids)
+                    departments_qs = departments_qs.filter(faculty__in=faculties_ids)
+                    active_semesters = active_semesters.filter(faculty__institute=selected_institute)
+                except Institute.DoesNotExist:
+                    pass
+
+            context.update({
+                'institutes': institutes,
+                'selected_institute': selected_institute,
+                'total_students': students_qs.count(),
+                'total_groups': groups_qs.count(),
+                'total_teachers': teachers_qs.count(),
+                'total_departments': departments_qs.count(),
+                'total_users': User.objects.count(),
+                'latest_orders': Order.objects.all().order_by('-created_at')[:5],
+                'active_semesters': active_semesters,
+            })
+            return render(request, 'core/dashboard_admin.html', context)
+            
     elif user.role == 'HR':
         context['total_students'] = Student.objects.filter(status='ACTIVE').count()
         context['unassigned_students'] = Student.objects.filter(group__isnull=True, status='ACTIVE').count()
