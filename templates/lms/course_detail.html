@@ -84,77 +84,78 @@
     {% endif %}
     <div id="sections-list">
     {% for section in sections %}
-    <div class="card mb-3 shadow-sm" data-section-id="{{ section.pk }}">
-      <div class="card-header d-flex justify-content-between align-items-center {% if not section.is_visible %}bg-light{% endif %}">
-        <h6 class="mb-0">
+    <div class="card mb-4 shadow-sm 
+        {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}border-warning bg-warning bg-opacity-10
+        {% elif section.section_type == 'RED' %}border-danger bg-danger bg-opacity-10
+        {% elif section.section_type == 'BLUE' %}border-primary bg-primary bg-opacity-10{% endif %}" 
+        data-section-id="{{ section.pk }}">
+      
+      <div class="card-header d-flex justify-content-between align-items-center 
+        {% if not section.is_visible %}bg-light
+        {% elif section.section_type == 'RATING1' or section.section_type == 'RATING2' %}bg-warning text-dark border-warning
+        {% elif section.section_type == 'RED' %}bg-danger text-white border-danger
+        {% elif section.section_type == 'BLUE' %}bg-primary text-white border-primary{% endif %}">
+        
+        <h6 class="mb-0 fw-bold {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}text-dark{% else %}text-white{% endif %}">
           {% if not section.is_visible %}<i class="bi bi-eye-slash me-1 text-muted"></i>{% endif %}
+          {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}<i class="bi bi-star-fill text-danger me-1"></i>{% endif %}
           {{ section.name }}
         </h6>
         {% if can_manage %}
         <div class="d-flex gap-1">
-          <a href="{% url 'lms:section_edit' section.pk %}" class="btn btn-sm btn-outline-secondary py-0">
+          <a href="{% url 'lms:section_edit' section.pk %}" class="btn btn-sm {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}btn-outline-dark{% else %}btn-outline-light{% endif %} py-0">
             <i class="bi bi-pencil"></i>
           </a>
-          <div class="dropdown">
-            <button class="btn btn-sm btn-outline-primary py-0 dropdown-toggle" data-bs-toggle="dropdown">
-              <i class="bi bi-plus"></i> {% trans "Добавить" %}
-            </button>
-            <ul class="dropdown-menu">
-              {% for mtype, mlabel in module_types %}
-              <li>
-                <a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type={{ mtype }}">
-                  {{ mlabel }}
-                </a>
-              </li>
-              {% endfor %}
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=PAGE"><i class="bi bi-file-text me-2"></i>{% trans "Страница" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=FILE"><i class="bi bi-file-earmark me-2"></i>{% trans "Файл" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=FOLDER"><i class="bi bi-folder me-2"></i>{% trans "Папка" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=VIDEO"><i class="bi bi-play-circle me-2"></i>{% trans "Видео" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=ASSIGNMENT"><i class="bi bi-journal-arrow-up me-2"></i>{% trans "Задание" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=QUIZ"><i class="bi bi-ui-checks me-2"></i>{% trans "Тест" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=FORUM"><i class="bi bi-chat me-2"></i>{% trans "Форум" %}</a></li>
-              <li><a class="dropdown-item" href="{% url 'lms:module_create' section.pk %}?type=URL"><i class="bi bi-link me-2"></i>{% trans "Ссылка" %}</a></li>
-            </ul>
-          </div>
-          <a href="{% url 'lms:section_delete' section.pk %}" class="btn btn-sm btn-outline-danger py-0"
-             onclick="return confirm('{% trans "Удалить секцию?" %}')">
-            <i class="bi bi-trash"></i>
-          </a>
+          <button class="btn btn-sm {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}btn-outline-dark{% else %}btn-outline-light{% endif %} py-0" data-bs-toggle="modal" data-bs-target="#addModuleModal{{ section.id }}">
+            <i class="bi bi-plus-lg me-1"></i> {% trans "Добавить элемент" %}
+          </button>
+          <form action="{% url 'lms:section_delete' section.pk %}" method="post" class="d-inline" onsubmit="return confirm('{% trans "Удалить секцию?" %}');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}btn-outline-danger{% else %}btn-outline-light{% endif %} py-0"><i class="bi bi-trash"></i></button>
+          </form>
         </div>
         {% endif %}
       </div>
+
       {% if section.summary %}
-      <div class="card-body py-2 text-muted small">{{ section.summary }}</div>
+      <div class="card-body py-2 text-dark small">{{ section.summary }}</div>
       {% endif %}
+
       <ul class="list-group list-group-flush" id="modules-{{ section.pk }}">
         {% for module in section.modules.all %}
         {% if module.is_visible or can_manage %}
-        <li class="list-group-item d-flex align-items-center gap-2 py-2 {% if not module.is_visible %}text-muted{% endif %}"
+        <li class="list-group-item d-flex align-items-center gap-2 py-3 bg-transparent 
+            {% if section.section_type == 'RATING1' or section.section_type == 'RATING2' %}border-warning border-opacity-50
+            {% elif section.section_type == 'RED' %}border-danger border-opacity-25
+            {% elif section.section_type == 'BLUE' %}border-primary border-opacity-25{% endif %}"
             data-module-id="{{ module.pk }}">
-          <i class="bi {{ module.get_icon }} fs-5"></i>
-          <a href="{% url 'lms:module_detail' module.pk %}" class="flex-grow-1 text-decoration-none {% if not module.is_visible %}text-muted{% endif %}">
+
+          <i class="bi {{ module.get_icon }} fs-5 text-dark"></i>
+
+          <a href="{% url 'lms:module_detail' module.pk %}" class="flex-grow-1 text-decoration-none fw-bold text-dark">
             {{ module.title }}
           </a>
+
           {% if module.pk in completed_ids %}
           <i class="bi bi-check-circle-fill text-success" title="{% trans 'Пройдено' %}"></i>
           {% elif module.completion_required %}
-          <i class="bi bi-circle text-muted" title="{% trans 'Обязателен' %}"></i>
+          <i class="bi bi-circle text-dark opacity-50" title="{% trans 'Обязателен' %}"></i>
           {% endif %}
+
           {% if can_manage %}
-          <a href="{% url 'lms:module_edit' module.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">
+          <a href="{% url 'lms:module_edit' module.pk %}" class="btn btn-sm btn-outline-dark py-0 px-1">
             <i class="bi bi-pencil"></i>
           </a>
-          <a href="{% url 'lms:module_delete' module.pk %}" class="btn btn-sm btn-outline-danger py-0 px-1"
-             onclick="return confirm('{% trans "Удалить модуль?" %}')">
-            <i class="bi bi-trash"></i>
-          </a>
+          <form action="{% url 'lms:module_delete' module.pk %}" method="post" class="d-inline" onsubmit="return confirm('{% trans "Удалить модуль?" %}');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash"></i></button>
+          </form>
           {% endif %}
         </li>
         {% endif %}
         {% empty %}
         {% if can_manage %}
-        <li class="list-group-item text-center text-muted small py-2">{% trans "Секция пуста" %}</li>
+        <li class="list-group-item text-center text-dark opacity-75 small py-3 bg-transparent">{% trans "Секция пуста" %}</li>
         {% endif %}
         {% endfor %}
       </ul>
@@ -163,11 +164,6 @@
     <div class="text-center text-muted py-5">
       <i class="bi bi-folder-x" style="font-size:3rem"></i>
       <p class="mt-2">{% trans "В курсе нет секций" %}</p>
-      {% if can_manage %}
-      <a href="{% url 'lms:section_create' course.pk %}" class="btn btn-primary">
-        <i class="bi bi-plus me-1"></i>{% trans "Добавить секцию" %}
-      </a>
-      {% endif %}
     </div>
     {% endfor %}
     </div>
@@ -218,4 +214,149 @@
     {% endif %}
   </div>
 </div>
+
+{% if can_manage %}
+    {% for section in sections %}
+    <div class="modal fade" id="addModuleModal{{ section.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title"><i class="bi bi-grid-fill me-2 text-primary"></i>Добавить в: {{ section.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <a href="{% url 'lms:module_create' section.pk %}?type=FILE" class="card h-100 text-decoration-none shadow-sm module-card-hover">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-file-earmark-pdf text-info fs-1"></i>
+                                    <h6 class="mt-2 text-dark">Файл / Лекция</h6>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'lms:module_create' section.pk %}?type=ASSIGNMENT" class="card h-100 text-decoration-none shadow-sm module-card-hover border-primary">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-journal-arrow-up text-primary fs-1"></i>
+                                    <h6 class="mt-2 text-dark">Задание</h6>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'lms:module_create' section.pk %}?type=QUIZ" class="card h-100 text-decoration-none shadow-sm module-card-hover border-success">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-ui-checks text-success fs-1"></i>
+                                    <h6 class="mt-2 text-dark">Тест (Quiz)</h6>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'lms:module_create' section.pk %}?type=URL" class="card h-100 text-decoration-none shadow-sm module-card-hover">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-link-45deg text-secondary fs-1"></i>
+                                    <h6 class="mt-2 text-dark">Ссылка</h6>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'lms:module_create' section.pk %}?type=VIDEO" class="card h-100 text-decoration-none shadow-sm module-card-hover border-danger">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-play-circle text-danger fs-1"></i>
+                                    <h6 class="mt-2 text-dark">Видео</h6>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'lms:module_create' section.pk %}?type=FOLDER" class="card h-100 text-decoration-none shadow-sm module-card-hover border-warning">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-folder-fill text-warning fs-1"></i>
+                                    <h6 class="mt-2 text-dark">Папка</h6>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <style>
+        .module-card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .module-card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+    </style>
+{% endif %}
+
+<style>
+  .module-card-hover:hover {
+    transform: scale(1.05);
+    transition: 0.2s;
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const courseId = "{{ course.pk }}";
+    const scrollKey = "lms_scroll_pos_course_" + courseId;
+
+    const savedScroll = sessionStorage.getItem(scrollKey);
+    if (savedScroll) {
+        window.scrollTo(0, parseInt(savedScroll));
+        sessionStorage.removeItem(scrollKey);
+    }
+
+    document.querySelectorAll('a, button[type="submit"]').forEach(el => {
+        el.addEventListener('click', () => {
+            sessionStorage.setItem(scrollKey, window.scrollY);
+        });
+    });
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const sections = document.querySelectorAll(".card[data-section-id]");
+
+    sections.forEach(function(section) {
+        const headerText = section.querySelector(".card-header h6").innerText;
+        const match = headerText.match(/Дата:\s*(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/);
+
+        if (match) {
+            const startStr = match[3] + '-' + match[2] + '-' + match[1];
+            const endStr = match[6] + '-' + match[5] + '-' + match[4];
+
+            const startDate = new Date(startStr);
+            const endDate = new Date(endStr);
+            endDate.setHours(23, 59, 59, 999);
+
+            if (today >= startDate && today <= endDate) {
+                section.classList.remove('shadow-sm');
+                section.classList.add('shadow', 'border-primary');
+                section.style.borderWidth = '2px';
+
+                const badge = document.createElement("span");
+                badge.className = "badge bg-primary ms-2 animate-pulse";
+                badge.innerHTML = '<i class="bi bi-clock-history"></i> Текущая неделя';
+                section.querySelector(".card-header h6").appendChild(badge);
+
+                if (!savedScroll) {
+                    setTimeout(() => {
+                        section.scrollIntoView({behavior: "smooth", block: "center"});
+                    }, 500);
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+    @keyframes highlightPulse {
+        0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .animate-pulse {
+        animation: highlightPulse 2s infinite;
+    }
+</style>
+
 {% endblock %}

@@ -68,38 +68,13 @@
     </div>
 
     {% if group %}
-    <div class="card mb-3 shadow-sm border-0 bg-white">
-        <div class="card-body p-2">
-            <label class="fw-bold small text-muted d-block mb-1 text-center text-uppercase">
-                <i class="bi bi-info-circle text-primary"></i>
-                Тип недели для следующего перетаскивания:
-            </label>
-            <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="drag_week_type" id="wt_every" value="EVERY" checked>
-                <label class="btn btn-outline-secondary btn-sm fw-bold" for="wt_every">⬜ ОБЕ недели</label>
-
-                <input type="radio" class="btn-check" name="drag_week_type" id="wt_red" value="RED">
-                <label class="btn btn-outline-danger btn-sm fw-bold" for="wt_red">🔴 КРАСНАЯ</label>
-
-                <input type="radio" class="btn-check" name="drag_week_type" id="wt_blue" value="BLUE">
-                <label class="btn btn-outline-primary btn-sm fw-bold" for="wt_blue">🔵 СИНЯЯ</label>
-            </div>
-            <div class="text-center mt-1">
-                <small class="text-muted" style="font-size: 0.72rem;">
-                    Выберите тип недели → затем перетащите предмет в сетку.<br>
-                    Красную и синюю можно назначить <b>разные предметы</b> на один слот.
-                </small>
-            </div>
-        </div>
-    </div>
-
     <div class="col-lg-3">
         {% if group.has_military_training %}
         <div class="card mb-3 border-dark shadow-sm">
             <div class="card-body p-2 text-center bg-dark text-white rounded">
                 <div draggable="true" id="militaryDragItem" style="cursor: move;">
                     <i class="bi bi-shield-shaded mb-1"></i> ВОЕННАЯ КАФЕДРА
-                    <br><small style="font-size: 0.7rem;">Перетащите на день</small>
+                    <br><small style="font-size: 0.9rem;">Перетащите на день</small>
                 </div>
             </div>
         </div>
@@ -158,7 +133,7 @@
     <div class="col-lg-9">
         <div class="card shadow">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 text-primary"><i class="bi bi-calendar-week"></i> Расписание: {{ group.name }}</h5>
+                <h5 class="bi bi-calendar-week"></i> Расписание: {{ group.name }}</h5>
                 <div class="d-flex align-items-center gap-3">
                     <div class="d-flex align-items-center gap-2 bg-light p-1 rounded border">
                         <span class="small text-muted fw-bold ms-2">Вид:</span>
@@ -179,9 +154,7 @@
                     </a>
                 </div>
 
-                <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-outline-success btn-sm">
-                    <i class="bi bi-file-word"></i> Скачать DOCX
-                </a>
+
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -221,9 +194,9 @@
                                                 {% if slot.week_type == 'RED' %}border-start border-4 border-danger
                                                 {% elif slot.week_type == 'BLUE' %}border-start border-4 border-primary
                                                 {% else %}border-start border-4 border-{{ slot.get_color_class }}{% endif %}" 
-                                                 style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %}; min-width: 0;">
+                                                style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %}; min-width: 0;"
                                                 data-week-type="{{ slot.week_type }}">
-                                                 <div class="d-flex justify-content-between align-items-start">
+                                                <div class="d-flex justify-content-between align-items-start">
                                                     <div>
                                                         <span class="badge bg-{{ slot.get_color_class }} mb-1">
                                                             {{ slot.get_lesson_type_display }}
@@ -243,7 +216,17 @@
                                                     <div class="aud-display badge bg-secondary text-wrap" style="cursor: pointer; min-width: 40px;" onclick="editAud(this)" title="Изменить кабинет">
                                                         {{ slot.room|default:'?' }}
                                                     </div>
-                                                    <input type="text" class="form-control form-control-sm aud-input text-center p-0" value="{{ slot.room|default:'' }}" style="display: none; max-width: 60px;" onblur="saveAud(this, {{ slot.id }})" onkeypress="if(event.key==='Enter') saveAud(this, {{ slot.id }})">
+                                                    <select class="form-select form-select-sm aud-input p-0" style="display: none; max-width: 120px;" onchange="saveAud(this, {{ slot.id }})" onblur="saveAud(this, {{ slot.id }})">
+                                                        <option value="">-- Выбрать --</option>
+                                                        {% regroup classrooms by building as building_list %}
+                                                        {% for bg in building_list %}
+                                                            <optgroup label="{{ bg.grouper.name }}">
+                                                                {% for c in bg.list %}
+                                                                    <option value="{{ c.id }}" {% if slot.classroom_id == c.id %}selected{% endif %}>{{ c.number }} (Вмест: {{ c.capacity }})</option>
+                                                                {% endfor %}
+                                                            </optgroup>
+                                                        {% endfor %}
+                                                    </select>
                                                 </div>
                                             </div>
                                             {% endfor %}
@@ -464,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.saveAud = function(input, slotId, isForce = false) {
-        const val = input.value.trim();
+        const val = input.value;
         const cell = input.closest('.aud-cell');
         const display = cell.querySelector('.aud-display');
 
@@ -476,6 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 room: val,
+                room: textVal,
                 force: isForce
             })
         })
@@ -689,9 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const filters = document.querySelectorAll('.course-filter');
     const select = document.getElementById('groupSelect');
-    
     if (!select) return;
-    
     const allOptions = Array.from(select.querySelectorAll('option'));
     document.querySelectorAll('input[name="view_week"]').forEach(radio => {
         radio.addEventListener('change', function() {

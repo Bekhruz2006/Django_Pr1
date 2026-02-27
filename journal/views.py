@@ -9,7 +9,7 @@ import json
 from django.views.decorators.http import require_POST
 from django.utils.translation import gettext as _
 from django.utils import timezone
-
+from django.http import JsonResponse
 from .models import JournalEntry, JournalChangeLog, StudentStatistics
 from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLogFilterForm
 from accounts.models import Student, Teacher, Group
@@ -48,10 +48,23 @@ def journal_view(request):
     group = get_object_or_404(Group, id=group_id)
     subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
 
-    active_semester = Semester.objects.filter(
-        is_active=True,
-        course=group.course
-    ).first()
+    schedule_slots = ScheduleSlot.objects.filter(
+        group=group,
+        subject=subject,
+        is_active=True
+    )
+
+    if not schedule_slots.exists():
+        messages.warning(
+            request,
+            _('Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено') % {
+                'group_name': group.name,
+                'subject_name': subject.name
+            }
+        )
+        return redirect('journal:journal_view')
+
+    active_semester = schedule_slots.first().semester
 
     if week_num:
         week_num = int(week_num)
@@ -72,38 +85,28 @@ def journal_view(request):
         today = datetime.now().date()
         week_start = today - timedelta(days=today.weekday())
 
-    schedule_slots = ScheduleSlot.objects.filter(
-        group=group,
-        subject=subject,
-        is_active=True,
-        semester=active_semester 
-    )
-
-    if not schedule_slots.exists():
-        messages.warning(
-            request,
-            _('Расписание для группы %(group_name)s по предмету %(subject_name)s не найдено') % {
-                'group_name': group.name,
-                'subject_name': subject.name
-            }
-        )
-        return redirect('journal:journal_view')
+    schedule_slots = schedule_slots.filter(semester=active_semester)
 
     students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
-    days_with_lessons = []
+    days_with_lessons =[]
+
+    current_week_type = 'RED' if week_num % 2 != 0 else 'BLUE'
 
     for slot in schedule_slots:
-        lesson_date = week_start + timedelta(days=slot.day_of_week)
-        days_with_lessons.append({
-            'date': lesson_date,
-            'time': slot.start_time,
-            'day_name': slot.get_day_of_week_display(),
-            'slot': slot
-        })
+        if slot.week_type == 'EVERY' or slot.week_type == current_week_type:
+            lesson_date = week_start + timedelta(days=slot.day_of_week)
+            days_with_lessons.append({
+                'date': lesson_date,
+                'time': slot.start_time,
+                'day_name': slot.get_day_of_week_display(),
+                'slot': slot
+            })
+            
+    days_with_lessons.sort(key=lambda x: (x['date'], x['time']))
 
-    journal_data = []
+    journal_data =[]
     for student in students:
-        student_row = {'student': student, 'entries': []}
+        student_row = {'student': student, 'entries':[]}
         for day_info in days_with_lessons:
             entry, _ = JournalEntry.objects.get_or_create(
                 student=student,
@@ -123,7 +126,7 @@ def journal_view(request):
             })
         journal_data.append(student_row)
 
-    day_stats = []
+    day_stats =[]
     for day_info in days_with_lessons:
         day_entries = JournalEntry.objects.filter(
             subject=subject,
@@ -145,8 +148,12 @@ def journal_view(request):
         'days_with_lessons': days_with_lessons,
         'journal_data': journal_data,
         'day_stats': day_stats,
-        'can_edit': True
+        'can_edit': True,
+        'is_red_week': current_week_type == 'RED'
     })
+
+
+
 
 @login_required
 @user_passes_test(is_teacher)
@@ -591,30 +598,42 @@ def update_journal_cell(request):
             if value == '' or value == '-':
                 entry.grade = None
                 entry.attendance_status = 'PRESENT'
+                entry.participation = 'NONE'
                 response_data['display'] = ''
                 
-            elif value.isdigit():
-                grade = int(value)
-                if 1 <= grade <= 12:
-                    entry.grade = grade
-                    entry.attendance_status = 'PRESENT'
-                    response_data['display'] = str(grade)
-                    response_data['type'] = 'grade'
-                else:
-                    return JsonResponse({'success': False, 'error': _('Оценка должна быть от 1 до 12')}, status=400)
-            
             elif value in ['н', 'нб', 'nb', 'n', 'abs']:
                 entry.grade = None
                 entry.attendance_status = 'ABSENT_INVALID' 
                 response_data['display'] = 'НБ'
                 response_data['type'] = 'absent'
-            
+                
+            elif value in ['г', 'готов', 'g']:
+                entry.participation = 'READY'
+                entry.attendance_status = 'PRESENT'
+                response_data['display'] = 'Готов'
+                response_data['type'] = 'ready'
+                
+            elif value in ['нг', 'не готов', 'ng']:
+                entry.participation = 'NOT_READY'
+                entry.attendance_status = 'PRESENT'
+                response_data['display'] = 'Не готов'
+                response_data['type'] = 'not_ready'
+                
             else:
-                return JsonResponse({'success': False, 'error': _('Введите число (оценка) или "нб" (прогул)')}, status=400)
+                try:
+                    grade = float(value.replace(',', '.'))
+                    if 0 <= grade <= 100:
+                        entry.grade = grade
+                        entry.attendance_status = 'PRESENT'
+                        response_data['display'] = str(grade)
+                        response_data['type'] = 'grade'
+                    else:
+                        return JsonResponse({'success': False, 'error': _('Оценка должна быть от 0 до 100')}, status=400)
+                except ValueError:
+                    return JsonResponse({'success': False, 'error': _('Введите число (до 100), "нб", "г" (готов) или "нг" (не готов)')}, status=400)
 
             entry.modified_by = teacher
             entry.save()
-
             if old_grade != entry.grade or old_attendance != entry.attendance_status:
                 JournalChangeLog.objects.create(
                     entry=entry, changed_by=teacher,
@@ -631,3 +650,12 @@ def update_journal_cell(request):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+
+
+
+
+
+
+
+    

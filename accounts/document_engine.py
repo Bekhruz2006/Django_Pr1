@@ -147,3 +147,6 @@ class DocumentGenerator:
         
         filename = f"Contingent_Report_{timezone.now().strftime('%Y%m%d')}.docx"
         return file_stream, filename
+        
+
+

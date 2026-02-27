@@ -42,7 +42,7 @@
               <label class="form-label fw-semibold">
                 {% trans "Полное название" %} <span class="text-danger">*</span>
               </label>
-              <div class="form-text mb-1">{% trans "Официальное название дисциплины или курса. Например: «Основы баз данных и SQL»." %}</div>
+              <div class="text-danger">{% trans "Официальное название дисциплины или курса. Например: «Основы баз данных и SQL»." %}</div>
               {{ form.full_name }}
               {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors }}</div>{% endif %}
             </div>
@@ -51,7 +51,7 @@
               <label class="form-label fw-semibold">
                 {% trans "Краткое название" %} <span class="text-danger">*</span>
               </label>
-              <div class="form-text mb-1">{% trans "Используется в навигации и хлебных крошках. Например: «БД-2025» или «SQL-1»." %}</div>
+              <div class="form-label fw-semibold">{% trans "Используется в навигации и хлебных крошках. Например: «БД-2025» или «SQL-1»." %}</div>
               {{ form.short_name }}
               {% if form.short_name.errors %}<div class="text-danger small mt-1">{{ form.short_name.errors }}</div>{% endif %}
             </div>
@@ -60,7 +60,7 @@
               <label class="form-label fw-semibold">
                 {% trans "Категория" %} <span class="text-danger">*</span>
               </label>
-              <div class="form-text mb-1 d-flex align-items-center gap-2">
+              <div class="form-label fw-semibold">
                 {% trans "Раздел, к которому относится курс." %}
                 <a href="{% url 'lms:category_create' %}" target="_blank" class="small text-primary">
                   <i class="bi bi-plus-circle me-1"></i>{% trans "Создать категорию" %}
@@ -72,13 +72,13 @@
 
             <div class="mb-3">
               <label class="form-label fw-semibold">{% trans "Описание курса" %}</label>
-              <div class="form-text mb-1">{% trans "О чём курс, для кого, чему научит. Отображается студентам на странице курса." %}</div>
+              <div class="form-label fw-semibold">{% trans "О чём курс, для кого, чему научит. Отображается студентам на странице курса." %}</div>
               {{ form.summary }}
             </div>
 
             <div class="mb-0">
               <label class="form-label fw-semibold">{% trans "ID-номер / Код дисциплины" %}</label>
-              <div class="form-text mb-1">{% trans "Внутренний код по учебному плану (РУП). Например: «CS-204» или «0401.1». Необязательно." %}</div>
+              <div class="form-label fw-semibold">{% trans "Внутренний код по учебному плану (РУП). Например: «CS-204» или «0401.1». Необязательно." %}</div>
               {{ form.id_number }}
             </div>
 
@@ -96,12 +96,12 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">{% trans "Дата начала" %}</label>
-                <div class="form-text mb-1">{% trans "С какой даты курс открыт студентам." %}</div>
+                <div class="form-label fw-semibold">{% trans "С какой даты курс открыт студентам." %}</div>
                 {{ form.start_date }}
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold">{% trans "Дата окончания" %}</label>
-                <div class="form-text mb-1">{% trans "После этой даты сдача заданий закрывается." %}</div>
+                <div class="form-label fw-semibold">{% trans "После этой даты сдача заданий закрывается." %}</div>
                 {{ form.end_date }}
               </div>
             </div>
@@ -110,7 +110,7 @@
 
             <div class="mb-3">
               <label class="form-label fw-semibold">{% trans "Кому виден курс" %}</label>
-              <div class="form-text mb-1">
+              <div class="form-label fw-semibold">
                 {% trans "«Видимый» — всем записанным. «Только факультет/кафедра/группа» — фильтрация по выбранной единице ниже." %}
               </div>
               {{ form.visibility }}
@@ -138,12 +138,12 @@
                   <label class="form-check-label fw-semibold" for="{{ form.allow_self_enrol.id_for_label }}">
                     {% trans "Разрешить самозапись" %}
                   </label>
-                  <div class="form-text">{% trans "Студенты смогут записаться сами без подтверждения." %}</div>
+                  <div class="form-check-label fw-semibold">{% trans "Студенты смогут записаться сами без подтверждения." %}</div>
                 </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold small">{% trans "Ключ самозаписи (пароль)" %}</label>
-                <div class="form-text mb-1">{% trans "Если задать — студент вводит этот пароль при записи." %}</div>
+                <div class="form-label fw-semibold small">{% trans "Если задать — студент вводит этот пароль при записи." %}</div>
                 {{ form.enrol_key }}
               </div>
             </div>
@@ -164,7 +164,7 @@
 
             <div class="mb-3">
               <label class="form-label fw-semibold small">{% trans "Формат курса" %}</label>
-              <div class="form-text mb-1 small">
+              <div class="form-label fw-semibold small">
                 {% trans "«Тематический» — секции по темам. «Недельный» — по неделям. «Социальный» — один форум." %}
               </div>
               {{ form.format }}
@@ -176,7 +176,7 @@
                 <label class="form-check-label fw-semibold" for="{{ form.is_visible.id_for_label }}">
                   {% trans "Опубликован" %}
                 </label>
-                <div class="form-text small">{% trans "Снимите галочку, чтобы скрыть курс пока он в разработке." %}</div>
+                <div class="form-check-label fw-semibold">{% trans " снимите галочку, чтобы скрыть курс пока он в разработке" %}</div>
               </div>
             </div>
 
@@ -196,7 +196,7 @@
               <div class="form-text mt-1">{% trans "Текущая обложка. Загрузите новую, чтобы заменить." %}</div>
             </div>
             {% endif %}
-            <div class="form-text mb-2 small">{% trans "Рекомендуемый размер: 800×450 px. Форматы: JPG, PNG." %}</div>
+            <div class="bi bi-image me-2 text-info">{% trans "Рекомендуемый размер: 800×450 px. Форматы: JPG, PNG." %}</div>
             {{ form.image }}
           </div>
         </div>

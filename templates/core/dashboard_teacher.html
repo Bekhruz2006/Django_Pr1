@@ -16,13 +16,27 @@
         <div class="col-lg-8 animate-slide-in">
             {% include 'schedule/today_widget.html' %}
         </div>
-
         <div class="col-lg-4 animate-slide-in" style="animation-delay: 0.1s;">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-gradient-primary text-white">
                     <i class="bi bi-speedometer2 me-2"></i>Быстрые действия
                 </div>
                 <div class="card-body">
+                    <div class="card border-0 shadow-sm mt-4">
+                        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-folder2-open text-warning me-2"></i>Мои учебные материалы (личние файлы) </h6>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            {% for mat in my_materials %}
+                            <a href="{{ mat.file.url }}" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ mat.title }}</span>
+                                <small class="text-muted">{{ mat.subject.name }} ({{ mat.uploaded_at|date:"d.m" }})</small>
+                            </a>
+                            {% empty %}
+                            <div class="p-4 text-center text-muted">У вас пока нет загруженных личных материалов на сервер</div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <div class="d-grid gap-3">
                         <a href="{% url 'journal:journal_view' %}" class="btn btn-primary btn-lg">
                             <i class="bi bi-journal-text me-2"></i> Журнал успеваемости

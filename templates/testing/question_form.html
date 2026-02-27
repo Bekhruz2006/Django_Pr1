@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Редактирование вопроса{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-question-square"></i> Редактирование вопроса</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <h6 class="fw-bold text-muted border-bottom pb-2 mb-3">Текст вопроса</h6>
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+
+                    <h6 class="fw-bold text-muted border-bottom pb-2 mb-3 mt-4">Варианты ответов</h6>
+                    <div class="alert alert-info small">
+                        <strong>Вес ответа:</strong> укажите 1.0 для правильного ответа и 0.0 для неправильного.
+                    </div>
+                    
+                    {{ formset.management_form }}
+                    <div class="row">
+                        {% for option_form in formset %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body p-2">
+                                        {{ option_form.id }}
+                                        <div class="mb-2">{{ option_form.text }}</div>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            {{ option_form.fraction }}
+                                            {% if option_form.instance.pk %}
+                                                <div class="form-check text-danger small">
+                                                    {{ option_form.DELETE }} <label>Удалить</label>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Сохранить вопрос</button>
+                        <a href="{% url 'testing:quiz_edit' quiz.module.id %}" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

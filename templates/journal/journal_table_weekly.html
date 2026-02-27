@@ -20,7 +20,7 @@
         box-shadow: inset 0 0 0 2px #2563eb;
     }
     .journal-grid td {
-        padding: 0 !important; 
+        padding: 0 !important;
         height: 40px;
         vertical-align: middle;
         position: relative;
@@ -48,6 +48,9 @@
 
     .val-grade { color: #2563eb; font-weight: bold; }
     .val-absent { color: #dc2626; font-weight: bold; }
+    .val-ready { color: #10b981; font-weight: bold; }
+    .val-not-ready { color: #f59e0b; font-weight: bold; }
+
 </style>
 
 <div class="row mt-4">
@@ -55,7 +58,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-primary">
-                    <i class="bi bi-journal-bookmark-fill"></i> 
+                    <i class="bi bi-journal-bookmark-fill"></i>
                     {{ group.name }} | {{ subject.name }}
                 </h5>
                 <div>
@@ -63,15 +66,15 @@
                     <a href="{% url 'journal:journal_view' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
                 </div>
             </div>
-            
+
             <div class="card-body p-0">
                 <div class="d-flex justify-content-between bg-light p-2 border-bottom">
                     <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" class="btn btn-sm btn-link text-decoration-none">&larr; Пред. неделя</a>
-                    
+
                     <small class="text-muted align-self-center">
                         Вводите <b>1-12</b> для оценки или <b>нб</b> для прогула. Tab для перемещения.
                     </small>
-                    
+
                     <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'1' }}" class="btn btn-sm btn-link text-decoration-none">След. неделя &rarr;</a>
                 </div>
 
@@ -105,8 +108,8 @@
                                                 {% endif %}
                                             </div>
                                         {% else %}
-                                            <input type="text" 
-                                                   value="{% if entry_data.entry.grade %}{{ entry_data.entry.grade }}{% elif entry_data.entry.attendance_status != 'PRESENT' %}нб{% endif %}" 
+                                            <input type="text"
+                                                   value="{% if entry_data.entry.grade %}{{ entry_data.entry.grade }}{% elif entry_data.entry.attendance_status != 'PRESENT' %}нб{% endif %}"
                                                    class="journal-input {% if entry_data.entry.grade %}val-grade{% elif entry_data.entry.attendance_status != 'PRESENT' %}val-absent{% endif %}"
                                                    data-entry-id="{{ entry_data.entry.id }}"
                                                    autocomplete="off">
@@ -133,16 +136,15 @@ document.addEventListener('DOMContentLoaded', function() {
             this.select();
         });
 
-
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                this.blur(); 
-                
+                this.blur();
+
                 const currentTd = this.parentElement;
                 const currentTr = currentTd.parentElement;
                 const cellIndex = Array.from(currentTr.children).indexOf(currentTd);
                 const nextTr = currentTr.nextElementSibling;
-                
+
                 if (nextTr) {
                     const nextInput = nextTr.children[cellIndex]?.querySelector('input');
                     if (nextInput) nextInput.focus();
@@ -153,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('change', function() {
             const newVal = this.value.trim();
             const entryId = this.dataset.entryId;
-            
+
             if (newVal === this.dataset.oldValue) return;
 
             this.style.opacity = '0.5';
@@ -173,14 +175,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 this.style.opacity = '1';
 
-
                 if (data.success) {
                     this.value = data.display;
-                    this.classList.remove('val-grade', 'val-absent');
-                    
+                    this.classList.remove('val-grade', 'val-absent', 'val-ready', 'val-not-ready');
+
                     if (data.type === 'grade') this.classList.add('val-grade');
                     if (data.type === 'absent') this.classList.add('val-absent');
-                    
+                    if (data.type === 'ready') this.classList.add('val-ready');
+                    if (data.type === 'not_ready') this.classList.add('val-not-ready');
+
                     this.dataset.oldValue = data.display;
                 } else {
                     alert(data.error);
@@ -188,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.focus();
                 }
             })
-            
+
             .catch(err => {
                 alert('Ошибка соединения');
                 this.style.opacity = '1';

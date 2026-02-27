@@ -15,21 +15,27 @@ class JournalEntry(models.Model):
         ('ABSENT_VALID', _('НБ-Уважительная')),
         ('ABSENT_INVALID', _('НБ-Неуважительная')),
     ]
-    
+
+    PARTICIPATION_CHOICES =[
+        ('READY', _('Был готов')),
+        ('NOT_READY', _('Не готов')),
+        ('NONE', _('—')),
+    ]
+
     student = models.ForeignKey(
         Student,
         on_delete=models.CASCADE,
         related_name='journal_entries',
         verbose_name=_("Студент")
     )
-    
+
     subject = models.ForeignKey(
         Subject,
         on_delete=models.CASCADE,
         related_name='journal_entries',
         verbose_name=_("Предмет")
     )
-    
+
     lesson_date = models.DateField(verbose_name=_("Дата занятия"))
     lesson_time = models.TimeField(verbose_name=_("Время начала пары"))
     lesson_type = models.CharField(
@@ -38,13 +44,20 @@ class JournalEntry(models.Model):
         verbose_name=_("Тип занятия")
     )
 
-    grade = models.IntegerField(
+    grade = models.FloatField(
         null=True,
         blank=True,
-        validators=[MinValueValidator(1), MaxValueValidator(12)],
-        verbose_name=_("Балл (1-12)")
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
+        verbose_name=_("Балл (до 12.5 за неделю, до 100 за рейтинг)")
     )
-    
+
+    participation = models.CharField(
+        max_length=20,
+        choices=PARTICIPATION_CHOICES,
+        default='NONE',
+        verbose_name=_("Активность")
+    )
+
     attendance_status = models.CharField(
         max_length=20,
         choices=ATTENDANCE_CHOICES,
@@ -65,7 +78,7 @@ class JournalEntry(models.Model):
         related_name='created_entries',
         verbose_name=_("Создал")
     )
-    
+
     modified_by = models.ForeignKey(
         Teacher,
         on_delete=models.SET_NULL,
@@ -73,19 +86,19 @@ class JournalEntry(models.Model):
         related_name='modified_entries',
         verbose_name=_("Изменил")
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = _("Запись в журнале")
         verbose_name_plural = _("Записи в журнале")
         ordering = ['-lesson_date', 'lesson_time', 'student__user__last_name']
         unique_together = ['student', 'subject', 'lesson_date', 'lesson_time']
-    
+
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.subject.name} ({self.lesson_date})"
-    
+
     def save(self, *args, **kwargs):
         if not self.locked_at and self.lesson_date and self.lesson_time:
             lesson_datetime = timezone.make_aware(
@@ -97,23 +110,23 @@ class JournalEntry(models.Model):
             self.attendance_status = 'PRESENT'
         elif self.attendance_status != 'PRESENT':
             self.grade = None
-        
+
         super().save(*args, **kwargs)
-    
+
     def is_locked(self):
         if not self.locked_at:
             return False
         return timezone.now() >= self.locked_at
-    
+
     def can_edit(self, user):
         if self.is_locked():
             return False
 
         if not hasattr(user, 'teacher_profile'):
             return False
-        
+
         return True
-    
+
     def get_display_value(self):
         if self.grade is not None and self.grade > 0:
             return str(self.grade)
@@ -129,45 +142,45 @@ class JournalChangeLog(models.Model):
         related_name='change_logs',
         verbose_name=_("Запись")
     )
-    
+
     changed_by = models.ForeignKey(
         Teacher,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name=_("Кто изменил")
     )
-    
+
     changed_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Когда"))
 
-    old_grade = models.IntegerField(null=True, blank=True, verbose_name=_("Старый балл"))
+    old_grade = models.FloatField(null=True, blank=True, verbose_name=_("Старый балл"))
     old_attendance = models.CharField(max_length=20, blank=True, verbose_name=_("Старая посещаемость"))
 
-    new_grade = models.IntegerField(null=True, blank=True, verbose_name=_("Новый балл"))
+    new_grade = models.FloatField(null=True, blank=True, verbose_name=_("Новый балл"))
     new_attendance = models.CharField(max_length=20, blank=True, verbose_name=_("Новая посещаемость"))
-    
+
     comment = models.TextField(blank=True, verbose_name=_("Комментарий"))
-    
+
     class Meta:
         verbose_name = _("Лог изменений")
         verbose_name_plural = _("Логи изменений")
         ordering = ['-changed_at']
-    
+
     def __str__(self):
         return f"{self.changed_by.user.get_full_name() if self.changed_by else 'Система'} изменил запись {self.entry.id} в {self.changed_at}"
-    
+
     def get_change_description(self):
         parts = []
-        
+
         if self.old_grade != self.new_grade:
             old = self.old_grade if self.old_grade else "—"
             new = self.new_grade if self.new_grade else "—"
             parts.append(f"балл: {old} → {new}")
-        
+
         if self.old_attendance != self.new_attendance:
             old_display = dict(JournalEntry.ATTENDANCE_CHOICES).get(self.old_attendance, self.old_attendance)
             new_display = dict(JournalEntry.ATTENDANCE_CHOICES).get(self.new_attendance, self.new_attendance)
             parts.append(f"посещаемость: {old_display} → {new_display}")
-        
+
         return ", ".join(parts) if parts else "изменение"
 
 class StudentStatistics(models.Model):

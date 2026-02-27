@@ -1,8 +1,18 @@
 {% extends "lms/modules/base_module.html" %}
 {% load i18n %}
 {% block module_body %}
-<div class="alert alert-primary">
-  <i class="bi bi-ui-checks me-2"></i>
-  <strong>{% trans "Тест" %}</strong> — {% trans "модуль тестирования" %}
+<div class="alert alert-primary d-flex justify-content-between align-items-center">
+  <div>
+      <i class="bi bi-ui-checks me-2"></i>
+      <strong>{% trans "Тест" %}</strong> — модуль тестирования знаний
+  </div>
+  {% if can_manage %}
+      <a href="{% url 'testing:quiz_edit' module.id %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-gear"></i> Редактировать вопросы
+      </a>
+  {% endif %}
 </div>
+<a href="{% url 'testing:quiz_info' module.id %}" class="btn btn-outline-primary mt-2">
+    Перейти к тестированию
+</a>
 {% endblock %}

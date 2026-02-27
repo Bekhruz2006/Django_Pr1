@@ -161,6 +161,8 @@ def schedule_constructor(request):
     if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
         all_semesters = all_semesters.filter(faculty=request.user.dean_profile.faculty)
 
+    classrooms = Classroom.objects.filter(is_active=True).select_related('building').order_by('building__name', 'number')
+
     return render(request, 'schedule/constructor_with_limits.html', {
         'groups': groups,
         'group': selected_group,
@@ -170,6 +172,7 @@ def schedule_constructor(request):
         'days': days,
         'schedule_data': schedule_data,
         'subjects_to_schedule': subjects_to_schedule,
+        'classrooms': classrooms,
     })
 
 
@@ -184,49 +187,62 @@ def create_schedule_slot(request):
         data = json.loads(request.body)
 
         if data.get('is_military_day'):
-            group_id = data.get('group')
-            day_of_week = int(data.get('day_of_week'))
-            semester_id = data.get('semester_id')
+                    try:
+                        group_id = data.get('group')
+                        day_of_week = int(data.get('day_of_week'))
+                        semester_id = data.get('semester_id')
 
-            group = get_object_or_404(Group, id=group_id)
+                        group = get_object_or_404(Group, id=group_id)
+                        semester = get_object_or_404(Semester, id=semester_id)
 
-            semester = get_object_or_404(Semester, id=semester_id)
+                        time_slots = get_time_slots_for_shift(semester.shift)
+                        if not time_slots.exists():
+                            return JsonResponse({'success': False, 'error': 'Сначала создайте сетку звонков (Временные слоты) для этой смены в настройках.'}, status=400)
 
-            ScheduleSlot.objects.filter(
-                group=group, semester=semester, day_of_week=day_of_week
-            ).delete()
+                        military_dept = None
+                        if group.specialty and group.specialty.department:
+                            military_dept = group.specialty.department
+                        else:
+                            military_dept = Department.objects.first()
 
-            time_slots = get_time_slots_for_shift(semester.shift)
+                        if not military_dept:
+                            return JsonResponse({'success': False, 'error': 'В системе нет ни одной кафедры. Создайте кафедру.'}, status=400)
 
-            military_dept = group.specialty.department if group.specialty else Department.objects.first()
-            military_subject, _ = Subject.objects.get_or_create(
-                code="MILITARY",
-                defaults={
-                    'name': _("Кафедраи ҳарбӣ (Военная кафедра)"),
-                    'department': military_dept,
-                    'type': 'PRACTICE'
-                }
-            )
+                        military_subject, _ = Subject.objects.get_or_create(
+                            code="MILITARY",
+                            defaults={
+                                'name': "Кафедраи ҳарбӣ (Военная кафедра)",
+                                'department': military_dept,
+                                'type': 'PRACTICE'
+                            }
+                        )
 
-            created_count = 0
-            with transaction.atomic():
-                for ts in time_slots:
-                    ScheduleSlot.objects.create(
-                        group=group,
-                        subject=military_subject,
-                        semester=semester,
-                        day_of_week=day_of_week,
-                        time_slot=ts,
-                        start_time=ts.start_time,
-                        end_time=ts.end_time,
-                        is_military=True,
-                        lesson_type='PRACTICE',
-                        classroom=None,
-                        room=_("Воен. каф")
-                    )
-                    created_count += 1
+                        ScheduleSlot.objects.filter(
+                            group=group, semester=semester, day_of_week=day_of_week
+                        ).delete()
 
-            return JsonResponse({'success': True, 'message': _('Назначено %(created_count)s часов военной кафедры') % {'created_count': created_count}})
+                        created_count = 0
+                        with transaction.atomic():
+                            for ts in time_slots:
+                                ScheduleSlot.objects.create(
+                                    group=group,
+                                    subject=military_subject,
+                                    semester=semester,
+                                    day_of_week=day_of_week,
+                                    time_slot=ts,
+                                    start_time=ts.start_time,
+                                    end_time=ts.end_time,
+                                    is_military=True,
+                                    lesson_type='PRACTICE',
+                                    classroom=None,
+                                    room="Воен. каф",
+                                    is_active=True
+                                )
+                                created_count += 1
+
+                        return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
+                    except Exception as e:
+                        return JsonResponse({'success': False, 'error': f'Ошибка сервера: {str(e)}'}, status=500)
 
         force = data.get('force', False)
         group_id = data.get('group')
@@ -322,7 +338,7 @@ def create_schedule_slot(request):
                     day_of_week=day_of_week,
                     time_slot=time_slot,
                     lesson_type=lesson_type,
-                    week_type=week_type,  
+                    week_type=week_type,
                     start_time=time_slot.start_time,
                     end_time=time_slot.end_time,
                     stream_id=stream_id if is_stream else None
@@ -340,13 +356,15 @@ def create_schedule_slot(request):
 def update_schedule_room(request, slot_id):
     try:
         data = json.loads(request.body)
-        room_number = data.get('room', '').strip()
+        room_id = data.get('room_id') 
         force = data.get('force', False)
-
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
         classroom = None
-        if room_number:
+        if room_id and str(room_id).isdigit():
+            classroom = Classroom.objects.filter(id=room_id, is_active=True).first()
+        elif data.get('room'):
+            room_number = data.get('room', '').strip()
             candidates = Classroom.objects.filter(number=room_number, is_active=True)
 
             if candidates.count() == 0:
@@ -363,47 +381,49 @@ def update_schedule_room(request, slot_id):
                 if not classroom:
                     classroom = candidates.first()
 
-            occupants = ScheduleSlot.objects.filter(
-                classroom=classroom,
-                day_of_week=slot.day_of_week,
-                time_slot=slot.time_slot,
-                semester__is_active=True,
-                is_active=True
-            )
+        room_number = classroom.number if classroom else data.get('room', '').strip()
 
+        occupants = ScheduleSlot.objects.filter(
+            classroom=classroom,
+            day_of_week=slot.day_of_week,
+            time_slot=slot.time_slot,
+            semester__is_active=True,
+            is_active=True
+        )
+
+        if slot.stream_id:
+            occupants = occupants.exclude(stream_id=slot.stream_id)
+        else:
+            occupants = occupants.exclude(id=slot.id)
+
+        if occupants.exists() and not force:
+            other = occupants.first()
+            return JsonResponse({
+                'success': False,
+                'is_conflict': True,
+                'error': _('Конфликт в %(building)s, каб. %(num)s! Там уже сидит: %(group)s (%(subject)s)') % {
+                    'building': classroom.building.name if classroom.building else "Корпус?",
+                    'num': classroom.number,
+                    'group': other.group.name,
+                    'subject': other.subject.name
+                }
+            }, status=400)
+
+        if not force:
+            total_students = 0
             if slot.stream_id:
-                occupants = occupants.exclude(stream_id=slot.stream_id)
+                stream_slots = ScheduleSlot.objects.filter(stream_id=slot.stream_id)
+                for s in stream_slots:
+                    total_students += s.group.students.count()
             else:
-                occupants = occupants.exclude(id=slot.id)
+                total_students = slot.group.students.count()
 
-            if occupants.exists() and not force:
-                other = occupants.first()
+            if total_students > classroom.capacity:
                 return JsonResponse({
                     'success': False,
-                    'is_conflict': True,
-                    'error': _('Конфликт в %(building)s, каб. %(num)s! Там уже сидит: %(group)s (%(subject)s)') % {
-                        'building': classroom.building.name if classroom.building else "Корпус?",
-                        'num': classroom.number,
-                        'group': other.group.name,
-                        'subject': other.subject.name
-                    }
+                    'is_capacity_warning': True,
+                    'error': _('Вместимость кабинета (%(capacity)s) меньше количества студентов (%(students)s). Продолжить?') % {'capacity': classroom.capacity, 'students': total_students}
                 }, status=400)
-
-            if not force:
-                total_students = 0
-                if slot.stream_id:
-                    stream_slots = ScheduleSlot.objects.filter(stream_id=slot.stream_id)
-                    for s in stream_slots:
-                        total_students += s.group.students.count()
-                else:
-                    total_students = slot.group.students.count()
-
-                if total_students > classroom.capacity:
-                    return JsonResponse({
-                        'success': False,
-                        'is_capacity_warning': True,
-                        'error': _('Вместимость кабинета (%(capacity)s) меньше количества студентов (%(students)s). Продолжить?') % {'capacity': classroom.capacity, 'students': total_students}
-                    }, status=400)
 
         with transaction.atomic():
             if slot.stream_id:
@@ -453,7 +473,9 @@ def delete_schedule_slot(request, slot_id):
 def schedule_view(request):
     user = request.user
     group = None
+    teacher = None
     active_semester = None
+    
     if user.role == 'STUDENT':
         try:
             student = user.student_profile
@@ -472,6 +494,8 @@ def schedule_view(request):
              messages.warning(request, _('В системе не создано ни одного семестра.'))
              return render(request, 'schedule/no_semester.html')
 
+    groups = Group.objects.none()
+    
     if user.role == 'TEACHER':
         try:
             teacher = user.teacher_profile
@@ -498,9 +522,12 @@ def schedule_view(request):
             if not active_semester:
                 messages.warning(request, _('Нет активного семестра для %(course)s курса') % {'course': group.course})
 
+    slots = None
+    target_key = None
+    time_slots = TimeSlot.objects.none()
+    
     if group and active_semester:
         time_slots = get_time_slots_for_shift(active_semester.shift)
-        days = [(0, _('ДУШАНБЕ')), (1, _('СЕШАНБЕ')), (2, _('ЧОРШАНБЕ')), (3, _('ПАНҶШАНБЕ')), (4, _('ҶУМЪА')), (5, _('ШАНБЕ'))]
         valid_slot_ids = list(time_slots.values_list('id', flat=True))
 
         slots = ScheduleSlot.objects.filter(
@@ -509,17 +536,40 @@ def schedule_view(request):
             time_slot_id__in=valid_slot_ids,
             is_active=True
         ).select_related('subject', 'teacher__user', 'time_slot')
+        target_key = group.id
 
-        schedule_data = {group.id: {}}
+    elif teacher and active_semester and not group:
+        used_slot_ids = ScheduleSlot.objects.filter(
+            teacher=teacher, semester=active_semester, is_active=True
+        ).values_list('time_slot_id', flat=True).distinct()
+        
+        if used_slot_ids:
+            time_slots = TimeSlot.objects.filter(id__in=used_slot_ids).order_by('start_time')
+        else:
+            time_slots = get_time_slots_for_shift(active_semester.shift)
+
+        slots = ScheduleSlot.objects.filter(
+            teacher=teacher,
+            semester=active_semester,
+            is_active=True
+        ).select_related('subject', 'group', 'time_slot')
+        target_key = 'teacher'
+
+    if slots is not None:
+        days =[(0, _('ДУШАНБЕ')), (1, _('СЕШАНБЕ')), (2, _('ЧОРШАНБЕ')), (3, _('ПАНҶШАНБЕ')), (4, _('ҶУМЪА')), (5, _('ШАНБЕ'))]
+        
+        schedule_data = {target_key: {}}
         for slot in slots:
-            if slot.day_of_week not in schedule_data[group.id]:
-                schedule_data[group.id][slot.day_of_week] = {}
-            if slot.time_slot.id not in schedule_data[group.id][slot.day_of_week]:
-                schedule_data[group.id][slot.day_of_week][slot.time_slot.id] = []
-            schedule_data[group.id][slot.day_of_week][slot.time_slot.id].append(slot)
+            if slot.day_of_week not in schedule_data[target_key]:
+                schedule_data[target_key][slot.day_of_week] = {}
+            if slot.time_slot.id not in schedule_data[target_key][slot.day_of_week]:
+                schedule_data[target_key][slot.day_of_week][slot.time_slot.id] =[]
+            schedule_data[target_key][slot.day_of_week][slot.time_slot.id].append(slot)
 
         context = {
             'group': group,
+            'is_teacher_view': (target_key == 'teacher'),
+            'target_key': target_key,
             'groups': Group.objects.all() if user.role == 'DEAN' else groups if user.role == 'TEACHER' else None,
             'days': days,
             'time_slots': time_slots,
@@ -531,7 +581,7 @@ def schedule_view(request):
 
     context = {
         'group': group,
-        'groups': Group.objects.all() if user.role == 'DEAN' else None,
+        'groups': Group.objects.all() if user.role == 'DEAN' else groups if user.role == 'TEACHER' else None,
         'active_semester': active_semester,
     }
     return render(request, 'schedule/schedule_view_unified.html', context)

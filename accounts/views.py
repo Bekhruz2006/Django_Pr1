@@ -26,6 +26,7 @@ from .forms import (
     InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm,
     OrderForm, DocumentTemplateForm, SpecializationForm
 )
+
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import InstituteManagementForm, InstituteForm, FacultyFullForm
 from django.http import HttpResponse
@@ -1340,7 +1341,6 @@ def unassigned_students(request):
 @user_passes_test(lambda u: u.is_superuser or u.role in ['DEAN', 'VICE_DEAN'])
 def unassigned_students(request):
     user = request.user
-    
     faculty = None
     if hasattr(user, 'dean_profile') and getattr(user.dean_profile, 'faculty', None):
         faculty = user.dean_profile.faculty
@@ -1473,6 +1473,8 @@ def download_contingent_report(request):
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
 @login_required
 @user_passes_test(is_management)
 def mass_order_create(request: HttpRequest) -> HttpResponse:
@@ -1529,7 +1531,7 @@ def mass_order_create(request: HttpRequest) -> HttpResponse:
                     target_group: Optional[Group] = None
                     if order_type == 'TRANSFER' and target_group_id.isdigit():
                         target_group = Group.objects.get(id=int(target_group_id))
-
+                    
                     order_items: List[OrderItem] = []
                     for s_id in set(student_ids):
                         if s_id.isdigit():
@@ -1555,7 +1557,6 @@ def mass_order_create(request: HttpRequest) -> HttpResponse:
         'order_types': Order.ORDER_TYPES,
     }
     return render(request, 'accounts/mass_order_create.html', context)
-
 @login_required
 @user_passes_test(is_management)
 def add_specialization(request):
@@ -1565,7 +1566,6 @@ def add_specialization(request):
         initial['specialty'] = get_object_or_404(Specialty, id=specialty_id)
 
     faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
-
     if request.method == 'POST':
         form = SpecializationForm(request.POST, faculty=faculty)
         if form.is_valid():
@@ -1574,7 +1574,6 @@ def add_specialization(request):
             return redirect('accounts:manage_structure')
     else:
         form = SpecializationForm(initial=initial, faculty=faculty)
-        
     return render(request, 'accounts/form_generic.html', {'form': form, 'title': _('Добавить специализацию (Тахассус)')})
 
 @login_required

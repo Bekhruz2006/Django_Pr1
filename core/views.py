@@ -10,8 +10,7 @@ from journal.models import StudentStatistics
 from schedule.models import ScheduleSlot
 import json
 from datetime import datetime
-from schedule.models import Semester
-
+from schedule.models import Semester, SubjectMaterial
 
 @login_required
 def dashboard(request):
@@ -129,11 +128,15 @@ def dashboard(request):
         return render(request, 'core/dashboard_dean.html', context)
 
     elif user.role in ['TEACHER', 'HEAD_OF_DEPT']:
-        if hasattr(user, 'teacher_profile'):
-            context['profile'] = user.teacher_profile
-        elif hasattr(user, 'head_of_dept_profile'):
-            context['profile'] = user.head_of_dept_profile
-        return render(request, 'core/dashboard_teacher.html', context)
+            if hasattr(user, 'teacher_profile'):
+                context['profile'] = user.teacher_profile
+                
+                context['my_materials'] = SubjectMaterial.objects.filter(
+                    subject__teacher=user.teacher_profile
+                ).order_by('-uploaded_at')[:10]
+            elif hasattr(user, 'head_of_dept_profile'):
+                context['profile'] = user.head_of_dept_profile
+            return render(request, 'core/dashboard_teacher.html', context)
 
     else:
         context['profile'] = user.student_profile

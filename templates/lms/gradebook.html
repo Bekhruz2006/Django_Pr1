@@ -10,7 +10,7 @@
   <h5 class="mb-0"><i class="bi bi-table me-2"></i>{% trans "Журнал оценок" %}: {{ course.short_name }}</h5>
   {% if is_manager %}
   <a href="{% url 'lms:grade_item_manage' course.pk %}" class="btn btn-sm btn-outline-primary">
-    <i class="bi bi-plus me-1"></i>{% trans "Добавить элемент" %}
+    <i class="bi bi-table me-2"></i>{% trans "Добавить элемент" %}
   </a>
   {% endif %}
 </div>

@@ -153,12 +153,13 @@
         }
 
         .admin-menu-header {
-            font-size: 0.7rem;
+            font-size: 0.9rem;
             text-transform: uppercase;
             color: #6c757d;
             padding: 10px 20px;
             font-weight: bold;
             letter-spacing: 1px;
+            
         }
 
         body.dark-mode .admin-menu-header {
@@ -571,7 +572,7 @@
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 animate-fade-in">
                             <li>
                                 <div class="px-3 py-2">
-                                    <div class="fw-bold">{{ user.get_full_name }}</div>
+                                    <div class="dropdown-item">{{ user.get_full_name }}</div>
                                     <div class="small text-muted">{{ user.get_role_display }}</div>
                                 </div>
                             </li>
@@ -593,13 +594,14 @@
         </div>
     </nav>
 
+
     {% if user.is_authenticated %}
     <aside id="sidebar">
         {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
             <div class="admin-menu-header">{% trans "Администрирование" %}</div>
 
             <div class="sidebar-section-header" data-target="structure-menu">
-                <span><i class="bi bi-building me-2"></i>{% trans "Инфраструктура" %}</span>
+                <span><i class="bi bi-magic "></i>{% trans "Инфраструктура" %}</span>
                 <i class="bi bi-chevron-down toggle-icon"></i>
             </div>
             <div class="sidebar-menu-group" id="structure-menu">
@@ -629,6 +631,12 @@
                 </a>
                 <a class="sidebar-link" href="{% url 'accounts:group_management' %}">
                     <i class="bi bi-collection"></i> {% trans "Академические группы" %}
+                </a>
+                <a class="sidebar-link" href="{% url 'lms:dashboard' %}">
+                    <i class="bi bi-laptop"></i> {% trans "LMS — Платформа обучения" %}
+                </a>
+                <a class="sidebar-link" href="{% url 'lms:course_list' %}">
+                    <i class="bi bi-mortarboard"></i> {% trans "Все курсы" %}
                 </a>
             </div>
 
@@ -704,12 +712,7 @@
                 <a class="sidebar-link" href="{% url 'accounts:archive_expelled' %}">
                     <i class="bi bi-person-x-fill text-danger"></i> Отчисленные (Архив)
                 </a>
-                <a class="sidebar-link" href="{% url 'lms:dashboard' %}">
-                    <i class="bi bi-laptop"></i> {% trans "LMS — Платформа обучения" %}
-                </a>
-                <a class="sidebar-link" href="{% url 'lms:course_list' %}">
-                    <i class="bi bi-mortarboard"></i> {% trans "Все курсы" %}
-                </a>
+
 
                 {% endif %}
             </div>

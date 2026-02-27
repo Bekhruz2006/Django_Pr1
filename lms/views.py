@@ -9,6 +9,7 @@ from django.db.models import Q, Count, Avg
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from accounts.models import Student, User
+from lms.services import LMSManager
 
 from .models import (
     Course, CourseCategory, CourseSection, CourseModule,
@@ -252,8 +253,6 @@ def _create_module_content(module):
     t = module.module_type
     if t == 'PAGE':
         PageContent.objects.create(module=module, content='')
-    elif t == 'FILE':
-        pass 
     elif t == 'FOLDER':
         FolderResource.objects.create(module=module)
     elif t == 'URL':
@@ -266,7 +265,9 @@ def _create_module_content(module):
         Forum.objects.create(module=module)
     elif t == 'GLOSSARY':
         Glossary.objects.create(module=module)
-
+    elif t == 'QUIZ':
+        from testing.models import Quiz
+        Quiz.objects.create(module=module, description='Новый тест')
 
 @login_required
 def module_edit(request, module_id):
@@ -762,7 +763,6 @@ def sync_schedule(request, course_id):
     if not can_manage_course(request.user, course):
         return HttpResponseForbidden()
 
-    from lms.services import LMSManager
     success, msg = LMSManager.generate_structure_from_schedule(course)
     
     if success:

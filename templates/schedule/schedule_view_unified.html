@@ -12,7 +12,7 @@
     <div class="col-12">
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
-                <i class="bi bi-people"></i> Выбор группы
+                <i class="bi bi-people"></i> Выбор расписания
             </div>
             <div class="card-body">
                 <form method="get">
@@ -20,7 +20,7 @@
                         <div class="col-md-8">
                             <label class="form-label">Группа</label>
                             <select class="form-select" name="group" onchange="this.form.submit()">
-                                <option value="">Выбрать...</option>
+                                <option value="">{% if user.role == 'TEACHER' %}-- Показать мое расписание (Все группы) --{% else %}Выбрать...{% endif %}</option>
                                 {% for g in groups %}
                                     <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>
                                         {{ g.name }} - {{ g.specialty|truncatewords:8 }} ({{ g.students.count }} чел.)
@@ -41,18 +41,20 @@
     </div>
     {% endif %}
 
-    {% if group %}
+    {% if group or is_teacher_view %}
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <span>
-                    <i class="bi bi-calendar-week"></i> ҶАДВАЛИ ДАРСӢ - {{ group.name }}
+                    <i class="bi bi-calendar-week"></i> РАСПИСАНИЕ - {% if is_teacher_view %}МОИ ЗАНЯТИЯ{% else %}{{ group.name }}{% endif %}
                 </span>
                 <div>
+                    {% if group %}
                     <a href="{% url 'schedule:export' %}?group={{ group.id }}"
                        class="btn btn-success btn-sm">
                         <i class="bi bi-download"></i> Экспорт DOCX
                     </a>
+                    {% endif %}
                 </div>
             </div>
             <div class="card-body p-0">
@@ -61,9 +63,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 80px; vertical-align: middle; text-align: center;">
-                                    <strong>ҲАФТА<br>СОАТ</strong>
+                                    <strong>ДЕНЬ НЕДЕЛИ<br>ЧАС</strong>
                                 </th>
-                                <th style="width: 45%;">Дарс / Устод</th>
+                                <th style="width: 90%;">Урок / {% if is_teacher_view %}Группа{% else %}Преподаватель{% endif %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -82,7 +84,7 @@
                                             </strong>
                                         </td>
 
-                                        {% with slot_list=schedule_data|get_slot:group.id|get_slot:day_num|get_slot:time_slot.id %}
+                                        {% with slot_list=schedule_data|get_slot:target_key|get_slot:day_num|get_slot:time_slot.id %}
                                         <td class="p-1">
                                             {% if slot_list %}
                                                 <div class="d-flex flex-column gap-2">
@@ -97,7 +99,14 @@
                                                             </div>
                                                         </div>
                                                         <div class="d-flex justify-content-between align-items-end mt-2">
-                                                            <small class="text-muted"><i class="bi bi-person"></i> {{ slot.teacher.user.get_full_name|default:'—' }}</small>
+                                                            <small class="text-muted">
+                                                                <i class="bi {% if is_teacher_view %}bi-people{% else %}bi-person{% endif %}"></i> 
+                                                                {% if is_teacher_view %}
+                                                                    <strong>{{ slot.group.name }}</strong>
+                                                                {% else %}
+                                                                    {{ slot.teacher.user.get_full_name|default:'—' }}
+                                                                {% endif %}
+                                                            </small>
                                                             <span class="badge bg-white text-dark border"><i class="bi bi-door-open"></i> Каб. {{ slot.room|default:'—' }}</span>
                                                         </div>
                                                     </div>

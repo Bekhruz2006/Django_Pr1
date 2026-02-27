@@ -80,9 +80,10 @@ class LMSManager:
 
         while current_date <= end_date:
             week_start = current_date - timedelta(days=current_date.weekday())
-            week_end = week_start + timedelta(days=6)
+            week_end = week_start + timedelta(days=5) 
 
             week_type = 'RED' if week_num % 2 != 0 else 'BLUE'
+            week_type_ru = 'Красная' if week_type == 'RED' else 'Синяя'
 
             week_slots =[]
             for slot in slots:
@@ -95,14 +96,22 @@ class LMSManager:
                 week_slots.sort(key=lambda x: (x['date'], x['slot'].start_time))
 
                 is_last_week = (current_date + timedelta(days=7)) > end_date
-                section_name = f"Неделя {week_num} (Дата: {week_start.strftime('%d.%m.%Y')} - {week_end.strftime('%d.%m.%Y')})"
-                if is_last_week:
-                    section_name += " [Последняя неделя]"
+                
+                section_type = week_type
+                if week_num == 8:
+                    section_type = 'RATING1'
+                    section_name = f"Рейтинг 1 (Неделя {week_num} - {week_type_ru}: {week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')})"
+                elif week_num == 16 or is_last_week:
+                    section_type = 'RATING2'
+                    section_name = f"Рейтинг 2 (Неделя {week_num} - {week_type_ru}: {week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')})"
+                else:
+                    section_name = f"Неделя {week_num} ({week_type_ru}) ({week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')})"
 
                 section = CourseSection.objects.create(
                     course=course,
                     name=section_name,
-                    sequence=week_num
+                    sequence=week_num,
+                    section_type=section_type
                 )
 
                 seq = 1
@@ -110,39 +119,30 @@ class LMSManager:
                     slot = item['slot']
                     l_date = item['date']
 
-                    lesson_title = f"{lesson_counter} занятие (Дата {l_date.strftime('%d.%m.%Y')}) ({slot.get_lesson_type_display()})"
-
-                    CourseModule.objects.create(
-                        section=section, module_type='LABEL',
-                        title=lesson_title, sequence=seq
-                    )
-                    seq += 1
-
-                    folder_mod = CourseModule.objects.create(
-                        section=section, module_type='FOLDER',
-                        title=f"Материалы: {lesson_title}", sequence=seq
-                    )
-                    FolderResource.objects.create(module=folder_mod)
-                    seq += 1
-
-                    quiz_mod = CourseModule.objects.create(
-                        section=section, module_type='QUIZ',
-                        title=f"Тест: {lesson_title}", sequence=seq
-                    )
-                    from testing.models import Quiz
-                    Quiz.objects.create(module=quiz_mod, description="Тест по материалам занятия")
-                    seq += 1
+                    lesson_title = f"Занятие {lesson_counter} ({l_date.strftime('%d.%m')}) - {slot.get_lesson_type_display()}"
 
                     assign_mod = CourseModule.objects.create(
                         section=section, module_type='ASSIGNMENT',
-                        title=f"Задание: {lesson_title}", sequence=seq
+                        title=lesson_title, sequence=seq
                     )
-                    Assignment.objects.create(module=assign_mod, description="Задание для самостоятельной работы")
+                    
+                    from lms.models import Assignment
+                    max_score = 100.0 if section_type in ['RATING1', 'RATING2'] else 12.5
+                    
+                    Assignment.objects.create(
+                        module=assign_mod, 
+                        description="Загрузите выполненное задание или отчет сюда.",
+                        max_score=max_score
+                    )
                     seq += 1
-
                     lesson_counter += 1
 
             current_date += timedelta(days=7)
             week_num += 1
 
-        return True, "Структура успешно сгенерирована из расписания!"
+        from lms.models import GradeItem
+        GradeItem.objects.get_or_create(course=course, name="Рейтинг 1", defaults={'item_type': 'MANUAL', 'max_score': 30.0, 'sort_order': 901})
+        GradeItem.objects.get_or_create(course=course, name="Рейтинг 2", defaults={'item_type': 'MANUAL', 'max_score': 30.0, 'sort_order': 902})
+        GradeItem.objects.get_or_create(course=course, name="Экзамен", defaults={'item_type': 'MANUAL', 'max_score': 40.0, 'sort_order': 903})
+
+        return True, "Структура успешно сгенерирована: добавлены Задания, Тесты и Бально-рейтинговая система (Р1, Р2, Экзамен)!"

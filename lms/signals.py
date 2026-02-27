@@ -3,6 +3,10 @@ from django.dispatch import receiver
 from accounts.models import Student
 from schedule.models import Subject
 from .models import Course, CourseCategory, CourseEnrolment
+from lms.models import AssignmentSubmission
+from journal.models import JournalEntry
+from schedule.models import Subject
+
 
 @receiver(post_save, sender=Subject)
 def sync_subject_to_lms_course(sender, instance, created, **kwargs):
@@ -60,3 +64,30 @@ def sync_student_to_lms_courses(sender, instance, **kwargs):
                 user=instance.user,
                 defaults={'role': 'STUDENT', 'is_active': True}
             )
+
+@receiver(post_save, sender=AssignmentSubmission)
+def sync_lms_grade_to_journal(sender, instance, **kwargs):
+    if instance.status == 'GRADED' and instance.score is not None:
+        course = instance.assignment.module.section.course
+        student = instance.student.student_profile
+        
+        subject = Subject.objects.filter(code=course.id_number).first()
+        if not subject:
+            return
+            
+        entry, created = JournalEntry.objects.get_or_create(
+            student=student,
+            subject=subject,
+            lesson_date=instance.updated_at.date(),
+            defaults={
+                'lesson_time': '08:00', 
+                'lesson_type': 'PRACTICE',
+                'attendance_status': 'PRESENT'
+            }
+        )
+        
+        entry.grade = float(instance.score)
+        entry.attendance_status = 'PRESENT'
+        entry.save()
+
+

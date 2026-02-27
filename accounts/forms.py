@@ -18,6 +18,7 @@ class SpecializationForm(forms.ModelForm):
             'specialty': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: Веб-дизайн')}),
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Шифр (опционально)')}),
+
         }
 
     def __init__(self, *args, **kwargs):

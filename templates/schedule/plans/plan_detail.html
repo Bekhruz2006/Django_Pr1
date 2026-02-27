@@ -115,7 +115,7 @@
                         {% csrf_token %}
 
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">Текущий:</span>
+                            <span class="bi bi-check2-circle">Текущий </span>
                             <select name="semester_id" class="form-select border-start-0 ps-1 fw-bold" style="min-width: 250px;">
                                 <option value="" disabled {% if not active_semester %}selected{% endif %}>-- Не выбран --</option>
                                 {% for sem in available_semesters %}

@@ -110,8 +110,15 @@ class CourseEnrolment(models.Model):
 
 
 class CourseSection(models.Model):
-    course= models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sections')
-    name= models.CharField(max_length=255)
+    SECTION_TYPES =[
+        ('RED', _('Красная неделя')),
+        ('BLUE', _('Синяя неделя')),
+        ('RATING1', _('Рейтинг 1')),
+        ('RATING2', _('Рейтинг 2')),
+    ]
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sections')
+    name = models.CharField(max_length=255)
+    section_type = models.CharField(max_length=20, choices=SECTION_TYPES, default='REGULAR')
     summary= models.TextField(blank=True)
     sequence   = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
