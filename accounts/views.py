@@ -1604,6 +1604,21 @@ def delete_specialization(request, pk):
     return render(request, 'accounts/confirm_delete.html', {'obj': spec, 'title': _('Удалить специализацию')})
 
 
+@login_required
+def view_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
+
+    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        if group.specialty and group.specialty.department.faculty != faculty:
+            messages.error(request, _("Нет доступа к этой группе"))
+            return redirect('accounts:group_management')
+
+    return render(request, 'accounts/view_group.html', {
+        'group': group,
+        'students': students
+    })
 
 
 

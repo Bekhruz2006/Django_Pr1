@@ -7,9 +7,19 @@ import math
 from django.utils.translation import gettext_lazy as _
 from accounts.models import Institute, Student
 import math
-
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+import os
 from django.db import models
 import math
+ROOM_TYPES =[
+    ('LECTURE', _('Лекционная (Поточная)')),
+    ('PRACTICE', _('Практическая (Обычная)')),
+    ('COMPUTER', _('Компьютерный класс')),
+    ('LAB', _('Лаборатория')),
+    ('LINGUISTIC', _('Лингафонный кабинет')),
+    ('SPORT', _('Спортивный зал')),
+]
 
 
 class Subgroup(models.Model):
@@ -77,6 +87,10 @@ class Subject(models.Model):
     is_stream_subject = models.BooleanField(
         default=False,
         verbose_name=_("Это поток (совместное занятие)")
+    )
+    preferred_room_type = models.CharField(
+        max_length=20, choices=ROOM_TYPES, blank=True, null=True,
+        verbose_name=_("Рекомендуемый тип аудитории")
     )
 
     teacher = models.ForeignKey(
@@ -328,13 +342,7 @@ class Semester(models.Model):
         return cls.objects.filter(is_active=True).first()
 
 class Classroom(models.Model):
-    ROOM_TYPES = [
-        ('LECTURE', _('Лекционная (Обычная)')),
-        ('COMPUTER', _('Компьютерный класс')),
-        ('LAB', _('Лаборатория')),
-        ('LINGUISTIC', _('Лингафонный кабинет')),
-        ('SPORT', _('Спортивный зал')),
-    ]
+
 
     building = models.ForeignKey(
         Building,
@@ -347,8 +355,7 @@ class Classroom(models.Model):
     floor = models.IntegerField(verbose_name=_("Этаж"))
     capacity = models.IntegerField(default=30, verbose_name=_("Вместимость"))
 
-    room_type = models.CharField(max_length=20, choices=ROOM_TYPES, default='LECTURE', verbose_name=_("Тип кабинета"))
-
+    room_type = models.CharField(max_length=20, choices=ROOM_TYPES, default='PRACTICE', verbose_name=_("Тип кабинета"))
     is_active = models.BooleanField(default=True, verbose_name=_("Активен"))
 
     class Meta:
@@ -548,6 +555,10 @@ class PlanDiscipline(models.Model):
 
     control_type = models.CharField(max_length=20, choices=CONTROL_CHOICES, default='EXAM', verbose_name=_("Форма контроля"))
     has_course_work = models.BooleanField(default=False, verbose_name=_("Есть курсовая работа (КР)"))
+    preferred_room_type = models.CharField(
+        max_length=20, choices=ROOM_TYPES, blank=True, null=True,
+        verbose_name=_("Рекомендуемый тип аудитории")
+    )
 
     class Meta:
         verbose_name = _("Дисциплина плана")
@@ -575,4 +586,13 @@ class SubjectMaterial(models.Model):
     def __str__(self):
         return self.title
 
+@receiver(post_delete, sender=SubjectMaterial)
+def auto_delete_material_file(sender, instance, **kwargs):
+    if instance.file and os.path.isfile(instance.file.path):
+        os.remove(instance.file.path)
+
+@receiver(post_delete, sender=Subject)
+def auto_delete_syllabus_file(sender, instance, **kwargs):
+    if getattr(instance, 'syllabus_file', None) and os.path.isfile(instance.syllabus_file.path):
+        os.remove(instance.syllabus_file.path)
 

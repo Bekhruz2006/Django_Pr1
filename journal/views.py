@@ -600,6 +600,7 @@ def update_journal_cell(request):
                 entry.attendance_status = 'PRESENT'
                 entry.participation = 'NONE'
                 response_data['display'] = ''
+                response_data['type'] = 'clear'
                 
             elif value in ['н', 'нб', 'nb', 'n', 'abs']:
                 entry.grade = None

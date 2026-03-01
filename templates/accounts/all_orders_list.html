@@ -61,11 +61,27 @@
                                 </td>
                                 <td>{{ order.date|date:"d.m.Y" }}</td>
                                 <td>
-                                    <a href="{% url 'accounts:view_user_profile' order.student.user.id %}">
-                                        {{ order.student.user.get_full_name }}
-                                    </a>
+                                    {% with items=order.items.all %}
+                                        {% if items %}
+                                            {% for item in items|slice:":2" %}
+                                                <a href="{% url 'accounts:view_user_profile' item.student.user.id %}" class="text-decoration-none">
+                                                    {{ item.student.user.get_full_name }}
+                                                </a><br>
+                                            {% endfor %}
+                                            {% if items.count > 2 %}
+                                                <small class="text-muted">и ещё {{ items.count|add:"-2" }} чел.</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Нет студентов</span>
+                                        {% endif %}
+                                    {% endwith %}
                                 </td>
-                                <td>{{ order.student.group.name|default:"-" }}</td>
+                                <td>
+                                    {% with first_item=order.items.first %}
+                                        {{ first_item.student.group.name|default:"-" }}
+                                        {% if order.items.count > 1 %}<br><small class="text-muted">(смешанные)</small>{% endif %}
+                                    {% endwith %}
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ order.get_order_type_display }}</span>
                                 </td>
@@ -75,7 +91,7 @@
                                         {% if order.file %}
                                             <a href="{{ order.file.url }}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-pdf"></i></a>
                                         {% endif %}
-                                        
+
                                         {% if order.status == 'DRAFT' %}
                                             {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
                                             <form action="{% url 'accounts:approve_order' order.id %}" method="post" style="display:inline;">

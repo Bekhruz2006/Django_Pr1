@@ -66,7 +66,16 @@
             </div>
             <div class="card-body">
                 <p><strong>{% trans "Основная кафедра" %}:</strong><br> {{ profile.department.name|default:_("Не назначена") }}</p>
-
+                {% if profile.curated_groups.exists %}
+                    <div class="mt-3 p-3 bg-success bg-opacity-10 border border-success rounded">
+                        <h6 class="text-success fw-bold"><i class="bi bi-star-fill"></i> {% trans "Куратор групп:" %}</h6>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                        {% for g in profile.curated_groups.all %}
+                            <a href="{% url 'accounts:view_group' g.id %}" class="badge bg-success text-decoration-none fs-6">{{ g.name }}</a>
+                        {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
                 {% if profile.additional_departments.exists %}
                     <p><strong>{% trans "Дополнительные кафедры" %}:</strong><br>
                     {% for dept in profile.additional_departments.all %}

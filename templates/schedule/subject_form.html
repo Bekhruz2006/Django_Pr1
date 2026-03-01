@@ -86,7 +86,11 @@
                             <div class="form-text text-success">Кафедра выбрана автоматически</div>
                         {% endif %}
                     </div>
-
+                        <div class="col-md-6">
+                            <label class="form-label">Тип кабинета (Рекомендация)</label>
+                            {{ form.preferred_room_type }}
+                            <div class="form-text text-muted">Помогает при составлении расписания (например: Компьютерный класс)</div>
+                        </div>
                     <div class="card bg-light border-0 mb-4">
                         <div class="card-body">
                             <div class="row align-items-center">

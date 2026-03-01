@@ -30,6 +30,10 @@
                             <div class="text-danger small">{{ form.name.errors.0 }}</div>
                         {% endif %}
                         <div class="form-text">{% trans "Имя должно быть уникальным (например: 400101-А)" %}</div>
+                        <label class="form-label">{% trans "Куратор группы" %}</label>
+                        {{ form.curator }}
+                        <div class="form-text">{% trans "Необязательно. Можно назначить позже." %}</div>
+
                     </div>
                     
                     <div class="row">

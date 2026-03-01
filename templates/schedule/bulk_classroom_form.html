@@ -12,7 +12,7 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Учебный корпус *</label>
                         {{ form.building }}
@@ -20,35 +20,41 @@
                             <div class="text-danger small">{{ form.building.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Этаж *</label>
                         {{ form.floor }}
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Начальный номер *</label>
                             {{ form.start_number }}
                         </div>
-                        
+
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Конечный номер *</label>
                             {{ form.end_number }}
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Вместимость (по умолчанию) *</label>
-                        {{ form.capacity }}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Вместимость (по умолчанию) *</label>
+                            {{ form.capacity }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Тип кабинетов *</label>
+                            {{ form.room_type }}
+                        </div>
                     </div>
-                    
+
                     <div class="alert alert-info small">
-                        <i class="bi bi-info-circle"></i> 
+                        <i class="bi bi-info-circle"></i>
                         <strong>Пример:</strong> Если выбрать "Главный корпус", Этаж 3, с 301 по 305:<br>
                         Будут созданы кабинеты: 301, 302, 303, 304, 305 в Главном корпусе.
                     </div>
-                    
+
                     <div class="d-flex gap-2 justify-content-end">
                         <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-secondary">Отмена</a>
                         <button type="submit" class="btn btn-primary px-4">Создать кабинеты</button>

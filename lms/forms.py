@@ -40,7 +40,7 @@ class CourseForm(forms.ModelForm):
             'short_name':  forms.TextInput(attrs={'class': 'form-control'}),
             'id_number':   forms.TextInput(attrs={'class': 'form-control'}),
             'summary':     forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'image':       forms.FileInput(attrs={'class': 'form-control'}),
+            'image':       forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'visibility':  forms.Select(attrs={'class': 'form-select'}),
             'format':      forms.Select(attrs={'class': 'form-select'}),
             'start_date':  forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

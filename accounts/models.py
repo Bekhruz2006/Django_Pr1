@@ -275,6 +275,15 @@ class Group(models.Model):
         related_name='groups', 
         verbose_name=_("Направление")
     )
+    curator = models.ForeignKey(
+        'Teacher', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='curated_groups', 
+        verbose_name=_("Куратор группы")
+    )
+
     name = models.CharField(max_length=50, unique=True, verbose_name=_("Название группы (напр. 400101-А)"))
     course = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(6)], verbose_name=_("Курс"))
     academic_year = models.CharField(max_length=20, verbose_name=_("Учебный год"))
@@ -593,37 +602,48 @@ class Order(models.Model):
         return f"Приказ №{self.number} от {self.date.strftime('%d.%m.%Y')} ({self.get_order_type_display()})"
 
     def apply_effect(self, approver_user):
-        if self.status == 'APPROVED':
-            return
+            if self.status == 'APPROVED':
+                return
 
-        with transaction.atomic():
-            for item in self.items.all():
-                student = item.student
-                if self.order_type == 'EXPEL':
-                    student.status = 'EXPELLED'
-                    student.group = None
-                elif self.order_type == 'ACADEMIC_LEAVE':
-                    student.status = 'ACADEMIC_LEAVE'
-                elif self.order_type == 'GRADUATE':
-                    student.status = 'GRADUATED'
-                    student.group = None
-                elif self.order_type == 'RESTORE':
-                    student.status = 'ACTIVE'
-                elif self.order_type == 'TRANSFER':
-                    if item.target_group:
-                        GroupTransferHistory.objects.create(
-                            student=student,
-                            from_group=student.group,
-                            to_group=item.target_group,
-                            reason=item.reason,
-                            transferred_by=approver_user
-                        )
-                        student.group = item.target_group
-                student.save()
+            with transaction.atomic():
+                groups_to_recalc = set() 
 
-            self.status = 'APPROVED'
-            self.approved_by = approver_user
-            self.save()
+                for item in self.items.all():
+                    student = item.student
+                    old_group = student.group
+                    if old_group:
+                        groups_to_recalc.add(old_group)
+
+                    if self.order_type == 'EXPEL':
+                        student.status = 'EXPELLED'
+                        student.group = None
+                    elif self.order_type == 'ACADEMIC_LEAVE':
+                        student.status = 'ACADEMIC_LEAVE'
+                    elif self.order_type == 'GRADUATE':
+                        student.status = 'GRADUATED'
+                        student.group = None
+                    elif self.order_type == 'RESTORE':
+                        student.status = 'ACTIVE'
+                    elif self.order_type == 'TRANSFER':
+                        if item.target_group:
+                            GroupTransferHistory.objects.create(
+                                student=student,
+                                from_group=old_group,
+                                to_group=item.target_group,
+                                reason=item.reason,
+                                transferred_by=approver_user
+                            )
+                            student.group = item.target_group
+                            groups_to_recalc.add(item.target_group)
+                    student.save()
+
+                self.status = 'APPROVED'
+                self.approved_by = approver_user
+                self.save()
+
+                from journal.models import StudentStatistics
+                for g in groups_to_recalc:
+                    StudentStatistics.recalculate_group(g)
 
 
 

@@ -10,6 +10,7 @@ urlpatterns = [
     path('categories/', views.category_list, name='category_list'),
     path('categories/create/', views.category_create, name='category_create'),
     path('categories/<int:category_id>/edit/', views.category_edit, name='category_edit'),
+    path('modules/<int:module_id>/toggle-visibility/', views.module_toggle_visibility, name='module_toggle_visibility'),
 
     path('courses/create/', views.course_create, name='course_create'),
     path('courses/<int:course_id>/', views.course_detail, name='course_detail'),

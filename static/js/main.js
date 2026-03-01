@@ -49,3 +49,36 @@ function sortTable(header) {
     
     rows.forEach(row => tbody.appendChild(row));
 }
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const pageKey = 'scrollPos_' + window.location.pathname + window.location.search;
+    
+    const savedScroll = sessionStorage.getItem(pageKey);
+    if (savedScroll) {
+        setTimeout(() => {
+            window.scrollTo({
+                top: parseInt(savedScroll, 10),
+                behavior: 'instant' 
+            });
+            sessionStorage.removeItem(pageKey);
+        }, 50); 
+    }
+
+    window.addEventListener('beforeunload', function() {
+        sessionStorage.setItem(pageKey, window.scrollY);
+    });
+
+    document.querySelectorAll('.btn-back').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const fallbackUrl = this.getAttribute('href');
+            
+            if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+                window.history.back();
+            } else {
+                window.location.href = fallbackUrl;
+            }
+        });
+    });
+});

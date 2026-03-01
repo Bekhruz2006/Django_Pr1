@@ -5,7 +5,6 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Приветствие -->
     <div class="row mb-4">
         <div class="col-12">
             <h3 class="fw-bold text-dark">
@@ -15,7 +14,6 @@
         </div>
     </div>
 
-    <!-- KPI Карточки -->
     <div class="row g-4 mb-4">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm border-start border-4 border-primary">
@@ -43,7 +41,6 @@
         </div>
     </div>
 
-    <!-- Основной блок: Приказы на подпись -->
     <div class="row">
         <div class="col-lg-12">
             <div class="card border-0 shadow-sm">
@@ -76,8 +73,17 @@
                                         <span class="badge bg-secondary">{{ order.get_order_type_display }}</span>
                                     </td>
                                     <td>
-                                        {{ order.student.user.get_full_name }}
-                                        <br><small class="text-muted">{{ order.student.group.name }}</small>
+                                        {% with first_item=order.items.first %}
+                                            {% if first_item %}
+                                                <span class="fw-medium">{{ first_item.student.user.get_full_name }}</span>
+                                                {% if order.items.count > 1 %}
+                                                    <span class="badge bg-secondary ms-1">+{{ order.items.count|add:"-1" }}</span>
+                                                {% endif %}
+                                                <br><small class="text-muted">{{ first_item.student.group.name|default:"Без группы" }}</small>
+                                            {% else %}
+                                                <span class="text-muted">Пустой приказ</span>
+                                            {% endif %}
+                                        {% endwith %}
                                     </td>
                                     <td>{{ order.created_by.get_full_name }}</td>
                                     <td><small>{{ order.reason|truncatewords:5 }}</small></td>
@@ -88,7 +94,7 @@
                                                     <i class="bi bi-file-pdf"></i>
                                                 </a>
                                             {% endif %}
-                                            
+
                                             <form action="{% url 'accounts:approve_order' order.id %}" method="post">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-sm btn-success shadow-sm" onclick="return confirm('{% trans 'Вы уверены, что хотите утвердить этот приказ?' %}')">

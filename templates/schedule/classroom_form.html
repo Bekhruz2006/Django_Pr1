@@ -40,6 +40,7 @@
                             <label class="form-label">Вместимость *</label>
                             {{ form.capacity }}
                         </div>
+
                     </div>
                     
                     <div class="mb-3 form-check bg-light p-2 rounded border">
@@ -48,7 +49,7 @@
                             Кабинет активен (доступен для расписания)
                         </label>
                     </div>
-                    
+
                     <div class="d-flex gap-2 justify-content-end">
                         <a href="{% url 'schedule:manage_classrooms' %}" class="btn btn-secondary">Отмена</a>
                         <button type="submit" class="btn btn-primary px-4">Сохранить</button>

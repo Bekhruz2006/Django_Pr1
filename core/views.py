@@ -27,7 +27,8 @@ def dashboard(request):
         students_qs = Student.objects.filter(status='ACTIVE')
         teachers_qs = Teacher.objects.all()
         groups_qs = Group.objects.all()
-        orders_qs = Order.objects.filter(status='DRAFT').select_related('student__user', 'created_by').order_by('date')
+        orders_qs = Order.objects.filter(status='DRAFT').select_related('created_by').prefetch_related('items__student__user', 'items__student__group').order_by('date')
+
 
         if selected_institute_id:
             try:
@@ -37,7 +38,6 @@ def dashboard(request):
                 teachers_qs = teachers_qs.filter(department__faculty__in=faculties_ids)
                 groups_qs = groups_qs.filter(specialty__department__faculty__in=faculties_ids)
                 orders_qs = orders_qs.filter(student__group__specialty__department__faculty__in=faculties_ids)
-                #tye = Null
             except Institute.DoesNotExist:
                 pass
 

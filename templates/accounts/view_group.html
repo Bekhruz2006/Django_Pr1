@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}Группа {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-people-fill"></i> Группа: {{ group.name }}</h5>
+                <a href="{% url 'accounts:group_management' %}" class="btn btn-sm btn-light text-primary btn-back">
+                    <i class="bi bi-arrow-left"></i> Назад
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 bg-light p-3 rounded border">
+                    <div class="row">
+                        <div class="col-md-4"><strong>Курс:</strong> {{ group.course }}</div>
+                        <div class="col-md-4"><strong>Специальность:</strong> {{ group.specialty.code }}</div>
+                        <div class="col-md-4"><strong>Куратор:</strong> {{ group.curator.user.get_full_name|default:"Не назначен" }}</div>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3">Список студентов ({{ students.count }})</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border">
+                        <thead class="table-light">
+                            <tr>
+                                <th>№</th>
+                                <th>ФИО Студента</th>
+                                <th>Зачетка</th>
+                                <th>Бюджет/Контракт</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td class="fw-bold">{{ student.user.get_full_name }}</td>
+                                <td>{{ student.student_id }}</td>
+                                <td>
+                                    <span class="badge {% if student.financing_type == 'BUDGET' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                        {{ student.get_financing_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'accounts:view_user_profile' student.user.id %}" class="btn btn-sm btn-outline-info"><i class="bi bi-person-vcard"></i> Профиль</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">В этой группе пока нет студентов</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

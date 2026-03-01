@@ -190,43 +190,70 @@
                                         <div class="d-flex flex-column gap-1 h-100">
                                             {% for slot in slot_list %}
                                             {% if not forloop.first %}<hr class="my-1 border-dashed opacity-50">{% endif %}
-                                            <div class="lesson-card p-2 rounded shadow-sm position-relative
+                                            <div class="lesson-card p-2 rounded shadow-sm position-relative d-flex flex-column
                                                 {% if slot.week_type == 'RED' %}border-start border-4 border-danger
                                                 {% elif slot.week_type == 'BLUE' %}border-start border-4 border-primary
                                                 {% else %}border-start border-4 border-{{ slot.get_color_class }}{% endif %}" 
                                                 style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %}; min-width: 0;"
                                                 data-week-type="{{ slot.week_type }}">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <div>
-                                                        <span class="badge bg-{{ slot.get_color_class }} mb-1">
-                                                            {{ slot.get_lesson_type_display }}
-                                                            {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
-                                                        </span>
-                                                        {% if slot.week_type == 'RED' %}<span class="badge bg-danger ms-1">🔴 Красная</span>{% endif %}
-                                                        {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary ms-1">🔵 Синяя</span>{% endif %}
-                                                        {% if slot.week_type == 'EVERY' %}<span class="badge bg-secondary ms-1" style="opacity:0.6;">Обе нед.</span>{% endif %}
-                                                    </div>
-                                                    <button class="btn btn-link text-danger p-0 delete-slot" data-slot-id="{{ slot.id }}" title="Удалить"><i class="bi bi-x-circle-fill"></i></button>
-                                                </div>
-                                                <div class="fw-bold text-dark mt-1 lh-sm">{{ slot.subject.name }}</div>
-                                                <div class="small text-muted mb-1">{{ slot.teacher.user.get_full_name|default:'Не назначен' }}</div>
                                                 
-                                                <div class="aud-cell mt-auto d-flex align-items-center flex-wrap gap-1">
-                                                    <span class="small text-muted me-1"><i class="bi bi-door-open"></i> Каб:</span>
-                                                    <div class="aud-display badge bg-secondary text-wrap" style="cursor: pointer; min-width: 40px;" onclick="editAud(this)" title="Изменить кабинет">
-                                                        {{ slot.room|default:'?' }}
+                                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                                    <div class="fw-bold text-dark lh-sm pe-2" style="font-size: 0.9rem;">
+                                                        {{ slot.subject.name }}
                                                     </div>
-                                                    <select class="form-select form-select-sm aud-input p-0" style="display: none; max-width: 120px;" onchange="saveAud(this, {{ slot.id }})" onblur="saveAud(this, {{ slot.id }})">
-                                                        <option value="">-- Выбрать --</option>
-                                                        {% regroup classrooms by building as building_list %}
-                                                        {% for bg in building_list %}
-                                                            <optgroup label="{{ bg.grouper.name }}">
-                                                                {% for c in bg.list %}
-                                                                    <option value="{{ c.id }}" {% if slot.classroom_id == c.id %}selected{% endif %}>{{ c.number }} (Вмест: {{ c.capacity }})</option>
-                                                                {% endfor %}
-                                                            </optgroup>
-                                                        {% endfor %}
-                                                    </select>
+                                                    <button class="btn btn-link text-danger p-0 delete-slot flex-shrink-0" data-slot-id="{{ slot.id }}" title="Удалить">
+                                                        <i class="bi bi-x-circle-fill"></i>
+                                                    </button>
+                                                </div>
+                                                
+                                                <div class="mb-2">
+                                                    <span class="badge bg-{{ slot.get_color_class }}">
+                                                        {{ slot.get_lesson_type_display }}
+                                                        {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
+                                                    </span>
+                                                    {% if slot.week_type == 'RED' %}<span class="badge bg-danger ms-1">🔴 Красная</span>{% endif %}
+                                                    {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary ms-1">🔵 Синяя</span>{% endif %}
+                                                    {% if slot.week_type == 'EVERY' %}<span class="badge bg-secondary ms-1" style="opacity:0.6;">Обе нед.</span>{% endif %}
+                                                </div>
+                                                
+                                                <div class="d-flex justify-content-between align-items-end mt-auto pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                                                    
+                                                    <div class="small text-muted text-truncate pe-2" style="max-width: 60%;" title="{{ slot.teacher.user.get_full_name|default:'Не назначен' }}">
+                                                        <i class="bi bi-person-fill text-secondary"></i> 
+                                                        {% if slot.teacher %}
+                                                            {{ slot.teacher.user.last_name }} {{ slot.teacher.user.first_name|slice:":1" }}.
+                                                        {% else %}
+                                                            Не назначен
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <div class="aud-cell d-flex align-items-center justify-content-end" style="max-width: 40%;">
+                                                        <div class="aud-display badge bg-white text-dark border shadow-sm" 
+                                                            style="cursor: pointer; font-size: 0.8rem; padding: 0.35em 0.6em;" 
+                                                            onclick="editAud(this)" title="Изменить кабинет">
+                                                            <i class="bi bi-door-open text-primary"></i> {{ slot.room|default:'Выбрать' }}
+                                                        </div>
+                                                        
+                                                        <select class="form-select form-select-sm aud-input p-0 text-center shadow-sm" 
+                                                                style="display: none; min-width: 90px; font-size: 0.8rem;" 
+                                                                onchange="saveAud(this, {{ slot.id }})">
+                                                            <option value="">-- Выбрать --</option>
+                                                            {% regroup classrooms by building as building_list %}
+                                                            {% for bg in building_list %}
+                                                                <optgroup label="{{ bg.grouper.name }}">
+                                                                    {% for c in bg.list %}
+                                                                        {% is_room_busy_tag occupied_rooms day_num time_slot.id c.id slot.id slot.stream_id slot.week_type as room_busy %}
+                                                                        {% if not room_busy %}
+                                                                            <option value="{{ c.id }}" {% if slot.classroom_id == c.id %}selected{% endif %}>
+                                                                                {{ c.number }} (Вм: {{ c.capacity }}, {{ c.get_room_type_display|truncatechars:12 }})
+                                                                            </option>
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                </optgroup>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    
                                                 </div>
                                             </div>
                                             {% endfor %}
@@ -435,6 +462,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
     });
+    window.isConfirmingRoom = false;
 
     window.editAud = function(el) {
         if (!el) return;
@@ -444,53 +472,65 @@ document.addEventListener('DOMContentLoaded', function() {
         el.style.display = 'none';
         input.style.display = 'block';
         input.focus();
+        
+        input.onblur = function() {
+            if (!window.isConfirmingRoom) {
+                input.style.display = 'none';
+                el.style.display = 'inline-block';
+            }
+        };
     };
 
-    window.saveAud = function(input, slotId, isForce = false) {
-        const val = input.value;
-        const cell = input.closest('.aud-cell');
-        const display = cell.querySelector('.aud-display');
+window.saveAud = function(input, slotId, isForce = false) {
+    const val = input.value; 
+    const cell = input.closest('.aud-cell');
+    const display = cell.querySelector('.aud-display');
 
-        fetch(`/schedule/constructor/update-room/${slotId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                room: val,
-                room: textVal,
-                force: isForce
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                input.style.display = 'none';
-                if (display) {
-                    display.innerText = data.room || '?';
-                    display.style.display = 'inline-block';
-                    display.classList.add('bg-success', 'text-white');
-                    setTimeout(() => display.classList.remove('bg-success', 'text-white'), 1000);
+    window.isConfirmingRoom = true;
+
+    fetch(`/schedule/constructor/update-room/${slotId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ room_id: val, force: isForce })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            input.style.display = 'none';
+            if (display) {
+                display.innerText = data.room || '?';
+                display.style.display = 'inline-block';
+                display.classList.add('bg-success', 'text-white');
+                setTimeout(() => display.classList.remove('bg-success', 'text-white'), 1000);
+            }
+        } else {
+            if (data.is_capacity_warning || data.is_conflict || data.is_type_warning) {
+                if (confirm(data.error + "\n\nНажмите ОК, чтобы назначить принудительно.")) {
+                    saveAud(input, slotId, true);
+                } else {
+                    input.value = ""; 
+                    input.style.display = 'none';
+                    if (display) display.style.display = 'inline-block';
                 }
             } else {
-                if (data.is_capacity_warning || data.is_conflict) {
-                    if (confirm(data.error + "\n\nНажмите ОК, чтобы назначить принудительно.")) {
-                        saveAud(input, slotId, true);
-                    } else {
-                        input.focus();
-                    }
-                } else {
-                    alert('Ошибка: ' + data.error);
-                    input.focus();
-                }
+                alert('Ошибка: ' + data.error);
+                input.focus();
             }
-        })
-        .catch(err => {
-            alert('Ошибка сети');
-            console.error(err);
-        });
-    };
+        }
+    })
+    .catch(err => {
+        alert('Ошибка сети');
+        console.error(err);
+    })
+    .finally(() => {
+        window.isConfirmingRoom = false; 
+    });
+};
+
+
 
     let autoScrollState = {
         active: false,

@@ -771,3 +771,23 @@ def sync_schedule(request, course_id):
         messages.error(request, msg)
         
     return redirect('lms:course_detail', course_id=course.pk)
+
+
+
+@login_required
+@require_POST
+def module_toggle_visibility(request, module_id):
+    module = get_object_or_404(CourseModule, pk=module_id)
+    
+    if not can_manage_course(request.user, module.section.course):
+        return JsonResponse({'success': False, 'error': 'Нет прав'}, status=403)
+
+    module.is_visible = not module.is_visible
+    module.save()
+
+    return JsonResponse({
+        'success': True,
+        'is_visible': module.is_visible
+    })
+
+

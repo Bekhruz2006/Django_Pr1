@@ -215,25 +215,24 @@
 
                     <div class="row g-2 mb-3">
                         <div class="col-6 mt-2">
-                            <div class="form-check">
+                            <div class="form-check mb-2">
                                 {{ form.has_subgroups }}
                                 <label class="form-check-label small" for="{{ form.has_subgroups.id_for_label }}">
                                     + Подгруппы
                                 </label>
                             </div>
-                        </div>
-
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Контроль</label>
-                            {{ form.control_type }}
-                        </div>
-                        <div class="col-6 d-flex align-items-end">
                             <div class="form-check mb-2">
                                 {{ form.has_course_work }}
                                 <label class="form-check-label small" for="{{ form.has_course_work.id_for_label }}">
                                     + Курсовая
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Тип аудитории</label>
+                            {{ form.preferred_room_type }}
+                            <small class="text-muted" style="font-size: 0.65rem;">(Опционально)</small>
                         </div>
                     </div>
 

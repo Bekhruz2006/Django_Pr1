@@ -7,7 +7,7 @@ from accounts.models import Group, Teacher, Department, Specialty, Institute
 from .models import SubjectMaterial
 from .models import PlanDiscipline, AcademicPlan
 from datetime import datetime
-from .models import Classroom, Building, Semester, Institute, Department, Group
+from .models import Classroom, Building, Semester, Institute, Department, Group, ROOM_TYPES
 
 def get_year_choices():
     current_year = datetime.now().year
@@ -39,7 +39,7 @@ class SubjectForm(forms.ModelForm):
         fields = [
             'name', 'code', 'department', 'semester_weeks', 'type',
             'lecture_hours', 'practice_hours', 'control_hours', 'independent_work_hours',
-            'teacher', 'groups', 'description', 'is_stream_subject'
+            'teacher', 'groups', 'description', 'is_stream_subject', 'preferred_room_type' 
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -49,6 +49,7 @@ class SubjectForm(forms.ModelForm):
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'groups': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'preferred_room_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
 
@@ -166,6 +167,12 @@ class BulkClassroomForm(forms.Form):
     start_number = forms.IntegerField(label=_("Начальный номер"), widget=forms.NumberInput(attrs={'class': 'form-control'}))
     end_number = forms.IntegerField(label=_("Конечный номер"), widget=forms.NumberInput(attrs={'class': 'form-control'}))
     capacity = forms.IntegerField(label=_("Вместимость"), initial=30, widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    room_type = forms.ChoiceField(
+        choices= ROOM_TYPES,
+        initial='PRACTICE',
+        label=_("Тип кабинетов"),
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -252,7 +259,7 @@ class PlanDisciplineForm(forms.ModelForm):
             'subject_template', 'semester_number', 'cycle', 'discipline_type',
             'credits', 'control_type',
             'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours',
-            'has_course_work', 'has_subgroups'  # Добавили новые поля
+            'has_course_work', 'has_subgroups', 'preferred_room_type'
         ]
         widgets = {
             'subject_template': forms.Select(attrs={'class': 'form-select select2'}),
@@ -268,6 +275,7 @@ class PlanDisciplineForm(forms.ModelForm):
             'independent_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_independent_hours'}),
             'has_course_work': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'has_subgroups': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'preferred_room_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):

@@ -60,6 +60,9 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'accounts:view_group' group.id %}" class="btn btn-outline-success" title="{% trans 'Просмотр студентов' %}">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                         <a href="{% url 'accounts:edit_group' group.id %}" class="btn btn-outline-primary" title="{% trans 'Редактировать' %}">
                                             <i class="bi bi-pencil"></i>
                                         </a>
