@@ -358,6 +358,18 @@ class Student(models.Model):
     sponsor_relation = models.CharField(max_length=50, blank=True, verbose_name=_("Отношение спонсора"))
     specialty = models.ForeignKey('Specialty', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Специальность (Направление)"))
     specialization = models.ForeignKey('Specialization', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Специализация (Профиль)"))
+    middle_name = models.CharField(max_length=150, blank=True, verbose_name=_("Отчество"))
+    place_of_birth = models.CharField(max_length=255, blank=True, verbose_name=_("Место рождения"))
+    
+    prev_education_type = models.CharField(max_length=100, blank=True, verbose_name=_("Вид уч. заведения"))
+    prev_education_institution = models.CharField(max_length=255, blank=True, verbose_name=_("Учебное заведение"))
+    prev_education_year = models.IntegerField(null=True, blank=True, verbose_name=_("Год окончания"))
+    doc_type = models.CharField(max_length=100, blank=True, verbose_name=_("Тип документа (Аттестат/Диплом)"))
+    doc_number = models.CharField(max_length=50, blank=True, verbose_name=_("Серия/номер документа"))
+    doc_date = models.DateField(null=True, blank=True, verbose_name=_("Дата получения документа"))
+    
+    personal_file_number = models.CharField(max_length=50, blank=True, verbose_name=_("Номер личного дела"))
+    notes = models.TextField(blank=True, verbose_name=_("Примечание"))
 
     def get_debt(self):
         return self.contract_amount - self.paid_amount

@@ -108,11 +108,29 @@
                                                 {% endif %}
                                             </div>
                                         {% else %}
-                                            <input type="text"
-                                                   value="{% if entry_data.entry.grade %}{{ entry_data.entry.grade }}{% elif entry_data.entry.attendance_status != 'PRESENT' %}нб{% endif %}"
-                                                   class="journal-input {% if entry_data.entry.grade %}val-grade{% elif entry_data.entry.attendance_status != 'PRESENT' %}val-absent{% endif %}"
-                                                   data-entry-id="{{ entry_data.entry.id }}"
-                                                   autocomplete="off">
+                                            <select class="journal-input form-select form-select-sm px-1 py-0 {% if entry_data.entry.grade %}val-grade{% elif entry_data.entry.attendance_status != 'PRESENT' %}val-absent{% endif %}"
+                                                    data-entry-id="{{ entry_data.entry.id }}"
+                                                    style="height: 100%; border: none; background: transparent; text-align: center; font-weight: 600; cursor: pointer; box-shadow: none;">
+                                                {% with current_val=entry_data.entry.grade|default_if_none:"" %}
+                                                <option value="" {% if not current_val and entry_data.entry.attendance_status == 'PRESENT' and entry_data.entry.participation == 'NONE' %}selected{% endif %}></option>
+
+                                                <optgroup label="Посещаемость">
+                                                    <option value="нб" class="text-danger fw-bold" {% if entry_data.entry.attendance_status == 'ABSENT_INVALID' %}selected{% endif %}>НБ</option>
+                                                    <option value="г" class="text-success fw-bold" {% if entry_data.entry.participation == 'READY' %}selected{% endif %}>Г (Готов)</option>
+                                                    <option value="нг" class="text-warning fw-bold" {% if entry_data.entry.participation == 'NOT_READY' %}selected{% endif %}>НГ (Не готов)</option>
+                                                </optgroup>
+
+                                                <optgroup label="Баллы">
+                                                    {% for i in "123456789"|make_list %}
+                                                        <option value="{{ i }}" {% if current_val|stringformat:"s" == i %}selected{% endif %}>{{ i }}</option>
+                                                    {% endfor %}
+                                                    <option value="10" {% if current_val|stringformat:"s" == "10.0" or current_val|stringformat:"s" == "10" %}selected{% endif %}>10</option>
+                                                    <option value="11" {% if current_val|stringformat:"s" == "11.0" or current_val|stringformat:"s" == "11" %}selected{% endif %}>11</option>
+                                                    <option value="12" {% if current_val|stringformat:"s" == "12.0" or current_val|stringformat:"s" == "12" %}selected{% endif %}>12</option>
+                                                    <option value="12.5" {% if current_val|stringformat:"s" == "12.5" %}selected{% endif %}>12.5</option>
+                                                </optgroup>
+                                                {% endwith %}
+                                            </select>
                                         {% endif %}
                                     </td>
                                 {% endfor %}

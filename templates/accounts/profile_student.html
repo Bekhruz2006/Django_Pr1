@@ -34,6 +34,9 @@
                     <div class="d-flex gap-2 flex-wrap">
                         <span class="badge bg-light text-dark border"><i class="bi bi-card-heading"></i> {{ profile.student_id }}</span>
                         <span class="badge bg-light text-dark border">{{ profile.get_financing_type_display }}</span>
+                        <button class="btn btn-sm btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#studentDossierModal">
+                            <i class="bi bi-person-vcard"></i> Досье студента
+                        </button>
                         {% if not viewing_as_dean %}
                             <a href="{% url 'accounts:edit_profile' %}" class="btn btn-sm btn-outline-primary ms-auto">
                                 <i class="bi bi-pencil"></i> {% trans "Редактировать" %}
@@ -252,6 +255,87 @@
                         </li>
                     </ul>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="studentDossierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Досье студента</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" style="font-size: 0.9rem;">
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Персональные данные</h6>
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-2"><strong>Фамилия:</strong> {{ user.last_name|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Имя:</strong> {{ user.first_name|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Отчество:</strong> {{ profile.middle_name|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Пол:</strong> {{ profile.get_gender_display|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Дата рождения:</strong> {{ profile.birth_date|date:"d.m.Y"|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Место рождения:</strong> {{ profile.place_of_birth|default:"Не указано" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Национальность:</strong> {{ profile.nationality|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Номер паспорта:</strong> {{ profile.passport_series }} {{ profile.passport_number|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Дата выдачи паспорта:</strong> {{ profile.passport_issue_date|date:"d.m.Y"|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Орган выдавший паспорт:</strong> {{ profile.passport_issued_by|default:"—" }}</div>
+                </div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Адрес</h6>
+                <div class="row mb-4">
+                    <div class="col-12 mb-2"><strong>Место жительства:</strong> {{ profile.residence_address|default:"Не указано" }}</div>
+                    <div class="col-12 mb-2"><strong>Место прописки:</strong> {{ profile.registration_address|default:"Не указано" }}</div>
+                </div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Контактная информация</h6>
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-2"><strong>Телефон:</strong> {{ user.phone|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>E-mail:</strong> {{ user.email|default:"—" }}</div>
+                </div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Предыдущее образование</h6>
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-2"><strong>Вид уч. заведения:</strong> {{ profile.prev_education_type|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Учебное заведение:</strong> {{ profile.prev_education_institution|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Год окончания:</strong> {{ profile.prev_education_year|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Тип документа:</strong> {{ profile.doc_type|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Серия/номер:</strong> {{ profile.doc_number|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Дата получения:</strong> {{ profile.doc_date|date:"d.m.Y"|default:"—" }}</div>
+                </div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Поступление и обучение</h6>
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-2"><strong>Спонсор:</strong> {{ profile.sponsor_name|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Год поступления:</strong> {{ profile.admission_year|default:"—" }}</div>
+                    <div class="col-12 mb-2"><strong>Специальность:</strong> {{ profile.specialty.code|default:"—" }} - {{ profile.specialty.name|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Вид обучения:</strong> {{ profile.get_education_type_display|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Язык обучения:</strong> {{ profile.get_education_language_display|default:"—" }}</div>
+                    <div class="col-md-6 mb-2"><strong>Основа обучения:</strong> {{ profile.get_financing_type_display|default:"—" }}</div>
+                </div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Числится в...</h6>
+                <div class="row mb-4">
+                    <div class="col-12 mb-2">
+                        <strong>Группа:</strong> {{ profile.group.name|default:"—" }},
+                        <strong>Курс:</strong> {{ profile.course }},
+                        <strong>Год обучения:</strong> {{ profile.group.academic_year|default:"—" }}
+                    </div>
+                    <div class="col-md-6 mb-2"><strong>Номер личного дела:</strong> {{ profile.personal_file_number|default:"—" }}</div>
+                    <div class="col-12 mb-2"><strong>Примечание:</strong> {{ profile.notes|default:"—" }}</div>
+                </div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Авторизация в системе</h6>
+                <div class="row mb-2">
+                    <div class="col-md-6 mb-2"><strong>ID/Логин:</strong> {{ user.username }}</div>
+                    <div class="col-md-6 mb-2"><strong>Последний вход:</strong> {{ user.last_login|date:"d.m.Y H:i"|default:"Никогда" }}</div>
+                </div>
+
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Печать</button>
             </div>
         </div>
     </div>

@@ -292,6 +292,8 @@ class StudentForm(forms.ModelForm):
             'birth_date', 'gender', 'nationality',
             'passport_series', 'passport_number', 'passport_issued_by', 'passport_issue_date',
             'registration_address', 'residence_address',
+            'middle_name', 'place_of_birth', 'prev_education_type', 'prev_education_institution',
+            'prev_education_year', 'doc_type', 'doc_number', 'doc_date', 'personal_file_number', 'notes'
         ]
         widgets = {
             'group': forms.Select(attrs={'class': 'form-select'}),
