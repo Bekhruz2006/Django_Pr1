@@ -5,6 +5,12 @@ from django.db.models import Q
 from datetime import datetime, time
 from .models import ScheduleSlot, Subject, Classroom, TimeSlot, PlanDiscipline, SubjectTemplate, AcademicPlan
 from accounts.models import Group, Teacher, User, Department
+import logging
+import requests
+import json
+
+logger = logging.getLogger(__name__)
+
 
 class ScheduleImporter:
     DAYS_MAP = {
@@ -371,3 +377,89 @@ class RupImporter:
                 stats['errors'].append(f"Строка {row_idx} ({subj_name}): {str(e)}")
 
         return stats
+
+
+
+
+class AIAssignmentService:
+    OLLAMA_URL = "http://localhost:11434/api/generate"
+
+    @staticmethod
+    def generate_assignment(teachers, subjects, model_name="gemma3:4b"):
+        teachers_text = ""
+        for t in teachers:
+            teachers_text += (
+                f"ID={t.id} | ФИО: {t.user.get_full_name()} | "
+                f"Степень: {t.degree} {t.title} | "
+                f"Интересы и биография: {t.research_interests} {t.biography}\n"
+            )
+
+        subjects_text = ""
+        for s in subjects:
+            subjects_text += f"Key={s['key']} | Предмет: {s['name']}\n"
+
+        prompt = f"""Ты — ИИ-ассистент учебной части университета в Таджикистане.
+Твоя задача: распределить дисциплины между доступными преподавателями на основе их специализации, научных интересов и биографии. 
+Учитывай таджикские и русские названия. Математик не должен вести философию, а программист - историю.
+Если ни один преподаватель не подходит по профилю, обязательно укажи teacher_id: null.
+
+ДОСТУПНЫЕ ПРЕПОДАВАТЕЛИ:
+{teachers_text}
+
+ПРЕДМЕТЫ ДЛЯ РАСПРЕДЕЛЕНИЯ:
+{subjects_text}
+
+Верни ТОЛЬКО чистый валидный JSON без тегов markdown, без тегов <think> и без лишних слов. Формат строго такой:
+{{
+  "assignments":[
+    {{
+      "key": "значение Key предмета",
+      "teacher_id": 123,
+      "reason": "Краткая причина выбора на таджикском или русском языке"
+    }}
+  ]
+}}"""
+
+        payload = {
+            "model": model_name,
+            "prompt": prompt,
+            "stream": False,  
+            "options": {
+                "temperature": 0.1,
+                "num_predict": 2048
+            }
+        }
+
+        try:
+            resp = requests.post(AIAssignmentService.OLLAMA_URL, json=payload, timeout=900)
+            if resp.status_code == 200:
+                raw_response = resp.json().get("response", "")
+                return AIAssignmentService.extract_json(raw_response)
+            else:
+                logger.error(f"Ollama API Error: HTTP {resp.status_code}")
+        except Exception as e:
+            logger.error(f"AIAssignmentService Exception: {str(e)}")
+            
+        return None
+
+    @staticmethod
+    def extract_json(raw: str) -> dict:
+        if "</think>" in raw:
+            raw = raw.split("</think>", 1)[-1].strip()
+        if "```json" in raw:
+            raw = raw.split("```json", 1)[1].split("```")[0].strip()
+        elif "```" in raw:
+            raw = raw.split("```", 1)[1].split("```")[0].strip()
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+
+        if start != -1 and end != 0:
+            try:
+                return json.loads(raw[start:end])
+            except json.JSONDecodeError:
+                pass
+        return {"assignments":[]}
+
+
+

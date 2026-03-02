@@ -28,7 +28,7 @@ from accounts.models import Group, Student, Teacher, Director, ProRector, Depart
 import math
 from django.utils.translation import gettext as _
 from schedule.models import ROOM_TYPES
-
+from .services import AIAssignmentService
 
 def is_dean(user):
     return user.is_authenticated and user.role == 'DEAN'
@@ -1323,10 +1323,13 @@ def plan_detail(request, plan_id):
 
 @user_passes_test(is_dean_or_admin)
 def generate_subjects_from_rup(request):
+    teachers = Teacher.objects.select_related('user').all() 
     groups = Group.objects.all()
     if request.user.role == 'DEAN':
         if hasattr(request.user, 'dean_profile'):
-            groups = groups.filter(specialty__department__faculty=request.user.dean_profile.faculty)
+            faculty = request.user.dean_profile.faculty
+            groups = groups.filter(specialty__department__faculty=faculty)
+            teachers = teachers.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
 
     suggestions = {}
     diagnostics =[]
@@ -1348,7 +1351,7 @@ def generate_subjects_from_rup(request):
             continue
 
         disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_semester_num)
-        
+
         if not disciplines.exists():
             diagnostics.append(f"Группа {group.name}: В РУП '{plan.specialty.name if plan.specialty else plan.group.name}' нет дисциплин для {current_semester_num} семестра.")
             continue
@@ -1366,7 +1369,7 @@ def generate_subjects_from_rup(request):
 
             if key not in suggestions:
                 suggestions[key] = {
-                    'key': key,  # ВАЖНО: передаем ключ в шаблон!
+                    'key': key,
                     'template': disc.subject_template,
                     'discipline': disc,
                     'groups':[],
@@ -1380,10 +1383,10 @@ def generate_subjects_from_rup(request):
         created_count = 0
         errors =[]
         selected_keys = request.POST.getlist('selected_items')
-        
+
         if not selected_keys:
             errors.append("Вы ничего не выбрали или значения чекбоксов пустые (ошибка шаблона).")
-            
+
         try:
             with transaction.atomic():
                 for key in selected_keys:
@@ -1397,6 +1400,11 @@ def generate_subjects_from_rup(request):
                     active_sem = item['semester']
 
                     is_stream = len(group_list) > 1 and request.POST.get(f'make_stream_{key}') == 'on'
+
+                    teacher_id = request.POST.get(f'teacher_{key}')
+                    teacher_obj = None
+                    if teacher_id and str(teacher_id).isdigit():
+                        teacher_obj = Teacher.objects.filter(id=int(teacher_id)).first()
 
                     target_dept = None
                     if group_list[0].specialty and group_list[0].specialty.department:
@@ -1422,7 +1430,8 @@ def generate_subjects_from_rup(request):
                                 credits=disc.credits,
                                 plan_discipline=disc,
                                 is_stream_subject=True,
-                                preferred_room_type=disc.preferred_room_type
+                                preferred_room_type=disc.preferred_room_type,
+                                teacher=teacher_obj  
                             )
                             subject.groups.set(group_list)
                             created_count += 1
@@ -1431,11 +1440,11 @@ def generate_subjects_from_rup(request):
                     else:
                         for grp in group_list:
                             short_uuid = uuid.uuid4().hex[:6]
-                            
+
                             grp_dept = target_dept
                             if grp.specialty and grp.specialty.department:
                                 grp_dept = grp.specialty.department
-                                
+
                             try:
                                 subject = Subject.objects.create(
                                     name=disc.subject_template.name,
@@ -1449,7 +1458,8 @@ def generate_subjects_from_rup(request):
                                     credits=disc.credits,
                                     plan_discipline=disc,
                                     is_stream_subject=False,
-                                    preferred_room_type=disc.preferred_room_type
+                                    preferred_room_type=disc.preferred_room_type,
+                                    teacher=teacher_obj 
                                 )
                                 subject.groups.add(grp)
                                 created_count += 1
@@ -1462,7 +1472,7 @@ def generate_subjects_from_rup(request):
         if errors:
             for err in errors:
                 messages.error(request, err)
-        
+
         if created_count > 0:
             messages.success(request, f"Успешно создано предметов: {created_count}")
             return redirect('schedule:manage_subjects')
@@ -1472,6 +1482,7 @@ def generate_subjects_from_rup(request):
     return render(request, 'schedule/plans/generate_preview.html', {
         'suggestions': suggestions.values(),
         'diagnostics': diagnostics,
+        'teachers': teachers,
     })
 
 
@@ -2104,4 +2115,33 @@ def import_rup_excel(request, plan_id, semester_num):
     return redirect(f"/schedule/plans/{plan.id}/?semester={semester_num}")
 
 
+@login_required
+@user_passes_test(is_dean_or_admin)
+@require_POST
+def api_ai_assign_teachers(request):
+    try:
+        data = json.loads(request.body)
+        subjects = data.get('subjects', [])
+        teacher_ids = data.get('teacher_ids',[])
+        model_name = data.get('model_name', 'gemma3:4b')
+        
+        if not subjects:
+            return JsonResponse({'success': False, 'error': 'Нет предметов для распределения'})
 
+        teachers_qs = Teacher.objects.select_related('user', 'department').all()
+        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+            faculty = request.user.dean_profile.faculty
+            teachers_qs = teachers_qs.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
+            
+        if teacher_ids:
+            teachers_qs = teachers_qs.filter(id__in=teacher_ids)
+            
+        result = AIAssignmentService.generate_assignment(teachers_qs, subjects, model_name)
+        
+        if result and "assignments" in result:
+            return JsonResponse({'success': True, 'assignments': result["assignments"]})
+        else:
+            return JsonResponse({'success': False, 'error': 'ИИ не смог сформировать корректный ответ или время ожидания истекло.'})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

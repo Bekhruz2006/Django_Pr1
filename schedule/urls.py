@@ -54,5 +54,5 @@ urlpatterns = [
     path('semester/set-active/', views.set_active_semester_manual, name='set_active_semester_manual'),
     path('time-slots/', views.manage_time_slots, name='manage_time_slots'),
     path('plans/<int:plan_id>/import/<int:semester_num>/', views.import_rup_excel, name='import_rup_excel'),
-
+    path('api/ai-assign-teachers/', views.api_ai_assign_teachers, name='api_ai_assign_teachers'),
 ]
