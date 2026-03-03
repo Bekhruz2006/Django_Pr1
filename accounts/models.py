@@ -151,6 +151,18 @@ class User(AbstractUser):
         return self.role in ['DEAN', 'VICE_DEAN', 'PRO_RECTOR', 'DIRECTOR', 'HEAD_OF_DEPT'] or self.is_superuser
 
     @property
+    def is_teacher_role(self):
+        return hasattr(self, 'teacher_profile')
+
+    @property
+    def is_dean_role(self):
+        return hasattr(self, 'dean_profile')
+        
+    @property
+    def is_head_role(self):
+        return hasattr(self, 'head_of_dept_profile')
+
+    @property
     def age(self):
         if self.birth_date:
             today = date.today()

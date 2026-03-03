@@ -345,6 +345,8 @@ class TeacherForm(forms.ModelForm):
         self.fields['additional_departments'].queryset = Department.objects.all()
         if self.instance.pk and self.instance.department:
             self.fields['additional_departments'].queryset = Department.objects.exclude(id=self.instance.department.id)
+        for field_name, field in self.fields.items():
+            field.required = False
 
 class DeanForm(forms.ModelForm):
     class Meta:
@@ -356,6 +358,11 @@ class DeanForm(forms.ModelForm):
             'reception_hours': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.required = False
 
 class UserEditForm(forms.ModelForm):
     photo = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
@@ -372,6 +379,24 @@ class UserEditForm(forms.ModelForm):
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'passport_number': forms.TextInput(attrs={'class': 'form-control'}),
         }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in ['phone', 'birth_date', 'address', 'passport_number', 'photo', 'employee_category']:
+            if field_name in self.fields:
+                self.fields[field_name].required = False
+
+class AdminUserEditForm(UserEditForm):
+    is_teacher = forms.BooleanField(required=False, label=_("Преподаватель"), widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    is_head_of_dept = forms.BooleanField(required=False, label=_("Зав. кафедрой"), widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    is_dean = forms.BooleanField(required=False, label=_("Декан"), widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['is_teacher'].initial = hasattr(self.instance, 'teacher_profile')
+            self.fields['is_head_of_dept'].initial = hasattr(self.instance, 'head_of_dept_profile')
+            self.fields['is_dean'].initial = hasattr(self.instance, 'dean_profile')
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(

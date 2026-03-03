@@ -668,7 +668,7 @@
         {% endif %}
         <div class="sidebar-divider" style="margin-top: 12px;"></div>
         <div class="admin-menu-header">{% trans "Личный кабинет" %}</div>
-        {% if user.role == 'TEACHER' %}
+        {% if user.role == 'TEACHER' or user.is_teacher_role %}
             <a class="sidebar-link" href="{% url 'schedule:view' %}"><i class="bi bi-calendar-check"></i>{% trans "Мое расписание" %}</a>
             <a class="sidebar-link" href="{% url 'journal:journal_view' %}"><i class="bi bi-journal-check"></i>{% trans "Электронный журнал" %}</a>
             <a class="sidebar-link" href="{% url 'schedule:group_list' %}"><i class="bi bi-people"></i>{% trans "Мои студенты" %}</a>

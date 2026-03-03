@@ -151,11 +151,10 @@ def dashboard(request):
             context['json_courses'] = json.dumps(chart_courses)
             context['json_gpa'] = json.dumps(chart_gpa)
             context['json_attendance'] = json.dumps(chart_attendance)
-            #context['json_total_gpa'] = json.dumps(chart_gpa)
 
         return render(request, 'core/dashboard_dean.html', context)
 
-    elif user.role in ['TEACHER', 'HEAD_OF_DEPT']:
+    elif user.role in ['TEACHER', 'HEAD_OF_DEPT'] or hasattr(user, 'teacher_profile'):
             if hasattr(user, 'teacher_profile'):
                 context['profile'] = user.teacher_profile
                 

@@ -46,18 +46,83 @@
                         </div>
                     </div>
                     
-                    {% if profile_form %}
                     <hr class="my-4">
-                    <h5 class="mb-3">{% blocktrans %}Профильная информация ({{ user_obj.get_role_display }}){% endblocktrans %}</h5>
-                    
+                    <h5 class="mb-3 text-primary"><i class="bi bi-briefcase"></i> {% trans "Совместительство (Дополнительные роли)" %}</h5>
+                    <div class="alert alert-light border small">
+                        Отметьте галочками роли, которые должен выполнять этот пользователь. Для каждой выбранной роли ниже появится своя форма настроек.
+                    </div>
+                    <div class="row mb-4 bg-light p-3 rounded border mx-0">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ user_form.is_teacher }}
+                                <label class="form-check-label fw-bold" for="{{ user_form.is_teacher.id_for_label }}">{{ user_form.is_teacher.label }}</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ user_form.is_head_of_dept }}
+                                <label class="form-check-label fw-bold" for="{{ user_form.is_head_of_dept.id_for_label }}">{{ user_form.is_head_of_dept.label }}</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ user_form.is_dean }}
+                                <label class="form-check-label fw-bold" for="{{ user_form.is_dean.id_for_label }}">{{ user_form.is_dean.label }}</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if student_form %}
+                    <hr class="my-4">
+                    <h5 class="mb-3 text-info"><i class="bi bi-mortarboard"></i> Профиль Студента</h5>
                     <div class="row">
-                        {% for field in profile_form %}
+                        {% for field in student_form %}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">{{ field.label }}</label>
                                 {{ field }}
-                                {% if field.errors %}
-                                    <div class="text-danger small">{{ field.errors }}</div>
-                                {% endif %}
+                                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if teacher_form %}
+                    <hr class="my-4">
+                    <h5 class="mb-3 text-success"><i class="bi bi-person-video3"></i> Профиль Преподавателя</h5>
+                    <div class="row">
+                        {% for field in teacher_form %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if head_form %}
+                    <hr class="my-4">
+                    <h5 class="mb-3 text-warning"><i class="bi bi-diagram-3"></i> Профиль Зав. кафедрой</h5>
+                    <div class="row">
+                        {% for field in head_form %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if dean_form %}
+                    <hr class="my-4">
+                    <h5 class="mb-3 text-danger"><i class="bi bi-bank"></i> Профиль Декана</h5>
+                    <div class="row">
+                        {% for field in dean_form %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
                             </div>
                         {% endfor %}
                     </div>

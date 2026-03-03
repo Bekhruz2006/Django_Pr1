@@ -21,7 +21,7 @@ from .models import (
 )
 from .forms import (
     UserCreateForm, StudentForm, TeacherForm, DeanForm,
-    UserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
+    UserEditForm, AdminUserEditForm, CustomPasswordChangeForm, PasswordResetByDeanForm,
     GroupForm, GroupTransferForm, DepartmentCreateForm, SpecialtyCreateForm,
     InstituteForm, FacultyForm, DepartmentForm, SpecialtyForm, HeadOfDepartmentForm,
     OrderForm, DocumentTemplateForm, SpecializationForm
@@ -438,40 +438,57 @@ def edit_user(request, user_id):
             return redirect('accounts:user_management')
 
     if request.method == 'POST':
-        user_form = UserEditForm(request.POST, request.FILES, instance=user_obj)
+        user_form = AdminUserEditForm(request.POST, request.FILES, instance=user_obj)
         
-        profile_form = None
-        if user_obj.role == 'STUDENT':
-            profile_form = StudentForm(request.POST, instance=user_obj.student_profile)
-        elif user_obj.role == 'TEACHER':
-            profile_form = TeacherForm(request.POST, instance=user_obj.teacher_profile)
-        elif user_obj.role == 'DEAN':
-            profile_form = DeanForm(request.POST, instance=user_obj.dean_profile)
-        elif user_obj.role == 'HEAD_OF_DEPT':
-            profile_form = HeadOfDepartmentForm(request.POST, instance=user_obj.head_of_dept_profile)
+        student_form = StudentForm(request.POST, instance=user_obj.student_profile) if hasattr(user_obj, 'student_profile') else None
+        teacher_form = TeacherForm(request.POST, instance=user_obj.teacher_profile) if hasattr(user_obj, 'teacher_profile') else None
+        dean_form = DeanForm(request.POST, instance=user_obj.dean_profile) if hasattr(user_obj, 'dean_profile') else None
+        head_form = HeadOfDepartmentForm(request.POST, instance=user_obj.head_of_dept_profile) if hasattr(user_obj, 'head_of_dept_profile') else None
         
-        if user_form.is_valid() and (profile_form is None or profile_form.is_valid()):
-            user_form.save()
-            if profile_form:
-                profile_form.save()
+        forms_valid = user_form.is_valid()
+        if student_form: forms_valid = forms_valid and student_form.is_valid()
+        if teacher_form: forms_valid = forms_valid and teacher_form.is_valid()
+        if dean_form: forms_valid = forms_valid and dean_form.is_valid()
+        if head_form: forms_valid = forms_valid and head_form.is_valid()
+        
+        if forms_valid:
+            user = user_form.save()
+            
+            if user_form.cleaned_data.get('is_teacher'):
+                Teacher.objects.get_or_create(user=user)
+            elif hasattr(user, 'teacher_profile'): 
+                user.teacher_profile.delete()
+                
+            if user_form.cleaned_data.get('is_head_of_dept'):
+                HeadOfDepartment.objects.get_or_create(user=user)
+            elif hasattr(user, 'head_of_dept_profile'): 
+                user.head_of_dept_profile.delete()
+                
+            if user_form.cleaned_data.get('is_dean'):
+                Dean.objects.get_or_create(user=user)
+            elif hasattr(user, 'dean_profile'): 
+                user.dean_profile.delete()
+
+            if student_form: student_form.save()
+            if teacher_form and user_form.cleaned_data.get('is_teacher'): teacher_form.save()
+            if dean_form and user_form.cleaned_data.get('is_dean'): dean_form.save()
+            if head_form and user_form.cleaned_data.get('is_head_of_dept'): head_form.save()
+
             messages.success(request, _('Пользователь успешно обновлен'))
             return redirect('accounts:user_management')
     else:
-        user_form = UserEditForm(instance=user_obj)
-        
-        profile_form = None
-        if user_obj.role == 'STUDENT':
-            profile_form = StudentForm(instance=user_obj.student_profile)
-        elif user_obj.role == 'TEACHER':
-            profile_form = TeacherForm(instance=user_obj.teacher_profile)
-        elif user_obj.role == 'DEAN':
-            profile_form = DeanForm(instance=user_obj.dean_profile)
-        elif user_obj.role == 'HEAD_OF_DEPT':
-            profile_form = HeadOfDepartmentForm(instance=user_obj.head_of_dept_profile)
+        user_form = AdminUserEditForm(instance=user_obj)
+        student_form = StudentForm(instance=user_obj.student_profile) if hasattr(user_obj, 'student_profile') else None
+        teacher_form = TeacherForm(instance=user_obj.teacher_profile) if hasattr(user_obj, 'teacher_profile') else None
+        dean_form = DeanForm(instance=user_obj.dean_profile) if hasattr(user_obj, 'dean_profile') else None
+        head_form = HeadOfDepartmentForm(instance=user_obj.head_of_dept_profile) if hasattr(user_obj, 'head_of_dept_profile') else None
     
     return render(request, 'accounts/edit_user.html', {
         'user_form': user_form,
-        'profile_form': profile_form,
+        'student_form': student_form,
+        'teacher_form': teacher_form,
+        'dean_form': dean_form,
+        'head_form': head_form,
         'user_obj': user_obj
     })
 

@@ -101,13 +101,7 @@
                     <i class="bi bi-info-circle"></i> ИИ проанализирует выбранные предметы в таблице и подберет для них преподавателей из списка ниже.
                 </div>
                 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Выберите модель ИИ:</label>
-                    <select id="aiModelSelect" class="form-select border-warning">
-                        <option value="gemma3:4b">gemma3:4b (Быстрая, 1-2 минуты)</option>
-                        <option value="deepseek-r1:8b">deepseek-r1:8b (Точная, но долгая, до 15 минут)</option>
-                    </select>
-                </div>
+
                 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Участвующие преподаватели:</label>
@@ -197,7 +191,7 @@
             return;
         }
 
-        const modelName = document.getElementById('aiModelSelect').value;
+        const modelName = 'gemma3:4b';
 
         document.getElementById('aiModalBody').style.display = 'none';
         document.getElementById('aiLoadingBody').style.display = 'block';

@@ -31,10 +31,10 @@ from schedule.models import ROOM_TYPES
 from .services import AIAssignmentService
 
 def is_dean(user):
-    return user.is_authenticated and user.role == 'DEAN'
+    return user.is_authenticated and (user.role == 'DEAN' or hasattr(user, 'dean_profile'))
 
 def is_teacher(user):
-    return user.is_authenticated and user.role == 'TEACHER'
+    return user.is_authenticated and (user.role == 'TEACHER' or hasattr(user, 'teacher_profile'))
 
 def is_student(user):
     return user.is_authenticated and user.role == 'STUDENT'
