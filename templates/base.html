@@ -602,7 +602,7 @@
 
     {% if user.is_authenticated %}
     <aside id="sidebar">
-        {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR,DEAN,VICE_DEAN' %}
+        {% if user.is_management %}
             <div class="admin-menu-header">{% trans "Администрирование" %}</div>
             <div class="sidebar-section-header" data-target="structure-menu">
                 <span class="section-label"><i class="bi bi-building"></i>{% trans "Инфраструктура" %}</span>
@@ -611,7 +611,7 @@
             <div class="sidebar-menu-group" id="structure-menu">
                 <a class="sidebar-link" href="{% url 'accounts:manage_structure' %}"><i class="bi bi-diagram-3"></i>{% trans "Факультеты и Кафедры" %}</a>
                 <a class="sidebar-link" href="{% url 'schedule:manage_classrooms' %}"><i class="bi bi-door-open"></i>{% trans "Аудиторный фонд" %}</a>
-                {% if user.is_superuser or user.role in 'RECTOR,DIRECTOR' %}
+                {% if user.is_superuser or user.director_profile %}
                 <a class="sidebar-link" href="{% url 'accounts:add_institute' %}"><i class="bi bi-plus-square"></i>{% trans "Добавить Институт" %}</a>
                 {% endif %}
             </div>

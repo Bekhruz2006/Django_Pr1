@@ -148,7 +148,7 @@ class User(AbstractUser):
 
     @property
     def is_management(self):
-        return self.role in ['DEAN', 'VICE_DEAN', 'PRO_RECTOR', 'DIRECTOR', 'HEAD_OF_DEPT'] or self.is_superuser
+        return hasattr(self, 'dean_profile') or hasattr(self, 'vicedean_profile') or hasattr(self, 'prorector_profile') or hasattr(self, 'director_profile') or hasattr(self, 'head_of_dept_profile') or self.is_superuser
 
     @property
     def is_teacher_role(self):
@@ -161,6 +161,10 @@ class User(AbstractUser):
     @property
     def is_head_role(self):
         return hasattr(self, 'head_of_dept_profile')
+        
+    @property
+    def is_student_role(self):
+        return hasattr(self, 'student_profile')
 
     @property
     def age(self):

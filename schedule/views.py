@@ -31,13 +31,13 @@ from schedule.models import ROOM_TYPES
 from .services import AIAssignmentService
 
 def is_dean(user):
-    return user.is_authenticated and (user.role == 'DEAN' or hasattr(user, 'dean_profile'))
+    return user.is_authenticated and hasattr(user, 'dean_profile')
 
 def is_teacher(user):
-    return user.is_authenticated and (user.role == 'TEACHER' or hasattr(user, 'teacher_profile'))
+    return user.is_authenticated and hasattr(user, 'teacher_profile')
 
 def is_student(user):
-    return user.is_authenticated and user.role == 'STUDENT'
+    return user.is_authenticated and hasattr(user, 'student_profile')
 
 def get_time_slots_for_shift(shift):
     if shift == 'MORNING':
@@ -70,7 +70,7 @@ def schedule_constructor(request):
 
     groups = Group.objects.all().select_related('specialty').order_by('course', 'name')
 
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         groups = groups.filter(specialty__department__faculty=faculty)
 
@@ -87,7 +87,7 @@ def schedule_constructor(request):
     elif selected_group:
         active_semester = get_active_semester_for_group(selected_group)
     else:
-        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             active_semester = Semester.objects.filter(faculty=faculty, is_active=True).first()
         if not active_semester:
@@ -160,7 +160,7 @@ def schedule_constructor(request):
 
     days = [(0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')), (3, _('Четверг')), (4, _('Пятница')), (5, _('Суббота'))]
     all_semesters = Semester.objects.all().order_by('-is_active', '-start_date')
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         all_semesters = all_semesters.filter(faculty=request.user.dean_profile.faculty)
 
     classrooms = Classroom.objects.filter(is_active=True).select_related('building').order_by('building__name', 'number')
@@ -500,7 +500,7 @@ def delete_schedule_slot(request, slot_id):
         if not (request.user.is_staff or hasattr(request.user, 'dean_profile')):
             return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
 
-        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             if schedule_slot.group.specialty and schedule_slot.group.specialty.department.faculty != faculty:
                 return JsonResponse({'success': False, 'error': _('Нет доступа к этому занятию')}, status=403)
@@ -525,7 +525,7 @@ def schedule_view(request):
     teacher = None
     active_semester = None
     
-    if user.role == 'STUDENT':
+    if hasattr(user, 'student_profile'):
         try:
             student = user.student_profile
             group = student.group
@@ -545,7 +545,7 @@ def schedule_view(request):
 
     groups = Group.objects.none()
     
-    if user.role == 'TEACHER':
+    if hasattr(user, 'teacher_profile'):
         try:
             teacher = user.teacher_profile
             group_ids = ScheduleSlot.objects.filter(
@@ -561,7 +561,7 @@ def schedule_view(request):
         except Teacher.DoesNotExist:
             pass
 
-    elif user.role == 'DEAN':
+    elif hasattr(user, 'dean_profile'):
         group_id = request.GET.get('group')
         groups = Group.objects.all()
 
@@ -619,7 +619,7 @@ def schedule_view(request):
             'group': group,
             'is_teacher_view': (target_key == 'teacher'),
             'target_key': target_key,
-            'groups': Group.objects.all() if user.role == 'DEAN' else groups if user.role == 'TEACHER' else None,
+            'groups': Group.objects.all() if hasattr(user, 'dean_profile') else groups if hasattr(user, 'teacher_profile') else None,
             'days': days,
             'time_slots': time_slots,
             'schedule_data': schedule_data,
@@ -630,7 +630,7 @@ def schedule_view(request):
 
     context = {
         'group': group,
-        'groups': Group.objects.all() if user.role == 'DEAN' else groups if user.role == 'TEACHER' else None,
+        'groups': Group.objects.all() if hasattr(user, 'dean_profile') else groups if hasattr(user, 'teacher_profile') else None,
         'active_semester': active_semester,
     }
     return render(request, 'schedule/schedule_view_unified.html', context)
@@ -642,7 +642,7 @@ def today_classes(request):
     day_of_week = today.weekday()
     current_time = today.time()
 
-    if user.role == 'STUDENT':
+    if hasattr(user, 'student_profile'):
         try:
             student = user.student_profile
             if student.group:
@@ -658,7 +658,7 @@ def today_classes(request):
     if not active_semester:
         return render(request, 'schedule/today_widget.html', {'classes': classes, 'current_time': current_time, 'today': today})
 
-    if user.role == 'STUDENT':
+    if hasattr(user, 'student_profile'):
         try:
             student = user.student_profile
             if student.group:
@@ -669,7 +669,7 @@ def today_classes(request):
         except Student.DoesNotExist:
             pass
 
-    elif user.role == 'TEACHER':
+    elif hasattr(user, 'teacher_profile'):
         try:
             teacher = user.teacher_profile
             classes = ScheduleSlot.objects.filter(
@@ -687,7 +687,7 @@ def today_classes(request):
 def manage_subjects(request):
     subjects = Subject.objects.all().select_related('teacher__user', 'department')
     
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         subjects = subjects.filter(department__faculty=request.user.dean_profile.faculty)
         
     search = request.GET.get('search', '')
@@ -704,7 +704,7 @@ def add_subject(request):
     target_department = None
     if dept_id:
         target_department = get_object_or_404(Department, id=dept_id)
-        if request.user.role == 'DEAN':
+        if hasattr(request.user, 'dean_profile'):
             if target_department.faculty != request.user.dean_profile.faculty:
                 messages.error(request, _("Нет доступа к этой кафедре"))
                 return redirect('schedule:manage_subjects')
@@ -740,7 +740,7 @@ def add_subject(request):
                 Q(department=target_department) | Q(additional_departments=target_department)
             ).distinct()
             form.fields['department'].queryset = Department.objects.filter(id=target_department.id)
-        elif request.user.role == 'DEAN':
+        elif hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
             form.fields['teacher'].queryset = Teacher.objects.filter(
@@ -754,7 +754,7 @@ def add_subject(request):
 @user_passes_test(is_dean_or_admin)
 def edit_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         if subject.department.faculty != request.user.dean_profile.faculty:
             messages.error(request, _("Нет доступа к этому предмету"))
             return redirect('schedule:manage_subjects')
@@ -763,7 +763,7 @@ def edit_subject(request, subject_id):
         old_groups = list(subject.groups.all()) 
         form = SubjectForm(request.POST, instance=subject)
         
-        if request.user.role == 'DEAN':
+        if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
             form.fields['teacher'].queryset = Teacher.objects.filter(
@@ -784,7 +784,7 @@ def edit_subject(request, subject_id):
             return redirect('schedule:manage_subjects')
     else:
         form = SubjectForm(instance=subject)
-        if request.user.role == 'DEAN':
+        if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
             form.fields['teacher'].queryset = Teacher.objects.filter(
@@ -796,7 +796,7 @@ def edit_subject(request, subject_id):
 @user_passes_test(is_dean_or_admin)
 def delete_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         if subject.department.faculty != request.user.dean_profile.faculty:
             messages.error(request, _("Нет доступа к этому предмету"))
             return redirect('schedule:manage_subjects')
@@ -809,7 +809,7 @@ def delete_subject(request, subject_id):
 def manage_semesters(request):
     semesters = Semester.objects.all().order_by('-academic_year', 'course')
     
-    if request.user.role == 'DEAN':
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         semesters = semesters.filter(faculty=faculty)
 
@@ -885,11 +885,11 @@ def manage_classrooms(request):
     institutes = Institute.objects.all()
     selected_institute_id = request.GET.get('institute')
     
-    if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+    if request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
         if selected_institute_id:
             classrooms = classrooms.filter(building__institute_id=selected_institute_id)
     
-    elif request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    elif hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if faculty and faculty.institute:
             classrooms = classrooms.filter(building__institute=faculty.institute)
@@ -899,7 +899,7 @@ def manage_classrooms(request):
         'classrooms': classrooms,
         'institutes': institutes,
         'selected_institute_id': int(selected_institute_id) if selected_institute_id else None,
-        'is_admin': request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']
+        'is_admin': request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile')
     })
 
 @user_passes_test(is_dean_or_admin)
@@ -959,7 +959,7 @@ def delete_classroom(request, classroom_id):
 def group_list(request):
     user = request.user
 
-    if user.role == 'TEACHER':
+    if hasattr(user, 'teacher_profile'):
         try:
             teacher = user.teacher_profile
             active_semester = Semester.objects.filter(is_active=True).first()
@@ -972,7 +972,7 @@ def group_list(request):
                 groups = Group.objects.none()
         except Teacher.DoesNotExist:
             groups = Group.objects.none()
-    elif user.role == 'DEAN':
+    elif hasattr(user, 'dean_profile'):
         groups = Group.objects.all()
     else:
         messages.error(request, _('Доступ запрещен'))
@@ -1228,10 +1228,9 @@ def export_schedule(request):
 def manage_plans(request):
     plans = AcademicPlan.objects.all().select_related('specialty', 'specialty__department__faculty')
     
-    if request.user.role == 'DEAN':
-        if hasattr(request.user, 'dean_profile'):
-            faculty = request.user.dean_profile.faculty
-            plans = plans.filter(specialty__department__faculty=faculty)
+    if hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        plans = plans.filter(specialty__department__faculty=faculty)
         
     return render(request, 'schedule/plans/manage_plans.html', {'plans': plans})
 
@@ -1252,7 +1251,7 @@ def create_plan(request):
         form = AcademicPlanForm(user=request.user, initial=initial_data)
     
     all_groups = Group.objects.all()
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         all_groups = all_groups.filter(specialty__department__faculty=request.user.dean_profile.faculty)
 
     return render(request, 'schedule/plans/create_plan.html', {
@@ -1271,7 +1270,7 @@ def plan_detail(request, plan_id):
     elif plan.group and plan.group.specialty and plan.group.specialty.department:
         plan_faculty = plan.group.specialty.department.faculty
 
-    if request.user.role == 'DEAN':
+    if hasattr(request.user, 'dean_profile'):
         user_faculty = request.user.dean_profile.faculty
         if plan_faculty and plan_faculty != user_faculty:
             messages.error(request, _("Это план чужого факультета!"))
@@ -1325,11 +1324,10 @@ def plan_detail(request, plan_id):
 def generate_subjects_from_rup(request):
     teachers = Teacher.objects.select_related('user').all() 
     groups = Group.objects.all()
-    if request.user.role == 'DEAN':
-        if hasattr(request.user, 'dean_profile'):
-            faculty = request.user.dean_profile.faculty
-            groups = groups.filter(specialty__department__faculty=faculty)
-            teachers = teachers.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
+    if hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        groups = groups.filter(specialty__department__faculty=faculty)
+        teachers = teachers.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
 
     suggestions = {}
     diagnostics =[]
@@ -1519,12 +1517,12 @@ def classroom_occupancy(request):
     institutes = []
     selected_institute_id = request.GET.get('institute')
     
-    if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+    if request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
         institutes = Institute.objects.all() 
         if selected_institute_id:
             classrooms = classrooms.filter(building__institute_id=selected_institute_id)
             
-    elif request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    elif hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if faculty and faculty.institute:
             classrooms = classrooms.filter(building__institute=faculty.institute)
@@ -1566,7 +1564,7 @@ def classroom_occupancy(request):
 
 @login_required
 def import_schedule_view(request):
-    if not (request.user.role in ['DEAN', 'VICE_DEAN'] or request.user.is_superuser):
+    if not (hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile') or request.user.is_superuser):
         messages.error(request, _("Доступ запрещен"))
         return redirect('schedule:view')
 
@@ -1715,7 +1713,7 @@ def delete_plan_discipline(request, discipline_id):
     discipline = get_object_or_404(PlanDiscipline, id=discipline_id)
     plan_id = discipline.plan.id
     
-    if request.user.role == 'DEAN':
+    if hasattr(request.user, 'dean_profile'):
         plan = discipline.plan
         plan_faculty = None
         if plan.specialty and plan.specialty.department:
@@ -1735,10 +1733,9 @@ def delete_plan_discipline(request, discipline_id):
 def teacher_load_report(request):
     teachers = Teacher.objects.select_related('user', 'department', 'department__faculty').all()
     
-    if request.user.role == 'DEAN':
-        if hasattr(request.user, 'dean_profile'):
-            faculty = request.user.dean_profile.faculty
-            teachers = teachers.filter(department__faculty=faculty)
+    if hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        teachers = teachers.filter(department__faculty=faculty)
     
     report_data = []
     
@@ -1777,7 +1774,7 @@ def subject_materials(request, subject_id):
     can_upload = False
     if request.user.is_superuser or request.user.role in ['DEAN', 'VICE_DEAN']:
         can_upload = True
-    elif request.user.role == 'TEACHER' and subject.teacher and subject.teacher.user == request.user:
+    elif hasattr(request.user, 'teacher_profile') and subject.teacher and subject.teacher.user == request.user:
         can_upload = True
 
     if request.method == 'POST' and can_upload:
@@ -1801,7 +1798,7 @@ def subject_materials(request, subject_id):
 @login_required
 def delete_material(request, material_id):
     material = get_object_or_404(SubjectMaterial, id=material_id)
-    if request.user.is_superuser or (request.user.role == 'TEACHER' and material.subject.teacher.user == request.user):
+    if request.user.is_superuser or (hasattr(request.user, 'teacher_profile') and material.subject.teacher.user == request.user):
         material.delete()
         messages.success(request, _('Материал удален'))
     return redirect('schedule:subject_materials', subject_id=material.subject.id)
@@ -1827,7 +1824,7 @@ def activate_plan(request, plan_id):
 @user_passes_test(is_dean_or_admin)
 def delete_plan(request, plan_id):
     plan = get_object_or_404(AcademicPlan, id=plan_id)
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         plan_faculty = None
         if plan.specialty and plan.specialty.department:
             plan_faculty = plan.specialty.department.faculty
@@ -1869,7 +1866,7 @@ def set_active_semester_manual(request):
 
     semester = get_object_or_404(Semester, id=semester_id)
     
-    if request.user.role == 'DEAN' and semester.faculty != request.user.dean_profile.faculty:
+    if hasattr(request.user, 'dean_profile') and semester.faculty != request.user.dean_profile.faculty:
         messages.error(request, _("Ошибка доступа"))
         return redirect(request.META.get('HTTP_REFERER'))
 
@@ -1890,7 +1887,7 @@ def set_active_semester_manual(request):
     return redirect(request.META.get('HTTP_REFERER'))
 
 
-@user_passes_test(lambda u: u.is_superuser or u.role in ['RECTOR', 'PRO_RECTOR'])
+@user_passes_test(lambda u: u.is_superuser or hasattr(u, 'director_profile') or hasattr(u, 'prorector_profile'))
 def manage_time_slots(request):
     if request.method == 'POST':
         form = TimeSlotGeneratorForm(request.POST)
@@ -1950,7 +1947,7 @@ def manage_time_slots(request):
 def manage_buildings(request):
     buildings = Building.objects.select_related('institute').all()
     
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if faculty and faculty.institute:
             buildings = buildings.filter(institute=faculty.institute)
@@ -1977,7 +1974,7 @@ def add_building(request):
 def edit_building(request, building_id):
     building = get_object_or_404(Building, id=building_id)
     
-    if request.user.role == 'DEAN':
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if building.institute != faculty.institute:
             messages.error(request, _("Вы не можете редактировать корпуса чужого института"))
@@ -2001,7 +1998,7 @@ def edit_building(request, building_id):
 def delete_building(request, building_id):
     building = get_object_or_404(Building, id=building_id)
     
-    if request.user.role == 'DEAN':
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if building.institute != faculty.institute:
             messages.error(request, _("Нет доступа"))
@@ -2129,7 +2126,7 @@ def api_ai_assign_teachers(request):
             return JsonResponse({'success': False, 'error': 'Нет предметов для распределения'})
 
         teachers_qs = Teacher.objects.select_related('user', 'department').all()
-        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             teachers_qs = teachers_qs.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
             

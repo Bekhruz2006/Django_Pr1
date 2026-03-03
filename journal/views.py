@@ -18,13 +18,13 @@ from schedule.models import Subject, ScheduleSlot, Semester
 
 
 def is_teacher(user):
-    return user.is_authenticated and (user.role == 'TEACHER' or hasattr(user, 'teacher_profile'))
+    return user.is_authenticated and hasattr(user, 'teacher_profile')
 
 def is_dean(user):
-    return user.is_authenticated and (user.role == 'DEAN' or hasattr(user, 'dean_profile'))
+    return user.is_authenticated and hasattr(user, 'dean_profile')
 
 def is_student(user):
-    return user.is_authenticated and user.role == 'STUDENT'
+    return user.is_authenticated and hasattr(user, 'student_profile')
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, get_object_or_404, redirect

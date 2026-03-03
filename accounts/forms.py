@@ -248,7 +248,7 @@ class UserCreateForm(forms.ModelForm):
         creator = kwargs.pop('creator', None)
         super().__init__(*args, **kwargs)
         if creator:
-            if creator.role == 'DEAN' or creator.role == 'VICE_DEAN':
+            if hasattr(creator, 'dean_profile') or hasattr(creator, 'vicedean_profile'):
                 allowed_roles = [
                     ('STUDENT', _('Студент')),
                     ('TEACHER', _('Преподаватель')),
@@ -256,7 +256,7 @@ class UserCreateForm(forms.ModelForm):
                     ('VICE_DEAN', _('Зам. декана')),
                 ]
                 self.fields['role'].choices = allowed_roles
-            elif creator.is_superuser or creator.role in ['RECTOR', 'DIRECTOR']:
+            elif creator.is_superuser or hasattr(creator, 'director_profile') or hasattr(creator, 'prorector_profile'):
                 self.fields['role'].choices = User.ROLE_CHOICES
             else:
                 self.fields['role'].choices = []

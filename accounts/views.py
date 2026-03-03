@@ -34,10 +34,10 @@ from typing import List, Optional
 from django.core.exceptions import ValidationError
 
 def is_hr_or_admin(user):
-    return user.is_authenticated and (user.is_superuser or user.role == 'HR')
+    return user.is_authenticated and (user.is_superuser or hasattr(user, 'hr_profile') or user.role == 'HR')
 
 def is_dean_or_admin(user):
-    return user.is_authenticated and (user.is_superuser or user.role in ['DEAN', 'VICE_DEAN'])
+    return user.is_authenticated and (user.is_superuser or hasattr(user, 'dean_profile') or hasattr(user, 'vicedean_profile'))
 
 
 def generate_student_id():
@@ -60,13 +60,13 @@ def generate_student_id():
     return f"{base_id}{new_number:04d}"
 
 def is_dean(user):
-    return user.is_authenticated and user.role == 'DEAN'
+    return user.is_authenticated and hasattr(user, 'dean_profile')
 
 def is_admin_or_rector(user):
-    return user.is_authenticated and (user.is_superuser or user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR'])
+    return user.is_authenticated and (user.is_superuser or hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'))
 
 def is_management(user):
-    return user.is_authenticated and (user.is_superuser or user.role in ['DEAN', 'VICE_DEAN', 'RECTOR', 'PRO_RECTOR', 'DIRECTOR'])
+    return user.is_authenticated and user.is_management
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -97,8 +97,10 @@ def profile_view(request):
     profile = None
     context = {'profile': profile}
     
-    if user.role == 'STUDENT':
-        profile = get_object_or_404(Student, user=user)
+    template_name = 'accounts/profile_teacher.html'
+    
+    if hasattr(user, 'student_profile'):
+        profile = user.student_profile
         from journal.models import StudentStatistics, JournalEntry
         
         stats, created = StudentStatistics.objects.get_or_create(student=profile)
@@ -145,16 +147,15 @@ def profile_view(request):
             donut_empty = False
 
         context['profile'] = profile
-        
         context['chart_labels'] = json.dumps(chart_labels)
         context['chart_gpa'] = json.dumps(chart_gpa)
         context['chart_attendance'] = json.dumps(chart_attendance)
-        
         context['donut_data'] = json.dumps(donut_data)
         context['donut_empty'] = json.dumps(donut_empty)
+        template_name = 'accounts/profile_student.html'
         
-    elif user.role == 'TEACHER':
-        profile = get_object_or_404(Teacher, user=user)
+    elif hasattr(user, 'teacher_profile'):
+        profile = user.teacher_profile
         from schedule.models import ScheduleSlot
         from journal.models import StudentStatistics
         
@@ -200,23 +201,28 @@ def profile_view(request):
         context['classes'] = classes
         context['current_time'] = current_time
         context['today'] = today
+        template_name = 'accounts/profile_teacher.html'
         
-    elif user.role == 'DEAN':
-        profile = get_object_or_404(Dean, user=user)
+    elif hasattr(user, 'dean_profile'):
+        profile = user.dean_profile
         context['profile'] = profile
+        template_name = 'accounts/profile_dean.html'
         
-    elif user.role == 'HEAD_OF_DEPT':
-        profile = get_object_or_404(HeadOfDepartment, user=user)
+    elif hasattr(user, 'head_of_dept_profile'):
+        profile = user.head_of_dept_profile
         context['profile'] = profile
+        template_name = 'accounts/profile_teacher.html'
         
-    elif user.role in ['DIRECTOR', 'PRO_RECTOR']:
-        if user.role == 'DIRECTOR':
-            profile = get_object_or_404(Director, user=user)
-        else:
-            profile = get_object_or_404(ProRector, user=user)
+    elif hasattr(user, 'director_profile'):
+        profile = user.director_profile
         context['profile'] = profile
-    
-    template_name = f'accounts/profile_{user.role.lower()}.html' if user.role in ['STUDENT', 'TEACHER', 'DEAN'] else 'accounts/profile_teacher.html'
+        template_name = 'accounts/profile_teacher.html'
+        
+    elif hasattr(user, 'prorector_profile'):
+        profile = user.prorector_profile
+        context['profile'] = profile
+        template_name = 'accounts/profile_teacher.html'
+        
     return render(request, template_name, context)
 
 @login_required
@@ -226,38 +232,51 @@ def edit_profile(request):
     if request.method == 'POST':
         user_form = UserEditForm(request.POST, request.FILES, instance=user)
         
-        profile_form = None
-        if user.role == 'STUDENT':
-            profile_form = StudentForm(request.POST, instance=user.student_profile)
-        elif user.role == 'TEACHER':
-            profile_form = TeacherForm(request.POST, instance=user.teacher_profile)
-        elif user.role == 'DEAN':
-            profile_form = DeanForm(request.POST, instance=user.dean_profile)
-        elif user.role == 'HEAD_OF_DEPT':
-            profile_form = HeadOfDepartmentForm(request.POST, instance=user.head_of_dept_profile)
+        profile_forms = []
+        if hasattr(user, 'student_profile'):
+            profile_forms.append(StudentForm(request.POST, instance=user.student_profile, prefix='student'))
+        if hasattr(user, 'teacher_profile'):
+            profile_forms.append(TeacherForm(request.POST, instance=user.teacher_profile, prefix='teacher'))
+        if hasattr(user, 'dean_profile'):
+            profile_forms.append(DeanForm(request.POST, instance=user.dean_profile, prefix='dean'))
+        if hasattr(user, 'head_of_dept_profile'):
+            profile_forms.append(HeadOfDepartmentForm(request.POST, instance=user.head_of_dept_profile, prefix='head'))
         
-        if user_form.is_valid() and (profile_form is None or profile_form.is_valid()):
+        all_valid = user_form.is_valid()
+        for pf in profile_forms:
+            if not pf.is_valid():
+                all_valid = False
+                
+        if all_valid:
             user_form.save()
-            if profile_form:
-                profile_form.save()
+            for pf in profile_forms:
+                pf.save()
             messages.success(request, _('Профиль успешно обновлен'))
             return redirect('accounts:profile')
     else:
         user_form = UserEditForm(instance=user)
         
-        profile_form = None
-        if user.role == 'STUDENT':
-            profile_form = StudentForm(instance=user.student_profile)
-        elif user.role == 'TEACHER':
-            profile_form = TeacherForm(instance=user.teacher_profile)
-        elif user.role == 'DEAN':
-            profile_form = DeanForm(instance=user.dean_profile)
-        elif user.role == 'HEAD_OF_DEPT':
-            profile_form = HeadOfDepartmentForm(instance=user.head_of_dept_profile)
+        profile_forms = []
+        if hasattr(user, 'student_profile'):
+            f = StudentForm(instance=user.student_profile, prefix='student')
+            f.form_title = _("Профиль Студента")
+            profile_forms.append(f)
+        if hasattr(user, 'teacher_profile'):
+            f = TeacherForm(instance=user.teacher_profile, prefix='teacher')
+            f.form_title = _("Профиль Преподавателя")
+            profile_forms.append(f)
+        if hasattr(user, 'dean_profile'):
+            f = DeanForm(instance=user.dean_profile, prefix='dean')
+            f.form_title = _("Профиль Декана")
+            profile_forms.append(f)
+        if hasattr(user, 'head_of_dept_profile'):
+            f = HeadOfDepartmentForm(instance=user.head_of_dept_profile, prefix='head')
+            f.form_title = _("Профиль Зав. кафедрой")
+            profile_forms.append(f)
     
     return render(request, 'accounts/edit_profile.html', {
         'user_form': user_form,
-        'profile_form': profile_form
+        'profile_forms': profile_forms
     })
 
 @login_required
@@ -299,32 +318,27 @@ def user_management(request):
 
     users_with_profiles = []
     for user_obj in users:
-        user_data = {
+        profile_id = None
+        has_profile = False
+        
+        if hasattr(user_obj, 'student_profile'):
+            profile_id = user_obj.student_profile.id
+            has_profile = True
+        elif hasattr(user_obj, 'teacher_profile'):
+            profile_id = user_obj.teacher_profile.id
+            has_profile = True
+        elif hasattr(user_obj, 'dean_profile'):
+            profile_id = user_obj.dean_profile.id
+            has_profile = True
+        elif hasattr(user_obj, 'head_of_dept_profile'):
+            profile_id = user_obj.head_of_dept_profile.id
+            has_profile = True
+            
+        users_with_profiles.append({
             'user': user_obj,
-            'has_profile': True,
-            'profile_id': None
-        }
-
-        try:
-            if user_obj.role == 'STUDENT':
-                if hasattr(user_obj, 'student_profile'):
-                    user_data['profile_id'] = user_obj.student_profile.id
-                else:
-                    user_data['has_profile'] = False
-            elif user_obj.role == 'TEACHER':
-                if hasattr(user_obj, 'teacher_profile'):
-                    user_data['profile_id'] = user_obj.teacher_profile.id
-                else:
-                    user_data['has_profile'] = False
-            elif user_obj.role == 'DEAN':
-                if hasattr(user_obj, 'dean_profile'):
-                    user_data['profile_id'] = user_obj.dean_profile.id
-                else:
-                    user_data['has_profile'] = False
-        except ObjectDoesNotExist:
-            user_data['has_profile'] = False
-
-        users_with_profiles.append(user_data)
+            'has_profile': has_profile,
+            'profile_id': profile_id
+        })
 
     return render(request, 'accounts/user_management.html', {
         'users': users,
@@ -421,7 +435,7 @@ def add_user(request):
 @user_passes_test(is_management)
 def edit_user(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
-    if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         allowed = True
         if user_obj.role == 'STUDENT' and hasattr(user_obj, 'student_profile'):
@@ -598,7 +612,7 @@ def transfer_student(request, student_id):
 
 @login_required
 def view_user_profile(request, user_id):
-    if not is_management(request.user) and request.user.role != 'TEACHER':
+    if not is_management(request.user) and not hasattr(request.user, 'teacher_profile'):
          messages.error(request, _('Доступ запрещен'))
          return redirect('core:dashboard')
 
@@ -610,8 +624,8 @@ def view_user_profile(request, user_id):
         'viewing_as_dean': True
     }
 
-    if user_obj.role == 'STUDENT':
-        profile = get_object_or_404(Student, user=user_obj)
+    if hasattr(user_obj, 'student_profile'):
+        profile = user_obj.student_profile
         from journal.models import StudentStatistics
         stats, created = StudentStatistics.objects.get_or_create(student=profile)
         stats.recalculate()
@@ -620,15 +634,20 @@ def view_user_profile(request, user_id):
         context['templates_cert'] = DocumentTemplate.objects.filter(context_type='STUDENT_CERT', is_active=True)
         template = 'accounts/profile_student.html'
 
-    elif user_obj.role == 'TEACHER':
-        profile = get_object_or_404(Teacher, user=user_obj)
+    elif hasattr(user_obj, 'teacher_profile'):
+        profile = user_obj.teacher_profile
         context['profile'] = profile
         template = 'accounts/profile_teacher.html'
 
-    elif user_obj.role == 'DEAN':
-        profile = get_object_or_404(Dean, user=user_obj)
+    elif hasattr(user_obj, 'dean_profile'):
+        profile = user_obj.dean_profile
         context['profile'] = profile
         template = 'accounts/profile_dean.html'
+        
+    elif hasattr(user_obj, 'head_of_dept_profile'):
+        profile = user_obj.head_of_dept_profile
+        context['profile'] = profile
+        template = 'accounts/profile_teacher.html'
 
     return render(request, template, context)
 
@@ -655,7 +674,7 @@ def group_management(request):
 
 @login_required
 def add_group(request):
-    if not (request.user.is_superuser or request.user.role in ['DEAN', 'VICE_DEAN']):
+    if not (request.user.is_superuser or hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile')):
         messages.error(request, _("Нет доступа"))
         return redirect('core:dashboard')
 
@@ -674,7 +693,7 @@ def add_group(request):
             pass
 
     def configure_form(form):
-        if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+        if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             if faculty:
                 form.fields['specialty'].queryset = Specialty.objects.filter(department__faculty=faculty)
@@ -685,7 +704,7 @@ def add_group(request):
 
         if form.is_valid():
             try:
-                if is_dean(request.user):
+                if hasattr(request.user, 'dean_profile'):
                     spec = form.cleaned_data['specialty']
                     if spec.department.faculty != request.user.dean_profile.faculty:
                         raise Exception(_("Попытка создания группы на чужом факультете"))

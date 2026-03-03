@@ -126,13 +126,13 @@ class SemesterForm(forms.ModelForm):
         self.fields['academic_year'].widget.choices = get_academic_year_choices()
 
         if self.user:
-            if self.user.role == 'DEAN' and hasattr(self.user, 'dean_profile'):
+            if hasattr(self.user, 'dean_profile'):
                 faculty = self.user.dean_profile.faculty
                 self.fields['faculty'].initial = faculty
                 self.fields['faculty'].widget.attrs['readonly'] = True
                 self.fields['faculty'].disabled = True # Чтобы не менял
                 self.fields['institute'].widget = forms.HiddenInput()
-            elif self.user.is_superuser or self.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+            elif self.user.is_superuser or hasattr(self.user, 'director_profile') or hasattr(self.user, 'prorector_profile'):
                 pass
 
 
@@ -178,7 +178,7 @@ class BulkClassroomForm(forms.Form):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        if user and user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+        if user and hasattr(user, 'dean_profile'):
             faculty = user.dean_profile.faculty
             if faculty and faculty.institute:
                 self.fields['building'].queryset = Building.objects.filter(institute=faculty.institute)
@@ -232,7 +232,7 @@ class AcademicPlanForm(forms.ModelForm):
         self.fields['group'].required = False
         self.fields['group'].empty_label = _("-- Общий план для всей специальности --")
 
-        if user and user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+        if user and hasattr(user, 'dean_profile'):
             faculty = user.dean_profile.faculty
             self.fields['specialty'].queryset = self.fields['specialty'].queryset.filter(
                 department__faculty=faculty
@@ -412,7 +412,7 @@ class BuildingForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        if user and user.role == 'DEAN' and hasattr(user, 'dean_profile'):
+        if user and hasattr(user, 'dean_profile'):
             faculty = user.dean_profile.faculty
             if faculty and faculty.institute:
                 self.fields['institute'].initial = faculty.institute

@@ -19,7 +19,7 @@ def dashboard(request):
 
     context['news_list'] = News.objects.filter(is_published=True).order_by('-is_pinned', '-created_at')[:5]
 
-    if user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+    if hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'):
         selected_institute_id = request.GET.get('institute_id')
         selected_institute = None
         institutes = Institute.objects.prefetch_related('faculties').all()
@@ -91,7 +91,7 @@ def dashboard(request):
             })
             return render(request, 'core/dashboard_admin.html', context)
             
-    elif user.role == 'HR':
+    elif hasattr(user, 'hr_profile'):
         context['total_students'] = Student.objects.filter(status='ACTIVE').count()
         context['unassigned_students'] = Student.objects.filter(group__isnull=True, status='ACTIVE').count()
         context['total_teachers'] = Teacher.objects.count()
@@ -99,7 +99,7 @@ def dashboard(request):
         
         return render(request, 'core/dashboard_hr.html', context)
 
-    elif user.role in ['DEAN', 'VICE_DEAN']:
+    elif hasattr(user, 'dean_profile') or hasattr(user, 'vicedean_profile'):
         profile = getattr(user, 'dean_profile', None) or getattr(user, 'vicedean_profile', None)
         faculty = profile.faculty if profile else None
         context['profile'] = profile
@@ -154,7 +154,7 @@ def dashboard(request):
 
         return render(request, 'core/dashboard_dean.html', context)
 
-    elif user.role in ['TEACHER', 'HEAD_OF_DEPT'] or hasattr(user, 'teacher_profile'):
+    elif hasattr(user, 'teacher_profile') or hasattr(user, 'head_of_dept_profile'):
             if hasattr(user, 'teacher_profile'):
                 context['profile'] = user.teacher_profile
                 
@@ -165,8 +165,10 @@ def dashboard(request):
                 context['profile'] = user.head_of_dept_profile
             return render(request, 'core/dashboard_teacher.html', context)
 
-    else:
+    elif hasattr(user, 'student_profile'):
         context['profile'] = user.student_profile
+    else:
+        context['profile'] = None
 
     try:
         today = datetime.now()
@@ -174,7 +176,7 @@ def dashboard(request):
         current_time = today.time()
         classes = []
 
-        if user.role == 'STUDENT':
+        if hasattr(user, 'student_profile'):
             try:
                 student = user.student_profile
                 if student.group:
@@ -186,7 +188,7 @@ def dashboard(request):
             except Exception:
                 pass
 
-        elif user.role in ['TEACHER', 'HEAD_OF_DEPT']:
+        elif hasattr(user, 'teacher_profile') or hasattr(user, 'head_of_dept_profile'):
             try:
                 if hasattr(user, 'teacher_profile'):
                     teacher = user.teacher_profile
