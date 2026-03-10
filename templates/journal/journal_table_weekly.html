@@ -66,13 +66,28 @@
                     <a href="{% url 'journal:journal_view' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
                 </div>
             </div>
-
+            <div>
+                <span class="badge bg-light text-dark border me-2">Неделя {{ week_num }}</span>
+                <a href="{% url 'journal:performance_journal' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-primary btn-sm me-2">
+                    <i class="bi bi-grid-3x3"></i> Сводная ведомость (Рейтинги)
+                </a>
+                <a href="{% url 'journal:journal_view' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
+            </div>
             <div class="card-body p-0">
+                {% if is_future_week and not user_is_admin %}
+<div class="alert alert-warning py-2 mb-3">
+    <i class="bi bi-lock-fill"></i> <strong>Будущая неделя:</strong> Выставление итоговых баллов за эту неделю пока недоступно.
+</div>
+{% elif user_is_admin %}
+<div class="alert alert-info py-2 mb-3">
+    <i class="bi bi-shield-lock-fill"></i> <strong>Режим Администратора:</strong> Вы можете редактировать баллы за любые недели.
+</div>
+{% endif %}
                 <div class="d-flex justify-content-between bg-light p-2 border-bottom">
                     <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" class="btn btn-sm btn-link text-decoration-none">&larr; Пред. неделя</a>
 
                     <small class="text-muted align-self-center">
-                        Вводите <b>1-12</b> для оценки или <b>нб</b> для прогула. Tab для перемещения.
+                        Вводите <b>нб</b> для прогула, <b>г</b> (готов) или <b>нг</b> (не готов). Tab для перемещения.
                     </small>
 
                     <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'1' }}" class="btn btn-sm btn-link text-decoration-none">След. неделя &rarr;</a>
@@ -119,21 +134,25 @@
                                                     <option value="г" class="text-success fw-bold" {% if entry_data.entry.participation == 'READY' %}selected{% endif %}>Г (Готов)</option>
                                                     <option value="нг" class="text-warning fw-bold" {% if entry_data.entry.participation == 'NOT_READY' %}selected{% endif %}>НГ (Не готов)</option>
                                                 </optgroup>
-
-                                                <optgroup label="Баллы">
-                                                    {% for i in "123456789"|make_list %}
-                                                        <option value="{{ i }}" {% if current_val|stringformat:"s" == i %}selected{% endif %}>{{ i }}</option>
-                                                    {% endfor %}
-                                                    <option value="10" {% if current_val|stringformat:"s" == "10.0" or current_val|stringformat:"s" == "10" %}selected{% endif %}>10</option>
-                                                    <option value="11" {% if current_val|stringformat:"s" == "11.0" or current_val|stringformat:"s" == "11" %}selected{% endif %}>11</option>
-                                                    <option value="12" {% if current_val|stringformat:"s" == "12.0" or current_val|stringformat:"s" == "12" %}selected{% endif %}>12</option>
-                                                    <option value="12.5" {% if current_val|stringformat:"s" == "12.5" %}selected{% endif %}>12.5</option>
-                                                </optgroup>
                                                 {% endwith %}
                                             </select>
                                         {% endif %}
                                     </td>
                                 {% endfor %}
+                                <td class="bg-warning bg-opacity-10 p-1">
+    {% if weekly_column %}
+        <input type="text"
+               class="form-control form-control-sm text-center fw-bold weekly-score-input"
+               value="{{ row.weekly_score|default_if_none:'' }}"
+               data-student-id="{{ row.student.id }}"
+               data-subject-id="{{ subject.id }}"
+               data-column-id="{{ weekly_column.id }}"
+               {% if not can_edit_weekly_score %}disabled title="Неделя еще не наступила"{% endif %}
+               placeholder="-">
+    {% else %}
+        <small class="text-muted" style="font-size: 0.6rem;">Матрица не настроена</small>
+    {% endif %}
+</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -217,6 +236,43 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+document.querySelectorAll('.weekly-score-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const val = this.value;
+        this.style.opacity = '0.5';
+
+        fetch('{% url "journal:update_weekly_score" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                student_id: this.dataset.studentId,
+                subject_id: this.dataset.subjectId,
+                column_id: this.dataset.columnId,
+                value: val
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.style.opacity = '1';
+            if(data.success) {
+                this.value = data.score !== null ? data.score : '';
+                this.classList.add('bg-success', 'text-white');
+                setTimeout(() => this.classList.remove('bg-success', 'text-white'), 1000);
+            } else {
+                alert(data.error);
+                this.value = ''; 
+            }
+        })
+        .catch(err => {
+            this.style.opacity = '1';
+            alert('Ошибка сети');
+        });
+    });
+});
 });
 </script>
 {% endblock %}

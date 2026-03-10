@@ -444,19 +444,11 @@ class AIAssignmentService:
 
     @staticmethod
     def extract_json(raw: str) -> dict:
-        if "</think>" in raw:
-            raw = raw.split("</think>", 1)[-1].strip()
-        if "```json" in raw:
-            raw = raw.split("```json", 1)[1].split("```")[0].strip()
-        elif "```" in raw:
-            raw = raw.split("```", 1)[1].split("```")[0].strip()
-
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-
-        if start != -1 and end != 0:
+        import re
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if match:
             try:
-                return json.loads(raw[start:end])
+                return json.loads(match.group(0))
             except json.JSONDecodeError:
                 pass
         return {"assignments":[]}

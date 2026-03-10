@@ -15,4 +15,8 @@ urlpatterns = [
     path('dean/', views.dean_journal_view, name='dean_view'),
     path('report/', views.department_report, name='department_report'),  
     path('report/group/<int:group_id>/', views.group_detailed_report, name='group_detail'),  
+    path('performance/', views.performance_journal_view, name='performance_journal'),
+    path('api/update-matrix/', views.update_matrix_cell, name='update_matrix_cell'),
+    path('api/update-weekly-score/', views.update_weekly_score, name='update_weekly_score'),
+    path('matrix-constructor/', views.matrix_constructor, name='matrix_constructor'),
 ]

@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}Конструктор ведомости{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-plus-square"></i> Добавить колонку</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_col">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Название (напр. Неделя 1, Р1)</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Тип колонки</label>
+                        <select name="col_type" class="form-select">
+                            <option value="WEEK">Учебная неделя</option>
+                            <option value="RATING">Рейтинг (Р1/Р2)</option>
+                            <option value="EXAM">Экзамен</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Макс. балл</label>
+                            <input type="number" step="0.1" name="max_score" class="form-control" value="12.5" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Порядок</label>
+                            <input type="number" name="order" class="form-control" value="1" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">Добавить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-layout-three-columns"></i> Структура: {{ structure.name }}</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="alert alert-info m-3 border shadow-sm">
+                    <h6 class="fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Как это работает?</h6>
+                    <p class="mb-1">Эта матрица — <strong>фундамент учебного процесса</strong>. Она выполняет две важнейшие функции:</p>
+                    <ol class="mb-0">
+                        <li><strong>Формирует Сводную ведомость:</strong> Именно эти колонки увидят преподаватели и студенты в журнале успеваемости.</li>
+                        <li><strong>Генерирует LMS:</strong> При нажатии кнопки "Сгенерировать из расписания" в LMS, система создаст разделы (недели, рейтинги) <strong>в точном соответствии с этой структурой</strong>.</li>
+                    </ol>
+                    <hr>
+                    <p class="mb-0 small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Важно:</strong> Баллы за колонки типа "Рейтинг" выставляются <b>АВТОМАТИЧЕСКИ</b> на основе тестов (Quiz) в LMS. Преподаватели не могут вводить их вручную.</p>
+                </div>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Порядок</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Макс. балл</th>
+                            <th class="text-end pe-3">Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for col in columns %}
+                        <tr>
+                            <td class="ps-3 fw-bold">{{ col.order }}</td>
+                            <td class="fw-bold text-primary">{{ col.name }}</td>
+                            <td>
+                                <span class="badge {% if col.col_type == 'WEEK' %}bg-secondary{% elif col.col_type == 'RATING' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                    {{ col.get_col_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ col.max_score }}</td>
+                            <td class="text-end pe-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editColModal{{ col.id }}" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="del_col">
+                                    <input type="hidden" name="col_id" value="{{ col.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить колонку? Все оценки по ней будут удалены!')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center py-4 text-muted">Колонки не добавлены</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for col in columns %}
+<div class="modal fade" id="editColModal{{ col.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_col">
+                <input type="hidden" name="col_id" value="{{ col.id }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Редактировать колонку</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Название</label>
+                        <input type="text" name="name" class="form-control" value="{{ col.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Тип колонки</label>
+                        <select name="col_type" class="form-select">
+                            <option value="WEEK" {% if col.col_type == 'WEEK' %}selected{% endif %}>Учебная неделя</option>
+                            <option value="RATING" {% if col.col_type == 'RATING' %}selected{% endif %}>Рейтинг (Р1/Р2)</option>
+                            <option value="EXAM" {% if col.col_type == 'EXAM' %}selected{% endif %}>Экзамен</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Макс. балл</label>
+                            <input type="number" step="0.1" name="max_score" class="form-control" value="{{ col.max_score|stringformat:'s' }}" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Порядок</label>
+                            <input type="number" name="order" class="form-control" value="{{ col.order }}" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

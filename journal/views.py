@@ -10,12 +10,41 @@ from django.views.decorators.http import require_POST
 from django.utils.translation import gettext as _
 from django.utils import timezone
 from django.http import JsonResponse
-from .models import JournalEntry, JournalChangeLog, StudentStatistics
+from .models import JournalEntry, JournalChangeLog, StudentStatistics, MatrixStructure, MatrixColumn, StudentMatrixScore
 from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLogFilterForm
 from accounts.models import Student, Teacher, Group
 from schedule.models import Subject, ScheduleSlot, Semester
- 
+from .models import SubjectRating
 
+
+def get_active_semester_for_group(group):
+    from schedule.models import Semester
+    if group and group.specialty and group.specialty.department.faculty:
+        faculty = group.specialty.department.faculty
+        semester = Semester.objects.filter(faculty=faculty, is_active=True, course=group.course).first()
+        if semester:
+            return semester
+    semester = Semester.objects.filter(course=group.course, is_active=True).first()
+    if not semester:
+        semester = Semester.objects.filter(is_active=True).first()
+    return semester
+
+def is_teacher_or_management(user):
+    return user.is_authenticated and (
+        hasattr(user, 'teacher_profile') or 
+        hasattr(user, 'dean_profile') or 
+        hasattr(user, 'vicedean_profile') or 
+        user.is_superuser
+    )
+
+
+
+def is_dean_or_admin(user):
+    return user.is_authenticated and (
+        user.is_superuser or 
+        hasattr(user, 'dean_profile') or 
+        hasattr(user, 'vicedean_profile')
+    )
 
 def is_teacher(user):
     return user.is_authenticated and hasattr(user, 'teacher_profile')
@@ -34,19 +63,25 @@ from datetime import datetime, timedelta
 from django.db.models import Avg
 
 @login_required
-@user_passes_test(is_teacher)
+@user_passes_test(is_teacher_or_management)
 def journal_view(request):
-    teacher = request.user.teacher_profile
+    user_is_admin = is_dean_or_admin(request.user)
+    teacher = getattr(request.user, 'teacher_profile', None)
+
     group_id = request.GET.get('group')
     subject_id = request.GET.get('subject')
     week_num = request.GET.get('week')
 
     if not group_id or not subject_id:
-        form = JournalFilterForm(teacher=teacher)
+        form = JournalFilterForm(user=request.user)
         return render(request, 'journal/select_journal.html', {'form': form})
 
     group = get_object_or_404(Group, id=group_id)
-    subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
+
+    if user_is_admin:
+        subject = get_object_or_404(Subject, id=subject_id)
+    else:
+        subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
 
     schedule_slots = ScheduleSlot.objects.filter(
         group=group,
@@ -82,7 +117,7 @@ def journal_view(request):
     if active_semester and active_semester.start_date:
         week_start = active_semester.start_date + timedelta(weeks=week_num - 1)
     else:
-        today = datetime.now().date()
+        today = timezone.now().date()
         week_start = today - timedelta(days=today.weekday())
 
     schedule_slots = schedule_slots.filter(semester=active_semester)
@@ -101,7 +136,7 @@ def journal_view(request):
                 'day_name': slot.get_day_of_week_display(),
                 'slot': slot
             })
-            
+
     days_with_lessons.sort(key=lambda x: (x['date'], x['time']))
 
     journal_data =[]
@@ -141,16 +176,42 @@ def journal_view(request):
             'avg_grade': round(avg_grade, 1)
         })
 
+    current_week_actual = active_semester.get_current_week_number() if active_semester else 1
+    is_future_week = week_num > current_week_actual
+
+    user_is_admin = is_dean_or_admin(request.user)
+    can_edit_weekly_score = user_is_admin or not is_future_week
+
+    faculty = group.specialty.department.faculty if group.specialty else None
+    matrix_structure = MatrixStructure.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True), is_active=True).first()
+
+    weekly_column = None
+    weekly_scores_dict = {}
+    if matrix_structure:
+        weekly_column = MatrixColumn.objects.filter(structure=matrix_structure, col_type='WEEK', week_number=week_num).first()
+        if weekly_column:
+            scores = StudentMatrixScore.objects.filter(subject=subject, column=weekly_column, student__in=students)
+            weekly_scores_dict = {s.student_id: s.score for s in scores}
+
+    for row in journal_data:
+        row['weekly_score'] = weekly_scores_dict.get(row['student'].id, "")
+
     return render(request, 'journal/journal_table_weekly.html', {
         'group': group,
         'subject': subject,
         'week_num': week_num,
+        'current_week_actual': current_week_actual,
         'days_with_lessons': days_with_lessons,
         'journal_data': journal_data,
         'day_stats': day_stats,
         'can_edit': True,
+        'can_edit_weekly_score': can_edit_weekly_score,
+        'is_future_week': is_future_week,
+        'user_is_admin': user_is_admin,
+        'weekly_column': weekly_column,
         'is_red_week': current_week_type == 'RED'
     })
+
 
 
 
@@ -655,7 +716,207 @@ def update_journal_cell(request):
 
 
 
+@login_required
+@user_passes_test(is_teacher_or_management)
+def performance_journal_view(request):
+    group_id = request.GET.get('group')
+    subject_id = request.GET.get('subject')
+    
+    if not group_id or not subject_id:
+        return redirect('journal:journal_view')
+        
+    group = get_object_or_404(Group, id=group_id)
+    subject = get_object_or_404(Subject, id=subject_id)
+    
+    faculty = group.specialty.department.faculty if group.specialty else None
+    matrix_structure = MatrixStructure.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True), is_active=True).first()
+    
+    columns =[]
+    if matrix_structure:
+        columns = matrix_structure.columns.all()
+    
+    students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
+    
+    scores = StudentMatrixScore.objects.filter(subject=subject, student__in=students)
+    scores_dict = {(s.student_id, s.column_id): s.score for s in scores}
+    
+    students_data = []
+    for s in students:
+        student_scores =[]
+        total_score = 0
+        
+        for col in columns:
+            val = scores_dict.get((s.id, col.id))
+            student_scores.append({
+                'column': col,
+                'value': val
+            })
+            if val and col.col_type in['RATING', 'WEEK', 'EXAM']:
+                total_score += val 
+                
+        students_data.append({
+            'obj': s,
+            'scores': student_scores,
+            'total': round(total_score, 2)
+        })
+        
+    return render(request, 'journal/performance_journal.html', {
+        'group': group,
+        'subject': subject,
+        'matrix_structure': matrix_structure,
+        'columns': columns,
+        'students_data': students_data,
+        'is_admin': is_dean_or_admin(request.user)
+    })
 
+@login_required
+@require_POST
+def update_matrix_cell(request):
+    import json
+    data = json.loads(request.body)
+    student_id = data.get('student_id')
+    subject_id = data.get('subject_id')
+    col_type = data.get('col_type')
+    week = data.get('week')
+    value = data.get('value', '').strip()
+    
+    try:
+        if col_type not in ['r1', 'r2', 'exam']:
+            return JsonResponse({'success': True})
+
+        rating, _ = SubjectRating.objects.get_or_create(student_id=student_id, subject_id=subject_id)
+        val_float = float(value.replace(',', '.')) if value else None
+        
+        if val_float is not None and (val_float < 0 or val_float > 100):
+            return JsonResponse({'success': False, 'error': 'Оценка должна быть от 0 до 100'})
+            
+        if col_type == 'r1' and week == 'pb': rating.r1_pb = val_float
+        elif col_type == 'r1' and week == 'to': rating.r1_to = val_float
+        elif col_type == 'r2' and week == 'pb': rating.r2_pb = val_float
+        elif col_type == 'r2' and week == 'to': rating.r2_to = val_float
+        elif col_type == 'exam' and week == 'pb': rating.exam_pb = val_float
+        elif col_type == 'exam' and week == 'main': rating.exam_main = val_float
+        elif col_type == 'exam' and week == 'dop': rating.exam_dop = val_float
+        
+        rating.save()
+        
+        return JsonResponse({
+            'success': True,
+            'r1_total': f"{rating.r1_total:.2f}" if rating.r1_total is not None else "0.00",
+            'r2_total': f"{rating.r2_total:.2f}" if rating.r2_total is not None else "0.00",
+            'itogo': f"{rating.itogo:.2f}",
+            'letter': rating.letter_grade
+        })
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Введите корректное число'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def update_weekly_score(request):
+    import json
+    from .models import MatrixColumn, StudentMatrixScore
+    from accounts.models import Student
+    
+    data = json.loads(request.body)
+    student_id = data.get('student_id')
+    subject_id = data.get('subject_id')
+    column_id = data.get('column_id')
+    value = data.get('value', '').strip()
+    
+    try:
+        column = get_object_or_404(MatrixColumn, id=column_id)
+        student = get_object_or_404(Student, id=student_id)
+        
+        if column.col_type == 'WEEK' and column.week_number:
+            active_sem = get_active_semester_for_group(student.group)
+            curr_week = active_sem.get_current_week_number() if active_sem else 1
+            
+            if column.week_number > curr_week and not is_dean_or_admin(request.user):
+                return JsonResponse({'success': False, 'error': 'Нельзя выставлять баллы за будущие недели!'})
+
+        score_val = float(value.replace(',', '.')) if value else None
+        
+        if score_val is not None and (score_val < 0 or score_val > column.max_score):
+            return JsonResponse({'success': False, 'error': f'Балл должен быть от 0 до {column.max_score}'})
+            
+        obj, created = StudentMatrixScore.objects.update_or_create(
+            student_id=student_id,
+            subject_id=subject_id,
+            column=column,
+            defaults={'score': score_val, 'updated_by': request.user}
+        )
+        
+        return JsonResponse({'success': True, 'score': obj.score})
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Введите корректное число'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
+
+@login_required
+def matrix_constructor(request):
+    if not is_dean_or_admin(request.user):
+        messages.error(request, "Доступ запрещен")
+        return redirect('core:dashboard')
+        
+    faculty = None
+    institute = None
+    
+    if hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        institute = faculty.institute if faculty else None
+    elif hasattr(request.user, 'director_profile'):
+        institute = request.user.director_profile.institute
+        
+    structure = MatrixStructure.objects.filter(faculty=faculty).first()
+    if not structure and institute:
+        structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True).first()
+        
+    if not structure:
+        structure = MatrixStructure.objects.create(
+            institute=institute,
+            faculty=faculty,
+            name=f"Матрица {faculty.code if faculty else (institute.abbreviation if institute else 'Глобальная')}"
+        )
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_col':
+            MatrixColumn.objects.create(
+                structure=structure, 
+                name=request.POST.get('name'), 
+                col_type=request.POST.get('col_type'),
+                max_score=request.POST.get('max_score', 100), 
+                order=request.POST.get('order', 0)
+            )
+            messages.success(request, "Колонка добавлена")
+            
+        elif action == 'edit_col':
+            MatrixColumn.objects.filter(id=request.POST.get('col_id'), structure=structure).update(
+                name=request.POST.get('name'), 
+                col_type=request.POST.get('col_type'), 
+                max_score=request.POST.get('max_score', 100), 
+                order=request.POST.get('order', 0)
+            )
+            messages.success(request, "Колонка обновлена")
+
+        elif action == 'del_col':
+            MatrixColumn.objects.filter(id=request.POST.get('col_id'), structure=structure).delete()
+            messages.success(request, "Колонка удалена")
+            
+        return redirect('journal:matrix_constructor')
+        
+    columns = structure.columns.all().order_by('order', 'id')
+    return render(request, 'journal/matrix_constructor.html', {
+        'structure': structure,
+        'columns': columns
+    })
 
 
 

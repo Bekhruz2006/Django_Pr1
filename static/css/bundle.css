@@ -722,3 +722,19 @@ body.dark-mode .modal-header {
 body.dark-mode .modal-footer {
     border-top-color: #1e3052;
 }
+
+/* Исправление временных слотов и hover-эффектов в конструкторе расписания */
+body.dark-mode .time-cell {
+    background-color: #1e3052 !important;
+    color: #e2e8f0 !important;
+}
+body.dark-mode .schedule-drop-zone:hover {
+    background-color: #162035 !important;
+    border-color: #475569 !important;
+}
+body.dark-mode .subject-item:hover {
+    background-color: #162035 !important;
+}
+body.dark-mode .lesson-card {
+    background-color: #1e3052 !important;
+}

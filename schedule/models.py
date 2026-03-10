@@ -100,6 +100,14 @@ class Subject(models.Model):
         blank=True,
         verbose_name=_("Преподаватель")
     )
+    
+    required_competencies = models.ManyToManyField(
+        'accounts.KnowledgeArea',
+        blank=True,
+        related_name='subjects',
+        verbose_name=_("Требуемые компетенции (Для ИИ)")
+    )
+    
     groups = models.ManyToManyField('accounts.Group', related_name='subjects', blank=True, verbose_name=_("Группы"))
     description = models.TextField(blank=True, verbose_name=_("Описание"))
     syllabus_file = models.FileField(

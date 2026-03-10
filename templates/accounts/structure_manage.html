@@ -253,11 +253,18 @@
                                     <div class="card-body p-2 bg-light bg-opacity-10">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <small class="text-muted fw-bold">{% trans "ГРУППЫ:" %}</small>
-                                            {% if not spec_data.plan %}
-                                                <a href="{% url 'schedule:create_plan' %}?specialty={{ spec_data.obj.id }}" class="badge bg-warning text-dark text-decoration-none">{% trans "Нет РУП! Создать" %}</a>
-                                            {% else %}
-                                                <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" class="badge bg-success text-decoration-none">{% trans "РУП" %} {{ spec_data.plan.admission_year }}</a>
-                                            {% endif %}
+                                            <div class="d-flex gap-2">
+                                                <!-- НОВАЯ КНОПКА -->
+                                                <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="badge bg-primary text-white text-decoration-none">
+                                                    <i class="bi bi-plus"></i> Группа
+                                                </a>
+                                                
+                                                {% if not spec_data.plan %}
+                                                    <a href="{% url 'schedule:create_plan' %}?specialty={{ spec_data.obj.id }}" class="badge bg-warning text-dark text-decoration-none">{% trans "Нет РУП! Создать" %}</a>
+                                                {% else %}
+                                                    <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" class="badge bg-success text-decoration-none">{% trans "РУП" %} {{ spec_data.plan.admission_year }}</a>
+                                                {% endif %}
+                                            </div>
                                         </div>
 
                                         <div class="d-flex flex-wrap gap-1">

@@ -131,10 +131,18 @@
 
                     <div class="row mt-4">
                         <div class="col-md-6">
-                            <label class="form-label">Преподаватель</label>
-                            {{ form.teacher }}
+                            <label class="form-label fw-bold text-primary"><i class="bi bi-robot"></i> Требуемые компетенции (Для ИИ)</label>
+                            {{ form.required_competencies }}
+                            <div class="form-text">Укажите, какие навыки нужны для преподавания. ИИ будет искать совпадения с профилями преподавателей.</div>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label">Преподаватель (Вручную)</label>
+                            {{ form.teacher }}
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
                             <label class="form-label">Группы (ручной выбор)</label>
                             {{ form.groups }}
                         </div>

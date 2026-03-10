@@ -50,9 +50,12 @@ class LMSManager:
             return course
     @staticmethod
     def generate_structure_from_schedule(course):
+        from journal.models import MatrixStructure
+        from testing.models import Quiz
+        
         subject = Subject.objects.filter(code=course.id_number).first()
         if not subject:
-            return False, "Предмет не найден. Убедитесь, что ID-номер курса совпадает с кодом предмета (Силлабуса)."
+            return False, "Предмет не найден. Убедитесь, что ID-номер курса совпадает с кодом предмета."
 
         group = subject.groups.first()
         if not group:
@@ -62,87 +65,53 @@ class LMSManager:
         if not semester:
             semester = Semester.objects.filter(is_active=True).first()
 
-        if not semester or not semester.start_date or not semester.end_date:
-            return False, "Активный семестр с датами не найден."
+        if not semester:
+            return False, "Активный семестр не найден."
 
-        slots = ScheduleSlot.objects.filter(subject=subject, semester=semester, is_active=True).order_by('day_of_week', 'start_time')
-        if not slots.exists():
-            return False, "Нет составленного расписания для данного предмета в текущем семестре."
+        faculty = subject.department.faculty
+        institute = faculty.institute
+        
+        matrix = MatrixStructure.objects.filter(faculty=faculty, is_active=True).first()
+        if not matrix:
+            matrix = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
+        if not matrix:
+            matrix = MatrixStructure.objects.filter(faculty__isnull=True, institute__isnull=True, is_active=True).first()
+            
+        if not matrix or not matrix.columns.exists():
+            return False, "Структура Сводной ведомости (Матрица) не настроена деканатом. Настройте её в Журнале."
 
         course.sections.all().delete()
 
-        start_date = semester.start_date
-        end_date = semester.end_date
-        current_date = start_date
-
-        week_num = 1
-        lesson_counter = 1
-
-        while current_date <= end_date:
-            week_start = current_date - timedelta(days=current_date.weekday())
-            week_end = week_start + timedelta(days=5) 
-
-            week_type = 'RED' if week_num % 2 != 0 else 'BLUE'
-            week_type_ru = 'Красная' if week_type == 'RED' else 'Синяя'
-
-            week_slots =[]
-            for slot in slots:
-                if slot.week_type == 'EVERY' or slot.week_type == week_type:
-                    lesson_date = week_start + timedelta(days=slot.day_of_week)
-                    if start_date <= lesson_date <= end_date:
-                        week_slots.append({'slot': slot, 'date': lesson_date})
-
-            if week_slots:
-                week_slots.sort(key=lambda x: (x['date'], x['slot'].start_time))
-
-                is_last_week = (current_date + timedelta(days=7)) > end_date
+        for column in matrix.columns.all().order_by('order'):
+            section_type = 'REGULAR'
+            if column.col_type == 'RATING':
+                section_type = 'RATING1' if '1' in column.name else 'RATING2'
+            elif column.col_type == 'EXAM':
+                section_type = 'EXAM'
                 
-                section_type = week_type
-                if week_num == 8:
-                    section_type = 'RATING1'
-                    section_name = f"Рейтинг 1 (Неделя {week_num} - {week_type_ru}: {week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')})"
-                elif week_num == 16 or is_last_week:
-                    section_type = 'RATING2'
-                    section_name = f"Рейтинг 2 (Неделя {week_num} - {week_type_ru}: {week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')})"
-                else:
-                    section_name = f"Неделя {week_num} ({week_type_ru}) ({week_start.strftime('%d.%m')} - {week_end.strftime('%d.%m')})"
+            section = CourseSection.objects.create(
+                course=course,
+                name=column.name,
+                sequence=column.order,
+                section_type=section_type
+            )
 
-                section = CourseSection.objects.create(
-                    course=course,
-                    name=section_name,
-                    sequence=week_num,
-                    section_type=section_type
+            if column.col_type == 'WEEK':
+                assign_mod = CourseModule.objects.create(
+                    section=section, module_type='ASSIGNMENT',
+                    title=f"Задания: {column.name}", sequence=1
+                )
+                Assignment.objects.create(module=assign_mod, description="Загрузите выполненное задание сюда.", max_score=column.max_score)
+            
+            elif column.col_type in ['RATING', 'EXAM']:
+                quiz_mod = CourseModule.objects.create(
+                    section=section, module_type='QUIZ',
+                    title=f"Тестирование: {column.name}", sequence=1
+                )
+                Quiz.objects.create(
+                    module=quiz_mod, 
+                    description=f"Автоматический тест для колонки '{column.name}'.",
+                    passing_score=(column.max_score / 2) # Проходной балл 50%
                 )
 
-                seq = 1
-                for item in week_slots:
-                    slot = item['slot']
-                    l_date = item['date']
-
-                    lesson_title = f"Занятие {lesson_counter} ({l_date.strftime('%d.%m')}) - {slot.get_lesson_type_display()}"
-
-                    assign_mod = CourseModule.objects.create(
-                        section=section, module_type='ASSIGNMENT',
-                        title=lesson_title, sequence=seq
-                    )
-                    
-                    from lms.models import Assignment
-                    max_score = 100.0 if section_type in ['RATING1', 'RATING2'] else 12.5
-                    
-                    Assignment.objects.create(
-                        module=assign_mod, 
-                        description="Загрузите выполненное задание или отчет сюда.",
-                        max_score=max_score
-                    )
-                    seq += 1
-                    lesson_counter += 1
-
-            current_date += timedelta(days=7)
-            week_num += 1
-
-        from lms.models import GradeItem
-        GradeItem.objects.get_or_create(course=course, name="Рейтинг 1", defaults={'item_type': 'MANUAL', 'max_score': 30.0, 'sort_order': 901})
-        GradeItem.objects.get_or_create(course=course, name="Рейтинг 2", defaults={'item_type': 'MANUAL', 'max_score': 30.0, 'sort_order': 902})
-        GradeItem.objects.get_or_create(course=course, name="Экзамен", defaults={'item_type': 'MANUAL', 'max_score': 40.0, 'sort_order': 903})
-
-        return True, "Структура успешно сгенерирована: добавлены Задания, Тесты и Бально-рейтинговая система (Р1, Р2, Экзамен)!"
+        return True, "Структура LMS успешно сгенерирована на основе Сводной ведомости факультета!"

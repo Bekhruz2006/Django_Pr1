@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_api
 
 app_name = 'lms'
 
@@ -47,4 +48,7 @@ urlpatterns = [
     path('courses/<int:course_id>/reorder-sections/', views.reorder_sections, name='reorder_sections'),
     path('sections/<int:section_id>/reorder-modules/', views.reorder_modules, name='reorder_modules'),
     path('courses/<int:course_id>/sync-schedule/', views.sync_schedule, name='sync_schedule'),
+    path('sections/<int:section_id>/grade/', views.section_grading, name='section_grading'),
+
+    path('api/modules/add/', views_api.add_course_module, name='api_add_module'),
 ]

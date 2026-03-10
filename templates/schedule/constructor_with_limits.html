@@ -190,11 +190,11 @@
                                         <div class="d-flex flex-column gap-1 h-100">
                                             {% for slot in slot_list %}
                                             {% if not forloop.first %}<hr class="my-1 border-dashed opacity-50">{% endif %}
-                                            <div class="lesson-card p-2 rounded shadow-sm position-relative d-flex flex-column
-                                                {% if slot.week_type == 'RED' %}border-start border-4 border-danger
-                                                {% elif slot.week_type == 'BLUE' %}border-start border-4 border-primary
-                                                {% else %}border-start border-4 border-{{ slot.get_color_class }}{% endif %}" 
-                                                style="background-color: {% if slot.week_type == 'RED' %}#fff5f5{% elif slot.week_type == 'BLUE' %}#f0f7ff{% else %}#fff{% endif %}; min-width: 0;"
+                                            <div class="lesson-card p-2 rounded shadow-sm position-relative d-flex flex-column bg-white
+                                                {% if slot.week_type == 'RED' %}border-start border-4 border-danger bg-danger bg-opacity-10
+                                                {% elif slot.week_type == 'BLUE' %}border-start border-4 border-primary bg-primary bg-opacity-10
+                                                {% else %}border-start border-4 border-{{ slot.get_color_class }}{% endif %}"
+                                                style="min-width: 0;"
                                                 data-week-type="{{ slot.week_type }}">
                                                 
                                                 <div class="d-flex justify-content-between align-items-start mb-1">

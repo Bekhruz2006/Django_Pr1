@@ -1,7 +1,4 @@
-#  Copyright (c) 2025. Created by Фахридинов Бехруз.
-#  Project: Department Platform (Деканат)
-#  Contact: behruzfahridinov67@gmail.com
-
+from dotenv import load_dotenv
 import os
 from pathlib import Path
 from django.utils.translation import gettext_lazy as _
@@ -13,7 +10,7 @@ LANGUAGES = [
 LANGUAGE_CODE = 'ru'
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-your-secret-key-change-in-production'
+SECRET_KEY = 'django'
 
 DEBUG = True
 
@@ -131,3 +128,10 @@ LOGOUT_REDIRECT_URL = 'accounts:login'
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  
+
+SESSION_COOKIE_AGE = 360 
+
+SESSION_SAVE_EVERY_REQUEST = True 
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+

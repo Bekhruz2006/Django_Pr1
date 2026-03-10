@@ -214,7 +214,15 @@ class HeadOfDepartmentForm(forms.ModelForm):
 class TeacherEditForm(forms.ModelForm):
     class Meta:
         model = Teacher
-        fields = ['department', 'degree', 'title', 'biography', 'contact_email']
+        fields = ['department', 'degree', 'title', 'biography', 'competencies', 'contact_email']
+        widgets = {
+            'degree': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: Кандидат технических наук')}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: Доцент')}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'biography': forms.Textarea(attrs={'class': 'form-control'}),
+            'competencies': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
+            'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -453,6 +461,7 @@ class GroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['specialty'].required = False
         if self.instance.pk:
             self.fields['assign_students'].initial = self.instance.students.all()
         self.fields['assign_students'].queryset = Student.objects.select_related('user').order_by('user__last_name')

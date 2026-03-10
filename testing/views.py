@@ -5,6 +5,7 @@ from django.contrib import messages
 from .models import Quiz, Question, AnswerOption, QuizAttempt, AttemptResponse
 from lms.models import CourseModule
 from .forms import QuizForm, QuestionForm, AnswerOptionFormSet
+from django.db.models import Sum
 
 @login_required
 def quiz_info(request, module_id):
@@ -97,9 +98,49 @@ def quiz_submit(request, attempt_id):
         attempt.end_time = timezone.now()
         attempt.save()
 
+        if attempt.state == 'FINISHED':
+            try:
+                from schedule.models import Subject
+                from journal.models import MatrixStructure, MatrixColumn, StudentMatrixScore
+
+                module = attempt.quiz.module
+                section = module.section
+                course = section.course
+
+                subject = Subject.objects.filter(code=course.id_number).first()
+                if subject:
+                    faculty = subject.department.faculty
+                    institute = faculty.institute
+
+                    matrix = MatrixStructure.objects.filter(faculty=faculty).first()
+                    if not matrix:
+                        matrix = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True).first()
+
+                    if matrix:
+                        column = MatrixColumn.objects.filter(structure=matrix, name=section.name).first()
+                        if column and column.col_type in['RATING', 'EXAM']:
+                            max_quiz_score = attempt.quiz.questions.aggregate(total=Sum('default_mark'))['total'] or 100
+                            earned = attempt.total_score or 0
+                            scaled_score = (earned / max_quiz_score) * column.max_score
+
+                            StudentMatrixScore.objects.update_or_create(
+                                student=attempt.user.student_profile,
+                                subject=subject,
+                                column=column,
+                                defaults={
+                                    'score': round(scaled_score, 2),
+                                    'updated_by': request.user 
+                                }
+                            )
+            except Exception as e:
+                print(f"Ошибка синхронизации Quiz с Матрицей: {e}")
+
         return redirect('testing:quiz_result', attempt_id=attempt.id)
 
     return redirect('testing:quiz_attempt', attempt_id=attempt.id)
+
+
+
 
 @login_required
 def quiz_result(request, attempt_id):

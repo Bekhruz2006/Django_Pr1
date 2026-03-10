@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import JournalEntry, JournalChangeLog, StudentStatistics
+from .models import MatrixStructure, MatrixColumn, StudentMatrixScore
 
 @admin.register(JournalEntry)
 class JournalEntryAdmin(admin.ModelAdmin):
@@ -116,3 +117,27 @@ class StudentStatisticsAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(request, f'Пересчитана статистика для {count} студентов')
     recalculate_statistics.short_description = 'Пересчитать статистику'
+
+
+
+
+
+
+
+class MatrixColumnInline(admin.TabularInline):
+    model = MatrixColumn
+    extra = 1
+
+@admin.register(MatrixStructure)
+class MatrixStructureAdmin(admin.ModelAdmin):
+    list_display = ['name', 'institute', 'faculty', 'is_active']
+    list_filter =['institute', 'faculty', 'is_active']
+    search_fields = ['name']
+    inlines = [MatrixColumnInline]
+
+@admin.register(StudentMatrixScore)
+class StudentMatrixScoreAdmin(admin.ModelAdmin):
+    list_display = ['student', 'subject', 'column', 'score', 'updated_at']
+    list_filter = ['column__structure', 'column__col_type']
+    search_fields =['student__user__last_name', 'subject__name']
+    readonly_fields = ['updated_at', 'updated_by']

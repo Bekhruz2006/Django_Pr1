@@ -12,12 +12,99 @@ import json
 from datetime import datetime
 from schedule.models import Semester, SubjectMaterial
 
+def get_ai_report_status():
+    active_sems = Semester.objects.filter(is_active=True)
+    ai_report_ready = False
+    days_until_report = 30
+    
+    for sem in active_sems:
+        if sem.start_date:
+            days_passed = (timezone.now().date() - sem.start_date).days
+            if days_passed >= 30:
+                ai_report_ready = True
+                days_until_report = 0
+                break
+            else:
+                if 30 - days_passed < days_until_report:
+                    days_until_report = 30 - days_passed
+                    
+    return ai_report_ready, max(1, days_until_report)
+
+
+def get_algorithmic_risk_report(faculty=None, limit=5):
+    qs = StudentStatistics.objects.filter(student__status='ACTIVE').select_related('student__user', 'student__group')
+    
+    if faculty:
+        qs = qs.filter(student__group__specialty__department__faculty=faculty)
+        
+    problematic = qs.filter(
+        Q(overall_gpa__lt=3.0, overall_gpa__gt=0) | 
+        Q(attendance_percentage__lt=70.0, total_lessons__gt=0) | 
+        Q(total_absent__gt=8)
+    )
+    
+    risk_list = []
+    for stat in problematic:
+        reasons = []
+        risk_score = 0
+        
+        if 0 < stat.overall_gpa < 2.5:
+            reasons.append(f"Критический средний балл: {stat.overall_gpa:.1f}")
+            risk_score += 3
+        elif 0 < stat.overall_gpa < 3.0:
+            reasons.append(f"Низкий средний балл: {stat.overall_gpa:.1f}")
+            risk_score += 1
+            
+        if stat.total_lessons > 0:
+            if stat.attendance_percentage < 50.0:
+                reasons.append(f"Критическая посещаемость: {stat.attendance_percentage:.0f}%")
+                risk_score += 3
+            elif stat.attendance_percentage < 70.0:
+                reasons.append(f"Низкая посещаемость: {stat.attendance_percentage:.0f}%")
+                risk_score += 1
+            
+        if stat.total_absent > 15:
+            reasons.append(f"Слишком много прогулов: {stat.total_absent} (НБ)")
+            risk_score += 2
+        elif stat.total_absent > 8:
+            reasons.append(f"Частые пропуски: {stat.total_absent} (НБ)")
+            risk_score += 1
+            
+        if risk_score >= 3:
+            level = 'HIGH'
+            level_display = 'Высокий риск'
+            color = 'danger'
+        elif risk_score > 0:
+            level = 'MEDIUM'
+            level_display = 'Средний риск'
+            color = 'warning'
+        else:
+            continue
+            
+        risk_list.append({
+            'student': stat.student,
+            'gpa': stat.overall_gpa,
+            'level': level,
+            'level_display': level_display,
+            'color': color,
+            'reasons': reasons,
+            'score': risk_score
+        })
+        
+    risk_list.sort(key=lambda x: x['score'], reverse=True)
+    return risk_list[:limit]
+
+
 @login_required
 def dashboard(request):
     user = request.user
     context = {'user': user}
 
     context['news_list'] = News.objects.filter(is_published=True).order_by('-is_pinned', '-created_at')[:5]
+
+    ai_report_ready, days_until_report = get_ai_report_status()
+    context['ai_report_ready'] = ai_report_ready
+    context['days_until_report'] = days_until_report
 
     if hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'):
         selected_institute_id = request.GET.get('institute_id')
@@ -49,8 +136,8 @@ def dashboard(request):
             'total_debtors': students_qs.filter(financing_type='CONTRACT').count(),
             'total_groups': groups_qs.count(),
             'pending_orders': orders_qs[:10],
-            'pending_count': orders_qs.count()
-            
+            'pending_count': orders_qs.count(),
+            'risk_report': get_algorithmic_risk_report(limit=5)
         })
         return render(request, 'core/dashboard_rector.html', context)
 
@@ -88,6 +175,7 @@ def dashboard(request):
                 'total_users': User.objects.count(),
                 'latest_orders': Order.objects.all().order_by('-created_at')[:5],
                 'active_semesters': active_semesters,
+                'risk_report': get_algorithmic_risk_report(limit=5)
             })
             return render(request, 'core/dashboard_admin.html', context)
             
@@ -118,7 +206,8 @@ def dashboard(request):
                 'groups_count': groups_count,
                 'teachers_count': teachers_count,
                 'departments': Department.objects.filter(faculty=faculty).prefetch_related('specialties'),
-                'my_drafts': Order.objects.filter(created_by=user, status='DRAFT').count()
+                'my_drafts': Order.objects.filter(created_by=user, status='DRAFT').count(),
+                'risk_report': get_algorithmic_risk_report(faculty=faculty, limit=5)
             })
 
             course_stats = []

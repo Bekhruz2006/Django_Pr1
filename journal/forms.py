@@ -97,7 +97,6 @@ class BulkGradeForm(forms.Form):
         return cleaned_data
 
 class JournalFilterForm(forms.Form):
-
     group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
         required=True,
@@ -113,30 +112,34 @@ class JournalFilterForm(forms.Form):
     )
     
     week = forms.IntegerField(
-        min_value=1,
-        max_value=20,
-        required=False,
-        label=_("Учебная неделя"),
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control',
-            'placeholder': _('I-XX')
-        })
+        min_value=1, max_value=20, required=False, label=_("Учебная неделя"),
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': _('I-XX')})
     )
     
     def __init__(self, *args, **kwargs):
-        teacher = kwargs.pop('teacher', None)
+        user = kwargs.pop('user', None) 
         super().__init__(*args, **kwargs)
 
-        if teacher:
-            
-            self.fields['subject'].queryset = Subject.objects.filter(teacher=teacher)
+        if user:
+            if user.is_superuser:
+                self.fields['group'].queryset = Group.objects.all()
+                self.fields['subject'].queryset = Subject.objects.all()
+            elif hasattr(user, 'dean_profile') or hasattr(user, 'vicedean_profile'):
+                profile = getattr(user, 'dean_profile', None) or getattr(user, 'vicedean_profile', None)
+                faculty = profile.faculty
+                self.fields['group'].queryset = Group.objects.filter(specialty__department__faculty=faculty)
+                self.fields['subject'].queryset = Subject.objects.filter(department__faculty=faculty)
+            elif hasattr(user, 'teacher_profile'):
+                teacher = user.teacher_profile
+                subjects = Subject.objects.filter(teacher=teacher)
+                self.fields['subject'].queryset = subjects
 
-            from schedule.models import ScheduleSlot
-            group_ids = ScheduleSlot.objects.filter(
-                teacher=teacher,
-                is_active=True
-            ).values_list('group_id', flat=True).distinct()
-            self.fields['group'].queryset = Group.objects.filter(id__in=group_ids)
+                from schedule.models import ScheduleSlot
+                schedule_group_ids = ScheduleSlot.objects.filter(teacher=teacher, is_active=True).values_list('group_id', flat=True)
+                subject_group_ids = subjects.values_list('groups__id', flat=True)
+
+                all_group_ids = set(schedule_group_ids) | set(subject_group_ids)
+                self.fields['group'].queryset = Group.objects.filter(id__in=all_group_ids).distinct()
 
 class ChangeLogFilterForm(forms.Form):
 

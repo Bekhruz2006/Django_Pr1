@@ -10,6 +10,8 @@ from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from accounts.models import Student, User
 from lms.services import LMSManager
+from journal.models import MatrixStructure, MatrixColumn, StudentMatrixScore
+from schedule.models import Subject, Semester
 
 from .models import (
     Course, CourseCategory, CourseSection, CourseModule,
@@ -131,6 +133,11 @@ def course_detail(request, course_id):
     )
 
     announcements = course.announcements.all()[:5]
+    
+    subject = Subject.objects.filter(code=course.id_number).first()
+    single_group = None
+    if subject and subject.groups.count() == 1:
+        single_group = subject.groups.first()
 
     return render(request, 'lms/course_detail.html', {
         'course': course,
@@ -141,6 +148,9 @@ def course_detail(request, course_id):
         'completed_ids': completed_ids,
         'announcements': announcements,
         'role': get_lms_role(user),
+        'subject': subject,
+        'single_group': single_group,
+        'is_specialist': is_lms_specialist(user),
     })
 
 
@@ -596,8 +606,8 @@ def grade_entry_save(request, item_id, student_id):
 @login_required
 def enrolment_manage(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
-    if not can_manage_course(request.user, course):
-        return HttpResponseForbidden()
+    if not is_lms_specialist(request.user):
+        return HttpResponseForbidden("Только администрация может управлять участниками.")
 
     enrolments = course.enrolments.select_related('user').order_by('role', 'user__last_name')
     form = EnrolUsersForm(request.POST or None)
@@ -609,23 +619,19 @@ def enrolment_manage(request, course_id):
         for group in groups:
             students = Student.objects.filter(group=group, status='ACTIVE').select_related('user')
             for student in students:
-                _, created = CourseEnrolment.objects.update_or_create(
-                    course=course,
-                    user=student.user,
-                    defaults={'role': 'STUDENT', 'is_active': True}
-                )
-                if created:
+                if not CourseEnrolment.objects.filter(course=course, user=student.user).exists():
+                    CourseEnrolment.objects.create(course=course, user=student.user, role='STUDENT', is_active=True)
                     added += 1
+                else:
+                    CourseEnrolment.objects.filter(course=course, user=student.user).update(is_active=True, role='STUDENT')
 
         teachers = form.cleaned_data.get('teachers',[])
         for teacher in teachers:
-            _, created = CourseEnrolment.objects.update_or_create(
-                course=course,
-                user=teacher,
-                defaults={'role': 'TEACHER', 'is_active': True}
-            )
-            if created:
+            if not CourseEnrolment.objects.filter(course=course, user=teacher).exists():
+                CourseEnrolment.objects.create(course=course, user=teacher, role='TEACHER', is_active=True)
                 added += 1
+            else:
+                CourseEnrolment.objects.filter(course=course, user=teacher).update(is_active=True, role='TEACHER')
 
         messages.success(request, _(f"Добавлено {added} участников"))
         return redirect('lms:enrolment_manage', course_id=course_id)
@@ -638,8 +644,8 @@ def enrolment_manage(request, course_id):
 @login_required
 def enrolment_remove(request, enrolment_id):
     enrolment = get_object_or_404(CourseEnrolment, pk=enrolment_id)
-    if not can_manage_course(request.user, enrolment.course):
-        return HttpResponseForbidden()
+    if not is_lms_specialist(request.user):
+        return HttpResponseForbidden("Только администрация может управлять участниками.")
     course_id = enrolment.course_id
     enrolment.delete()
     messages.success(request, _("Участник удалён"))
@@ -789,5 +795,103 @@ def module_toggle_visibility(request, module_id):
         'success': True,
         'is_visible': module.is_visible
     })
+
+
+
+
+
+
+def is_dean_or_admin(user):
+    return user.is_superuser or hasattr(user, 'dean_profile') or hasattr(user, 'vicedean_profile')
+
+@login_required
+def section_grading(request, section_id):
+    section = get_object_or_404(CourseSection, pk=section_id)
+    course = section.course
+
+    if not can_manage_course(request.user, course):
+        return HttpResponseForbidden("Нет прав")
+
+    subject = Subject.objects.filter(code=course.id_number).first()
+    if not subject:
+        messages.error(request, "Курс не привязан к предмету (ID-номер курса не совпадает с кодом предмета).")
+        return redirect('lms:course_detail', course_id=course.id)
+
+    faculty = subject.department.faculty
+
+    structure, _ = MatrixStructure.objects.get_or_create(
+        faculty=faculty,
+        defaults={'name': f"Матрица {faculty.code if faculty else 'Глобальная'}"}
+    )
+
+    col_type = 'WEEK'
+    max_score = 12.5
+    if section.section_type in ['RATING1', 'RATING2']:
+        col_type = 'RATING'
+        max_score = 100.0
+
+    is_auto_rating = col_type in ['RATING', 'EXAM']
+
+    column, _ = MatrixColumn.objects.get_or_create(
+        structure=structure,
+        name=section.name[:100],
+        defaults={
+            'col_type': col_type,
+            'week_number': section.sequence if col_type == 'WEEK' else None,
+            'max_score': max_score,
+            'order': section.sequence
+        }
+    )
+
+    students = [e.user.student_profile for e in course.enrolments.filter(role='STUDENT', is_active=True) if hasattr(e.user, 'student_profile')]
+
+    is_future = False
+    if col_type == 'WEEK':
+        active_sem = Semester.objects.filter(is_active=True).first()
+        curr_week = active_sem.get_current_week_number() if active_sem else 1
+        if section.sequence > curr_week:
+            is_future = True
+
+    user_is_admin = is_dean_or_admin(request.user)
+    can_edit = (user_is_admin or not is_future) and not is_auto_rating
+
+    if request.method == 'POST' and can_edit:
+        with transaction.atomic():
+            for student in students:
+                val = request.POST.get(f'score_{student.id}')
+                if val and val.strip() != '':
+                    try:
+                        score_val = float(val.replace(',', '.'))
+                        if score_val <= column.max_score:
+                            StudentMatrixScore.objects.update_or_create(
+                                student=student, subject=subject, column=column,
+                                defaults={'score': score_val, 'updated_by': request.user}
+                            )
+                        else:
+                            messages.warning(request, f"Балл для {student.user.get_full_name()} ({score_val}) превышает максимум ({column.max_score}) и не был сохранен.")
+                    except ValueError:
+                        pass
+                else:
+                    StudentMatrixScore.objects.filter(student=student, subject=subject, column=column).delete()
+
+        messages.success(request, "Баллы успешно сохранены и перенесены в Сводную ведомость!")
+        return redirect('lms:course_detail', course_id=course.id)
+
+    scores = StudentMatrixScore.objects.filter(subject=subject, column=column)
+    score_map = {s.student_id: str(s.score).replace(',', '.') for s in scores if s.score is not None}
+
+    student_data = [{'student': s, 'score': score_map.get(s.id, '')} for s in students]
+
+    return render(request, 'lms/section_grading.html', {
+        'section': section,
+        'course': course,
+        'student_data': student_data,
+        'column': column,
+        'can_edit': can_edit,
+        'is_future': is_future,
+        'is_admin': user_is_admin,
+        'is_auto_rating': is_auto_rating  
+    })
+
 
 

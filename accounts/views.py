@@ -678,7 +678,7 @@ def add_group(request):
         messages.error(request, _("Нет доступа"))
         return redirect('core:dashboard')
 
-    specialty_id = request.GET.get('specialty')
+    specialty_id = request.GET.get('specialty') or request.session.get('last_specialty_id')
     
     initial_data = {}
     if specialty_id:
@@ -686,9 +686,9 @@ def add_group(request):
             specialty = Specialty.objects.get(id=specialty_id)
             if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
                 if specialty.department.faculty != request.user.dean_profile.faculty:
-                    messages.error(request, _("Это специальность чужого факультета"))
-                    return redirect('accounts:manage_structure')
-            initial_data['specialty'] = specialty
+                    specialty = None
+            if specialty:
+                initial_data['specialty'] = specialty
         except Specialty.DoesNotExist:
             pass
 
@@ -704,22 +704,18 @@ def add_group(request):
 
         if form.is_valid():
             try:
-                if hasattr(request.user, 'dean_profile'):
-                    spec = form.cleaned_data['specialty']
-                    if spec.department.faculty != request.user.dean_profile.faculty:
-                        raise Exception(_("Попытка создания группы на чужом факультете"))
-
                 group = form.save()
-                messages.success(request, _(f'Группа {group.name} успешно создана'))
-                messages.success(request, _(f'Группа {group.name} успешно создана! Учебный план (РУП) для неё сгенерирован автоматически.'))
+                
+                if group.specialty:
+                    request.session['last_specialty_id'] = group.specialty.id
 
-                if specialty_id:
+                messages.success(request, _(f'Группа {group.name} успешно создана!'))
+
+                if request.GET.get('specialty'):
                     return redirect('accounts:manage_structure')
                 return redirect('accounts:group_management')
             except Exception as e:
                 messages.error(request, _(f"Ошибка сохранения: {str(e)}"))
-        else:
-            messages.error(request, _("Пожалуйста, исправьте ошибки в форме."))
     else:
         form = GroupForm(initial=initial_data)
         configure_form(form)
@@ -834,10 +830,9 @@ def manage_structure(request):
             dept_data = []
             for dept in departments:
                 current_subjects = Subject.objects.filter(department=dept)
-                if active_semester:
-                    current_subjects = current_subjects.filter(
-                        groups__assigned_semesters=active_semester
-                    ).distinct()
+                current_subjects = current_subjects.filter(
+                    scheduleslot__semester__is_active=True
+                ).distinct()
 
                 total_hours = sum(s.total_auditory_hours for s in current_subjects)
                 budget = dept.total_hours_budget or 1 

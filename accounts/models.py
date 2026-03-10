@@ -117,8 +117,10 @@ class User(AbstractUser):
         ('DIRECTOR', _('Директор/Ректор')),
         ('HR', _('Отдел кадров / Приемная комиссия')), 
         ('SPECIALIST', 'Специалист (УМО/Деканат)'),
+        ('METHODIST', _('Методист')),
+        ('INSPECTOR', _('Инспектор (Учебная часть)')),
+        ('ADVISOR', _('Эдвайзер / Куратор')),
         ('GUEST', 'Гость'),
-
     ]
     
     CATEGORY_CHOICES = [
@@ -256,6 +258,19 @@ class HeadOfDepartment(models.Model):
     def __str__(self):
         return f"Зав. каф: {self.user.get_full_name()}"
 
+class KnowledgeArea(models.Model):
+    name = models.CharField(max_length=200, unique=True, verbose_name=_("Название компетенции/специальности"))
+    code = models.CharField(max_length=50, blank=True, verbose_name=_("Шифр (если есть)"))
+    description = models.TextField(blank=True, verbose_name=_("Описание"))
+
+    class Meta:
+        verbose_name = _("Область знаний (Компетенция)")
+        verbose_name_plural = _("Области знаний (Компетенции)")
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.code} {self.name}" if self.code else self.name
+
 class Teacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='teachers', verbose_name=_("Основная кафедра"))
@@ -265,6 +280,13 @@ class Teacher(models.Model):
         blank=True,
         related_name='affiliated_teachers',
         verbose_name=_("Дополнительные кафедры")
+    )
+
+    competencies = models.ManyToManyField(
+        KnowledgeArea, 
+        blank=True, 
+        related_name='teachers',
+        verbose_name=_("Компетенции (Специализация)")
     )
 
     degree = models.CharField(max_length=100, blank=True, verbose_name=_("Ученая степень (к.т.н, PhD)"))

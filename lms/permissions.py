@@ -32,22 +32,29 @@ def is_lms_teacher(user):
 def can_manage_course(user, course):
     from .models import CourseEnrolment
     role = get_lms_role(user)
+    
     if role == 'ADMIN':
         return True
+        
     if role == 'SPECIALIST':
         faculty = _get_user_faculty(user)
-        if faculty and (course.allowed_faculty == faculty or
-                        getattr(course.category, 'faculty', None) == faculty):
-            return True
-        dept = _get_user_department(user)
-        if dept and (course.allowed_department == dept or
-                     getattr(course.category, 'department', None) == dept):
-            return True
+        if faculty:
+            if course.allowed_faculty == faculty or getattr(course.category, 'faculty', None) == faculty:
+                return True
+            if course.allowed_department and course.allowed_department.faculty == faculty:
+                return True
+            if getattr(course.category, 'department', None) and course.category.department.faculty == faculty:
+                return True
+            from schedule.models import Subject
+            if Subject.objects.filter(code=course.id_number, department__faculty=faculty).exists():
+                return True
         return False
+        
     if role == 'TEACHER':
         return CourseEnrolment.objects.filter(
             course=course, user=user, role__in=('TEACHER', 'MANAGER')
         ).exists()
+        
     return False
 
 

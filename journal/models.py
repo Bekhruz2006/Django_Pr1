@@ -284,3 +284,174 @@ def trigger_stats_recalculate(sender, instance, **kwargs):
         stats.recalculate()
     except Exception:
         pass
+
+
+class SubjectRating(models.Model):
+    student = models.ForeignKey('accounts.Student', on_delete=models.CASCADE, related_name='subject_ratings')
+    subject = models.ForeignKey('schedule.Subject', on_delete=models.CASCADE, related_name='student_ratings')
+    
+    r1_pb = models.FloatField(null=True, blank=True, verbose_name="Р1 ПБ")
+    r1_to = models.FloatField(null=True, blank=True, verbose_name="Р1 ТО")
+    
+    r2_pb = models.FloatField(null=True, blank=True, verbose_name="Р2 ПБ")
+    r2_to = models.FloatField(null=True, blank=True, verbose_name="Р2 ТО")
+    
+    exam_pb = models.FloatField(null=True, blank=True, verbose_name="Экзамен ПБ")
+    exam_main = models.FloatField(null=True, blank=True, verbose_name="Экзамен Основной")
+    exam_dop = models.FloatField(null=True, blank=True, verbose_name="Экзамен Доп.")
+
+    class Meta:
+        verbose_name = "Рейтинг студента"
+        verbose_name_plural = "Рейтинги студентов"
+        unique_together = ['student', 'subject']
+
+    @property
+    def r1_total(self):
+        if self.r1_pb is None and self.r1_to is None: return None
+        pb = self.r1_pb or 0
+        to = self.r1_to or 0
+        return round(0.4 * pb + 0.6 * to, 2)
+
+    @property
+    def r2_total(self):
+        if self.r2_pb is None and self.r2_to is None: return None
+        pb = self.r2_pb or 0
+        to = self.r2_to or 0
+        return round(0.4 * pb + 0.6 * to, 2)
+
+    @property
+    def itogo(self):
+        r1 = self.r1_total or 0
+        r2 = self.r2_total or 0
+        return round((r1 + r2) / 4, 2)
+
+    @property
+    def final_score(self):
+        exam = self.exam_main or self.exam_dop or 0
+        return round(self.itogo + exam, 2)
+
+    @property
+    def letter_grade(self):
+        score = self.final_score
+        if score == 0: return 'F'
+        if score >= 95: return 'A+'
+        if score >= 90: return 'A'
+        if score >= 85: return 'B+'
+        if score >= 80: return 'B'
+        if score >= 75: return 'C+'
+        if score >= 70: return 'C'
+        if score >= 65: return 'D+'
+        if score >= 60: return 'D'
+        if score >= 50: return 'E'
+        return 'F'
+
+
+
+class MatrixStructure(models.Model):
+    institute = models.ForeignKey('accounts.Institute', on_delete=models.CASCADE, null=True, blank=True, verbose_name="Институт")
+    faculty = models.ForeignKey('accounts.Faculty', on_delete=models.CASCADE, null=True, blank=True, verbose_name="Факультет")
+    name = models.CharField(max_length=200, verbose_name="Название структуры (напр. Стандарт 2026)")
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
+
+    class Meta:
+        verbose_name = "Структура ведомости"
+        verbose_name_plural = "Структуры ведомостей"
+
+    def __str__(self):
+        if self.faculty:
+            return f"{self.name} (Фак: {self.faculty.abbreviation})"
+        elif self.institute:
+            return f"{self.name} (Инст: {self.institute.abbreviation})"
+        return f"{self.name} (Глобальная)"
+
+class MatrixColumn(models.Model):
+    COL_TYPES =[
+        ('WEEK', 'Учебная неделя'),
+        ('RATING', 'Рейтинг (Ручной ввод)'),
+        ('EXAM', 'Экзамен'),
+        ('CALC', 'Вычисляемая (Итог)')
+    ]
+    structure = models.ForeignKey(MatrixStructure, on_delete=models.CASCADE, related_name='columns')
+    name = models.CharField(max_length=100, verbose_name="Название (напр. Неделя 1, Р1 ПБ)")
+    col_type = models.CharField(max_length=20, choices=COL_TYPES, default='WEEK')
+    week_number = models.IntegerField(null=True, blank=True, verbose_name="Номер недели (если тип 'Неделя')")
+    max_score = models.FloatField(default=100.0, verbose_name="Макс. балл")
+    order = models.IntegerField(default=0, verbose_name="Порядок отображения")
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_col_type_display()})"
+
+class StudentMatrixScore(models.Model):
+    student = models.ForeignKey('accounts.Student', on_delete=models.CASCADE, related_name='matrix_scores')
+    subject = models.ForeignKey('schedule.Subject', on_delete=models.CASCADE)
+    column = models.ForeignKey(MatrixColumn, on_delete=models.CASCADE)
+    score = models.FloatField(null=True, blank=True)
+    updated_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['student', 'subject', 'column']
+
+
+class StudentPerformancePrediction(models.Model):
+    RISK_LEVELS = [
+        ('LOW', _('Низкий риск')),
+        ('MEDIUM', _('Средний риск')),
+        ('HIGH', _('Высокий риск')),
+    ]
+
+    student = models.OneToOneField(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='performance_prediction',
+        verbose_name=_("Студент")
+    )
+
+    predicted_gpa = models.FloatField(
+        default=0.0,
+        verbose_name=_("Предсказанный GPA")
+    )
+
+    risk_level = models.CharField(
+        max_length=10,
+        choices=RISK_LEVELS,
+        default='LOW',
+        verbose_name=_("Уровень риска")
+    )
+
+    risk_factors = models.JSONField(
+        default=dict,
+        verbose_name=_("Факторы риска (JSON)"),
+        help_text=_("Массив факторов, определенных ИИ")
+    )
+
+    gpa_change_percentage = models.FloatField(
+        default=0.0,
+        verbose_name=_("Процент изменения GPA")
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Дата создания прогноза")
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("Дата обновления")
+    )
+
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Примечания")
+    )
+
+    class Meta:
+        verbose_name = _("ИИ Прогноз успеваемости студента")
+        verbose_name_plural = _("ИИ Прогнозы успеваемости студентов")
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} - {self.get_risk_level_display()}"

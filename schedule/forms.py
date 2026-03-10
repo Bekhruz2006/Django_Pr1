@@ -39,7 +39,7 @@ class SubjectForm(forms.ModelForm):
         fields = [
             'name', 'code', 'department', 'semester_weeks', 'type',
             'lecture_hours', 'practice_hours', 'control_hours', 'independent_work_hours',
-            'teacher', 'groups', 'description', 'is_stream_subject', 'preferred_room_type' 
+            'teacher', 'groups', 'description', 'is_stream_subject', 'preferred_room_type', 'required_competencies'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -50,6 +50,7 @@ class SubjectForm(forms.ModelForm):
             'groups': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'preferred_room_type': forms.Select(attrs={'class': 'form-select'}),
+            'required_competencies': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
         }
 
 
@@ -105,7 +106,7 @@ class SemesterForm(forms.ModelForm):
 
     class Meta:
         model = Semester
-        fields = ['academic_year', 'name', 'number', 'course', 'shift', 'start_date', 'end_date', 'is_active']
+        fields = ['faculty', 'academic_year', 'name', 'number', 'course', 'shift', 'start_date', 'end_date', 'is_active']
         widgets = {
             'faculty': forms.Select(attrs={'class': 'form-select', 'id': 'faculty_selector'}),
             'academic_year': forms.Select(attrs={'class': 'form-select'}),
@@ -139,12 +140,13 @@ class SemesterForm(forms.ModelForm):
 class ClassroomForm(forms.ModelForm):
     class Meta:
         model = Classroom
-        fields = ['building', 'number', 'floor', 'capacity', 'is_active']
+        fields = ['building', 'number', 'floor', 'capacity', 'room_type', 'is_active']
         widgets = {
             'building': forms.Select(attrs={'class': 'form-select'}),
             'number': forms.TextInput(attrs={'class': 'form-control'}),
             'floor': forms.NumberInput(attrs={'class': 'form-control'}),
             'capacity': forms.NumberInput(attrs={'class': 'form-control'}),
+            'room_type': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     def __init__(self, *args, **kwargs):

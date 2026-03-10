@@ -24,7 +24,7 @@ from django import forms
 from .models import Subject, ScheduleSlot, Semester, Classroom, TimeSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
 from .forms import SubjectForm, RupImportForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm
 from .services import ScheduleImporter, RupImporter
-from accounts.models import Group, Student, Teacher, Director, ProRector, Department
+from accounts.models import Group, Student, Teacher, Director, ProRector, Department, Faculty
 import math
 from django.utils.translation import gettext as _
 from schedule.models import ROOM_TYPES
@@ -962,23 +962,23 @@ def group_list(request):
     if hasattr(user, 'teacher_profile'):
         try:
             teacher = user.teacher_profile
-            active_semester = Semester.objects.filter(is_active=True).first()
-            if active_semester:
-                group_ids = ScheduleSlot.objects.filter(
-                    teacher=teacher, semester=active_semester, is_active=True
-                ).values_list('group_id', flat=True).distinct()
-                groups = Group.objects.filter(id__in=group_ids)
-            else:
-                groups = Group.objects.none()
+            subject_group_ids = Subject.objects.filter(teacher=teacher).values_list('groups__id', flat=True)
+            schedule_group_ids = ScheduleSlot.objects.filter(teacher=teacher, is_active=True).values_list('group_id', flat=True)
+            
+            all_ids = set(filter(None, list(subject_group_ids) + list(schedule_group_ids)))
+            groups = Group.objects.filter(id__in=all_ids).distinct().order_by('course', 'name')
         except Teacher.DoesNotExist:
             groups = Group.objects.none()
+            
     elif hasattr(user, 'dean_profile'):
-        groups = Group.objects.all()
+        groups = Group.objects.filter(specialty__department__faculty=user.dean_profile.faculty).order_by('course', 'name')
+    elif user.is_superuser:
+        groups = Group.objects.all().order_by('course', 'name')
     else:
         messages.error(request, _('Доступ запрещен'))
         return redirect('core:dashboard')
 
-    groups_with_students = []
+    groups_with_students =[]
     for group in groups:
         students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
         groups_with_students.append({'group': group, 'students': students})
@@ -2142,3 +2142,54 @@ def api_ai_assign_teachers(request):
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+@user_passes_test(lambda u: u.is_superuser or hasattr(u, 'director_profile'))
+def global_semester_setup(request):
+    if request.method == 'POST':
+        academic_year = request.POST.get('academic_year')
+        number = int(request.POST.get('number'))
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        
+        if not all([academic_year, number, start_date, end_date]):
+            messages.error(request, "Заполните все поля!")
+            return redirect('schedule:manage_semesters')
+
+        try:
+            with transaction.atomic():
+                Semester.objects.filter(is_active=True).update(is_active=False)
+                
+                faculties = Faculty.objects.all()
+                created_count = 0
+                
+                for faculty in faculties:
+                    for course in range(1, 6):
+                        shift = 'MORNING' if course <= 2 else 'DAY'
+                        
+                        Semester.objects.create(
+                            faculty=faculty,
+                            name=f"{'Осенний' if number == 1 else 'Весенний'} семестр",
+                            academic_year=academic_year,
+                            number=number,
+                            course=course,
+                            shift=shift,
+                            start_date=start_date,
+                            end_date=end_date,
+                            is_active=True
+                        )
+                        created_count += 1
+                
+                messages.success(request, f"🚀 Успешно! Старые данные отправлены в архив. Создано {created_count} новых семестров. Система готова к работе с {start_date}!")
+        except Exception as e:
+            messages.error(request, f"Ошибка при генерации: {str(e)}")
+            
+        return redirect('schedule:manage_semesters')
+        
+    return render(request, 'schedule/global_setup.html')
+
+
+
+
+
