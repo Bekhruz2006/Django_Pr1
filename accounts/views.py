@@ -55,6 +55,7 @@ def generate_student_id():
         except (ValueError, IndexError):
             new_number = 1
     else:
+        
         new_number = 1
 
     return f"{base_id}{new_number:04d}"
