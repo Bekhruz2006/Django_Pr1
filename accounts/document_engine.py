@@ -37,20 +37,21 @@ class DocumentGenerator:
             filename = f"Spravka_{student.user.last_name}.docx"
 
         elif template_obj.context_type == 'STUDENT_ORDER':
-            order = StudentOrder.objects.get(id=object_id)
-            student = order.student
+            order = Order.objects.get(id=object_id)
+            first_item = order.items.first()
+            student = first_item.student if first_item else None
             context = {
                 'order_number': order.number,
                 'order_date': order.date.strftime('%d.%m.%Y'),
-                'order_reason': order.reason,
+                'order_reason': getattr(order, 'reason', ''), 
                 'order_type': order.get_order_type_display(),
-                'student_full_name': student.user.get_full_name(),
-                'group_name': student.group.name if student.group else '',
-                'course': student.course,
-                'specialty_name': student.specialty.name if student.specialty else '',
-                'initiator_name': order.initiated_by.get_full_name() if order.initiated_by else '',
+                'student_full_name': student.user.get_full_name() if student else '',
+                'group_name': student.group.name if student and student.group else '',
+                'course': student.course if student else '',
+                'specialty_name': student.specialty.name if student and student.specialty else '',
+                'initiator_name': order.created_by.get_full_name() if order.created_by else '',
             }
-            filename = f"Prikaz_{order.number}_{student.user.last_name}.docx"
+            filename = f"Prikaz_{order.number}.docx"
 
         doc.render(context)
         
@@ -59,6 +60,7 @@ class DocumentGenerator:
         file_stream.seek(0)
         
         return file_stream, filename
+
     @staticmethod
     def generate_contingent_report(faculty=None):
         from .models import Group, Student
@@ -69,7 +71,6 @@ class DocumentGenerator:
         section.left_margin = Cm(1.5)
         section.right_margin = Cm(1.5)
 
-        
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = title.add_run("ОТЧЕТ О ДВИЖЕНИИ КОНТИНГЕНТА СТУДЕНТОВ\n")
@@ -109,9 +110,15 @@ class DocumentGenerator:
             active = students.filter(status='ACTIVE').count()
             leave = students.filter(status='ACADEMIC_LEAVE').count()
             
-            from .models import OrderItem
-            expelled = OrderItem.objects.filter(student__status='EXPELLED', order__order_type='EXPEL', student__specialty=group.specialty).count()
-            graduated = OrderItem.objects.filter(student__status='GRADUATED', order__order_type='GRADUATE', student__specialty=group.specialty).count()
+            expelled  = Student.objects.filter(
+                status='EXPELLED',
+                specialty=group.specialty
+            ).count() if group.specialty else 0
+
+            graduated = Student.objects.filter(
+                status='GRADUATED',
+                specialty=group.specialty
+            ).count() if group.specialty else 0
 
             row_cells = table.add_row().cells
             row_cells[0].text = str(group.course)
@@ -121,10 +128,10 @@ class DocumentGenerator:
             row_cells[4].text = str(expelled)
             row_cells[5].text = str(graduated)
 
-            total_active += active
-            total_leave += leave
+            total_active  += active
+            total_leave   += leave
             total_expelled += expelled
-            total_grad += graduated
+            total_grad    += graduated
 
         footer_cells = table.add_row().cells
         footer_cells[0].merge(footer_cells[1])
@@ -136,7 +143,7 @@ class DocumentGenerator:
         footer_cells[5].text = str(total_grad)
 
         for cell in footer_cells:
-            if cell.text:
+            if cell.text and cell.paragraphs[0].runs:
                 cell.paragraphs[0].runs[0].bold = True
 
         doc.add_paragraph("\nПодпись ответственного лица: ___________________")
@@ -147,6 +154,3 @@ class DocumentGenerator:
         
         filename = f"Contingent_Report_{timezone.now().strftime('%Y%m%d')}.docx"
         return file_stream, filename
-        
-
-

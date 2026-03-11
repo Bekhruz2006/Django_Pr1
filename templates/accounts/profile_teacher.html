@@ -16,9 +16,9 @@
                     </div>
                 {% endif %}
 
-                <h4>{{ profile.get_degree_display }}</h4>
+                <h4>{{ profile.degree }}</h4>
                 <h5>{{ user.get_full_name }}</h5>
-                <p class="text-muted">{{ profile.get_title_display }}</p>
+                <p class="text-muted">{{ profile.title }}</p>
 
                 {% if not viewing_as_dean %}
                     <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary w-100 mb-2">

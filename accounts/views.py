@@ -660,7 +660,7 @@ def group_management(request):
     if search:
         groups = groups.filter(
             models.Q(name__icontains=search) |
-            models.Q(specialty__icontains=search)
+            models.Q(specialty__name__icontains=search)
         )
     
     if course_filter:
@@ -1328,7 +1328,7 @@ def all_orders_list(request):
 
 
 
-@user_passes_test(lambda u: u.is_superuser or u.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR'])
+@user_passes_test(lambda u: u.is_superuser or u.role in ['PRO_RECTOR', 'DIRECTOR'])
 def approve_order(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     
@@ -1344,28 +1344,6 @@ def approve_order(request, order_id):
 
 
 
-@user_passes_test(is_dean_or_admin)
-def unassigned_students(request):
-    faculty = request.user.dean_profile.faculty
-    students = Student.objects.filter(
-        group__isnull=True, 
-        status='ACTIVE'
-    )
-    
-    groups = Group.objects.filter(specialty__department__faculty=faculty)
-    
-    if request.method == 'POST':
-        student_ids = request.POST.getlist('students')
-        target_group_id = request.POST.get('target_group')
-        if student_ids and target_group_id:
-            Student.objects.filter(id__in=student_ids).update(group_id=target_group_id)
-            messages.success(request, f"Успешно распределено {len(student_ids)} студентов.")
-        return redirect('accounts:unassigned_students')
-        
-    return render(request, 'accounts/unassigned_students.html', {
-        'students': students,
-        'groups': groups
-    })
 
 
 @login_required

@@ -124,7 +124,9 @@ def dashboard(request):
                 students_qs = students_qs.filter(group__specialty__department__faculty__in=faculties_ids)
                 teachers_qs = teachers_qs.filter(department__faculty__in=faculties_ids)
                 groups_qs = groups_qs.filter(specialty__department__faculty__in=faculties_ids)
-                orders_qs = orders_qs.filter(student__group__specialty__department__faculty__in=faculties_ids)
+                orders_qs = orders_qs.filter(
+                    items__student__group__specialty__department__faculty__in=faculties_ids
+                ).distinct()
             except Institute.DoesNotExist:
                 pass
 

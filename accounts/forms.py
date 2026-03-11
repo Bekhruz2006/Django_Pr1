@@ -512,12 +512,14 @@ class GroupTransferForm(forms.Form):
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['number', 'date', 'order_type', 'title', 'status', 'file']
+        fields = ['number', 'date', 'order_type', 'title', 'reason', 'status', 'file']
         widgets = {
             'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Генерируется автоматически')}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'order_type': forms.Select(attrs={'class': 'form-select'}),
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: О переводе студентов 2 курса')}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 
+            'placeholder': _('Например: О переводе студентов 2 курса')}),
+            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
         }

@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, date
 from django.core.validators import FileExtensionValidator
-
+from .models import SpecialistProfile
 
 class Institute(models.Model):
     name = models.CharField(max_length=200, verbose_name=_("Название института"))
@@ -558,6 +558,8 @@ def create_user_profile(sender, instance, created, **kwargs):
             HeadOfDepartment.objects.create(user=instance)
         elif instance.role == 'HR':
             HRProfile.objects.get_or_create(user=instance)
+        elif instance.role == 'SPECIALIST':
+            SpecialistProfile.objects.get_or_create(user=instance)
 
 
 @receiver(pre_save, sender=Faculty)
@@ -672,6 +674,11 @@ class Order(models.Model):
                     elif self.order_type == 'GRADUATE':
                         student.status = 'GRADUATED'
                         student.group = None
+                    elif self.order_type == 'ENROLL':
+                        student.status = 'ACTIVE'
+                        if item.target_group:
+                            student.group = item.target_group
+                            groups_to_recalc.add(item.target_group)
                     elif self.order_type == 'RESTORE':
                         student.status = 'ACTIVE'
                     elif self.order_type == 'TRANSFER':
@@ -702,7 +709,11 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='order_items')
     target_group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Новая группа (для перевода)"))
-    reason = models.CharField(max_length=255, blank=True, verbose_name=_("Основание (заявление, долг и т.д.)"))
+    reason = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_("Основание (заявление, документ)")
+    )
 
     def __str__(self):
         return f"{self.student.user.get_full_name()} -> {self.order.number}"
