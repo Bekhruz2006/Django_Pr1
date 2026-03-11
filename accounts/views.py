@@ -468,7 +468,10 @@ def edit_user(request, user_id):
         user_form = AdminUserEditForm(request.POST, request.FILES, instance=user_obj)
         
         student_form = StudentForm(request.POST, instance=user_obj.student_profile) if hasattr(user_obj, 'student_profile') else None
-        teacher_form = TeacherForm(request.POST, instance=user_obj.teacher_profile) if hasattr(user_obj, 'teacher_profile') else None
+        teacher_form = TeacherForm(
+            request.POST,
+            instance=getattr(user_obj, 'teacher_profile', None)
+        )
         dean_form = DeanForm(request.POST, instance=user_obj.dean_profile) if hasattr(user_obj, 'dean_profile') else None
         head_form = HeadOfDepartmentForm(request.POST, instance=user_obj.head_of_dept_profile) if hasattr(user_obj, 'head_of_dept_profile') else None
         
@@ -517,7 +520,7 @@ def edit_user(request, user_id):
     else:
         user_form = AdminUserEditForm(instance=user_obj)
         student_form = StudentForm(instance=user_obj.student_profile) if hasattr(user_obj, 'student_profile') else None
-        teacher_form = TeacherForm(instance=user_obj.teacher_profile) if hasattr(user_obj, 'teacher_profile') else None
+        teacher_form = TeacherForm(instance=getattr(user_obj, 'teacher_profile', None))
         dean_form = DeanForm(instance=user_obj.dean_profile) if hasattr(user_obj, 'dean_profile') else None
         head_form = HeadOfDepartmentForm(instance=user_obj.head_of_dept_profile) if hasattr(user_obj, 'head_of_dept_profile') else None
     
@@ -1456,6 +1459,7 @@ def unassigned_students(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser or u.role in ['HR', 'DEAN', 'VICE_DEAN', 'DIRECTOR', 'PRO_RECTOR'])
 def download_generated_document(request, template_id, object_id):
     try:
         file_stream, filename = DocumentGenerator.generate_document(template_id, object_id)

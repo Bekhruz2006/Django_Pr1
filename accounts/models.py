@@ -433,10 +433,7 @@ class Student(models.Model):
         try:
             if hasattr(self, 'statistics'):
                 return round(self.statistics.overall_gpa, 2)
-            
-            from journal.models import StudentStatistics
-            stats, _ = StudentStatistics.objects.get_or_create(student=self)
-            return round(stats.overall_gpa, 2)
+            return 0.0
         except Exception:
             return 0.0
 
@@ -549,24 +546,7 @@ class StructureChangeLog(models.Model):
         return f"{self.object_type} {self.object_name}: {self.old_value} -> {self.new_value}"
 
 
-def generate_order_number():
-    from django.utils import timezone
-    from django.apps import apps
-    
-    year = timezone.now().year
-    Order = apps.get_model('accounts', 'Order')
-    
-    last_order = Order.objects.filter(date__year=year).order_by('id').last()
-    if last_order and last_order.number:
-        try:
-            last_num = int(last_order.number.split('-')[-1])
-            new_num = last_num + 1
-        except (ValueError, IndexError):
-            new_num = 1
-    else:
-        new_num = 1
-    
-    return f"{year}-{new_num:04d}"
+
 
 
 class Order(models.Model):

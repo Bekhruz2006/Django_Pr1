@@ -484,8 +484,9 @@ class GroupForm(forms.ModelForm):
             group.save()
             selected_students = self.cleaned_data.get('assign_students')
             if selected_students is not None:
+                current_ids = selected_students.values_list('id', flat=True)
+                group.students.exclude(id__in=current_ids).update(group=None)
                 if selected_students.exists():
-                    group.students.exclude(id__in=selected_students).update(group=None)
                     selected_students.update(group=group)
         return group
 

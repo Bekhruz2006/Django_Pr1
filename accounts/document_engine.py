@@ -40,10 +40,11 @@ class DocumentGenerator:
             order = Order.objects.get(id=object_id)
             first_item = order.items.first()
             student = first_item.student if first_item else None
+            order_reason = first_item.reason if first_item else ''
             context = {
                 'order_number': order.number,
                 'order_date': order.date.strftime('%d.%m.%Y'),
-                'order_reason': getattr(order, 'reason', ''), 
+                'order_reason': order_reason, 
                 'order_type': order.get_order_type_display(),
                 'student_full_name': student.user.get_full_name() if student else '',
                 'group_name': student.group.name if student and student.group else '',
@@ -112,13 +113,13 @@ class DocumentGenerator:
             
             expelled  = Student.objects.filter(
                 status='EXPELLED',
-                specialty=group.specialty
-            ).count() if group.specialty else 0
+                group=group
+            ).count()
 
             graduated = Student.objects.filter(
                 status='GRADUATED',
-                specialty=group.specialty
-            ).count() if group.specialty else 0
+                group=group
+            ).count()
 
             row_cells = table.add_row().cells
             row_cells[0].text = str(group.course)

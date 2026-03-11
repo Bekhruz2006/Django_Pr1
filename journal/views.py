@@ -143,7 +143,7 @@ def journal_view(request):
     for student in students:
         student_row = {'student': student, 'entries':[]}
         for day_info in days_with_lessons:
-            entry, _ = JournalEntry.objects.get_or_create(
+            entry, created = JournalEntry.objects.get_or_create(
                 student=student,
                 subject=subject,
                 lesson_date=day_info['date'],
@@ -427,7 +427,7 @@ def student_journal_view(request):
     })
 
 @login_required
-@user_passes_test(is_dean)
+@user_passes_test(is_dean_or_admin)
 def dean_journal_view(request):
     group_id, view_type = request.GET.get('group'), request.GET.get('view', 'summary')
     groups = Group.objects.all()
@@ -477,7 +477,7 @@ def dean_journal_view(request):
     })
 
 @login_required
-@user_passes_test(is_dean)
+@user_passes_test(is_dean_or_admin)
 def department_report(request):
     import json
     sort_by = request.GET.get('sort', 'group')

@@ -29,6 +29,14 @@
                         </div>
                     </div>
                     <div class="mb-3">
+                        <label>{% trans "Заголовок приказа" %}</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="mb-3">
+                        <label>{% trans "Статус" %}</label>
+                        {{ form.status }}
+                    </div>
+                    <div class="mb-3">
                         <label>{% trans "Причина / Основание" %}</label>
                         {{ form.reason }}
                     </div>

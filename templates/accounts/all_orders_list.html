@@ -85,7 +85,11 @@
                                 <td>
                                     <span class="badge bg-secondary">{{ order.get_order_type_display }}</span>
                                 </td>
-                                <td><small class="text-muted">{{ order.reason|truncatewords:5 }}</small></td>
+                                <td>
+                                    {% with first_item=order.items.first %}
+                                        <small class="text-muted">{{ first_item.reason|default:"-"|truncatewords:5 }}</small>
+                                    {% endwith %}
+                                </td>
                                 <td>
                                     <div class="d-flex gap-1">
                                         {% if order.file %}

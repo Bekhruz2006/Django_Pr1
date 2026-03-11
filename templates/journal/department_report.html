@@ -158,11 +158,21 @@
                                         <i class="bi bi-check-circle-fill text-success"></i>
                                     {% endif %}
                                 </td>
-                                <td class="text-end pe-4">
-                                    <a href="{% url 'journal:group_detail' item.group.id %}" class="btn btn-sm btn-light text-primary">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            <a href="{% url 'journal:dean_view' %}?group={{ item.group.id }}&view=summary" 
+                                            class="btn btn-sm btn-outline-primary" title="Обзор успеваемости группы">
+                                                <i class="bi bi-journal-text"></i> Обзор
+                                            </a>
+                                            <a href="{% url 'journal:dean_view' %}?group={{ item.group.id }}&view=at_risk" 
+                                            class="btn btn-sm btn-outline-danger" title="Студенты в зоне риска">
+                                                <i class="bi bi-exclamation-triangle"></i> Риск
+                                                {% if item.at_risk_count > 0 %}
+                                                    <span class="badge bg-danger ms-1">{{ item.at_risk_count }}</span>
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                    </td>
                             </tr>
                             {% endfor %}
                         </tbody>

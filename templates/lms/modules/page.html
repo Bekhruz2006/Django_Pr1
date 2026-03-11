@@ -1,5 +1,6 @@
 {% extends "lms/modules/base_module.html" %}
 {% block module_body %}
+{% load i18n %}
 {% if page %}
 <div class="card shadow-sm">
   <div class="card-body lms-page-content">
@@ -8,5 +9,6 @@
 </div>
 {% else %}
 <p class="text-muted">{% trans "Страница пуста" %}</p>
+
 {% endif %}
 {% endblock %}

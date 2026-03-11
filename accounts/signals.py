@@ -26,6 +26,23 @@ def track_role_change(sender, instance, **kwargs):
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created or getattr(instance, '_role_changed', False):
+        old_profile_map = {
+            'STUDENT': 'student_profile',
+            'TEACHER': 'teacher_profile',
+            'DEAN': 'dean_profile',
+            'VICE_DEAN': 'vicedean_profile',
+            'DIRECTOR': 'director_profile',
+            'PRO_RECTOR': 'prorector_profile',
+            'HEAD_OF_DEPT': 'head_of_dept_profile',
+            'HR': 'hr_profile',
+            'SPECIALIST': 'specialist_profile',
+        }
+        if getattr(instance, '_role_changed', False):
+            old_role = instance._old_role
+            attr = old_profile_map.get(old_role)
+            if attr and hasattr(instance, attr):
+                getattr(instance, attr).delete()
+        
         if instance.role == 'STUDENT':
             year = datetime.now().year
             Student.objects.get_or_create(

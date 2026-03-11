@@ -818,12 +818,24 @@
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
-            if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('show')) {
-                if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                    sidebar.classList.remove('show');
+            
+            if (document.body.classList.contains('sidebar-open')) {
+                if ((sidebar && !sidebar.contains(e.target) && toggle && !toggle.contains(e.target)) || e.target === document.body) {
+                    if (sidebar) sidebar.classList.remove('show');
                     document.body.classList.remove('sidebar-open');
                 }
             }
+        });
+
+        window.addEventListener('pageshow', function(event) {
+            document.body.classList.remove('sidebar-open', 'sb-sidenav-toggled');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.remove('show');
+            
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         });
 
         (function() {
