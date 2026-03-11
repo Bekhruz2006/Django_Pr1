@@ -2,6 +2,7 @@ import openpyxl
 from django.db import transaction
 from .models import User, Student
 from datetime import datetime
+import uuid
 
 class StudentImportService:
     @staticmethod
@@ -10,6 +11,7 @@ class StudentImportService:
         from django.db import transaction
         from datetime import datetime
         from .models import User, Student
+        import uuid
         
         wb = openpyxl.load_workbook(file)
         sheet = wb.active
@@ -24,7 +26,7 @@ class StudentImportService:
 
             try:
                 with transaction.atomic():
-                    base_username = f"{datetime.now().year}_{row_idx}_{str(datetime.now().microsecond)[:3]}"
+                    base_username = f"import_{uuid.uuid4().hex[:12]}"
                     
                     user = User.objects.create_user(
                         username=base_username,

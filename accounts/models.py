@@ -501,7 +501,7 @@ class SpecialistProfile(models.Model):
         verbose_name_plural = "Специалисты"
 
     def __str__(self):
-        return f"Специалист: {self.user.get_full_name()} ({self.faculty.abbreviation})"
+        return f"Специалист: {self.user.get_full_name()} ({self.faculty.name})"
 
 
 
@@ -585,7 +585,7 @@ class Order(models.Model):
         ('REJECTED', _('Отклонен')),
     ]
 
-    number = models.CharField(max_length=50, verbose_name=_('Номер приказа'), blank=True)
+    number = models.CharField(max_length=50, unique=True, verbose_name=_('Номер приказа'), blank=True)
     date = models.DateField(default=timezone.now, verbose_name=_("Дата приказа"))
     order_type = models.CharField(max_length=20, choices=ORDER_TYPES, verbose_name=_("Тип приказа"))
     title = models.CharField(max_length=255, verbose_name=_("Заголовок (например: О переводе студентов 2 курса)"))
@@ -607,17 +607,20 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.number:
-            year = timezone.now().year
-            last_order = Order.objects.filter(date__year=year).order_by('id').last()
-            if last_order and last_order.number:
-                try:
-                    last_num = int(last_order.number.split('-')[-1])
-                    new_num = last_num + 1
-                except (ValueError, IndexError):
+            with transaction.atomic():
+                year = timezone.now().year
+                last_order = Order.objects.select_for_update().filter(
+                    date__year=year
+                ).order_by('id').last()
+                if last_order and last_order.number:
+                    try:
+                        last_num = int(last_order.number.split('-')[-1])
+                        new_num = last_num + 1
+                    except (ValueError, IndexError):
+                        new_num = 1
+                else:
                     new_num = 1
-            else:
-                new_num = 1
-            self.number = f"{year}-{new_num:04d}"
+                self.number = f"{year}-{new_num:04d}"
         super().save(*args, **kwargs)
 
     def apply_effect(self, approver_user):

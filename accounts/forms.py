@@ -278,18 +278,30 @@ class UserCreateForm(forms.ModelForm):
         return user
 
     def generate_unique_username(self):
+        from django.db import transaction
+        import uuid
         year = datetime.now().year
         base_username = f"{year}502"
-        last_user = User.objects.filter(username__startswith=base_username).order_by('-username').first()
-        if last_user:
+        
+        for attempt in range(3):
             try:
-                last_number = int(last_user.username[len(base_username):])
-                new_number = last_number + 1
-            except ValueError:
-                new_number = 1
-        else:
-            new_number = 1
-        return f"{base_username}{new_number:03d}"
+                with transaction.atomic():
+                    last_user = User.objects.filter(username__startswith=base_username).order_by('-username').first()
+                    if last_user:
+                        try:
+                            last_number = int(last_user.username[len(base_username):])
+                            new_number = last_number + 1
+                        except ValueError:
+                            new_number = 1
+                    else:
+                        new_number = 1
+                    return f"{base_username}{new_number:03d}"
+            except:
+                suffix = uuid.uuid4().hex[:6]
+                return f"{base_username}{suffix}"
+        
+        suffix = uuid.uuid4().hex[:6]
+        return f"{base_username}{suffix}"
 
 class StudentForm(forms.ModelForm):
     class Meta:
@@ -469,11 +481,12 @@ class GroupForm(forms.ModelForm):
     def save(self, commit=True):
         group = super().save(commit=False)
         if commit:
-            group.save() 
+            group.save()
             selected_students = self.cleaned_data.get('assign_students')
             if selected_students is not None:
-                group.students.exclude(id__in=selected_students).update(group=None)
-                selected_students.update(group=group)
+                if selected_students.exists():
+                    group.students.exclude(id__in=selected_students).update(group=None)
+                    selected_students.update(group=group)
         return group
 
 class InstituteManagementForm(forms.Form):

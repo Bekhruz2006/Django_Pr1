@@ -38,7 +38,7 @@ def get_algorithmic_risk_report(faculty=None, limit=5):
         qs = qs.filter(student__group__specialty__department__faculty=faculty)
         
     problematic = qs.filter(
-        Q(overall_gpa__lt=3.0, overall_gpa__gt=0) | 
+        Q(overall_gpa__lt=3.0) | 
         Q(attendance_percentage__lt=70.0, total_lessons__gt=0) | 
         Q(total_absent__gt=8)
     )
@@ -48,10 +48,10 @@ def get_algorithmic_risk_report(faculty=None, limit=5):
         reasons = []
         risk_score = 0
         
-        if 0 < stat.overall_gpa < 2.5:
+        if stat.overall_gpa < 2.5:
             reasons.append(f"Критический средний балл: {stat.overall_gpa:.1f}")
             risk_score += 3
-        elif 0 < stat.overall_gpa < 3.0:
+        elif stat.overall_gpa < 3.0:
             reasons.append(f"Низкий средний балл: {stat.overall_gpa:.1f}")
             risk_score += 1
             

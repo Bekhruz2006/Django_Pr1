@@ -10,24 +10,40 @@ from .models import (
 )
 
 
+@receiver(pre_save, sender=User)
+def track_role_change(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = User.objects.get(pk=instance.pk)
+            if old_instance.role != instance.role:
+                instance._role_changed = True
+                instance._old_role = old_instance.role
+                instance._new_role = instance.role
+        except User.DoesNotExist:
+            pass
+
+
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
-    if created:
+    if created or getattr(instance, '_role_changed', False):
         if instance.role == 'STUDENT':
             year = datetime.now().year
-            Student.objects.create(user=instance, student_id=f"{year}S{instance.id:05d}")
+            Student.objects.get_or_create(
+                user=instance, 
+                defaults={'student_id': f"{year}S{instance.id:05d}"}
+            )
         elif instance.role == 'TEACHER':
-            Teacher.objects.create(user=instance)
+            Teacher.objects.get_or_create(user=instance)
         elif instance.role == 'DEAN':
-            Dean.objects.create(user=instance)
+            Dean.objects.get_or_create(user=instance)
         elif instance.role == 'VICE_DEAN':
-            ViceDean.objects.create(user=instance)
+            ViceDean.objects.get_or_create(user=instance)
         elif instance.role == 'DIRECTOR':
-            Director.objects.create(user=instance)
+            Director.objects.get_or_create(user=instance)
         elif instance.role == 'PRO_RECTOR':
-            ProRector.objects.create(user=instance, title="Заместитель директора")
+            ProRector.objects.get_or_create(user=instance, defaults={'title': "Заместитель директора"})
         elif instance.role == 'HEAD_OF_DEPT':
-            HeadOfDepartment.objects.create(user=instance)
+            HeadOfDepartment.objects.get_or_create(user=instance)
         elif instance.role == 'HR':
             HRProfile.objects.get_or_create(user=instance)
         elif instance.role == 'SPECIALIST':

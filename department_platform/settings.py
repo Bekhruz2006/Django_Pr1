@@ -2,6 +2,9 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from django.utils.translation import gettext_lazy as _
+
+load_dotenv()
+
 LANGUAGES = [
     ('ru', _('Русский')),
     ('tg', _('Тоҷикӣ')),
@@ -10,11 +13,11 @@ LANGUAGES = [
 LANGUAGE_CODE = 'ru'
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-development-only')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -129,9 +132,13 @@ LOGOUT_REDIRECT_URL = 'accounts:login'
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  
 
-SESSION_COOKIE_AGE = 360 
+SESSION_COOKIE_AGE = 36000
 
-SESSION_SAVE_EVERY_REQUEST = True 
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
+
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
+
+SESSION_SAVE_EVERY_REQUEST = True
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 

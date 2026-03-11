@@ -44,21 +44,21 @@ def generate_student_id():
     from datetime import datetime
     year = datetime.now().year
     base_id = f"{year}S"
-    last_student = Student.objects.filter(
-        student_id__startswith=base_id
-    ).order_by('-student_id').first()
+    with transaction.atomic():
+        last_student = Student.objects.select_for_update().filter(
+            student_id__startswith=base_id
+        ).order_by('-student_id').first()
 
-    if last_student:
-        try:
-            last_number = int(last_student.student_id[len(base_id):])
-            new_number = last_number + 1
-        except (ValueError, IndexError):
+        if last_student:
+            try:
+                last_number = int(last_student.student_id[len(base_id):])
+                new_number = last_number + 1
+            except (ValueError, IndexError):
+                new_number = 1
+        else:
             new_number = 1
-    else:
-        
-        new_number = 1
 
-    return f"{base_id}{new_number:04d}"
+        return f"{base_id}{new_number:04d}"
 
 def is_dean(user):
     return user.is_authenticated and hasattr(user, 'dean_profile')
@@ -164,25 +164,37 @@ def profile_view(request):
             teacher=profile, is_active=True
         ).values_list('group_id', flat=True).distinct()
         
-        groups = Group.objects.filter(id__in=group_ids)
+        groups = Group.objects.filter(id__in=group_ids).annotate(
+            students_count=Count('students')
+        )
         
-        teacher_groups = []
+        all_stats = StudentStatistics.objects.filter(
+            student__group__in=groups
+        ).values('student__group_id', 'overall_gpa', 'attendance_percentage')
+
+        stats_by_group = {}
+        for stat in all_stats:
+            g_id = stat['student__group_id']
+            if g_id not in stats_by_group:
+                stats_by_group[g_id] = {'gpa_sum': 0, 'att_sum': 0, 'count': 0}
+            stats_by_group[g_id]['gpa_sum'] += stat['overall_gpa']
+            stats_by_group[g_id]['att_sum'] += stat['attendance_percentage']
+            stats_by_group[g_id]['count'] += 1
+        
+        teacher_groups =[]
         for group in groups:
-            students = Student.objects.filter(group=group)
-            students_count = students.count()
-            
-            if students_count > 0:
-                stats_list = []
-                for student in students:
-                    stats, created = StudentStatistics.objects.get_or_create(student=student)
-                    stats_list.append(stats)
-                
-                avg_gpa = sum(s.overall_gpa for s in stats_list) / len(stats_list) if stats_list else 0
-                avg_attendance = sum(s.attendance_percentage for s in stats_list) / len(stats_list) if stats_list else 0
+            if group.students_count > 0:
+                g_stats = stats_by_group.get(group.id)
+                if g_stats and g_stats['count'] > 0:
+                    avg_gpa = g_stats['gpa_sum'] / g_stats['count']
+                    avg_attendance = g_stats['att_sum'] / g_stats['count']
+                else:
+                    avg_gpa = 0
+                    avg_attendance = 0
                 
                 teacher_groups.append({
                     'group': group,
-                    'students_count': students_count,
+                    'students_count': group.students_count,
                     'avg_gpa': avg_gpa,
                     'avg_attendance': avg_attendance,
                 })
@@ -315,7 +327,7 @@ def user_management(request):
             models.Q(last_name__icontains=search)
         )
 
-    users = users.select_related('student_profile', 'teacher_profile', 'dean_profile')
+    users = users.select_related('student_profile', 'teacher_profile', 'dean_profile', 'head_of_dept_profile', 'vicedean_profile', 'prorector_profile', 'director_profile', 'hr_profile', 'specialist_profile')
 
     users_with_profiles = []
     for user_obj in users:
@@ -469,25 +481,36 @@ def edit_user(request, user_id):
         if forms_valid:
             user = user_form.save()
             
-            if user_form.cleaned_data.get('is_teacher'):
-                Teacher.objects.get_or_create(user=user)
-            elif hasattr(user, 'teacher_profile'): 
+            is_teacher_checked = user_form.cleaned_data.get('is_teacher')
+            is_head_checked = user_form.cleaned_data.get('is_head_of_dept')
+            is_dean_checked = user_form.cleaned_data.get('is_dean')
+            
+            if is_teacher_checked:
+                teacher_obj, _ = Teacher.objects.get_or_create(user=user)
+                if teacher_form:
+                    teacher_form.instance = teacher_obj
+                    teacher_form.save()
+            elif hasattr(user, 'teacher_profile'):
                 user.teacher_profile.delete()
                 
-            if user_form.cleaned_data.get('is_head_of_dept'):
-                HeadOfDepartment.objects.get_or_create(user=user)
-            elif hasattr(user, 'head_of_dept_profile'): 
+            if is_head_checked:
+                head_obj, _ = HeadOfDepartment.objects.get_or_create(user=user)
+                if head_form:
+                    head_form.instance = head_obj
+                    head_form.save()
+            elif hasattr(user, 'head_of_dept_profile'):
                 user.head_of_dept_profile.delete()
                 
-            if user_form.cleaned_data.get('is_dean'):
-                Dean.objects.get_or_create(user=user)
-            elif hasattr(user, 'dean_profile'): 
+            if is_dean_checked:
+                dean_obj, _ = Dean.objects.get_or_create(user=user)
+                if dean_form:
+                    dean_form.instance = dean_obj
+                    dean_form.save()
+            elif hasattr(user, 'dean_profile'):
                 user.dean_profile.delete()
 
-            if student_form: student_form.save()
-            if teacher_form and user_form.cleaned_data.get('is_teacher'): teacher_form.save()
-            if dean_form and user_form.cleaned_data.get('is_dean'): dean_form.save()
-            if head_form and user_form.cleaned_data.get('is_head_of_dept'): head_form.save()
+            if student_form:
+                student_form.save()
 
             messages.success(request, _('Пользователь успешно обновлен'))
             return redirect('accounts:user_management')
@@ -590,6 +613,15 @@ def transfer_student(request, student_id):
             with transaction.atomic():
                 old_group = student.group
                 new_group = form.cleaned_data['to_group']
+                
+                if is_dean(request.user) and hasattr(request.user, 'dean_profile'):
+                    faculty = request.user.dean_profile.faculty
+                    if new_group.specialty and new_group.specialty.department.faculty != faculty:
+                        messages.error(request, _("Ошибка: невозможно перевести студента в группу другого факультета."))
+                        return render(request, 'accounts/transfer_student.html', {
+                            'form': form,
+                            'student': student
+                        })
                 
                 GroupTransferHistory.objects.create(
                     student=student,
@@ -700,8 +732,8 @@ def add_group(request):
                 form.fields['specialty'].queryset = Specialty.objects.filter(department__faculty=faculty)
 
     if request.method == 'POST':
-        form = GroupForm(request.POST, initial=initial_data) 
-        configure_form(form) 
+        form = GroupForm(request.POST, instance=None)
+        configure_form(form)
 
         if form.is_valid():
             try:
@@ -814,7 +846,7 @@ def manage_structure(request):
         context['structure_data'] = structure_data
         context['is_admin'] = True
         
-    elif request.user.role in ['DEAN', 'VICE_DEAN']:
+    elif hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
         user_faculty = None
         if hasattr(request.user, 'dean_profile'):
             user_faculty = request.user.dean_profile.faculty
@@ -1267,7 +1299,7 @@ def student_orders(request, student_id):
                 reason=form.cleaned_data.get('reason', '')
             )
             messages.success(request, _(f'Проект приказа №{order.number} создан.'))
-            return redirect('accounts:user_management')
+            return redirect('accounts:student_orders', student_id=student.id)
     else:
         form = OrderForm(initial={'date': timezone.now().date()})
         
@@ -1344,8 +1376,11 @@ def approve_order(request, order_id):
     
     if request.method == 'POST':
         if order.status == 'DRAFT':
-            order.apply_effect(request.user)
-            messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студентов обновлен."))
+            try:
+                order.apply_effect(request.user)
+                messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студентов обновлен."))
+            except Exception as e:
+                messages.error(request, _(f"Ошибка при обработке приказа: {str(e)}"))
         else:
             messages.warning(request, _("Приказ уже обработан."))
             
@@ -1374,6 +1409,10 @@ def unassigned_students(request):
             messages.error(request, _("Ваш профиль не привязан к факультету."))
             return redirect('core:dashboard')
         
+        if not faculty:
+            messages.error(request, _("Ваш профиль не привязан к факультету."))
+            return redirect('core:dashboard')
+        
         students = Student.objects.filter(
             group__isnull=True, 
             status='ACTIVE',
@@ -1389,9 +1428,14 @@ def unassigned_students(request):
         if student_ids and target_group_id:
             target_group = get_object_or_404(Group, id=target_group_id)
             
-            if not user.is_superuser and target_group.specialty.department.faculty != faculty:
-                messages.error(request, _("Ошибка доступа: попытка распределить в группу чужого факультета."))
-                return redirect('accounts:unassigned_students')
+            if not user.is_superuser:
+                if not target_group.specialty or not target_group.specialty.department:
+                    messages.error(request, _("Ошибка: группа не связана с факультетом."))
+                    return redirect('accounts:unassigned_students')
+                    
+                if target_group.specialty.department.faculty != faculty:
+                    messages.error(request, _("Ошибка доступа: попытка распределить в группу чужого факультета."))
+                    return redirect('accounts:unassigned_students')
             
             updated_count = Student.objects.filter(id__in=student_ids).update(group=target_group)
             
@@ -1634,13 +1678,18 @@ def delete_specialization(request, pk):
 @login_required
 def view_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
-    students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
-
-    if request.user.role == 'DEAN' and hasattr(request.user, 'dean_profile'):
+    
+    if not (request.user.is_superuser or request.user.is_management):
+        messages.error(request, _("Доступ запрещен"))
+        return redirect('core:dashboard')
+    
+    if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if group.specialty and group.specialty.department.faculty != faculty:
             messages.error(request, _("Нет доступа к этой группе"))
             return redirect('accounts:group_management')
+
+    students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
 
     return render(request, 'accounts/view_group.html', {
         'group': group,
