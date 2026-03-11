@@ -467,14 +467,13 @@ class GroupForm(forms.ModelForm):
         self.fields['assign_students'].queryset = Student.objects.select_related('user').order_by('user__last_name')
 
     def save(self, commit=True):
-        group = super().save(commit=commit)
+        group = super().save(commit=False)
         if commit:
+            group.save() 
             selected_students = self.cleaned_data.get('assign_students')
-            if selected_students:
-                self.instance.students.exclude(id__in=selected_students.values_list('id', flat=True)).update(group=None)
-                for student in selected_students:
-                    student.group = group
-                    student.save()
+            if selected_students is not None:
+                group.students.exclude(id__in=selected_students).update(group=None)
+                selected_students.update(group=group)
         return group
 
 class InstituteManagementForm(forms.Form):
@@ -510,16 +509,21 @@ class GroupTransferForm(forms.Form):
         required=False
     )
 class OrderForm(forms.ModelForm):
+    reason = forms.CharField(
+        label=_("Основание (Причина)"),
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        required=False
+    )
+
+
     class Meta:
         model = Order
-        fields = ['number', 'date', 'order_type', 'title', 'reason', 'status', 'file']
+        fields = ['number', 'date', 'order_type', 'title', 'status', 'file']
         widgets = {
             'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Генерируется автоматически')}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'order_type': forms.Select(attrs={'class': 'form-select'}),
-            'title': forms.TextInput(attrs={'class': 'form-control', 
-            'placeholder': _('Например: О переводе студентов 2 курса')}),
-            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: О переводе студентов 2 курса')}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
         }

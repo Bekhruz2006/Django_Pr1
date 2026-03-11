@@ -9,7 +9,6 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, date
 from django.core.validators import FileExtensionValidator
-from .models import SpecialistProfile
 
 class Institute(models.Model):
     name = models.CharField(max_length=200, verbose_name=_("Название института"))
@@ -432,27 +431,34 @@ class Student(models.Model):
 
     def get_average_grade(self):
         try:
+            if hasattr(self, 'statistics'):
+                return round(self.statistics.overall_gpa, 2)
+            
             from journal.models import StudentStatistics
-            stats, created = StudentStatistics.objects.get_or_create(student=self)
-            stats.recalculate()
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
             return round(stats.overall_gpa, 2)
         except Exception:
             return 0.0
 
     def get_total_absent(self):
         try:
+            if hasattr(self, 'statistics'):
+                return self.statistics.total_absent
+                
             from journal.models import StudentStatistics
-            stats, created = StudentStatistics.objects.get_or_create(student=self)
-            stats.recalculate()
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
             return stats.total_absent
         except Exception:
             return 0
 
     def get_absent_breakdown(self):
         try:
-            from journal.models import StudentStatistics
-            stats, created = StudentStatistics.objects.get_or_create(student=self)
-            stats.recalculate()
+            if hasattr(self, 'statistics'):
+                stats = self.statistics
+            else:
+                from journal.models import StudentStatistics
+                stats, _ = StudentStatistics.objects.get_or_create(student=self)
+                
             return {
                 'illness': stats.absent_illness,
                 'valid': stats.absent_valid,
@@ -464,18 +470,22 @@ class Student(models.Model):
 
     def get_attendance_percentage(self):
         try:
+            if hasattr(self, 'statistics'):
+                return round(self.statistics.attendance_percentage, 1)
+                
             from journal.models import StudentStatistics
-            stats, created = StudentStatistics.objects.get_or_create(student=self)
-            stats.recalculate()
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
             return round(stats.attendance_percentage, 1)
         except Exception:
             return 0.0
 
     def get_group_rank(self):
         try:
+            if hasattr(self, 'statistics'):
+                return self.statistics.group_rank
+                
             from journal.models import StudentStatistics
-            stats, created = StudentStatistics.objects.get_or_create(student=self)
-            stats.recalculate()
+            stats, _ = StudentStatistics.objects.get_or_create(student=self)
             return stats.group_rank
         except Exception:
             return 0
@@ -538,64 +548,6 @@ class StructureChangeLog(models.Model):
     def __str__(self):
         return f"{self.object_type} {self.object_name}: {self.old_value} -> {self.new_value}"
 
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        if instance.role == 'STUDENT':
-            year = datetime.now().year
-            Student.objects.create(user=instance, student_id=f"{year}S{instance.id:05d}")
-        elif instance.role == 'TEACHER':
-            Teacher.objects.create(user=instance)
-        elif instance.role == 'DEAN':
-            Dean.objects.create(user=instance)
-        elif instance.role == 'VICE_DEAN':
-            ViceDean.objects.create(user=instance)
-        elif instance.role == 'DIRECTOR':
-            Director.objects.create(user=instance)
-        elif instance.role == 'PRO_RECTOR':
-            ProRector.objects.create(user=instance, title="Заместитель директора")
-        elif instance.role == 'HEAD_OF_DEPT':
-            HeadOfDepartment.objects.create(user=instance)
-        elif instance.role == 'HR':
-            HRProfile.objects.get_or_create(user=instance)
-        elif instance.role == 'SPECIALIST':
-            SpecialistProfile.objects.get_or_create(user=instance)
-
-
-@receiver(pre_save, sender=Faculty)
-def log_faculty_changes(sender, instance, **kwargs):
-    if instance.pk:
-        try:
-            old_instance = Faculty.objects.get(pk=instance.pk)
-            if old_instance.name != instance.name:
-                StructureChangeLog.objects.create(
-                    object_type='FACULTY',
-                    object_id=instance.pk,
-                    object_name=instance.name,
-                    field_changed='name',
-                    old_value=old_instance.name,
-                    new_value=instance.name
-                )
-        except Faculty.DoesNotExist:
-            pass
-
-@receiver(pre_save, sender=Department)
-def log_department_changes(sender, instance, **kwargs):
-    if instance.pk:
-        try:
-            old_instance = Department.objects.get(pk=instance.pk)
-            if old_instance.name != instance.name:
-                StructureChangeLog.objects.create(
-                    object_type='DEPARTMENT',
-                    object_id=instance.pk,
-                    object_name=instance.name,
-                    field_changed='name',
-                    old_value=old_instance.name,
-                    new_value=instance.name
-                )
-        except Department.DoesNotExist:
-            pass
-
 
 def generate_order_number():
     from django.utils import timezone
@@ -633,7 +585,7 @@ class Order(models.Model):
         ('REJECTED', _('Отклонен')),
     ]
 
-    number = models.CharField(max_length=50, verbose_name=_("Номер приказа"), default=generate_order_number)
+    number = models.CharField(max_length=50, verbose_name=_('Номер приказа'), blank=True)
     date = models.DateField(default=timezone.now, verbose_name=_("Дата приказа"))
     order_type = models.CharField(max_length=20, choices=ORDER_TYPES, verbose_name=_("Тип приказа"))
     title = models.CharField(max_length=255, verbose_name=_("Заголовок (например: О переводе студентов 2 курса)"))
@@ -652,6 +604,21 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Приказ №{self.number} от {self.date.strftime('%d.%m.%Y')} ({self.get_order_type_display()})"
+
+    def save(self, *args, **kwargs):
+        if not self.number:
+            year = timezone.now().year
+            last_order = Order.objects.filter(date__year=year).order_by('id').last()
+            if last_order and last_order.number:
+                try:
+                    last_num = int(last_order.number.split('-')[-1])
+                    new_num = last_num + 1
+                except (ValueError, IndexError):
+                    new_num = 1
+            else:
+                new_num = 1
+            self.number = f"{year}-{new_num:04d}"
+        super().save(*args, **kwargs)
 
     def apply_effect(self, approver_user):
             if self.status == 'APPROVED':

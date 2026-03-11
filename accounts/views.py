@@ -1261,7 +1261,11 @@ def student_orders(request, student_id):
             order = form.save(commit=False)
             order.created_by = request.user
             order.save()
-            OrderItem.objects.create(order=order, student=student)
+            OrderItem.objects.create(
+                order=order, 
+                student=student,
+                reason=form.cleaned_data.get('reason', '')
+            )
             messages.success(request, _(f'Проект приказа №{order.number} создан.'))
             return redirect('accounts:user_management')
     else:
@@ -1279,7 +1283,11 @@ def payment_list(request):
     
     group_id = request.GET.get('group')
     if group_id:
-        students = students.filter(group_id=group_id)
+        try:
+            group_id = int(group_id)
+            students = students.filter(group_id=group_id)
+        except (ValueError, TypeError):
+            group_id = None
         
     show_debtors = request.GET.get('debtors')
     
@@ -1299,7 +1307,8 @@ def payment_list(request):
     return render(request, 'accounts/payment_list.html', {
         'students': context_students,
         'groups': groups,
-        'show_debtors': show_debtors
+        'show_debtors': show_debtors,
+        'group_id': group_id
     })
 
 @user_passes_test(is_management)
@@ -1340,7 +1349,7 @@ def approve_order(request, order_id):
         else:
             messages.warning(request, _("Приказ уже обработан."))
             
-    return redirect('accounts:all_orders')
+    return redirect('accounts:all_orders') 
 
 
 
@@ -1500,11 +1509,19 @@ def mass_order_create(request: HttpRequest) -> HttpResponse:
     if faculty and not user.is_superuser:
         groups_qs = groups_qs.filter(specialty__department__faculty=faculty)
 
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'GET':
-        group_id: str = request.GET.get('group_id', '')
-        if group_id and group_id.isdigit():
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if request.method == 'POST' or request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                group_id = data.get('group_id', '')
+            except json.JSONDecodeError:
+                group_id = request.POST.get('group_id', '')
+        else:
+            group_id = request.GET.get('group_id', '')
+
+        if group_id and str(group_id).isdigit():
             students = Student.objects.filter(group_id=int(group_id), status='ACTIVE').select_related('user', 'group')
-            data = [
+            data =[
                 {
                     'id': s.id,
                     'full_name': s.user.get_full_name(),
