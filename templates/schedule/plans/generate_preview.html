@@ -95,14 +95,32 @@
                 <h5 class="modal-title fw-bold"><i class="bi bi-robot"></i> Настройка ИИ-распределения</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            
+
             <div class="modal-body" id="aiModalBody">
                 <div class="alert alert-info small">
-                    <i class="bi bi-info-circle"></i> ИИ проанализирует выбранные предметы в таблице и подберет для них преподавателей из списка ниже.
+                    <i class="bi bi-info-circle"></i> Система проанализирует выбранные предметы и подберет преподавателей на основе их компетенций, кафедры и текущей нагрузки.
                 </div>
-                
 
-                
+                <div class="mb-4 bg-white p-3 rounded border">
+                    <label class="form-label fw-bold text-dark"><i class="bi bi-cpu"></i> Метод распределения:</label>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="assignMethod" id="methodAlgo" value="algo" checked>
+                        <label class="form-check-label" for="methodAlgo">
+                            <span class="fw-bold text-success">Алгоритмический (Умный балансировщик)</span><br>
+                            <small class="text-muted">Мгновенно. Ищет совпадения по компетенциям (тегам), привязке к кафедре и следит, чтобы у преподавателей была равномерная нагрузка.</small>
+                        </label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="assignMethod" id="methodLLM" value="llm">
+                        <label class="form-check-label" for="methodLLM">
+                            <span class="fw-bold text-primary">Нейросеть (LLM Ollama)</span><br>
+                            <small class="text-muted">Глубокий семантический анализ биографии и научных интересов. (Работает медленнее, требует запущенного сервера Ollama).</small>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Участвующие преподаватели:</label>
                     <div class="border rounded p-3 bg-light" style="max-height: 250px; overflow-y: auto;">
@@ -114,7 +132,11 @@
                         <div class="form-check">
                             <input class="form-check-input ai-teacher-cb" type="checkbox" value="{{ t.id }}" id="t_cb_{{ t.id }}" checked>
                             <label class="form-check-label" for="t_cb_{{ t.id }}">
-                                {{ t.user.get_full_name }} <small class="text-muted">({{ t.department.name }})</small>
+                                {{ t.user.get_full_name }}
+                                <small class="text-muted">({{ t.department.name }})</small>
+                                {% if t.competencies.exists %}
+                                    <br><small class="text-success" style="font-size: 0.7rem;">Навыки: {% for c in t.competencies.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</small>
+                                {% endif %}
                             </label>
                         </div>
                         {% endfor %}
@@ -181,7 +203,7 @@
             return;
         }
 
-        const teacherIds = [];
+        const teacherIds =[];
         document.querySelectorAll('.ai-teacher-cb:checked').forEach(cb => {
             teacherIds.push(parseInt(cb.value));
         });
@@ -191,6 +213,7 @@
             return;
         }
 
+        const assignMethod = document.querySelector('input[name="assignMethod"]:checked').value;
         const modelName = 'gemma3:4b';
 
         document.getElementById('aiModalBody').style.display = 'none';
@@ -206,7 +229,8 @@
             body: JSON.stringify({
                 subjects: subjects,
                 teacher_ids: teacherIds,
-                model_name: modelName
+                model_name: modelName,
+                method: assignMethod
             })
         })
         .then(response => response.json())
@@ -220,12 +244,12 @@
                 data.assignments.forEach(assign => {
                     const select = document.getElementById(`teacher_select_${assign.key}`);
                     const reasonDiv = document.getElementById(`ai_reason_${assign.key}`);
-                    
+
                     if (select) {
                         if (assign.teacher_id) {
                             select.value = assign.teacher_id;
                             select.classList.add('bg-success', 'bg-opacity-10');
-                            
+
                             if (reasonDiv && assign.reason) {
                                 reasonDiv.innerText = `💡 ${assign.reason}`;
                                 reasonDiv.style.display = 'block';
@@ -237,7 +261,7 @@
                             select.value = "";
                             select.classList.add('bg-warning', 'bg-opacity-10');
                             if (reasonDiv) {
-                                reasonDiv.innerText = `⚠️ ИИ: Подходящий преподаватель не найден`;
+                                reasonDiv.innerText = `⚠️ ${assign.reason || 'Подходящий преподаватель не найден'}`;
                                 reasonDiv.classList.remove('text-success');
                                 reasonDiv.classList.add('text-danger');
                                 reasonDiv.style.display = 'block';
@@ -250,16 +274,16 @@
                 const modal = bootstrap.Modal.getInstance(document.getElementById('aiConfigModal'));
                 modal.hide();
 
-                alert(`ИИ завершил работу!\n✅ Назначено: ${successCount}\n Не найдено: ${notFoundCount}`);
+                alert(`Распределение завершено!\n✅ Назначено: ${successCount}\n❌ Не найдено: ${notFoundCount}`);
             } else {
-                alert('Ошибка ИИ: ' + data.error);
+                alert('Ошибка: ' + data.error);
                 document.getElementById('aiModalBody').style.display = 'block';
                 document.getElementById('aiLoadingBody').style.display = 'none';
             }
         })
         .catch(error => {
             console.error('Fetch error:', error);
-            alert('Ошибка соединения с сервером ИИ. Попробуйте позже.');
+            alert('Ошибка соединения с сервером. Попробуйте позже.');
             document.getElementById('aiModalBody').style.display = 'block';
             document.getElementById('aiLoadingBody').style.display = 'none';
             document.querySelectorAll('#aiModalFooter button').forEach(btn => btn.disabled = false);

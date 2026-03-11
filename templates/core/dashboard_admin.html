@@ -194,9 +194,14 @@
                                     {% endfor %}
                                 </ul>
                             </div>
-                            <a href="{% url 'accounts:view_user_profile' risk.student.user.id %}" class="btn btn-sm btn-outline-{{ risk.color }} mt-3 w-100 fw-bold">
-                                Перейти в профиль студента
-                            </a>
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="{% url 'accounts:view_user_profile' risk.student.user.id %}" class="btn btn-sm btn-outline-{{ risk.color }} w-50 fw-bold">
+                                    <i class="bi bi-person"></i> Профиль
+                                </a>
+                                <button onclick="showStudentTrend({{ risk.student.id }}, '{{ risk.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-{{ risk.color }} w-50 fw-bold text-white">
+                                    <i class="bi bi-graph-up-arrow"></i> Прогноз
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>

@@ -28,7 +28,9 @@ from accounts.models import Group, Student, Teacher, Director, ProRector, Depart
 import math
 from django.utils.translation import gettext as _
 from schedule.models import ROOM_TYPES
-from .services import AIAssignmentService
+from .services import AIAssignmentService, AlgorithmicAssignmentService 
+from .ai_timetabling import AutoScheduleEngine
+
 
 def is_dean(user):
     return user.is_authenticated and hasattr(user, 'dean_profile')
@@ -683,6 +685,8 @@ def today_classes(request):
         'classes': classes, 'current_time': current_time, 'today': today
     })
 
+
+@login_required
 @user_passes_test(is_dean_or_admin)
 def manage_subjects(request):
     subjects = Subject.objects.all().select_related('teacher__user', 'department')
@@ -696,6 +700,9 @@ def manage_subjects(request):
         
     return render(request, 'schedule/manage_subjects.html', {'subjects': subjects, 'search': search})
 
+
+
+@login_required
 @user_passes_test(is_dean_or_admin)
 def add_subject(request):
     initial_data = {}
@@ -750,7 +757,7 @@ def add_subject(request):
     return render(request, 'schedule/subject_form.html', {'form': form, 'title': _('Добавить предмет')})
 
 
-
+@login_required
 @user_passes_test(is_dean_or_admin)
 def edit_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
@@ -793,6 +800,7 @@ def edit_subject(request, subject_id):
             
     return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': _('Редактировать предмет')})
 
+@login_required
 @user_passes_test(is_dean_or_admin)
 def delete_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
@@ -804,7 +812,7 @@ def delete_subject(request, subject_id):
     subject.delete()
     messages.success(request, _('Предмет удален'))
     return redirect('schedule:manage_subjects')
-
+@login_required 
 @user_passes_test(is_dean_or_admin)
 def manage_semesters(request):
     semesters = Semester.objects.all().order_by('-academic_year', 'course')
@@ -1182,23 +1190,19 @@ def export_schedule(request):
             day_cell.merge(table.rows[last_row_idx].cells[0])
 
         if is_military_day:
-            mil_cell = table.rows[first_row_idx].cells[2]
-            mil_cell.merge(table.rows[first_row_idx].cells[3])
+            top_left = table.rows[first_row_idx].cells[2]
+            bottom_right = table.rows[last_row_idx].cells[3]
+            top_left.merge(bottom_right)
             
-            if last_row_idx > first_row_idx:
-                last_mil_cell = table.rows[last_row_idx].cells[2]
-                last_mil_cell.merge(table.rows[last_row_idx].cells[3])
-                mil_cell = mil_cell.merge(table.rows[last_row_idx].cells[2])
+            top_left.text = _("Кафедраи ҳарбӣ")
             
-            mil_cell.text = _("Кафедраи ҳарбӣ")
-            
-            for paragraph in mil_cell.paragraphs:
+            for paragraph in top_left.paragraphs:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 for run in paragraph.runs:
                     run.bold = True
                     run.font.size = Pt(48) 
                     run.font.name = 'Times New Roman'
-            mil_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            top_left.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
     doc.add_paragraph().add_run('\n')
     
@@ -1660,10 +1664,9 @@ def api_create_subject_template(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+@login_required
 @user_passes_test(is_dean_or_admin)
 def copy_plan(request, plan_id):
-    from copy import deepcopy
-    
     original_plan = get_object_or_404(AcademicPlan, id=plan_id)
     
     if request.method == 'POST':
@@ -1695,13 +1698,25 @@ def copy_plan(request, plan_id):
             )
             
             disciplines = original_plan.disciplines.all()
-            new_disciplines = []
+            new_disciplines =[]
             for disc in disciplines:
-                new_disc = deepcopy(disc)
-                new_disc.pk = None
-                new_disc.plan = new_plan
-                new_disciplines.append(new_disc)
-            
+                new_disciplines.append(PlanDiscipline(
+                    plan=new_plan,
+                    subject_template=disc.subject_template,
+                    semester_number=disc.semester_number,
+                    cycle=disc.cycle,
+                    has_subgroups=disc.has_subgroups,
+                    discipline_type=disc.discipline_type,
+                    credits=disc.credits,
+                    lecture_hours=disc.lecture_hours,
+                    practice_hours=disc.practice_hours,
+                    lab_hours=disc.lab_hours,
+                    control_hours=disc.control_hours,
+                    independent_hours=disc.independent_hours,
+                    control_type=disc.control_type,
+                    has_course_work=disc.has_course_work,
+                    preferred_room_type=disc.preferred_room_type
+                ))
             PlanDiscipline.objects.bulk_create(new_disciplines)
             
         messages.success(request, _("План успешно скопирован на %(new_year)s год!") % {'new_year': new_year})
@@ -2135,11 +2150,12 @@ def api_ai_assign_teachers(request):
         subjects = data.get('subjects', [])
         teacher_ids = data.get('teacher_ids',[])
         model_name = data.get('model_name', 'gemma3:4b')
+        assign_method = data.get('method', 'algo') # Получаем метод из запроса
         
         if not subjects:
             return JsonResponse({'success': False, 'error': 'Нет предметов для распределения'})
 
-        teachers_qs = Teacher.objects.select_related('user', 'department').all()
+        teachers_qs = Teacher.objects.select_related('user', 'department').prefetch_related('competencies', 'additional_departments').all()
         if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             teachers_qs = teachers_qs.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
@@ -2147,12 +2163,15 @@ def api_ai_assign_teachers(request):
         if teacher_ids:
             teachers_qs = teachers_qs.filter(id__in=teacher_ids)
             
-        result = AIAssignmentService.generate_assignment(teachers_qs, subjects, model_name)
+        if assign_method == 'algo':
+            result = AlgorithmicAssignmentService.generate_assignment(teachers_qs, subjects)
+        else:
+            result = AIAssignmentService.generate_assignment(teachers_qs, subjects, model_name)
         
         if result and "assignments" in result:
             return JsonResponse({'success': True, 'assignments': result["assignments"]})
         else:
-            return JsonResponse({'success': False, 'error': 'ИИ не смог сформировать корректный ответ или время ожидания истекло.'})
+            return JsonResponse({'success': False, 'error': 'Система не смогла сформировать корректный ответ.'})
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
@@ -2204,6 +2223,75 @@ def global_semester_setup(request):
     return render(request, 'schedule/global_setup.html')
 
 
+@login_required
+@user_passes_test(is_dean_or_admin)
+def auto_schedule_config(request):
+    semesters = Semester.objects.filter(is_active=True)
+    if hasattr(request.user, 'dean_profile'):
+        faculty = request.user.dean_profile.faculty
+        semesters = semesters.filter(faculty=faculty)
+        groups = Group.objects.filter(specialty__department__faculty=faculty)
+        teachers = Teacher.objects.filter(Q(department__faculty=faculty) | Q(additional_departments__faculty=faculty)).distinct()
+        rooms = Classroom.objects.filter(building__institute=faculty.institute, is_active=True)
+    else:
+        groups = Group.objects.all()
+        teachers = Teacher.objects.all()
+        rooms = Classroom.objects.filter(is_active=True)
+
+    if request.method == 'POST':
+        semester_id = request.POST.get('semester')
+        group_ids = request.POST.getlist('groups')
+        teacher_ids = request.POST.getlist('teachers')
+        room_ids = request.POST.getlist('rooms')
+        
+        clear_existing = request.POST.get('clear_existing') == 'on'
+        avoid_gaps = request.POST.get('avoid_gaps') == 'on'
+        strict_room_types = request.POST.get('strict_room_types') == 'on'
+        overflow_mode = int(request.POST.get('overflow_mode', 1))
+        iterations = int(request.POST.get('iterations', 5))
+
+        if not semester_id or not group_ids:
+            messages.error(request, "Выберите семестр и хотя бы одну группу.")
+            return redirect('schedule:auto_schedule_config')
+
+        semester = get_object_or_404(Semester, id=semester_id)
+        target_groups = Group.objects.filter(id__in=group_ids)
+        
+        try:
+            with transaction.atomic():
+                if clear_existing:
+                    ScheduleSlot.objects.filter(semester=semester, group__in=target_groups).delete()
+
+                engine = AutoScheduleEngine(
+                    semester=semester,
+                    target_groups=target_groups,
+                    target_teachers=teacher_ids if teacher_ids else None,
+                    target_rooms=room_ids if room_ids else None,
+                    avoid_gaps=avoid_gaps,
+                    overflow_mode=overflow_mode,
+                    strict_room_types=strict_room_types,
+                    iterations=iterations
+                )
+                result = engine.generate()
+
+            if result['unassigned_count'] == 0:
+                messages.success(request, f"✨ Успех! Сгенерировано {result['created']} занятий. Проанализировано {iterations} вариантов.")
+            else:
+                error_list = "<br>".join(result['unassigned_details'][:10])
+                messages.warning(request, f"Сгенерировано {result['created']} занятий. Не удалось разместить {result['unassigned_count']} занятий (не хватило аудиторий или времени у преподавателей).<br><small>{error_list}</small>")
+            
+            return redirect('schedule:constructor')
+            
+        except Exception as e:
+            messages.error(request, f"Критическая ошибка алгоритма: {str(e)}")
+            return redirect('schedule:auto_schedule_config')
+
+    return render(request, 'schedule/auto_schedule.html', {
+        'semesters': semesters,
+        'groups': groups,
+        'teachers': teachers,
+        'rooms': rooms
+    })
 
 
 

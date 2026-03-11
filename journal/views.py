@@ -918,6 +918,65 @@ def matrix_constructor(request):
         'columns': columns
     })
 
+@login_required
+def api_student_trend(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
+    
+    entries = JournalEntry.objects.filter(
+        student=student, 
+        lesson_date__lte=timezone.now().date()
+    ).order_by('lesson_date')
+
+    if entries.count() < 4:
+        return JsonResponse({
+            'success': True, 
+            'has_data': False, 
+            'message': 'Недостаточно данных для анализа тренда (нужно минимум 4 прошедших занятия).'
+        })
+
+    half_idx = entries.count() // 2
+    first_half = entries[:half_idx]
+    second_half = entries[half_idx:]
+
+    def calc_stats(qs):
+        grades =[e.grade for e in qs if e.grade is not None and e.grade > 0]
+        gpa = sum(grades) / len(grades) if grades else 0
+        attended = sum(1 for e in qs if e.attendance_status == 'PRESENT')
+        total = len(qs)
+        att_pct = (attended / total * 100) if total > 0 else 0
+        return gpa, att_pct
+
+    gpa1, att1 = calc_stats(first_half)
+    gpa2, att2 = calc_stats(second_half)
+
+    gpa_diff = gpa2 - gpa1
+    att_diff = att2 - att1
+
+    gpa_trend_pct = (gpa_diff / gpa1 * 100) if gpa1 > 0 else (100 if gpa2 > 0 else 0)
+    
+    prediction = "Стабильно"
+    color = "secondary"
+
+    if gpa_trend_pct <= -10 or att_diff <= -15:
+        prediction = f"Ухудшение. Алгоритм прогнозирует спад успеваемости на {abs(round(gpa_trend_pct, 1))}% в ближайшее время, если тенденция сохранится."
+        color = "danger"
+    elif gpa_trend_pct >= 10 or att_diff >= 15:
+        prediction = f"Улучшение. Алгоритм фиксирует положительную динамику. Ожидается рост показателей на {round(gpa_trend_pct, 1)}%."
+        color = "success"
+    else:
+        prediction = "Показатели стабильны. Значительных изменений не предвидится."
+        color = "primary"
+
+    return JsonResponse({
+        'success': True,
+        'has_data': True,
+        'gpa_current': round(gpa2, 2),
+        'gpa_trend': round(gpa_trend_pct, 1),
+        'att_current': round(att2, 1),
+        'att_trend': round(att_diff, 1),
+        'prediction': prediction,
+        'color': color
+    })
 
 
     

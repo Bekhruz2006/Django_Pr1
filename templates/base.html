@@ -333,7 +333,6 @@
 
         .alert { border-radius: 10px; border: none; padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 0.9rem; }
 
-        /* Tables */
         .table { border-radius: 10px; overflow: hidden; }
         .table thead { background: linear-gradient(135deg, #f4f6fb 0%, #e8edf5 100%); }
         body.dark-mode .table thead { background: linear-gradient(135deg, #162035 0%, #1e3052 100%); }
@@ -494,7 +493,7 @@
             body.sidebar-collapsed #sidebar {
                 transform: translateX(-100%);
             }
-            body.sidebar-collapsed #main-content, 
+            body.sidebar-collapsed #main-content,
             body.sidebar-collapsed .footer {
                 margin-left: 0;
                 width: 100%;
@@ -505,7 +504,6 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
         }
-
 
     </style>
     {% block extra_css %}{% endblock %}
@@ -818,7 +816,7 @@
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
-            
+
             if (document.body.classList.contains('sidebar-open')) {
                 if ((sidebar && !sidebar.contains(e.target) && toggle && !toggle.contains(e.target)) || e.target === document.body) {
                     if (sidebar) sidebar.classList.remove('show');
@@ -831,7 +829,7 @@
             document.body.classList.remove('sidebar-open', 'sb-sidenav-toggled');
             const sidebar = document.getElementById('sidebar');
             if (sidebar) sidebar.classList.remove('show');
-            
+
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
@@ -858,5 +856,75 @@
         })();
     </script>
     {% block extra_js %}{% endblock %}
+
+    <!-- Модальное окно для алгоритмического анализа студента -->
+<div class="modal fade" id="studentTrendModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-graph-up-arrow me-2"></i> Анализ динамики обучения</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="studentTrendBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2 text-muted">Сбор данных и расчет алгоритма...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showStudentTrend(studentId, studentName) {
+    const modal = new bootstrap.Modal(document.getElementById('studentTrendModal'));
+    document.getElementById('studentTrendBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Сбор данных и расчет алгоритма...</p></div>';
+    modal.show();
+
+    fetch(`/journal/api/student-trend/${studentId}/`)
+    .then(r => r.json())
+    .then(data => {
+        if(!data.success) {
+            document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-danger">${data.error || 'Ошибка сервера'}</div>`;
+            return;
+        }
+        if(!data.has_data) {
+            document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-info text-center"><i class="bi bi-info-circle fs-1 d-block mb-2"></i>${data.message}</div>`;
+            return;
+        }
+
+        const gpaSign = data.gpa_trend > 0 ? '+' : '';
+        const attSign = data.att_trend > 0 ? '+' : '';
+        const gpaColor = data.gpa_trend > 0 ? 'text-success' : (data.gpa_trend < 0 ? 'text-danger' : 'text-muted');
+        const attColor = data.att_trend > 0 ? 'text-success' : (data.att_trend < 0 ? 'text-danger' : 'text-muted');
+
+        document.getElementById('studentTrendBody').innerHTML = `
+            <h5 class="fw-bold text-center mb-4">${studentName}</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="p-3 border rounded bg-light text-center h-100">
+                        <small class="text-muted d-block text-uppercase fw-bold">Текущий GPA</small>
+                        <h2 class="mb-0 text-dark">${data.gpa_current}</h2>
+                        <span class="${gpaColor} small fw-bold">${gpaSign}${data.gpa_trend}% (динамика)</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 border rounded bg-light text-center h-100">
+                        <small class="text-muted d-block text-uppercase fw-bold">Посещаемость</small>
+                        <h2 class="mb-0 text-dark">${data.att_current}%</h2>
+                        <span class="${attColor} small fw-bold">${attSign}${data.att_trend}% (динамика)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-${data.color} border-0 shadow-sm mb-0">
+                <h6 class="fw-bold"><i class="bi bi-cpu"></i> Прогноз алгоритма:</h6>
+                <p class="mb-0 small">${data.prediction}</p>
+            </div>
+        `;
+    }).catch(e => {
+        document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-danger">Ошибка сети</div>`;
+    });
+}
+</script>
 </body>
 </html>

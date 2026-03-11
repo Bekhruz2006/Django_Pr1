@@ -42,7 +42,11 @@
                                     <td>
                                         <a href="{% url 'accounts:view_user_profile' item.student.user.id %}">
                                             <strong>{{ item.student.user.get_full_name }}</strong>
-                                        </a><br>
+                                        </a>
+                                        <button onclick="showStudentTrend({{ item.student.id }}, '{{ item.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-link text-primary p-0 ms-2" title="Алгоритмический прогноз">
+                                            <i class="bi bi-graph-up-arrow fs-5"></i>
+                                        </button>
+                                        <br>
                                         <small class="text-muted">{{ item.student.student_id }}</small>
                                     </td>
                                     <td class="text-center">

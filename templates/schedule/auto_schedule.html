@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}Умная генерация расписания{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-lg-10 mx-auto">
+        <div class="card shadow border-primary">
+            <div class="card-header bg-primary text-white d-flex align-items-center">
+                <i class="bi bi-robot fs-4 me-2"></i>
+                <h5 class="mb-0">AI Timetabling: Мультистартовая генерация</h5>
+            </div>
+            <div class="card-body bg-light">
+                <div class="alert alert-info">
+                    <i class="bi bi-cpu"></i> Алгоритм сгенерирует несколько вариантов расписания и выберет наилучший, минимизируя окна у студентов и подбирая оптимальные аудитории.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4 mb-4">
+Глубина поиска                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-white fw-bold text-dark"><i class="bi bi-gear"></i> 1. Базовые параметры</div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Семестр *</label>
+                                        <select name="semester" class="form-select border-primary" required>
+                                            <option value="">-- Выберите семестр --</option>
+                                            {% for sem in semesters %}
+                                                <option value="{{ sem.id }}">{{ sem.name }} ({{ sem.academic_year }}) - {{ sem.get_shift_display }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" name="clear_existing" id="clearExisting" checked>
+                                        <label class="form-check-label text-danger fw-bold" for="clearExisting">Очистить старое расписание</label>
+                                        <div class="form-text">Удалит текущее расписание выбранных групп перед созданием нового.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-white fw-bold text-dark"><i class="bi bi-sliders"></i> 2. Тонкая настройка ИИ</div>
+                                <div class="card-body">
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold small text-primary">Лимит вместимости кабинетов</label>
+                                        <select name="overflow_mode" class="form-select form-select-sm">
+                                            <option value="0">Строго (0% переполнения)</option>
+                                            <option value="1">Мягко (+25% переполнения)</option>
+                                            <option value="2" selected>Экстремально (+50% переполнения)</option>
+                                            <option value="3">Игнорировать вместимость (сажать куда угодно)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" name="strict_room_types" id="strictRoomTypes">
+                                        <label class="form-check-label fw-bold text-warning" for="strictRoomTypes">Строгие типы аудиторий</label>
+                                        <div class="form-text" style="font-size: 0.7rem;">Если выключено, ИИ сможет поставить Лекцию в кабинет Практики, если больше нет мест.</div>
+                                    </div>
+
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" name="avoid_gaps" id="avoidGaps" checked>
+                                        <label class="form-check-label fw-bold text-success" for="avoidGaps">Минимизировать "окна"</label>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="form-label fw-bold small">Глубина поиска (Кол-во вариантов)</label>
+                                        <select name="iterations" class="form-select form-select-sm">
+                                            <option value="1">1 (Очень быстро)</option>
+                                            <option value="5">5 (Баланс)</option>
+                                            <option value="20" selected>20 (Медленно, высокое качество)</option>
+                                            <option value="50">50 (Максимальный поиск)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-funnel"></i> 3. Ограничения данных (Для кого строим)</h6>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-people text-primary"></i> Группы *</div>
+                                <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="form-check border-bottom pb-2 mb-2">
+                                        <input class="form-check-input" type="checkbox" id="selectAllGroups" onchange="toggleCheckboxes('group-cb', this.checked)">
+                                        <label class="form-check-label fw-bold">Выбрать все</label>
+                                    </div>
+                                    {% for g in groups %}
+                                    <div class="form-check">
+                                        <input class="form-check-input group-cb" type="checkbox" name="groups" value="{{ g.id }}">
+                                        <label class="form-check-label small">{{ g.name }} <span class="text-muted">({{ g.course }}к)</span></label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-person-video3 text-success"></i> Преподаватели</div>
+                                <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="form-check border-bottom pb-2 mb-2">
+                                        <input class="form-check-input" type="checkbox" id="selectAllTeachers" checked onchange="toggleCheckboxes('teacher-cb', this.checked)">
+                                        <label class="form-check-label fw-bold">Все доступные</label>
+                                    </div>
+                                    {% for t in teachers %}
+                                    <div class="form-check">
+                                        <input class="form-check-input teacher-cb" type="checkbox" name="teachers" value="{{ t.id }}" checked>
+                                        <label class="form-check-label small">{{ t.user.get_full_name }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-door-open text-warning"></i> Кабинеты</div>
+                                <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="form-check border-bottom pb-2 mb-2">
+                                        <input class="form-check-input" type="checkbox" id="selectAllRooms" checked onchange="toggleCheckboxes('room-cb', this.checked)">
+                                        <label class="form-check-label fw-bold">Все активные</label>
+                                    </div>
+                                    {% for r in rooms %}
+                                    <div class="form-check">
+                                        <input class="form-check-input room-cb" type="checkbox" name="rooms" value="{{ r.id }}" checked>
+                                        <label class="form-check-label small">{{ r.number }} <span class="text-muted">(Вм: {{ r.capacity }}, {{ r.get_room_type_display }})</span></label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm\'></span> Идет расчет лучших вариантов...'; this.style.opacity='0.8';">
+                        <i class="bi bi-magic"></i> Запустить алгоритм
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCheckboxes(className, isChecked) {
+    document.querySelectorAll('.' + className).forEach(cb => cb.checked = isChecked);
+}
+</script>
+{% endblock %}

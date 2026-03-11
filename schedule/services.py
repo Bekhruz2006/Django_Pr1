@@ -1,16 +1,15 @@
 import re
-import openpyxl
+import json
+import requests
+import logging
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum
 from datetime import datetime, time
 from .models import ScheduleSlot, Subject, Classroom, TimeSlot, PlanDiscipline, SubjectTemplate, AcademicPlan
 from accounts.models import Group, Teacher, User, Department
-import logging
-import requests
-import json
+import openpyxl
 
 logger = logging.getLogger(__name__)
-
 
 class ScheduleImporter:
     DAYS_MAP = {
@@ -42,7 +41,6 @@ class ScheduleImporter:
             traceback.print_exc()
             return []
         return self.preview_data
-
 
     def _process_excel(self):
         wb = openpyxl.load_workbook(self.file, data_only=True)
@@ -312,7 +310,7 @@ class RupImporter:
         plan = AcademicPlan.objects.get(id=plan_id)
         wb = openpyxl.load_workbook(file, data_only=True)
         sheet = wb.active
-        
+
         stats = {'created': 0, 'updated': 0, 'errors': []}
 
         def to_int(val):
@@ -340,7 +338,7 @@ class RupImporter:
                 current_disc_type = 'ELECTIVE'
                 continue
             if 'номгӯйи' in lower_name or 'наименование' in lower_name or 'семестр' in lower_name:
-                continue 
+                continue
 
             try:
                 with transaction.atomic():
@@ -355,7 +353,7 @@ class RupImporter:
                     if lec == 0 and prac == 0 and srsp == 0 and srs == 0:
                         total_h = to_int(row[3]) if len(row) > 3 else 0
                         if total_h > 0:
-                            srs = total_h 
+                            srs = total_h
 
                     discipline, created = PlanDiscipline.objects.update_or_create(
                         plan=plan,
@@ -366,11 +364,11 @@ class RupImporter:
                             'credits': credits,
                             'lecture_hours': lec,
                             'practice_hours': prac,
-                            'lab_hours': 0, 
+                            'lab_hours': 0,
                             'control_hours': srsp,
                             'independent_hours': srs,
-                            'control_type': 'EXAM', 
-                            'cycle': 'OTHER' 
+                            'control_type': 'EXAM',
+                            'cycle': 'OTHER'
                         }
                     )
 
@@ -384,8 +382,79 @@ class RupImporter:
 
         return stats
 
+class AlgorithmicAssignmentService:
+    @staticmethod
+    def generate_assignment(teachers_qs, subjects_data):
+        assignments =[]
+        
+        teacher_loads = {}
+        for t in teachers_qs:
+            load = t.subject_set.aggregate(
+                total=Sum('lecture_hours') + Sum('practice_hours') + Sum('control_hours')
+            )['total']
+            teacher_loads[t.id] = load if load else 0
 
+        for subj in subjects_data:
+            key = subj['key']
+            subj_name_lower = subj['name'].lower()
+            subj_words = set(re.findall(r'\b\w{4,}\b', subj_name_lower))
+            
+            try:
+                disc_id = int(key.split('_')[1])
+                disc = PlanDiscipline.objects.get(id=disc_id)
+                target_dept = disc.plan.specialty.department if disc.plan.specialty else None
+                disc_hours = disc.lecture_hours + disc.practice_hours + disc.control_hours
+            except:
+                disc = None
+                target_dept = None
+                disc_hours = 30 
 
+            best_teacher = None
+            best_score = -9999
+            reason_text = ""
+
+            for t in teachers_qs:
+                score = 0
+                match_reasons =[]
+
+                if target_dept and (t.department == target_dept or target_dept in t.additional_departments.all()):
+                    score += 50
+                    match_reasons.append("Своя кафедра")
+
+                for comp in t.competencies.all():
+                    comp_name_lower = comp.name.lower()
+                    comp_words = set(re.findall(r'\b\w{4,}\b', comp_name_lower))
+                    
+                    if comp_name_lower in subj_name_lower or subj_name_lower in comp_name_lower:
+                        score += 40
+                        match_reasons.append(f"Компетенция '{comp.name}'")
+                    elif len(subj_words.intersection(comp_words)) > 0:
+                        score += 20
+                        match_reasons.append(f"Тег '{comp.name}'")
+
+                current_load = teacher_loads.get(t.id, 0)
+                score -= (current_load * 0.5)
+
+                if score > best_score:
+                    best_score = score
+                    best_teacher = t
+                    reason_text = f"Алгоритм: {', '.join(match_reasons)}. Нагрузка: {current_load}ч."
+
+            if best_teacher and best_score > -100:
+                assignments.append({
+                    "key": key,
+                    "teacher_id": best_teacher.id,
+                    "reason": reason_text
+                })
+                teacher_loads[best_teacher.id] += disc_hours
+            else:
+                assignments.append({
+                    "key": key,
+                    "teacher_id": None,
+                    "reason": "Алгоритм: Подходящий преподаватель не найден"
+                })
+
+        return {"assignments": assignments}
 
 class AIAssignmentService:
     OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -394,19 +463,21 @@ class AIAssignmentService:
     def generate_assignment(teachers, subjects, model_name="gemma3:4b"):
         teachers_text = ""
         for t in teachers:
+            competencies = ", ".join([c.name for c in t.competencies.all()])
             teachers_text += (
                 f"ID={t.id} | ФИО: {t.user.get_full_name()} | "
-                f"Степень: {t.degree} {t.title} | "
-                f"Интересы и биография: {t.research_interests} {t.biography}\n"
+                f"Кафедра: {t.department.name if t.department else 'Нет'} | "
+                f"Компетенции: {competencies} | "
+                f"Интересы: {t.research_interests}\n"
             )
 
         subjects_text = ""
         for s in subjects:
             subjects_text += f"Key={s['key']} | Предмет: {s['name']}\n"
 
-        prompt = f"""Ты — ИИ-ассистент учебной части университета в Таджикистане.
-Твоя задача: распределить дисциплины между доступными преподавателями на основе их специализации, научных интересов и биографии. 
-Учитывай таджикские и русские названия. Математик не должен вести философию, а программист - историю.
+        prompt = f"""Ты — ИИ-ассистент учебной части университета.
+Твоя задача: распределить дисциплины между доступными преподавателями на основе их кафедры, компетенций и научных интересов.
+Учитывай таджикские и русские названия. Математик не должен вести философию.
 Если ни один преподаватель не подходит по профилю, обязательно укажи teacher_id: null.
 
 ДОСТУПНЫЕ ПРЕПОДАВАТЕЛИ:
@@ -415,13 +486,13 @@ class AIAssignmentService:
 ПРЕДМЕТЫ ДЛЯ РАСПРЕДЕЛЕНИЯ:
 {subjects_text}
 
-Верни ТОЛЬКО чистый валидный JSON без тегов markdown, без тегов <think> и без лишних слов. Формат строго такой:
+Верни ТОЛЬКО чистый валидный JSON без тегов markdown. Формат строго такой:
 {{
   "assignments":[
     {{
       "key": "значение Key предмета",
       "teacher_id": 123,
-      "reason": "Краткая причина выбора на таджикском или русском языке"
+      "reason": "Краткая причина выбора"
     }}
   ]
 }}"""
@@ -429,7 +500,7 @@ class AIAssignmentService:
         payload = {
             "model": model_name,
             "prompt": prompt,
-            "stream": False,  
+            "stream": False,
             "options": {
                 "temperature": 0.1,
                 "num_predict": 2048
@@ -445,7 +516,7 @@ class AIAssignmentService:
                 logger.error(f"Ollama API Error: HTTP {resp.status_code}")
         except Exception as e:
             logger.error(f"AIAssignmentService Exception: {str(e)}")
-            
+
         return None
 
     @staticmethod
@@ -458,6 +529,3 @@ class AIAssignmentService:
             except json.JSONDecodeError:
                 pass
         return {"assignments":[]}
-
-
-

@@ -311,9 +311,14 @@
                                     {% endfor %}
                                 </ul>
                             </div>
-                            <a href="{% url 'accounts:view_user_profile' risk.student.user.id %}" class="btn btn-sm btn-outline-{{ risk.color }} mt-3 w-100 fw-bold">
-                                Перейти в профиль студента
-                            </a>
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="{% url 'accounts:view_user_profile' risk.student.user.id %}" class="btn btn-sm btn-outline-{{ risk.color }} w-50 fw-bold">
+                                    <i class="bi bi-person"></i> Профиль
+                                </a>
+                                <button onclick="showStudentTrend({{ risk.student.id }}, '{{ risk.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-{{ risk.color }} w-50 fw-bold text-white">
+                                    <i class="bi bi-graph-up-arrow"></i> Прогноз
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -513,13 +518,13 @@
 
     .bg-primary-soft { background-color: rgba(37, 99, 235, 0.1); }
     body.dark-mode .bg-primary-soft { background-color: rgba(96, 165, 250, 0.15); }
-    
+
     .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); }
     body.dark-mode .bg-success-soft { background-color: rgba(52, 211, 153, 0.15); }
-    
+
     .bg-info-soft { background-color: rgba(59, 130, 246, 0.1); }
     body.dark-mode .bg-info-soft { background-color: rgba(56, 189, 248, 0.15); }
-    
+
     .bg-warning-soft { background-color: rgba(245, 158, 11, 0.1); }
     body.dark-mode .bg-warning-soft { background-color: rgba(251, 191, 36, 0.15); }
 

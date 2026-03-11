@@ -10,6 +10,9 @@
         <div class="card mb-3 shadow-sm border-primary">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-calendar-week"></i> {% trans "Конструктор расписания" %}</span>
+                <a href="{% url 'schedule:auto_schedule_config' %}" class="btn btn-warning btn-sm text-dark fw-bold shadow-sm">
+                    <i class="bi bi-robot"></i> Авто-генерация (ИИ)
+                </a>
             </div>
             <div class="card-body bg-light">
                 <form method="get" id="groupSelectionForm" class="row g-3 align-items-end">

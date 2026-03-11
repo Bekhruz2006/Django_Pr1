@@ -8,7 +8,7 @@ from datetime import datetime
 from core.validators import validate_image_only
 from django.utils.translation import gettext_lazy as _
 
-from .models import Order, OrderItem, DocumentTemplate
+from .models import Order, OrderItem, DocumentTemplate, KnowledgeArea 
 
 class SpecializationForm(forms.ModelForm):
     class Meta:
@@ -342,10 +342,17 @@ class TeacherForm(forms.ModelForm):
         label=_("Дополнительные кафедры (где может преподавать)"),
         widget=forms.SelectMultiple(attrs={'class': 'form-select select2-multiple', 'size': '5'})
     )
+    competencies = forms.ModelMultipleChoiceField(
+        queryset=KnowledgeArea.objects.all(),
+        required=False,
+        label=_("Компетенции (Предметы и направления, которые может вести)"),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select select2-tags', 'size': '5'})
+    )
+
     class Meta:
         model = Teacher
         fields = [
-            'department', 'additional_departments',
+            'department', 'additional_departments', 'competencies',
             'degree', 'title', 'biography', 'research_interests',
             'consultation_hours', 'telegram', 'contact_email'
         ]
@@ -363,6 +370,7 @@ class TeacherForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['department'].queryset = Department.objects.all()
         self.fields['additional_departments'].queryset = Department.objects.all()
+        self.fields['competencies'].queryset = KnowledgeArea.objects.all()
         if self.instance.pk and self.instance.department:
             self.fields['additional_departments'].queryset = Department.objects.exclude(id=self.instance.department.id)
         for field_name, field in self.fields.items():

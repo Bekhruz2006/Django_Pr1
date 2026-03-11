@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/update-matrix/', views.update_matrix_cell, name='update_matrix_cell'),
     path('api/update-weekly-score/', views.update_weekly_score, name='update_weekly_score'),
     path('matrix-constructor/', views.matrix_constructor, name='matrix_constructor'),
+    path('api/student-trend/<int:student_id>/', views.api_student_trend, name='api_student_trend'),
 ]

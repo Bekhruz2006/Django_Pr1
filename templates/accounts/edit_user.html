@@ -143,7 +143,7 @@
 </div>
 
 <style>
-    select, input[type="text"], input[type="date"], input[type="email"], 
+    select, input[type="text"], input[type="date"], input[type="email"],
     input[type="number"], input[type="file"], textarea {
         width: 100%;
         padding: 0.5rem;
@@ -152,6 +152,50 @@
     }
     textarea {
         min-height: 80px;
+    }
+</style>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('.select2-multiple').select2({
+            placeholder: "Выберите из списка...",
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('.select2-tags').select2({
+            placeholder: "Начните вводить название предмета...",
+            allowClear: true,
+            width: '100%',
+            tags: true 
+        });
+    });
+</script>
+
+<style>
+    .select2-container .select2-selection--multiple {
+        min-height: 38px;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #0d6efd;
+        border: none;
+        color: white;
+        border-radius: 4px;
+        padding: 2px 8px;
+        margin-top: 5px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: white;
+        margin-right: 5px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #ffc107;
     }
 </style>
 {% endblock %}
