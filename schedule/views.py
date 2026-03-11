@@ -166,22 +166,22 @@ def schedule_constructor(request):
     classrooms = Classroom.objects.filter(is_active=True).select_related('building').order_by('building__name', 'number')
 
     occupied_rooms = {}
-    if active_semester:
+    if active_semester and time_slots:
         all_active_slots = ScheduleSlot.objects.filter(
             semester__is_active=True, is_active=True
         ).exclude(classroom__isnull=True).values(
             'day_of_week', 'start_time', 'end_time', 'classroom_id', 'stream_id', 'id', 'week_type'
         )
 
-        for ts in time_slots:
-            for s in all_active_slots:
+        for s in all_active_slots:
+            d = s['day_of_week']
+            rm = s['classroom_id']
+            st_id = str(s['stream_id']) if s['stream_id'] else 'None'
+            slot_id = str(s['id'])
+            wt = s['week_type']
+            
+            for ts in time_slots:
                 if s['start_time'] < ts.end_time and s['end_time'] > ts.start_time:
-                    d = s['day_of_week']
-                    rm = s['classroom_id']
-                    st_id = str(s['stream_id']) if s['stream_id'] else 'None'
-                    slot_id = str(s['id'])
-                    wt = s['week_type']
-
                     if d not in occupied_rooms:
                         occupied_rooms[d] = {}
                     if ts.id not in occupied_rooms[d]:
@@ -864,6 +864,7 @@ def toggle_semester_active(request, semester_id):
     with transaction.atomic():
         if not semester.is_active:
             Semester.objects.filter(
+                faculty=semester.faculty,
                 course=semester.course, 
                 is_active=True
             ).update(is_active=False)
@@ -1182,11 +1183,12 @@ def export_schedule(request):
 
         if is_military_day:
             mil_cell = table.rows[first_row_idx].cells[2]
-            
             mil_cell.merge(table.rows[first_row_idx].cells[3])
             
             if last_row_idx > first_row_idx:
-                mil_cell.merge(table.rows[last_row_idx].cells[3]) 
+                last_mil_cell = table.rows[last_row_idx].cells[2]
+                last_mil_cell.merge(table.rows[last_row_idx].cells[3])
+                mil_cell = mil_cell.merge(table.rows[last_row_idx].cells[2])
             
             mil_cell.text = _("Кафедраи ҳарбӣ")
             
@@ -1660,6 +1662,8 @@ def api_create_subject_template(request):
 
 @user_passes_test(is_dean_or_admin)
 def copy_plan(request, plan_id):
+    from copy import deepcopy
+    
     original_plan = get_object_or_404(AcademicPlan, id=plan_id)
     
     if request.method == 'POST':
@@ -1693,9 +1697,10 @@ def copy_plan(request, plan_id):
             disciplines = original_plan.disciplines.all()
             new_disciplines = []
             for disc in disciplines:
-                disc.pk = None 
-                disc.plan = new_plan
-                new_disciplines.append(disc)
+                new_disc = deepcopy(disc)
+                new_disc.pk = None
+                new_disc.plan = new_plan
+                new_disciplines.append(new_disc)
             
             PlanDiscipline.objects.bulk_create(new_disciplines)
             
@@ -1810,15 +1815,24 @@ def activate_plan(request, plan_id):
     plan = get_object_or_404(AcademicPlan, id=plan_id)
     
     with transaction.atomic():
-        AcademicPlan.objects.filter(specialty=plan.specialty).update(is_active=False)
+        if plan.specialty:
+            AcademicPlan.objects.filter(specialty=plan.specialty, group__isnull=True).update(is_active=False)
+        elif plan.group:
+            AcademicPlan.objects.filter(group=plan.group).update(is_active=False)
         
         plan.is_active = True
         plan.save()
         
-    messages.success(request, _("Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!") % {
-        'specialty_code': plan.specialty.code,
-        'admission_year': plan.admission_year
-    })
+    if plan.specialty:
+        messages.success(request, _("Учебный план для %(specialty_code)s (%(admission_year)s) теперь АКТИВЕН!") % {
+            'specialty_code': plan.specialty.code,
+            'admission_year': plan.admission_year
+        })
+    else:
+        messages.success(request, _("Учебный план для группы %(group_name)s (%(admission_year)s) теперь АКТИВЕН!") % {
+            'group_name': plan.group.name,
+            'admission_year': plan.admission_year
+        })
     return redirect('schedule:plan_detail', plan_id=plan.id)
 
 @user_passes_test(is_dean_or_admin)
@@ -2072,7 +2086,7 @@ def check_schedule_conflicts(request):
             if room_conflict:
                 conflicts.append({
                     'type': 'room',
-                    'message': _(f"Кабинет {room_number} ({target_classroom.building.name}) занят: {room_conflict.group.name}, {room_conflict.teacher.user.get_last_name() if room_conflict.teacher else ''}")
+                    'message': _(f"Кабинет {room_number} ({target_classroom.building.name}) занят: {room_conflict.group.name}, {room_conflict.teacher.user.last_name if room_conflict.teacher else ''}")
                 })
         else:
             text_conflict = base_qs.filter(room=room_number).first()

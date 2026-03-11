@@ -51,16 +51,8 @@ class SubjectForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'preferred_room_type': forms.Select(attrs={'class': 'form-select'}),
             'required_competencies': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
+            'is_stream_subject': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-
-
-        try:
-            if 'is_stream_subject' in Subject._meta.fields_map or \
-               any(f.name == 'is_stream_subject' for f in Subject._meta.get_fields()):
-                fields.append('is_stream_subject')
-                widgets['is_stream_subject'] = forms.CheckboxInput(attrs={'class': 'form-check-input'})
-        except Exception:
-            pass
 
 
 class ScheduleSlotForm(forms.ModelForm):

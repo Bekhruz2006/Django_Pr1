@@ -50,6 +50,7 @@ urlpatterns = [
     path('material/<int:material_id>/delete/', views.delete_material, name='delete_material'),
     path('plans/<int:plan_id>/activate/', views.activate_plan, name='activate_plan'),
     path('plans/<int:plan_id>/delete/', views.delete_plan, name='delete_plan'),
+    path('import/', views.import_schedule_view, name='import_schedule'),
     path('semester/<int:semester_id>/activate-ref/', views.activate_semester_from_plan, name='activate_semester_from_plan'),
     path('semester/set-active/', views.set_active_semester_manual, name='set_active_semester_manual'),
     path('time-slots/', views.manage_time_slots, name='manage_time_slots'),

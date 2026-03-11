@@ -168,13 +168,6 @@ class Subject(models.Model):
     def total_hours_per_week(self):
         return self.lecture_hours_per_week + self.practice_hours_per_week + self.control_hours_per_week
 
-    def get_weekly_slots_needed(self, slot_duration=1):
-        return {
-            'LECTURE': math.ceil(self.lecture_hours / self.semester_weeks),
-            'PRACTICE': math.ceil(self.practice_hours / self.semester_weeks),
-            'SRSP': math.ceil(self.control_hours / self.semester_weeks),
-        }
-
     def get_remaining_slots(self, group, lesson_type):
         needed = self.get_weekly_slots_needed()
         needed_count = needed.get(lesson_type, 0)
@@ -266,7 +259,7 @@ class TimeSlot(models.Model):
         verbose_name = _("Временной слот")
         verbose_name_plural = _("Временные слоты")
         ordering = ['institute', 'shift', 'start_time']
-        unique_together = ['institute', 'start_time']
+        unique_together = ['institute', 'shift', 'start_time']
 
     def __str__(self):
         inst = self.institute.abbreviation if self.institute else "Global"
@@ -339,8 +332,12 @@ class Semester(models.Model):
         return f"{self.name} ({self.course} курс)"
 
     def save(self, *args, **kwargs):
-        if self.is_active:
-            Semester.objects.exclude(pk=self.pk).update(is_active=False)
+        if self.is_active and self.faculty and self.course:
+            Semester.objects.filter(
+                faculty=self.faculty,
+                course=self.course,
+                is_active=True
+            ).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
 
     @classmethod

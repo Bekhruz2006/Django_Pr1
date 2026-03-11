@@ -34,7 +34,7 @@ class ScheduleImporter:
 
         try:
             if filename.endswith('.xlsx') or filename.endswith('.xls'):
-                self._process_pdf()
+                self._process_excel()
             else:
                 return []
         except Exception as e:
@@ -206,7 +206,7 @@ class ScheduleImporter:
                         else:
                             try:
                                 base_u = f"imp_{datetime.now().microsecond}_{surname[:5]}"
-                                u = User.objects.create_user(username=base_u, password='123', role='TEACHER', last_name=surname, first_name=t_name[:100])
+                                u = User.objects.create_user(username=base_u, password=None, role='TEACHER', last_name=surname, first_name=t_name[:100])
                                 teacher_obj = Teacher.objects.create(user=u, department=dept)
                                 stats['teachers'] += 1
                             except: pass
@@ -218,8 +218,14 @@ class ScheduleImporter:
                     room_obj = None
                     if item['room']:
                         room_clean = item['room'].strip()
-                        if room_clean:
-                            room_obj, _ = Classroom.objects.get_or_create(number=room_clean, defaults={'floor': 1})
+                        if room_clean and institute:
+                            building = institute.buildings.first()
+                            if building:
+                                room_obj, _ = Classroom.objects.get_or_create(
+                                    building=building,
+                                    number=room_clean,
+                                    defaults={'floor': 1}
+                                )
 
                     ScheduleSlot.objects.filter(
                         group=group, semester=semester,
