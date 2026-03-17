@@ -215,7 +215,24 @@ class StudentStatistics(models.Model):
         return f"Статистика: {self.student.user.get_full_name()}"
     
     def recalculate(self):
+        from schedule.models import Semester
         entries = JournalEntry.objects.filter(student=self.student)
+        
+        active_sem = None
+        if self.student.group:
+            faculty = self.student.group.specialty.department.faculty if self.student.group.specialty else None
+            if faculty:
+                active_sem = Semester.objects.filter(faculty=faculty, is_active=True, course=self.student.group.course).first()
+            if not active_sem:
+                active_sem = Semester.objects.filter(course=self.student.group.course, is_active=True).first()
+        if not active_sem:
+            active_sem = Semester.objects.filter(is_active=True).first()
+
+        if active_sem and active_sem.start_date and active_sem.end_date:
+            entries = entries.filter(
+                lesson_date__gte=active_sem.start_date,
+                lesson_date__lte=active_sem.end_date
+            )
         
         grades = entries.filter(grade__isnull=False, grade__gt=0).values_list('grade', flat=True)
         self.overall_gpa = sum(grades) / len(grades) if grades else 0.0

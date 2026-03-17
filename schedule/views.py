@@ -5,6 +5,7 @@ from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from django.utils import translation
 from datetime import datetime, timedelta, date
 import json
 import uuid
@@ -817,6 +818,8 @@ def manage_subjects(request):
 
 @login_required
 @user_passes_test(is_dean_or_admin)
+@login_required
+@user_passes_test(is_dean_or_admin)
 def add_subject(request):
     initial_data = {}
     dept_id = request.GET.get('department')
@@ -840,13 +843,58 @@ def add_subject(request):
             if target_department and not subject.department_id:
                 subject.department = target_department
 
-            subject.save()
-            form.save_m2m()  
-            if form.cleaned_data.get('assign_to_all_groups') and subject.department:
-                dept_groups = Group.objects.filter(specialty__department=subject.department)
-                subject.groups.add(*dept_groups)
+            assign_to_all = form.cleaned_data.get('assign_to_all_groups')
+            groups = form.cleaned_data.get('groups')
+            
+            if assign_to_all and subject.department:
+                groups = Group.objects.filter(specialty__department=subject.department)
+                
+            if not groups:
+                subject.save()
+                form.save_m2m()
+                messages.success(request, _('Предмет "%(subject_name)s" создан') % {'subject_name': subject.name})
+            else:
+                if subject.is_stream_subject:
+                    subject.save()
+                    subject.groups.set(groups)
+                    subject.required_competencies.set(form.cleaned_data.get('required_competencies',[]))
+                    messages.success(request, _('Потоковый предмет "%(subject_name)s" создан') % {'subject_name': subject.name})
+                else:
+                    created_count = 0
+                    first = True
+                    for grp in groups:
+                        if first:
+                            subject.save()
+                            subject.groups.add(grp)
+                            subject.required_competencies.set(form.cleaned_data.get('required_competencies',[]))
+                            first = False
+                            created_count += 1
+                        else:
+                            short_uuid = uuid.uuid4().hex[:6]
+                            new_subject = Subject.objects.create(
+                                name=subject.name,
+                                code=f"{subject.code}_{short_uuid}",
+                                department=subject.department,
+                                type=subject.type,
+                                lecture_hours=subject.lecture_hours,
+                                practice_hours=subject.practice_hours,
+                                lab_hours=subject.lab_hours,
+                                control_hours=subject.control_hours,
+                                independent_work_hours=subject.independent_work_hours,
+                                semester_weeks=subject.semester_weeks,
+                                is_stream_subject=False,
+                                preferred_room_type=subject.preferred_room_type,
+                                teacher=subject.teacher,
+                                description=subject.description,
+                                credits=subject.credits,
+                                credit_type=subject.credit_type,
+                                plan_discipline=subject.plan_discipline
+                            )
+                            new_subject.groups.add(grp)
+                            new_subject.required_competencies.set(form.cleaned_data.get('required_competencies',[]))
+                            created_count += 1
+                    messages.success(request, _('Создано %(count)s отдельных предметов "%(subject_name)s"') % {'count': created_count, 'subject_name': subject.name})
 
-            messages.success(request, _('Предмет "%(subject_name)s" создан') % {'subject_name': subject.name})
             if dept_id:
                 return redirect('accounts:manage_structure')
             return redirect('schedule:manage_subjects')
@@ -872,6 +920,57 @@ def add_subject(request):
             ).distinct()
 
     return render(request, 'schedule/subject_form.html', {'form': form, 'title': _('Добавить предмет')})
+
+
+@login_required
+@user_passes_test(is_dean_or_admin)
+@require_POST
+def split_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    
+    if subject.is_stream_subject or subject.groups.count() <= 1:
+        messages.error(request, "Этот предмет не нуждается в разделении.")
+        return redirect('schedule:manage_subjects')
+        
+    groups = list(subject.groups.all())
+    
+    with transaction.atomic():
+        first_group = groups[0]
+        subject.groups.clear()
+        subject.groups.add(first_group)
+        
+        for grp in groups[1:]:
+            short_uuid = uuid.uuid4().hex[:6]
+            new_subject = Subject.objects.create(
+                name=subject.name,
+                code=f"{subject.code}_{short_uuid}",
+                department=subject.department,
+                type=subject.type,
+                lecture_hours=subject.lecture_hours,
+                practice_hours=subject.practice_hours,
+                lab_hours=subject.lab_hours,
+                control_hours=subject.control_hours,
+                independent_work_hours=subject.independent_work_hours,
+                semester_weeks=subject.semester_weeks,
+                is_stream_subject=False,
+                preferred_room_type=subject.preferred_room_type,
+                teacher=subject.teacher,
+                description=subject.description,
+                credits=subject.credits,
+                credit_type=subject.credit_type,
+                plan_discipline=subject.plan_discipline
+            )
+            new_subject.groups.add(grp)
+            new_subject.required_competencies.set(subject.required_competencies.all())
+            
+            ScheduleSlot.objects.filter(subject=subject, group=grp).update(subject=new_subject)
+            
+            from journal.models import JournalEntry, StudentMatrixScore
+            JournalEntry.objects.filter(subject=subject, student__group=grp).update(subject=new_subject)
+            StudentMatrixScore.objects.filter(subject=subject, student__group=grp).update(subject=new_subject)
+            
+    messages.success(request, f"Предмет успешно разделен на {len(groups)} отдельных предметов!")
+    return redirect('schedule:manage_subjects')
 
 
 @login_required
@@ -1125,239 +1224,321 @@ def export_schedule(request):
         return HttpResponse(_("Library python-docx not installed"), status=500)
 
     group_id = request.GET.get('group')
-    group = get_object_or_404(Group, id=group_id)
-    active_semester = get_active_semester_for_group(group)
-
-    if not active_semester:
-        return HttpResponse(_("Нет активного семестра"), status=400)
-
+    
+    current_site_lang = translation.get_language()
+    if current_site_lang:
+        current_site_lang = current_site_lang[:2]
+    else:
+        current_site_lang = 'ru'
+        
+    lang = request.GET.get('lang', current_site_lang)
+    
+    if lang not in ['ru', 'tg', 'en']:
+        lang = 'ru'
+        
+    translation.activate(lang)
+    
     try:
-        if group.specialty:
-            specialty_code = group.specialty.code
-            specialty_name = group.specialty.name
-            department = group.specialty.department
-            faculty = department.faculty
-            institute = faculty.institute
-        else:
-            specialty_code = "—"
-            specialty_name = "Умумитаълимӣ (Общая)"
-            faculty = active_semester.faculty
-            institute = faculty.institute if faculty else Institute.objects.first()
-    except AttributeError:
-        return HttpResponse(_("Ошибка структуры: Невозможно определить институт."), status=400)
+        group = get_object_or_404(Group, id=group_id)
+        active_semester = get_active_semester_for_group(group)
 
-    director_user = None
-    director_obj = Director.objects.filter(institute=institute).first()
-    if director_obj:
-        director_user = director_obj.user
+        if not active_semester:
+            return HttpResponse(_("Нет активного семестра"), status=400)
 
-    vice_user = None
-    vice_obj = ProRector.objects.filter(institute=institute, title__icontains='таълим').first()
-    if not vice_obj:
-        vice_obj = ProRector.objects.filter(institute=institute).first()
+        try:
+            if group.specialty:
+                specialty_code = group.specialty.code
+                specialty_name = group.specialty.name
+                department = group.specialty.department
+                faculty = department.faculty
+                institute = faculty.institute
+            else:
+                specialty_code = "—"
+                specialty_name = _("Умумитаълимӣ (Общая)")
+                faculty = active_semester.faculty
+                institute = faculty.institute if faculty else Institute.objects.first()
+        except AttributeError:
+            return HttpResponse(_("Ошибка структуры: Невозможно определить институт."), status=400)
 
-    if vice_obj:
-        vice_user = vice_obj.user
+        director_user = None
+        director_obj = Director.objects.filter(institute=institute).first()
+        if director_obj:
+            director_user = director_obj.user
 
-    director_name = director_user.get_full_name() if director_user else _("__________________")
-    vice_name = vice_user.get_full_name() if vice_user else _("__________________")
-    head_edu_obj = ProRector.objects.filter(
-        institute=institute,
-        title__icontains='раёсат'
-    ).exclude(
-        title__icontains='директор'
-    ).first()
+        vice_user = None
+        vice_obj = ProRector.objects.filter(institute=institute, title__icontains='таълим').first()
+        if not vice_obj:
+            vice_obj = ProRector.objects.filter(institute=institute).first()
 
-    head_edu_name = head_edu_obj.user.get_full_name() if head_edu_obj else _("__________________")
+        if vice_obj:
+            vice_user = vice_obj.user
 
-    doc = Document()
+        director_name = director_user.get_full_name() if director_user else "__________________"
+        vice_name = vice_user.get_full_name() if vice_user else "__________________"
+        head_edu_obj = ProRector.objects.filter(
+            institute=institute,
+            title__icontains='раёсат'
+        ).exclude(
+            title__icontains='директор'
+        ).first()
 
-    section = doc.sections[0]
-    section.left_margin = Cm(1.0)
-    section.right_margin = Cm(1.0)
-    section.top_margin = Cm(1.0)
-    section.bottom_margin = Cm(1.0)
+        head_edu_name = head_edu_obj.user.get_full_name() if head_edu_obj else "__________________"
 
-    header_table = doc.add_table(rows=1, cols=2)
-    header_table.autofit = True
-    header_table.width = section.page_width - section.left_margin - section.right_margin
+        trans = {
+            'ru': {
+                'agreed': "Согласовано:",
+                'head_edu': "Начальник учебного управления",
+                'approved': "Утверждаю:",
+                'vice_director': "Заместитель директора\nпо учебной работе",
+                'docent': "________ доцент",
+                'date_line': "«___» _________ 202__ г.",
+                'title': "Расписание уроков",
+                'subtitle': "на {sem_text} семестр {year_text} учебного года для студентов {course}-го курса {institute_name}",
+                'sem_1': "первый",
+                'sem_2': "второй",
+                'shift': "(СМЕНА {shift_num})",
+                'week': "НЕДЕЛЯ",
+                'time': "ЧАС",
+                'aud': "АУД",
+                'military': "Военная кафедра",
+                'director': "Директор",
+                'days':['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+                'students': "чел."
+            },
+            'tg': {
+                'agreed': "Мувофиқа карда шуд:",
+                'head_edu': "Сардори раёсати таълим",
+                'approved': "Тасдиқ мекунам:",
+                'vice_director': "Муовини директор\nоид ба корҳои таълимӣ",
+                'docent': "________ дотсент",
+                'date_line': "«___» _________ 202__ с.",
+                'title': "ҶАДВАЛИ ДАРСӢ",
+                'subtitle': "дар нимсолаи {sem_text} соли таҳсили {year_text} барои донишҷӯёни курси {course}-юми {institute_name}",
+                'sem_1': "якуми",
+                'sem_2': "дуюми",
+                'shift': "(БАСТИ {shift_num})",
+                'week': "РӮЗҲО",
+                'time': "СОАТ",
+                'aud': "ҲУҶРА",
+                'military': "Кафедраи ҳарбӣ",
+                'director': "Директор",
+                'days':['Душанбе', 'Сешанбе', 'Чоршанбе', 'Панҷшанбе', 'Ҷумъа', 'Шанбе'],
+                'students': "нафар"
+            },
+            'en': {
+                'agreed': "Agreed:",
+                'head_edu': "Head of Educational Department",
+                'approved': "Approved:",
+                'vice_director': "Deputy Director\nfor Academic Affairs",
+                'docent': "________ docent",
+                'date_line': "«___» _________ 202__",
+                'title': "Class Schedule",
+                'subtitle': "for the {sem_text} semester of {year_text} academic year for {course} year students of {institute_name}",
+                'sem_1': "first",
+                'sem_2': "second",
+                'shift': "(SHIFT {shift_num})",
+                'week': "DAY",
+                'time': "TIME",
+                'aud': "ROOM",
+                'military': "Military Department",
+                'director': "Director",
+                'days':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                'students': "students"
+            }
+        }
+        
+        t = trans[lang]
 
-    c1 = header_table.cell(0, 0)
-    p1 = c1.paragraphs[0]
-    p1.add_run(_("Мувофиқа карда шуд:\n")).bold = True
-    p1.add_run(_("Сардори раёсати таълим\n"))
-    p1.add_run(_("________ дотсент %(head_edu_name)s\n") % {'head_edu_name': head_edu_name})
-    p1.add_run(_("«___» _________ 2025с"))
+        doc = Document()
 
-    c2 = header_table.cell(0, 1)
-    p2 = c2.paragraphs[0]
-    p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    p2.add_run(_("Тасдиқ мекунам:\n")).bold = True
-    p2.add_run(_("Муовини директор\nоид ба корҳои таълимӣ\n")).bold = False
-    p2.add_run(_("________ дотсент %(vice_name)s\n") % {'vice_name': vice_name})
-    p2.add_run(_("«___»_________ 2025c"))
+        section = doc.sections[0]
+        section.left_margin = Cm(1.0)
+        section.right_margin = Cm(1.0)
+        section.top_margin = Cm(1.0)
+        section.bottom_margin = Cm(1.0)
 
-    doc.add_paragraph()
+        header_table = doc.add_table(rows=1, cols=2)
+        header_table.autofit = True
+        header_table.width = section.page_width - section.left_margin - section.right_margin
 
-    title_p = doc.add_paragraph()
-    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title_p.add_run("Расписание уроков / ҶАДВАЛИ ДАРСӢ")
-    run.bold = True
-    run.font.size = Pt(16)
-    run.font.name = 'Times New Roman'
+        c1 = header_table.cell(0, 0)
+        p1 = c1.paragraphs[0]
+        p1.add_run(t['agreed'] + "\n").bold = True
+        p1.add_run(t['head_edu'] + "\n")
+        p1.add_run(f"{t['docent']} {head_edu_name}\n")
+        p1.add_run(t['date_line'])
 
-    subtitle = doc.add_paragraph()
-    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    sem_text = _("якуми") if active_semester.number == 1 else _("дуюми")
-    year_text = active_semester.academic_year
+        c2 = header_table.cell(0, 1)
+        p2 = c2.paragraphs[0]
+        p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        p2.add_run(t['approved'] + "\n").bold = True
+        p2.add_run(t['vice_director'] + "\n").bold = False
+        p2.add_run(f"{t['docent']} {vice_name}\n")
+        p2.add_run(t['date_line'])
 
-    text = _("дар нимсолаи %(sem_text)s соли таҳсили %(year_text)s барои донишҷӯёни курси %(course)s-юми %(institute_name)s-и Донишгоҳи байналмилаии сайёҳӣ ва соҳибкории Тоҷикистон") % {
-        'sem_text': sem_text,
-        'year_text': year_text,
-        'course': group.course,
-        'institute_name': institute.name
-    }
+        doc.add_paragraph()
 
-    run_sub = subtitle.add_run(text)
-    run_sub.font.name = 'Times New Roman'
-    run_sub.font.size = Pt(12)
-    run_sub.bold = True
+        title_p = doc.add_paragraph()
+        title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title_p.add_run(t['title'])
+        run.bold = True
+        run.font.size = Pt(16)
+        run.font.name = 'Times New Roman'
 
-    shift_num = "1" if active_semester.shift == "MORNING" else "2"
-    shift_p = doc.add_paragraph(_("(БАСТИ %(shift_num)s)") % {'shift_num': shift_num})
-    shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    shift_p.runs[0].bold = True
-    shift_p.runs[0].font.size = Pt(14)
+        subtitle = doc.add_paragraph()
+        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        sem_text = t['sem_1'] if active_semester.number == 1 else t['sem_2']
+        year_text = active_semester.academic_year
 
-    table = doc.add_table(rows=1, cols=4)
-    table.style = 'Table Grid'
-    table.autofit = False
+        text = t['subtitle'].format(
+            sem_text=sem_text,
+            year_text=year_text,
+            course=group.course,
+            institute_name=institute.name
+        )
 
-    def set_col_widths(row):
-        row.cells[0].width = Cm(1.5)
-        row.cells[1].width = Cm(2.5)
-        row.cells[2].width = Cm(11.0)
-        row.cells[3].width = Cm(2.0)
+        run_sub = subtitle.add_run(text)
+        run_sub.font.name = 'Times New Roman'
+        run_sub.font.size = Pt(12)
+        run_sub.bold = True
 
-    set_col_widths(table.rows[0])
+        shift_num = "1" if active_semester.shift == "MORNING" else "2"
+        shift_p = doc.add_paragraph(t['shift'].format(shift_num=shift_num))
+        shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        shift_p.runs[0].bold = True
+        shift_p.runs[0].font.size = Pt(14)
 
-    hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = "НЕДЕЛЯ"
-    hdr_cells[1].text = "ЧАС"
+        table = doc.add_table(rows=1, cols=4)
+        table.style = 'Table Grid'
+        table.autofit = False
 
-    hdr_cells[2].text = f"{specialty_code} – «{specialty_name}» ({group.students.count()} нафар)"
-    hdr_cells[3].text = "АУД"
+        def set_col_widths(row):
+            row.cells[0].width = Cm(1.5)
+            row.cells[1].width = Cm(2.5)
+            row.cells[2].width = Cm(11.0)
+            row.cells[3].width = Cm(2.0)
 
-    for cell in hdr_cells:
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-        shading_elm = OxmlElement('w:shd')
-        shading_elm.set(qn('w:val'), 'clear')
-        shading_elm.set(qn('w:color'), 'auto')
-        shading_elm.set(qn('w:fill'), 'D9D9D9')
-        cell._tc.get_or_add_tcPr().append(shading_elm)
+        set_col_widths(table.rows[0])
 
-        for run in cell.paragraphs[0].runs:
-            run.bold = True
-            run.font.size = Pt(10)
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = t['week']
+        hdr_cells[1].text = t['time']
 
-    time_slots = get_time_slots_for_shift(active_semester.shift, institute)
+        hdr_cells[2].text = f"{specialty_code} – «{specialty_name}» ({group.students.count()} {t['students']})"
+        hdr_cells[3].text = t['aud']
 
-    days =[(0, 'Понедельник'), (1, 'Вторник'), (2, 'Среда'), (3, 'Четверг'), (4, 'Пятница'), (5, 'Суббота')]
+        for cell in hdr_cells:
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            shading_elm = OxmlElement('w:shd')
+            shading_elm.set(qn('w:val'), 'clear')
+            shading_elm.set(qn('w:color'), 'auto')
+            shading_elm.set(qn('w:fill'), 'D9D9D9')
+            cell._tc.get_or_add_tcPr().append(shading_elm)
 
-    for day_num, day_name in days:
-        is_military_day = ScheduleSlot.objects.filter(
-            group=group, semester=active_semester, day_of_week=day_num, is_military=True
-        ).exists()
+            for run in cell.paragraphs[0].runs:
+                run.bold = True
+                run.font.size = Pt(10)
 
-        first_row_idx = len(table.rows)
+        time_slots = get_time_slots_for_shift(active_semester.shift, institute)
 
-        for ts in time_slots:
-            row = table.add_row()
-            set_col_widths(row)
-            row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
-            row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            row.cells[1].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            row.cells[1].paragraphs[0].runs[0].font.bold = True
+        days = list(enumerate(t['days']))
 
-            if not is_military_day:
-                slot = ScheduleSlot.objects.filter(
-                    group=group, semester=active_semester, day_of_week=day_num, time_slot=ts, is_active=True
-                ).first()
+        for day_num, day_name in days:
+            is_military_day = ScheduleSlot.objects.filter(
+                group=group, semester=active_semester, day_of_week=day_num, is_military=True
+            ).exists()
 
-                if slot:
-                    cell = row.cells[2]
-                    p = cell.paragraphs[0]
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.add_run(_("%(subject_name)s (%(lesson_type)s)\n") % {
-                        'subject_name': slot.subject.name,
-                        'lesson_type': slot.get_lesson_type_display()
-                    })
-                    if slot.teacher:
-                        p.add_run(_("%(teacher_name)s") % {'teacher_name': slot.teacher.user.get_full_name()})
+            first_row_idx = len(table.rows)
 
-                    cell_aud = row.cells[3]
-                    cell_aud.text = slot.room if slot.room else ""
-                    cell_aud.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    cell_aud.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            for ts in time_slots:
+                row = table.add_row()
+                set_col_widths(row)
+                row.cells[1].text = f'{ts.start_time.strftime("%H:%M")}-{ts.end_time.strftime("%H:%M")}'
+                row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                row.cells[1].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                row.cells[1].paragraphs[0].runs[0].font.bold = True
 
-        day_cell = table.rows[first_row_idx].cells[0]
-        day_cell.text = day_name
-        day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                if not is_military_day:
+                    slot = ScheduleSlot.objects.filter(
+                        group=group, semester=active_semester, day_of_week=day_num, time_slot=ts, is_active=True
+                    ).first()
 
-        tcPr = day_cell._tc.get_or_add_tcPr()
-        textDirection = OxmlElement('w:textDirection')
-        textDirection.set(qn('w:val'), 'btLr')
-        tcPr.append(textDirection)
+                    if slot:
+                        cell = row.cells[2]
+                        p = cell.paragraphs[0]
+                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        
+                        lesson_type_display = slot.get_lesson_type_display()
+                        
+                        p.add_run(f"{slot.subject.name} ({lesson_type_display})\n")
+                        if slot.teacher:
+                            p.add_run(f"{slot.teacher.user.get_full_name()}")
 
-        shading_elm = OxmlElement('w:shd')
-        shading_elm.set(qn('w:val'), 'clear')
-        shading_elm.set(qn('w:color'), 'auto')
-        shading_elm.set(qn('w:fill'), 'D9D9D9')
-        tcPr.append(shading_elm)
+                        cell_aud = row.cells[3]
+                        cell_aud.text = slot.room if slot.room else ""
+                        cell_aud.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        cell_aud.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
-        last_row_idx = len(table.rows) - 1
-        if last_row_idx > first_row_idx:
-            day_cell.merge(table.rows[last_row_idx].cells[0])
+            day_cell = table.rows[first_row_idx].cells[0]
+            day_cell.text = day_name
+            day_cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
-        if is_military_day:
-            top_left = table.rows[first_row_idx].cells[2]
-            bottom_right = table.rows[last_row_idx].cells[3]
-            top_left.merge(bottom_right)
+            tcPr = day_cell._tc.get_or_add_tcPr()
+            textDirection = OxmlElement('w:textDirection')
+            textDirection.set(qn('w:val'), 'btLr')
+            tcPr.append(textDirection)
 
-            top_left.text = _("Кафедраи ҳарбӣ")
+            shading_elm = OxmlElement('w:shd')
+            shading_elm.set(qn('w:val'), 'clear')
+            shading_elm.set(qn('w:color'), 'auto')
+            shading_elm.set(qn('w:fill'), 'D9D9D9')
+            tcPr.append(shading_elm)
 
-            for paragraph in top_left.paragraphs:
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for run in paragraph.runs:
-                    run.bold = True
-                    run.font.size = Pt(48)
-                    run.font.name = 'Times New Roman'
-            top_left.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            last_row_idx = len(table.rows) - 1
+            if last_row_idx > first_row_idx:
+                day_cell.merge(table.rows[last_row_idx].cells[0])
 
-    doc.add_paragraph().add_run('\n')
+            if is_military_day:
+                top_left = table.rows[first_row_idx].cells[2]
+                bottom_right = table.rows[last_row_idx].cells[3]
+                top_left.merge(bottom_right)
 
-    footer_table = doc.add_table(rows=1, cols=2)
-    footer_table.autofit = True
-    footer_table.width = section.page_width
+                top_left.text = t['military']
 
-    f_c1 = footer_table.cell(0, 0)
-    fp1 = f_c1.paragraphs[0]
-    fp1.add_run(_("Директор")).bold = True
+                for paragraph in top_left.paragraphs:
+                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    for run in paragraph.runs:
+                        run.bold = True
+                        run.font.size = Pt(48)
+                        run.font.name = 'Times New Roman'
+                top_left.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
-    f_c2 = footer_table.cell(0, 1)
-    fp2 = f_c2.paragraphs[0]
-    fp2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    fp2.add_run(_("%(director_name)s") % {'director_name': director_name}).bold = True
+        doc.add_paragraph().add_run('\n')
 
-    f = BytesIO()
-    doc.save(f)
-    f.seek(0)
+        footer_table = doc.add_table(rows=1, cols=2)
+        footer_table.autofit = True
+        footer_table.width = section.page_width
 
-    filename = f"Jadval_{group.name}.docx"
-    response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
+        f_c1 = footer_table.cell(0, 0)
+        fp1 = f_c1.paragraphs[0]
+        fp1.add_run(t['director']).bold = True
+
+        f_c2 = footer_table.cell(0, 1)
+        fp2 = f_c2.paragraphs[0]
+        fp2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        fp2.add_run(director_name).bold = True
+
+        f = BytesIO()
+        doc.save(f)
+        f.seek(0)
+
+        filename = f"Jadval_{group.name}_{lang}.docx"
+        response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    finally:
+        translation.deactivate()
 
 
 
@@ -2521,6 +2702,8 @@ def auto_schedule_config(request):
 
 @login_required
 @user_passes_test(is_dean_or_admin)
+@login_required
+@user_passes_test(is_dean_or_admin)
 def manage_teacher_availability(request):
     teachers = Teacher.objects.select_related('user', 'department').all()
     
@@ -2558,20 +2741,19 @@ def manage_teacher_availability(request):
         
     teacher_id = request.GET.get('teacher_id')
     selected_teacher = None
-    unavailable_set = set()
+    unavailable_dict = {}
     
     time_slots = TimeSlot.objects.all().order_by('shift', 'start_time')
-    days =[(0, 'Понедельник'), (1, 'Вторник'), (2, 'Среда'), (3, 'Четверг'), (4, 'Пятница'), (5, 'Суббота')]
+    days = [(0, 'Понедельник'), (1, 'Вторник'), (2, 'Среда'), (3, 'Четверг'), (4, 'Пятница'), (5, 'Суббота')]
     
     if teacher_id:
         selected_teacher = get_object_or_404(Teacher, id=teacher_id)
         if request.method == 'POST':
             TeacherUnavailableSlot.objects.filter(teacher=selected_teacher).delete()
             
-            new_slots =[]
+            new_slots = []
             for key in request.POST.keys():
                 if key.startswith('slot_'):
-                    # Формат ключа: slot_{day}_{ts_id}
                     parts = key.split('_')
                     day = int(parts[1])
                     ts_id = int(parts[2])
@@ -2589,14 +2771,16 @@ def manage_teacher_availability(request):
             
         unavailable_qs = TeacherUnavailableSlot.objects.filter(teacher=selected_teacher)
         for u in unavailable_qs:
-            unavailable_set.add(f"{u.day_of_week}_{u.time_slot_id}")
+            if u.day_of_week not in unavailable_dict:
+                unavailable_dict[u.day_of_week] = {}
+            unavailable_dict[u.day_of_week][u.time_slot_id] = True
 
     return render(request, 'schedule/manage_teacher_availability.html', {
         'teachers': teachers,
         'selected_teacher': selected_teacher,
         'time_slots': time_slots,
         'days': days,
-        'unavailable_set': unavailable_set
+        'unavailable_dict': unavailable_dict
     })
 
 

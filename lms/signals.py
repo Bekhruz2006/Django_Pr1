@@ -20,7 +20,7 @@ def sync_subject_to_lms_course(sender, instance, created, **kwargs):
     course, course_created = Course.objects.get_or_create(
         id_number=shared_id,
         defaults={
-            'full_name': f"{instance.name} ({instance.get_type_display()})",
+            'full_name': instance.name,
             'short_name': instance.name[:100],
             'category': category,
             'allowed_department': instance.department,

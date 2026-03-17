@@ -4,17 +4,16 @@ from accounts.models import Student
 from schedule.models import Subject, Semester, ScheduleSlot
 from lms.models import CourseModule, FolderResource, Assignment
 from datetime import timedelta
+import hashlib
 
 
 class LMSManager:
     @staticmethod
     def get_shared_course_id(subject):
-        if subject.plan_discipline_id:
-            base = f"DISC_{subject.plan_discipline_id}"
-        else:
-            base = f"SUBJ_{subject.id}"
+        clean_name = subject.name.strip().lower()
+        name_hash = hashlib.md5(clean_name.encode('utf-8')).hexdigest()[:8]
         teacher_id = subject.teacher_id if subject.teacher_id else 0
-        return f"{base}_T{teacher_id}_{subject.type}"
+        return f"CRS_{name_hash}_T{teacher_id}"
 
     @staticmethod
     def get_subject_from_shared_id(shared_id):
@@ -22,6 +21,17 @@ class LMSManager:
         if not shared_id:
             return None
             
+        if shared_id.startswith("CRS_"):
+            try:
+                parts = shared_id.split('_')
+                teacher_id = int(parts[2][1:])
+                subjects = Subject.objects.filter(teacher_id=teacher_id if teacher_id > 0 else None)
+                for sub in subjects:
+                    if LMSManager.get_shared_course_id(sub) == shared_id:
+                        return sub
+            except:
+                pass
+
         if shared_id.startswith("DISC_"):
             try:
                 parts = shared_id.split('_')

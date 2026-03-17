@@ -23,6 +23,7 @@ urlpatterns = [
     path('subjects/', views.manage_subjects, name='manage_subjects'),
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
     path('subjects/<int:subject_id>/delete/', views.delete_subject, name='delete_subject'),
+    path('subjects/<int:subject_id>/split/', views.split_subject, name='split_subject'),
     
     path('semesters/', views.manage_semesters, name='manage_semesters'),
     path('semesters/add/', views.add_semester, name='add_semester'),
