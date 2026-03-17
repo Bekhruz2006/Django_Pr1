@@ -113,6 +113,49 @@
             </div>
         </div>
     </div>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-cpu me-2 text-primary"></i>Анализ успеваемости (Алгоритм)</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check profile-trend-period" name="p_trendPeriod" id="ptp_week" value="week">
+                        <label class="btn btn-outline-primary" for="ptp_week">За неделю</label>
+                        
+                        <input type="radio" class="btn-check profile-trend-period" name="p_trendPeriod" id="ptp_month" value="month">
+                        <label class="btn btn-outline-primary" for="ptp_month">За месяц</label>
+                        
+                        <input type="radio" class="btn-check profile-trend-period" name="p_trendPeriod" id="ptp_all" value="all" checked>
+                        <label class="btn btn-outline-primary" for="ptp_all">За всё время</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4 border-end">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-3">Текущий статус</h6>
+                            {% if risk_data %}
+                                <div class="d-flex align-items-center mb-3">
+                                    <span class="badge bg-{{ risk_data.color }} fs-6 px-3 py-2">{{ risk_data.level }}</span>
+                                </div>
+                                <ul class="list-unstyled mb-0 small">
+                                    {% for reason in risk_data.reasons %}
+                                        <li class="mb-2"><i class="bi bi-circle-fill text-{{ risk_data.color }} me-2" style="font-size: 0.5rem;"></i>{{ reason }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted small">Данные о рисках недоступны.</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8" id="profileTrendBody">
+                            <div class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Загрузка динамики...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
@@ -478,5 +521,68 @@
             }
         }
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const studentId = {{ profile.id }};
+        
+        function loadProfileTrend(period) {
+            const container = document.getElementById('profileTrendBody');
+            if(!container) return;
+            
+            container.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Расчет алгоритма...</div>';
+
+            fetch(`/journal/api/student-trend/${studentId}/?period=${period}`)
+            .then(r => r.json())
+            .then(data => {
+                if(!data.success) {
+                    container.innerHTML = `<div class="alert alert-danger">${data.error || 'Ошибка сервера'}</div>`;
+                    return;
+                }
+                if(!data.has_data) {
+                    container.innerHTML = `<div class="alert alert-info border-0"><i class="bi bi-info-circle me-2"></i>${data.message}</div>`;
+                    return;
+                }
+
+                const gpaSign = data.gpa_trend > 0 ? '+' : '';
+                const attSign = data.att_trend > 0 ? '+' : '';
+                const gpaColor = data.gpa_trend > 0 ? 'text-success' : (data.gpa_trend < 0 ? 'text-danger' : 'text-muted');
+                const attColor = data.att_trend > 0 ? 'text-success' : (data.att_trend < 0 ? 'text-danger' : 'text-muted');
+
+                container.innerHTML = `
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="p-3 border rounded bg-light text-center h-100">
+                                <small class="text-muted d-block text-uppercase fw-bold">GPA (Выбранный период)</small>
+                                <h3 class="mb-0 text-dark">${data.gpa_current}</h3>
+                                <span class="${gpaColor} small fw-bold">${gpaSign}${data.gpa_trend}% (динамика)</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 border rounded bg-light text-center h-100">
+                                <small class="text-muted d-block text-uppercase fw-bold">Посещаемость</small>
+                                <h3 class="mb-0 text-dark">${data.att_current}%</h3>
+                                <span class="${attColor} small fw-bold">${attSign}${data.att_trend}% (динамика)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-${data.color} border-0 shadow-sm mb-0 py-2">
+                        <strong><i class="bi bi-robot"></i> Вывод алгоритма:</strong> <span class="small">${data.prediction}</span>
+                    </div>
+                `;
+            }).catch(e => {
+                container.innerHTML = `<div class="alert alert-danger">Ошибка сети</div>`;
+            });
+        }
+
+        loadProfileTrend('all');
+
+        document.querySelectorAll('.profile-trend-period').forEach(radio => {
+            radio.addEventListener('change', function() {
+                loadProfileTrend(this.value);
+            });
+        });
+    });
+
+
 </script>
 {% endblock %}

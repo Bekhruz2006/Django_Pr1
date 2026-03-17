@@ -18,6 +18,7 @@ urlpatterns = [
     path('constructor/create/', views.create_schedule_slot, name='create_slot'),
     path('constructor/update-room/<int:slot_id>/', views.update_schedule_room, name='update_room'),
     path('constructor/delete/<int:slot_id>/', views.delete_schedule_slot, name='delete_slot'),
+    path('constructor/clear/', views.clear_schedule, name='clear_schedule'),
 
     path('subjects/', views.manage_subjects, name='manage_subjects'),
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
@@ -58,5 +59,8 @@ urlpatterns = [
     path('api/ai-assign-teachers/', views.api_ai_assign_teachers, name='api_ai_assign_teachers'),
     path('semesters/global-setup/', views.global_semester_setup, name='global_semester_setup'),
     path('constructor/auto/', views.auto_schedule_config, name='auto_schedule_config'),
+    path('teachers/availability/', views.manage_teacher_availability, name='manage_teacher_availability'), # НОВЫЙ МАРШРУТ
+    path('api/credit-type/create/', views.api_create_credit_type, name='api_create_credit_type'),
+    path('plans/discipline/<int:discipline_id>/edit/', views.edit_plan_discipline, name='edit_plan_discipline'),
 
 ]

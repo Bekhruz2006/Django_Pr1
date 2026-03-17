@@ -2,12 +2,13 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import FieldError
 from django.core.validators import FileExtensionValidator
-from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, AcademicPlan, PlanDiscipline, SubjectTemplate
+from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, CreditType,  AcademicPlan, PlanDiscipline, SubjectTemplate
 from accounts.models import Group, Teacher, Department, Specialty, Institute
 from .models import SubjectMaterial
 from .models import PlanDiscipline, AcademicPlan
 from datetime import datetime
 from .models import Classroom, Building, Semester, Institute, Department, Group, ROOM_TYPES
+from django.db.models import Q
 
 def get_year_choices():
     current_year = datetime.now().year
@@ -36,9 +37,10 @@ class SubjectForm(forms.ModelForm):
 
     class Meta:
         model = Subject
-        fields = [
+        fields =[
             'name', 'code', 'department', 'semester_weeks', 'type',
-            'lecture_hours', 'practice_hours', 'control_hours', 'independent_work_hours',
+            'credit_type', 'credits', # Добавлено credit_type
+            'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_work_hours',
             'teacher', 'groups', 'description', 'is_stream_subject', 'preferred_room_type', 'required_competencies'
         ]
         widgets = {
@@ -46,6 +48,7 @@ class SubjectForm(forms.ModelForm):
             'code': forms.TextInput(attrs={'class': 'form-control'}),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'type': forms.Select(attrs={'class': 'form-select'}),
+            'credit_type': forms.Select(attrs={'class': 'form-select'}), # Виджет для типа кредита
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'groups': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -249,9 +252,9 @@ class AcademicPlanForm(forms.ModelForm):
 class PlanDisciplineForm(forms.ModelForm):
     class Meta:
         model = PlanDiscipline
-        fields = [
+        fields =[
             'subject_template', 'semester_number', 'cycle', 'discipline_type',
-            'credits', 'control_type',
+            'credit_type', 'credits', 'control_type',
             'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours',
             'has_course_work', 'has_subgroups', 'preferred_room_type'
         ]
@@ -260,6 +263,7 @@ class PlanDisciplineForm(forms.ModelForm):
             'semester_number': forms.HiddenInput(),
             'cycle': forms.Select(attrs={'class': 'form-select'}),
             'discipline_type': forms.Select(attrs={'class': 'form-select'}),
+            'credit_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_credit_type'}),
             'credits': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_credits'}),
             'control_type': forms.Select(attrs={'class': 'form-select'}),
             'lecture_hours': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_lecture_hours'}),
@@ -273,10 +277,20 @@ class PlanDisciplineForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        faculty = kwargs.pop('faculty', None)
+        
         super().__init__(*args, **kwargs)
-        for field in ['lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours']:
+        
+        for field in['lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_hours']:
             self.fields[field].required = False
         self.fields['lab_hours'].initial = 0
+        
+        if faculty:
+            self.fields['credit_type'].queryset = CreditType.objects.filter(
+                Q(faculty=faculty) | Q(faculty__isnull=True)
+            )
+        else:
+            self.fields['credit_type'].queryset = CreditType.objects.filter(faculty__isnull=True)
 
 
 class ScheduleImportForm(forms.Form):

@@ -146,7 +146,7 @@
             <div class="card-header bg-primary text-white">
                 <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Добавить в {{ current_sem_num }} семестр</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-3">
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="add_discipline" value="1">
@@ -154,8 +154,7 @@
 
                     {% if form.errors %}
                         <div class="alert alert-danger p-2 small mb-3">
-                            <strong>Ошибка!</strong> Проверьте поля.
-                            {{ form.errors }}
+                            <strong>Ошибка!</strong> Проверьте поля. {{ form.errors }}
                         </div>
                     {% endif %}
 
@@ -170,50 +169,106 @@
                     </div>
 
                     <div class="row g-2 mb-3">
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small fw-bold text-muted text-uppercase">Цикл</label>
                             {{ form.cycle }}
                         </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small fw-bold text-muted text-uppercase">Тип</label>
                             {{ form.discipline_type }}
                         </div>
-                        <div class="col-4">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Кредиты</label>
-                            {{ form.credits }}
-                        </div>
-                        <div class="col-6 mt-2">
+                        <div class="col-12 mt-2">
                             <label class="form-label small fw-bold text-muted text-uppercase">Контроль</label>
                             {{ form.control_type }}
                         </div>
-
                     </div>
 
+                    <div class="card border-primary shadow-sm mb-3">
+                        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 small fw-bold"><i class="bi bi-sliders"></i> Конструктор нагрузки</h6>
+                            <span class="badge bg-light text-primary" id="add_total_credits_badge">0 ч. всего</span>
+                        </div>
+                        <div class="card-body p-2 bg-light">
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="small fw-bold text-muted">Система кредитов</label>
+                                    <div class="input-group input-group-sm">
+                                        <select name="credit_type" id="id_credit_type" class="form-select fw-bold border-primary add-ui-calc">
+                                            <option value="" data-hours="24">Стандарт (24ч)</option>
+                                            {% for ct in credit_types %}
+                                                <option value="{{ ct.id }}" data-hours="{{ ct.hours_per_credit }}">{{ ct.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary" onclick="addCreditTypePrompt()"><i class="bi bi-plus"></i></button>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <label class="small fw-bold text-muted">Кредиты</label>
+                                    {{ form.credits }}
+                                </div>
+                                <div class="col-3">
+                                    <label class="small fw-bold text-muted">Недель</label>
+                                    <input type="number" id="add_ui_weeks" class="form-control form-control-sm text-center fw-bold add-ui-calc" value="16">
+                                </div>
+                            </div>
+                            
+                            <label class="small fw-bold text-dark mb-1 d-block border-bottom pb-1 mt-2">Укажите количество ПАР в неделю:</label>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> Лекции</label>
+                                    <select id="add_ui_lec" class="form-select form-select-sm border-primary add-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> Практика</label>
+                                    <select id="add_ui_prac" class="form-select form-select-sm border-success add-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> Лаб. работы</label>
+                                    <select id="add_ui_lab" class="form-select form-select-sm border-info add-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> СРСП</label>
+                                    <select id="add_ui_srsp" class="form-select form-select-sm border-warning add-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="add_hours_warning" class="alert alert-danger p-2 small mb-2" style="display: none;"></div>
 
-                    <div class="card bg-light border-0 mb-3">
-                        <div class="card-body p-2">
-                            <label class="form-label small fw-bold text-dark mb-2 text-center w-100">Часы (Авто-расчет)</label>
-                            <div class="row g-1">
-                                <div class="col-3">
-                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">Лекц</small>
-                                    {{ form.lecture_hours }}
-                                </div>
-                                <div class="col-3">
-                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">Прак</small>
-                                    {{ form.practice_hours }}
-                                </div>
-                                <div class="col-2">
-                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">Лаб</small>
-                                    {{ form.lab_hours }}
-                                </div>
-                                <div class="col-3">
-                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">СРСП</small>
-                                    {{ form.control_hours }}
-                                </div>
-                                <div class="col-3">
-                                    <small class="d-block text-center text-muted" style="font-size: 0.65rem;">СРС</small>
-                                    {{ form.independent_hours }}
-                                </div>
+                            <label class="small fw-bold text-dark mb-1 d-block border-bottom pb-1">Итого часов за семестр (Авторасчет):</label>
+                            <div class="row g-1 text-center">
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">Лекц</small>{{ form.lecture_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">Прак</small>{{ form.practice_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">Лаб</small>{{ form.lab_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">СРСП</small>{{ form.control_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">СРС</small>{{ form.independent_hours }}</div>
                             </div>
                         </div>
                     </div>
@@ -222,22 +277,16 @@
                         <div class="col-6 mt-2">
                             <div class="form-check mb-2">
                                 {{ form.has_subgroups }}
-                                <label class="form-check-label small" for="{{ form.has_subgroups.id_for_label }}">
-                                    + Подгруппы
-                                </label>
+                                <label class="form-check-label small" for="{{ form.has_subgroups.id_for_label }}">+ Подгруппы</label>
                             </div>
                             <div class="form-check mb-2">
                                 {{ form.has_course_work }}
-                                <label class="form-check-label small" for="{{ form.has_course_work.id_for_label }}">
-                                    + Курсовая
-                                </label>
+                                <label class="form-check-label small" for="{{ form.has_course_work.id_for_label }}">+ Курсовая</label>
                             </div>
                         </div>
-
                         <div class="col-6">
                             <label class="form-label small fw-bold text-muted text-uppercase">Тип аудитории</label>
                             {{ form.preferred_room_type }}
-                            <small class="text-muted" style="font-size: 0.65rem;">(Опционально)</small>
                         </div>
                     </div>
 
@@ -314,10 +363,10 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{% url 'schedule:delete_plan_discipline' disc.id %}"
-                                           class="btn btn-sm btn-link text-danger p-0"
-                                           onclick="return confirm('Удалить дисциплину из плана?')"
-                                           title="Удалить">
+                                        <button type="button" class="btn btn-sm btn-link text-primary p-0 me-2" onclick="openEditModal({{ disc.id }}, '{{ disc.credits }}', '{{ disc.lecture_hours }}', '{{ disc.practice_hours }}', '{{ disc.lab_hours }}', '{{ disc.control_hours }}', '{{ disc.independent_hours }}', '{{ disc.credit_type_id|default:'' }}')" title="Редактировать">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <a href="{% url 'schedule:delete_plan_discipline' disc.id %}" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Удалить дисциплину из плана?')" title="Удалить">
                                             <i class="bi bi-x-lg"></i>
                                         </a>
                                     </td>
@@ -352,7 +401,227 @@
     </div>
 </div>
 
+<div class="modal fade" id="editDisciplineModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="editDisciplineForm">
+                {% csrf_token %}
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Редактировать нагрузку</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small fw-bold text-muted">Система кредитов</label>
+                            <select name="credit_type" id="edit_credit_type" class="form-select form-select-sm fw-bold border-primary edit-ui-calc">
+                                <option value="" data-hours="24">Стандарт (24ч)</option>
+                                {% for ct in credit_types %}
+                                    <option value="{{ ct.id }}" data-hours="{{ ct.hours_per_credit }}">{{ ct.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold text-muted">Кредиты</label>
+                            <input type="number" name="credits" id="edit_credits" class="form-control form-control-sm edit-ui-calc">
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold text-muted">Недель</label>
+                            <input type="number" id="edit_ui_weeks" class="form-control form-control-sm text-center fw-bold edit-ui-calc" value="16">
+                        </div>
+                    </div>
+                    
+                    <label class="small fw-bold text-dark mb-2 d-block border-bottom pb-1">Укажите количество ПАР в неделю:</label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> Лекции</label>
+                            <select id="edit_ui_lec" class="form-select form-select-sm border-primary edit-ui-calc">
+                                <option value="0">0 пар</option>
+                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                <option value="1">1 пара (Каждую)</option>
+                                <option value="1.5">1.5 пары</option>
+                                <option value="2">2 пары</option>
+                                <option value="3">3 пары</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> Практика</label>
+                            <select id="edit_ui_prac" class="form-select form-select-sm border-success edit-ui-calc">
+                                <option value="0">0 пар</option>
+                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                <option value="1">1 пара (Каждую)</option>
+                                <option value="1.5">1.5 пары</option>
+                                <option value="2">2 пары</option>
+                                <option value="3">3 пары</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> Лаб. работы</label>
+                            <select id="edit_ui_lab" class="form-select form-select-sm border-info edit-ui-calc">
+                                <option value="0">0 пар</option>
+                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                <option value="1">1 пара (Каждую)</option>
+                                <option value="1.5">1.5 пары</option>
+                                <option value="2">2 пары</option>
+                                <option value="3">3 пары</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> СРСП</label>
+                            <select id="edit_ui_srsp" class="form-select form-select-sm border-warning edit-ui-calc">
+                                <option value="0">0 пар</option>
+                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                <option value="1">1 пара (Каждую)</option>
+                                <option value="1.5">1.5 пары</option>
+                                <option value="2">2 пары</option>
+                                <option value="3">3 пары</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="edit_hours_warning" class="alert alert-danger p-2 small mb-2" style="display: none;"></div>
+
+                    <div class="row g-1 text-center bg-white p-2 rounded border">
+                        <div class="col-12 text-start mb-1"><small class="fw-bold">Итого за семестр:</small></div>
+                        <div class="col"><small>Лекц</small><input type="number" name="lecture_hours" id="edit_lec_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>Прак</small><input type="number" name="practice_hours" id="edit_prac_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>Лаб</small><input type="number" name="lab_hours" id="edit_lab_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>СРСП</small><input type="number" name="control_hours" id="edit_srsp_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>СРС</small><input type="number" name="independent_hours" id="edit_srs_val" class="form-control form-control-sm bg-light" readonly></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Сохранить изменения</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+document.getElementById('id_lecture_hours').readOnly = true;
+document.getElementById('id_practice_hours').readOnly = true;
+document.getElementById('id_lab_hours').readOnly = true;
+document.getElementById('id_control_hours').readOnly = true;
+document.getElementById('id_independent_hours').readOnly = true;
+
+document.getElementById('id_lecture_hours').classList.add('bg-light');
+document.getElementById('id_practice_hours').classList.add('bg-light');
+document.getElementById('id_lab_hours').classList.add('bg-light');
+document.getElementById('id_control_hours').classList.add('bg-light');
+document.getElementById('id_independent_hours').classList.add('bg-light');
+
+function addCreditTypePrompt() {
+    const name = prompt("Введите название системы кредитов (например: Национальный):");
+    if (!name) return;
+    const hours = prompt("Сколько часов в 1 кредите этой системы?", "30");
+    if (!hours) return;
+
+    fetch('{% url "schedule:api_create_credit_type" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({ name: name, hours: hours })
+    }).then(r => r.json()).then(data => {
+        if(data.success) {
+            const opt = new Option(`${data.name}`, data.id, true, true);
+            opt.setAttribute('data-hours', data.hours);
+            document.getElementById('id_credit_type').add(opt);
+            document.getElementById('edit_credit_type').add(opt.cloneNode(true));
+            calculateHours('add_');
+        } else alert(data.error);
+    });
+}
+
+function calculateHours(prefix) {
+    const weeks = parseInt(document.getElementById(prefix + 'ui_weeks').value) || 16;
+    const creditsInput = document.getElementById(prefix === 'add_' ? 'id_credits' : 'edit_credits');
+    const credits = parseFloat(creditsInput.value) || 0;
+    
+    const ctSelect = document.getElementById(prefix === 'add_' ? 'id_credit_type' : 'edit_credit_type');
+    const hoursPerCredit = ctSelect && ctSelect.options[ctSelect.selectedIndex] ? 
+                           parseFloat(ctSelect.options[ctSelect.selectedIndex].getAttribute('data-hours')) : 24;
+
+    const lecPairs = parseFloat(document.getElementById(prefix + 'ui_lec').value) || 0;
+    const pracPairs = parseFloat(document.getElementById(prefix + 'ui_prac').value) || 0;
+    const labPairs = parseFloat(document.getElementById(prefix + 'ui_lab').value) || 0;
+    const srspPairs = parseFloat(document.getElementById(prefix + 'ui_srsp').value) || 0;
+
+    const lecHours = Math.round(lecPairs * 2 * weeks);
+    const pracHours = Math.round(pracPairs * 2 * weeks);
+    const labHours = Math.round(labPairs * 2 * weeks);
+    const srspHours = Math.round(srspPairs * 2 * weeks);
+
+    const totalAuditory = lecHours + pracHours + labHours + srspHours;
+    const totalCreditHours = Math.round(credits * hoursPerCredit);
+    
+    let srsHours = totalCreditHours - totalAuditory;
+    if (srsHours < 0) srsHours = 0; 
+
+    document.getElementById(prefix === 'add_' ? 'id_lecture_hours' : 'edit_lec_val').value = lecHours;
+    document.getElementById(prefix === 'add_' ? 'id_practice_hours' : 'edit_prac_val').value = pracHours;
+    document.getElementById(prefix === 'add_' ? 'id_lab_hours' : 'edit_lab_val').value = labHours;
+    document.getElementById(prefix === 'add_' ? 'id_control_hours' : 'edit_srsp_val').value = srspHours;
+    document.getElementById(prefix === 'add_' ? 'id_independent_hours' : 'edit_srs_val').value = srsHours;
+    
+    if(prefix === 'add_') {
+        document.getElementById('add_total_credits_badge').innerText = `${totalCreditHours} ч. всего`;
+    }
+    
+    const warningEl = document.getElementById(prefix + 'hours_warning');
+    if (totalAuditory > totalCreditHours && credits > 0) {
+        warningEl.style.display = 'block';
+        warningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Внимание: Аудиторных часов (${totalAuditory}) больше, чем выделено кредитами (${totalCreditHours})!`;
+    } else {
+        warningEl.style.display = 'none';
+    }
+}
+
+document.querySelectorAll('.add-ui-calc').forEach(el => {
+    el.addEventListener('input', () => calculateHours('add_'));
+    el.addEventListener('change', () => calculateHours('add_'));
+});
+document.getElementById('id_credits').addEventListener('input', () => calculateHours('add_'));
+
+document.querySelectorAll('.edit-ui-calc').forEach(el => {
+    el.addEventListener('input', () => calculateHours('edit_'));
+    el.addEventListener('change', () => calculateHours('edit_'));
+});
+
+function openEditModal(id, cred, lec, prac, lab, srsp, srs, cType) {
+    document.getElementById('editDisciplineForm').action = `/schedule/plans/discipline/${id}/edit/`;
+    document.getElementById('edit_credits').value = cred;
+    document.getElementById('edit_credit_type').value = cType;
+    
+    const weeks = parseInt(document.getElementById('edit_ui_weeks').value) || 16;
+    
+    function setSelectSafe(selectId, pairs) {
+        const select = document.getElementById(selectId);
+        let exists = false;
+        for(let i=0; i<select.options.length; i++) {
+            if(parseFloat(select.options[i].value) === pairs) { exists = true; break; }
+        }
+        if(!exists && pairs > 0) {
+            select.add(new Option(pairs + " пар", pairs));
+        }
+        select.value = pairs.toString();
+    }
+
+    setSelectSafe('edit_ui_lec', lec / (2 * weeks));
+    setSelectSafe('edit_ui_prac', prac / (2 * weeks));
+    setSelectSafe('edit_ui_lab', lab / (2 * weeks));
+    setSelectSafe('edit_ui_srsp', srsp / (2 * weeks));
+    
+    document.getElementById('edit_lec_val').value = lec;
+    document.getElementById('edit_prac_val').value = prac;
+    document.getElementById('edit_lab_val').value = lab;
+    document.getElementById('edit_srsp_val').value = srsp;
+    document.getElementById('edit_srs_val').value = srs;
+    
+    calculateHours('edit_');
+    new bootstrap.Modal(document.getElementById('editDisciplineModal')).show();
+}
+
 function createSubjectTemplate() {
     const nameInput = document.getElementById('newSubjectName');
     const errorDiv = document.getElementById('modalError');
@@ -400,8 +669,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const creditsInput = document.getElementById('id_credits');
     const lecInput = document.getElementById('id_lecture_hours');
     const pracInput = document.getElementById('id_practice_hours');
+    const labInput = document.getElementById('id_lab_hours');
     const srspInput = document.getElementById('id_control_hours');
     const srsInput = document.getElementById('id_independent_hours');
+
+    const vLec = document.getElementById('view_l_slots');
+    const vPrac = document.getElementById('view_p_slots');
+    const vLab = document.getElementById('view_lab_slots');
+    const vSrsp = document.getElementById('view_c_slots');
+
+    function updateWeekly() {
+        const weeks = 16;
+        if(vLec) vLec.textContent = Math.ceil(((parseInt(lecInput.value)||0)/2)/weeks) + ' п/н';
+        if(vPrac) vPrac.textContent = Math.ceil(((parseInt(pracInput.value)||0)/2)/weeks) + ' п/н';
+        if(vLab) vLab.textContent = Math.ceil(((parseInt(labInput.value)||0)/2)/weeks) + ' п/н';
+        if(vSrsp) vSrsp.textContent = Math.ceil(((parseInt(srspInput.value)||0)/2)/weeks) + ' п/н';
+    }
 
     if (creditsInput) {
         creditsInput.addEventListener('input', function() {
@@ -409,22 +692,36 @@ document.addEventListener('DOMContentLoaded', function() {
             if (credits <= 0) return;
 
             const totalHours = credits * 24;
-
             const srs = Math.floor(totalHours / 3);
-
             const auditory = totalHours - srs;
 
-            const part = Math.floor(auditory / 3);
+            let lec = 0, prac = 0, srsp = 0;
 
-            const remainder = auditory - (part * 3);
+            if (auditory >= 64) {
+                lec = 32; prac = 32; srsp = auditory - 64;
+            } else if (auditory >= 48) {
+                lec = 16; prac = 16; srsp = auditory - 32;
+            } else if (auditory >= 32) {
+                lec = 16; prac = 16; srsp = 0;
+            } else {
+                lec = auditory;
+            }
 
             if(srsInput) srsInput.value = srs;
-            if(lecInput) lecInput.value = part;
-            if(pracInput) pracInput.value = part;
+            if(lecInput) lecInput.value = lec;
+            if(pracInput) pracInput.value = prac;
+            if(labInput) labInput.value = 0;
+            if(srspInput) srspInput.value = srsp;
 
-            if(srspInput) srspInput.value = part + remainder;
+            updateWeekly();
         });
     }
+
+    [lecInput, pracInput, labInput, srspInput].forEach(el => {
+        if(el) el.addEventListener('input', updateWeekly);
+    });
+
+    updateWeekly();
 });
 </script>
 {% endblock %}

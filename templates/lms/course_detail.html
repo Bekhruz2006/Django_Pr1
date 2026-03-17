@@ -330,20 +330,6 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const courseId = "{{ course.pk }}";
-    const scrollKey = "lms_scroll_pos_course_" + courseId;
-
-    const savedScroll = sessionStorage.getItem(scrollKey);
-    if (savedScroll) {
-        window.scrollTo(0, parseInt(savedScroll));
-        sessionStorage.removeItem(scrollKey);
-    }
-
-    document.querySelectorAll('a, button[type="submit"]').forEach(el => {
-        el.addEventListener('click', () => {
-            sessionStorage.setItem(scrollKey, window.scrollY);
-        });
-    });
     const today = new Date();
     today.setHours(0,0,0,0);
 
@@ -371,6 +357,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 badge.innerHTML = '<i class="bi bi-clock-history"></i> Текущая неделя';
                 section.querySelector(".card-header h6").appendChild(badge);
 
+                const savedScroll = sessionStorage.getItem(scrollKey);
                 if (!savedScroll) {
                     setTimeout(() => {
                         section.scrollIntoView({behavior: "smooth", block: "center"});
@@ -380,7 +367,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
-
 
 document.addEventListener("DOMContentLoaded", function() {
     function getCookie(name) {
@@ -402,7 +388,7 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.addEventListener('click', function() {
             const moduleId = this.dataset.moduleId;
             const icon = document.getElementById(`icon-visibility-${moduleId}`);
-            
+
             icon.className = 'bi bi-hourglass-split';
 
             fetch(`/lms/modules/${moduleId}/toggle-visibility/`, {

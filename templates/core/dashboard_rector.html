@@ -16,7 +16,7 @@
 
     <div class="row g-4 mb-4">
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm border-start border-4 border-primary">
+            <div class="card border-0 shadow-sm border-start border-4 border-primary" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:user_management' %}?role=STUDENT'">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase small">{% trans "Контингент студентов" %}</h6>
                     <h2 class="mb-0 fw-bold">{{ total_students }}</h2>
@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm border-start border-4 border-warning">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:all_orders' %}?status=DRAFT'">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase small">{% trans "Документы на подпись" %}</h6>
                     <h2 class="mb-0 fw-bold text-warning">{{ pending_count }}</h2>
@@ -32,7 +32,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm border-start border-4 border-success">
+            <div class="card border-0 shadow-sm border-start border-4 border-success" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:user_management' %}?role=TEACHER'">
                 <div class="card-body">
                     <h6 class="text-muted text-uppercase small">{% trans "Штат сотрудников" %}</h6>
                     <h2 class="mb-0 fw-bold">{{ total_teachers }}</h2>
@@ -42,6 +42,35 @@
     </div>
 
     <div class="row mb-4">
+        <div class="col-lg-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-danger">
+                        <i class="bi bi-journal-x me-2"></i>{% trans "Отсутствующие РУП" %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if missing_rup_groups %}
+                    <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                        {% for g in missing_rup_groups %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0 fw-bold">{{ g.name }} <span class="badge bg-secondary">{{ g.course }} курс</span></h6>
+                                <small class="text-muted">{{ g.specialty.name|default:"Специальность не указана" }}</small>
+                            </div>
+                            <a href="{% url 'schedule:create_plan' %}{% if g.specialty %}?specialty={{ g.specialty.id }}{% endif %}" class="btn btn-sm btn-outline-danger">Создать РУП</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-check-circle text-success fs-1 mb-2 d-block"></i>
+                        У всех групп есть активные учебные планы (РУП).
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
         <div class="col-lg-12">
             {% if user.role in 'DEAN,VICE_DEAN,DIRECTOR,PRO_RECTOR,RECTOR' or user.is_superuser %}
             <div class="card border-0 shadow-sm animate-slide-in" style="animation-delay: 0.2s;">

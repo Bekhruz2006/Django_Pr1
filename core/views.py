@@ -10,7 +10,7 @@ from journal.models import StudentStatistics
 from schedule.models import ScheduleSlot
 import json
 from datetime import datetime
-from schedule.models import Semester, SubjectMaterial
+from schedule.models import Semester, SubjectMaterial, AcademicPlan
 
 def get_ai_report_status():
     active_sems = Semester.objects.filter(is_active=True)
@@ -29,6 +29,24 @@ def get_ai_report_status():
                     days_until_report = 30 - days_passed
                     
     return ai_report_ready, max(1, days_until_report)
+
+
+def get_missing_rup_groups(faculty=None, institute=None):
+    groups = Group.objects.all().select_related('specialty', 'specialty__department__faculty')
+    if faculty:
+        groups = groups.filter(specialty__department__faculty=faculty)
+    elif institute:
+        groups = groups.filter(specialty__department__faculty__institute=institute)
+
+    active_plans = AcademicPlan.objects.filter(is_active=True)
+    group_plans_ids = set(active_plans.exclude(group__isnull=True).values_list('group_id', flat=True))
+    specialty_plans_ids = set(active_plans.exclude(specialty__isnull=True).values_list('specialty_id', flat=True))
+
+    missing = []
+    for g in groups:
+        if g.id not in group_plans_ids and (not g.specialty_id or g.specialty_id not in specialty_plans_ids):
+            missing.append(g)
+    return missing
 
 
 def get_algorithmic_risk_report(faculty=None, limit=5):
@@ -139,7 +157,8 @@ def dashboard(request):
             'total_groups': groups_qs.count(),
             'pending_orders': orders_qs[:10],
             'pending_count': orders_qs.count(),
-            'risk_report': get_algorithmic_risk_report(limit=5)
+            'risk_report': get_algorithmic_risk_report(limit=5),
+            'missing_rup_groups': get_missing_rup_groups(institute=selected_institute)
         })
         return render(request, 'core/dashboard_rector.html', context)
 
@@ -177,7 +196,8 @@ def dashboard(request):
                 'total_users': User.objects.count(),
                 'latest_orders': Order.objects.all().order_by('-created_at')[:5],
                 'active_semesters': active_semesters,
-                'risk_report': get_algorithmic_risk_report(limit=5)
+                'risk_report': get_algorithmic_risk_report(limit=5),
+                'missing_rup_groups': get_missing_rup_groups(institute=selected_institute)
             })
             return render(request, 'core/dashboard_admin.html', context)
             
@@ -209,7 +229,8 @@ def dashboard(request):
                 'teachers_count': teachers_count,
                 'departments': Department.objects.filter(faculty=faculty).prefetch_related('specialties'),
                 'my_drafts': Order.objects.filter(created_by=user, status='DRAFT').count(),
-                'risk_report': get_algorithmic_risk_report(faculty=faculty, limit=5)
+                'risk_report': get_algorithmic_risk_report(faculty=faculty, limit=5),
+                'missing_rup_groups': get_missing_rup_groups(faculty=faculty)
             })
 
             course_stats = []

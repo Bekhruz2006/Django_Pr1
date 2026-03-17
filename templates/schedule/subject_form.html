@@ -55,7 +55,6 @@
                             </div>
                             <div class="form-text">
                                 Если галочка стоит, в расписании группы будут объединены в одну аудиторию.
-                                Если галочка снята, для каждой группы будет создано отдельное занятие (даже если групп много).
                             </div>
                         </div>
                     </div>
@@ -82,50 +81,88 @@
                     <div class="mb-4">
                         <label class="form-label">Кафедра *</label>
                         {{ form.department }}
-                        {% if form.instance.department or form.initial.department %}
-                            <div class="form-text text-success">Кафедра выбрана автоматически</div>
-                        {% endif %}
                     </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Тип кабинета (Рекомендация)</label>
-                            {{ form.preferred_room_type }}
-                            <div class="form-text text-muted">Помогает при составлении расписания (например: Компьютерный класс)</div>
-                        </div>
-                    <div class="card bg-light border-0 mb-4">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-4">
-                                    <label class="fw-bold text-primary">Кредиты (авто-расчет):</label>
-                                    {{ form.total_credits_calc }}
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="alert alert-info mb-0 py-2 small">
-                                        <i class="bi bi-info-circle"></i> 1 кредит = 24 часа. (2/3 аудиторные, 1/3 КМД).
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="mb-4">
+                        <label class="form-label">Тип кабинета (Рекомендация)</label>
+                        {{ form.preferred_room_type }}
                     </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="small fw-bold">Лекции (Л)</label>
-                            {{ form.lecture_hours }}
-                            <div class="mt-1 small text-muted">Пар/нед: <span id="view_l_slots" class="badge bg-primary">0</span></div>
+                    <!-- КОНСТРУКТОР НАГРУЗКИ (ЗАМЕНЯЕТ СТАРЫЙ АВТОРАСЧЕТ) -->
+                    <div class="card border-primary shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-sliders"></i> Конструктор нагрузки (Пар в неделю)</h6>
+                            <span class="badge bg-light text-primary" id="subj_total_credits_badge">0 ч. всего</span>
                         </div>
-                        <div class="col-md-3">
-                            <label class="small fw-bold">Практика (А)</label>
-                            {{ form.practice_hours }}
-                            <div class="mt-1 small text-muted">Пар/нед: <span id="view_p_slots" class="badge bg-success">0</span></div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small fw-bold">СРСП</label>
-                            {{ form.control_hours }}
-                            <div class="mt-1 small text-muted">Пар/нед: <span id="view_c_slots" class="badge bg-warning text-dark">0</span></div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small fw-bold">КМД (Сам.)</label>
-                            {{ form.independent_work_hours }}
+                        <div class="card-body bg-light">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Система кредитов</label>
+                                    {{ form.credit_type }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Кредиты</label>
+                                    {{ form.credits }}
+                                </div>
+                            </div>
+                            
+                            <label class="fw-bold text-dark mb-2 d-block border-bottom pb-2">Укажите количество ПАР в неделю:</label>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-3">
+                                    <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> Лекции</label>
+                                    <select id="subj_ui_lec" class="form-select border-primary subj-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> Практика</label>
+                                    <select id="subj_ui_prac" class="form-select border-success subj-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> Лаб. работы</label>
+                                    <select id="subj_ui_lab" class="form-select border-info subj-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> СРСП</label>
+                                    <select id="subj_ui_srsp" class="form-select border-warning subj-ui-calc">
+                                        <option value="0">0 пар</option>
+                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
+                                        <option value="1">1 пара (Каждую)</option>
+                                        <option value="1.5">1.5 пары</option>
+                                        <option value="2">2 пары</option>
+                                        <option value="3">3 пары</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="subj_hours_warning" class="alert alert-danger p-2 small mb-3" style="display: none;"></div>
+
+                            <label class="fw-bold text-dark mb-2 d-block border-bottom pb-2">Итого часов за семестр (Авторасчет):</label>
+                            <div class="row g-2 text-center bg-white p-2 rounded border">
+                                <div class="col"><small class="text-muted d-block">Лекц</small>{{ form.lecture_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">Прак</small>{{ form.practice_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">Лаб</small>{{ form.lab_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">СРСП</small>{{ form.control_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">СРС</small>{{ form.independent_work_hours }}</div>
+                            </div>
                         </div>
                     </div>
 
@@ -133,7 +170,6 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold text-primary"><i class="bi bi-robot"></i> Требуемые компетенции (Для ИИ)</label>
                             {{ form.required_competencies }}
-                            <div class="form-text">Укажите, какие навыки нужны для преподавания. ИИ будет искать совпадения с профилями преподавателей.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Преподаватель (Вручную)</label>
@@ -158,49 +194,90 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const calcInput = document.getElementById('id_total_credits_calc');
-    const weeksInput = document.getElementById('id_semester_weeks');
-    const inputs = {
-        lec: document.getElementById('id_lecture_hours'),
-        prac: document.getElementById('id_practice_hours'),
-        ctrl: document.getElementById('id_control_hours'),
-        kmd: document.getElementById('id_independent_work_hours')
-    };
-    const views = {
-        l: document.getElementById('view_l_slots'),
-        p: document.getElementById('view_p_slots'),
-        c: document.getElementById('view_c_slots')
-    };
+document.getElementById('id_lecture_hours').readOnly = true;
+document.getElementById('id_practice_hours').readOnly = true;
+document.getElementById('id_lab_hours').readOnly = true;
+document.getElementById('id_control_hours').readOnly = true;
+document.getElementById('id_independent_work_hours').readOnly = true;
 
-    function updateView() {
-        const weeks = parseInt(weeksInput.value) || 16;
-        if(inputs.lec) views.l.textContent = Math.round((parseInt(inputs.lec.value)||0)/weeks);
-        if(inputs.prac) views.p.textContent = Math.round((parseInt(inputs.prac.value)||0)/weeks);
-        if(inputs.ctrl) views.c.textContent = Math.round((parseInt(inputs.ctrl.value)||0)/weeks);
+document.getElementById('id_lecture_hours').classList.add('bg-light');
+document.getElementById('id_practice_hours').classList.add('bg-light');
+document.getElementById('id_lab_hours').classList.add('bg-light');
+document.getElementById('id_control_hours').classList.add('bg-light');
+document.getElementById('id_independent_work_hours').classList.add('bg-light');
+
+function calculateSubjHours() {
+    const weeks = parseInt(document.getElementById('id_semester_weeks').value) || 16;
+    const credits = parseFloat(document.getElementById('id_credits').value) || 0;
+    
+    const ctSelect = document.getElementById('id_credit_type');
+    const hoursPerCredit = ctSelect && ctSelect.options[ctSelect.selectedIndex] ? 
+                           parseFloat(ctSelect.options[ctSelect.selectedIndex].text.match(/\((\d+)ч\)/)?.[1] || 24) : 24;
+
+    const lecPairs = parseFloat(document.getElementById('subj_ui_lec').value) || 0;
+    const pracPairs = parseFloat(document.getElementById('subj_ui_prac').value) || 0;
+    const labPairs = parseFloat(document.getElementById('subj_ui_lab').value) || 0;
+    const srspPairs = parseFloat(document.getElementById('subj_ui_srsp').value) || 0;
+
+    const lecHours = Math.round(lecPairs * 2 * weeks);
+    const pracHours = Math.round(pracPairs * 2 * weeks);
+    const labHours = Math.round(labPairs * 2 * weeks);
+    const srspHours = Math.round(srspPairs * 2 * weeks);
+
+    const totalAuditory = lecHours + pracHours + labHours + srspHours;
+    const totalCreditHours = Math.round(credits * hoursPerCredit);
+    
+    let srsHours = totalCreditHours - totalAuditory;
+    if (srsHours < 0) srsHours = 0; 
+
+    document.getElementById('id_lecture_hours').value = lecHours;
+    document.getElementById('id_practice_hours').value = pracHours;
+    document.getElementById('id_lab_hours').value = labHours;
+    document.getElementById('id_control_hours').value = srspHours;
+    document.getElementById('id_independent_work_hours').value = srsHours;
+    
+    document.getElementById('subj_total_credits_badge').innerText = `${totalCreditHours} ч. всего`;
+    
+    const warningEl = document.getElementById('subj_hours_warning');
+    if (totalAuditory > totalCreditHours && credits > 0) {
+        warningEl.style.display = 'block';
+        warningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Внимание: Аудиторных часов (${totalAuditory}) больше, чем выделено кредитами (${totalCreditHours})!`;
+    } else {
+        warningEl.style.display = 'none';
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const weeks = parseInt(document.getElementById('id_semester_weeks').value) || 16;
+    const lec = parseInt(document.getElementById('id_lecture_hours').value) || 0;
+    const prac = parseInt(document.getElementById('id_practice_hours').value) || 0;
+    const lab = parseInt(document.getElementById('id_lab_hours').value) || 0;
+    const srsp = parseInt(document.getElementById('id_control_hours').value) || 0;
+
+    function setSelectSafe(selectId, pairs) {
+        const select = document.getElementById(selectId);
+        let exists = false;
+        for(let i=0; i<select.options.length; i++) {
+            if(parseFloat(select.options[i].value) === pairs) { exists = true; break; }
+        }
+        if(!exists && pairs > 0) { select.add(new Option(pairs + " пар", pairs)); }
+        select.value = pairs.toString();
     }
 
-    if(calcInput) {
-        calcInput.addEventListener('input', function() {
-            const credits = parseInt(this.value) || 0;
-            if(credits <= 0) return;
+    setSelectSafe('subj_ui_lec', lec / (2 * weeks));
+    setSelectSafe('subj_ui_prac', prac / (2 * weeks));
+    setSelectSafe('subj_ui_lab', lab / (2 * weeks));
+    setSelectSafe('subj_ui_srsp', srsp / (2 * weeks));
 
-            const total = credits * 24;
-            const kmd = Math.round(total / 3);
-            const auditory = total - kmd;
-            const part = Math.floor(auditory / 3);
-
-            if(inputs.lec) inputs.lec.value = part;
-            if(inputs.prac) inputs.prac.value = part;
-            if(inputs.ctrl) inputs.ctrl.value = auditory - (part * 2);
-            if(inputs.kmd) inputs.kmd.value = kmd;
-
-            updateView();
-        });
-    }
-
-    Object.values(inputs).forEach(el => { if(el) el.addEventListener('input', updateView); });
-    if(weeksInput) weeksInput.addEventListener('input', updateView);
+    calculateSubjHours();
 });
+
+document.querySelectorAll('.subj-ui-calc').forEach(el => {
+    el.addEventListener('input', calculateSubjHours);
+    el.addEventListener('change', calculateSubjHours);
+});
+document.getElementById('id_credits').addEventListener('input', calculateSubjHours);
+document.getElementById('id_credit_type').addEventListener('change', calculateSubjHours);
+document.getElementById('id_semester_weeks').addEventListener('input', calculateSubjHours);
 </script>
 {% endblock %}

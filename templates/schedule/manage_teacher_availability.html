@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}График доступности преподавателей{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow border-primary">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-x"></i> Настройка выходных и "окон" преподавателей</h5>
+                <a href="{% url 'schedule:constructor' %}" class="btn btn-sm btn-light text-primary fw-bold">К конструктору</a>
+            </div>
+            <div class="card-body bg-light">
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i> Выберите преподавателя и отметьте галочками те часы, в которые он <strong>НЕ МОЖЕТ</strong> вести занятия. Алгоритм авто-генерации (AI Timetabling) не будет ставить ему пары в это время.
+                </div>
+
+                <form method="get" class="mb-4 bg-white p-3 rounded border shadow-sm d-flex gap-3 align-items-end">
+                    <div class="flex-grow-1">
+                        <label class="form-label fw-bold text-muted small text-uppercase">Выберите преподавателя</label>
+                        <select name="teacher_id" class="form-select border-primary" onchange="this.form.submit()">
+                            <option value="">-- Выберите из списка --</option>
+                            {% for t in teachers %}
+                                <option value="{{ t.id }}" {% if selected_teacher and selected_teacher.id == t.id %}selected{% endif %}>
+                                    {{ t.user.get_full_name }} ({{ t.department.name|default:"Без кафедры" }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+
+                {% if selected_teacher %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-dark">
+                                    <i class="bi bi-person-badge text-success me-2"></i>
+                                    График: {{ selected_teacher.user.get_full_name }}
+                                </h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="toggleAll(true)">Отметить всё (Выходной)</button>
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="toggleAll(false)">Снять всё (Доступен)</button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle mb-0 text-center">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 120px;">Время / День</th>
+                                                {% for day_num, day_name in days %}
+                                                    <th>{{ day_name }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for ts in time_slots %}
+                                                <tr>
+                                                    <td class="fw-bold bg-light">
+                                                        {{ ts.start_time|time:"H:i" }} - {{ ts.end_time|time:"H:i" }}
+                                                        <br><small class="text-muted fw-normal">{{ ts.get_shift_display }}</small>
+                                                    </td>
+                                                    {% for day_num, day_name in days %}
+                                                        {% with key=day_num|stringformat:"s"|add:"_"|add:ts.id|stringformat:"s" %}
+                                                        <td class="p-0 position-relative" style="cursor: pointer;" onclick="toggleCheckbox('cb_{{ key }}')">
+                                                            <div class="w-100 h-100 p-3 d-flex justify-content-center align-items-center">
+                                                                <input type="checkbox" 
+                                                                       class="form-check-input availability-cb" 
+                                                                       style="transform: scale(1.5); cursor: pointer;"
+                                                                       name="slot_{{ key }}" 
+                                                                       id="cb_{{ key }}"
+                                                                       value="1"
+                                                                       {% if key in unavailable_set %}checked{% endif %}
+                                                                       onclick="event.stopPropagation(); updateCellColor(this);">
+                                                            </div>
+                                                        </td>
+                                                        {% endwith %}
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white text-end py-3">
+                                <button type="submit" class="btn btn-primary btn-lg fw-bold px-5 shadow">
+                                    <i class="bi bi-save"></i> Сохранить график
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-person-lines-fill display-1 opacity-25"></i>
+                        <h4 class="mt-3">Выберите преподавателя</h4>
+                        <p>Чтобы настроить его график доступности.</p>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleCheckbox(id) {
+        const cb = document.getElementById(id);
+        cb.checked = !cb.checked;
+        updateCellColor(cb);
+    }
+
+    function updateCellColor(cb) {
+        const td = cb.closest('td');
+        if (cb.checked) {
+            td.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; 
+        } else {
+            td.style.backgroundColor = 'transparent'; 
+        }
+    }
+
+    function toggleAll(state) {
+        document.querySelectorAll('.availability-cb').forEach(cb => {
+            cb.checked = state;
+            updateCellColor(cb);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.availability-cb').forEach(cb => {
+            updateCellColor(cb);
+        });
+    });
+</script>
+{% endblock %}

@@ -48,7 +48,7 @@ def generate_student_id():
         last_student = Student.objects.select_for_update().filter(
             student_id__startswith=base_id
         ).order_by('-student_id').first()
-
+        
         if last_student:
             try:
                 last_number = int(last_student.student_id[len(base_id):])
@@ -475,13 +475,13 @@ def edit_user(request, user_id):
         dean_form = DeanForm(request.POST, instance=user_obj.dean_profile) if hasattr(user_obj, 'dean_profile') else None
         head_form = HeadOfDepartmentForm(request.POST, instance=user_obj.head_of_dept_profile) if hasattr(user_obj, 'head_of_dept_profile') else None
         
-        forms_valid = user_form.is_valid()
-        if student_form: forms_valid = forms_valid and student_form.is_valid()
-        if teacher_form: forms_valid = forms_valid and teacher_form.is_valid()
-        if dean_form: forms_valid = forms_valid and dean_form.is_valid()
-        if head_form: forms_valid = forms_valid and head_form.is_valid()
+        user_valid = user_form.is_valid()
+        student_valid = student_form.is_valid() if student_form else True
+        teacher_valid = teacher_form.is_valid() if teacher_form else True
+        dean_valid = dean_form.is_valid() if dean_form else True
+        head_valid = head_form.is_valid() if head_form else True
         
-        if forms_valid:
+        if user_valid and student_valid and teacher_valid and dean_valid and head_valid:
             user = user_form.save()
             
             is_teacher_checked = user_form.cleaned_data.get('is_teacher')
@@ -489,7 +489,7 @@ def edit_user(request, user_id):
             is_dean_checked = user_form.cleaned_data.get('is_dean')
             
             if is_teacher_checked:
-                teacher_obj, _ = Teacher.objects.get_or_create(user=user)
+                teacher_obj, created_teacher = Teacher.objects.get_or_create(user=user)
                 if teacher_form:
                     teacher_form.instance = teacher_obj
                     teacher_form.save()
@@ -497,7 +497,7 @@ def edit_user(request, user_id):
                 user.teacher_profile.delete()
                 
             if is_head_checked:
-                head_obj, _ = HeadOfDepartment.objects.get_or_create(user=user)
+                head_obj, created_head = HeadOfDepartment.objects.get_or_create(user=user)
                 if head_form:
                     head_form.instance = head_obj
                     head_form.save()
@@ -505,7 +505,7 @@ def edit_user(request, user_id):
                 user.head_of_dept_profile.delete()
                 
             if is_dean_checked:
-                dean_obj, _ = Dean.objects.get_or_create(user=user)
+                dean_obj, created_dean = Dean.objects.get_or_create(user=user)
                 if dean_form:
                     dean_form.instance = dean_obj
                     dean_form.save()
@@ -661,14 +661,105 @@ def view_user_profile(request, user_id):
     }
 
     if hasattr(user_obj, 'student_profile'):
-        profile = user_obj.student_profile
-        from journal.models import StudentStatistics
-        stats, created = StudentStatistics.objects.get_or_create(student=profile)
-        stats.recalculate()
-        profile.statistics = stats
-        context['profile'] = profile
-        context['templates_cert'] = DocumentTemplate.objects.filter(context_type='STUDENT_CERT', is_active=True)
-        template = 'accounts/profile_student.html'
+            profile = user_obj.student_profile
+            from journal.models import StudentStatistics, JournalEntry
+            from django.db.models.functions import TruncMonth
+            from django.db.models import Avg, Count, Q
+            import json
+            
+            stats, created = StudentStatistics.objects.get_or_create(student=profile)
+            stats.recalculate()
+            profile.statistics = stats
+            context['profile'] = profile
+            context['templates_cert'] = DocumentTemplate.objects.filter(context_type='STUDENT_CERT', is_active=True)
+            
+            monthly_data = JournalEntry.objects.filter(student=profile).annotate(
+                month=TruncMonth('lesson_date')
+            ).values('month').annotate(
+                avg_grade=Avg('grade'),
+                total_lessons=Count('id'),
+                attended=Count('id', filter=Q(attendance_status='PRESENT'))
+            ).order_by('month')
+
+            chart_labels =[]
+            chart_gpa = []
+            chart_attendance =[]
+
+            if monthly_data:
+                for entry in monthly_data:
+                    if entry['month']:
+                        month_name = entry['month'].strftime('%b')
+                        chart_labels.append(month_name)
+                        chart_gpa.append(round(entry['avg_grade'] or 0, 2))
+                        att_pct = (entry['attended'] / entry['total_lessons'] * 100) if entry['total_lessons'] > 0 else 0
+                        chart_attendance.append(round(att_pct, 1))
+            else:
+                today = timezone.now()
+                chart_labels = [today.strftime('%b')] 
+                chart_gpa = [0]
+                chart_attendance = [0]
+
+            donut_data =[
+                stats.attended_lessons,
+                stats.absent_illness,
+                stats.absent_valid,
+                stats.absent_invalid
+            ]
+            
+            if sum(donut_data) == 0:
+                donut_data = [1, 0, 0, 0] 
+                donut_empty = True
+            else:
+                donut_empty = False
+
+            context['chart_labels'] = json.dumps(chart_labels)
+            context['chart_gpa'] = json.dumps(chart_gpa)
+            context['chart_attendance'] = json.dumps(chart_attendance)
+            context['donut_data'] = json.dumps(donut_data)
+            context['donut_empty'] = json.dumps(donut_empty)
+            
+            risk_reasons =[]
+            risk_score = 0
+            if stats.overall_gpa < 2.5:
+                risk_reasons.append(f"Критический средний балл: {stats.overall_gpa:.1f}")
+                risk_score += 3
+            elif stats.overall_gpa < 3.0:
+                risk_reasons.append(f"Низкий средний балл: {stats.overall_gpa:.1f}")
+                risk_score += 1
+                
+            if stats.total_lessons > 0:
+                if stats.attendance_percentage < 50.0:
+                    risk_reasons.append(f"Критическая посещаемость: {stats.attendance_percentage:.0f}%")
+                    risk_score += 3
+                elif stats.attendance_percentage < 70.0:
+                    risk_reasons.append(f"Низкая посещаемость: {stats.attendance_percentage:.0f}%")
+                    risk_score += 1
+                
+            if stats.total_absent > 15:
+                risk_reasons.append(f"Слишком много прогулов: {stats.total_absent} (НБ)")
+                risk_score += 2
+            elif stats.total_absent > 8:
+                risk_reasons.append(f"Частые пропуски: {stats.total_absent} (НБ)")
+                risk_score += 1
+                
+            if risk_score >= 3:
+                risk_level = 'Высокий риск'
+                risk_color = 'danger'
+            elif risk_score > 0:
+                risk_level = 'Средний риск'
+                risk_color = 'warning'
+            else:
+                risk_level = 'В норме'
+                risk_color = 'success'
+                risk_reasons.append("Показатели в пределах нормы")
+                
+            context['risk_data'] = {
+                'level': risk_level,
+                'color': risk_color,
+                'reasons': risk_reasons
+            }
+            
+            template = 'accounts/profile_student.html'
 
     elif hasattr(user_obj, 'teacher_profile'):
         profile = user_obj.teacher_profile

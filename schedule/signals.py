@@ -1,4 +1,3 @@
-# schedule/signals.py
 import re
 from datetime import datetime
 from django.db.models.signals import post_save
@@ -8,9 +7,11 @@ from .models import AcademicPlan
 
 @receiver(post_save, sender=Group)
 def auto_create_rup_for_group(sender, instance, created, **kwargs):
-    if created and instance.specialty and instance.academic_year:
+    if created and instance.specialty:
         try:
-            match = re.search(r'\d{4}', instance.academic_year)
+            academic_year_str = instance.academic_year or str(datetime.now().year)
+            
+            match = re.search(r'\d{4}', academic_year_str)
             start_year = int(match.group()) if match else datetime.now().year
             
             admission_year = start_year - instance.course + 1
@@ -18,7 +19,7 @@ def auto_create_rup_for_group(sender, instance, created, **kwargs):
             plan, plan_created = AcademicPlan.objects.get_or_create(
                 specialty=instance.specialty,
                 admission_year=admission_year,
-                group__isnull=True, 
+                group__isnull=True,
                 defaults={'is_active': True}
             )
             

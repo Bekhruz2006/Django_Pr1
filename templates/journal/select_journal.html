@@ -11,6 +11,15 @@
             </div>
             <div class="card-body p-4">
                 <form method="get" action="{% url 'journal:journal_view' %}">
+                    {% if not form.institute.is_hidden %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Институт</label>
+                        {{ form.institute }}
+                    </div>
+                    {% else %}
+                        {{ form.institute }}
+                    {% endif %}
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Группа *</label>
                         {{ form.group }}
@@ -19,7 +28,7 @@
                     <div class="mb-4">
                         <label class="form-label fw-bold">Предмет *</label>
                         {{ form.subject }}
-                        <small class="form-text text-muted">Показаны только ваши предметы</small>
+                        <small class="form-text text-muted">Показаны только предметы выбранной группы</small>
                     </div>
 
                     <div class="mb-4">
@@ -30,12 +39,13 @@
                     
                     <hr class="mb-4">
                     
+                    <input type="hidden" name="tab" id="tabInput" value="weekly">
                     <div class="d-grid gap-3">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" class="btn btn-primary btn-lg" onclick="document.getElementById('tabInput').value='weekly'">
                             <i class="bi bi-calendar-week me-2"></i> Открыть Еженедельный журнал
                         </button>
                         
-                        <button type="submit" formaction="{% url 'journal:performance_journal' %}" class="btn btn-success btn-lg">
+                        <button type="submit" class="btn btn-success btn-lg" onclick="document.getElementById('tabInput').value='matrix'">
                             <i class="bi bi-grid-3x3 me-2"></i> Открыть Сводную ведомость (Рейтинги и Экзамен)
                         </button>
                     </div>

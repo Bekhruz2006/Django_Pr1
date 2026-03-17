@@ -47,9 +47,9 @@
     }
 
     .val-grade { color: #2563eb; font-weight: bold; }
-    .val-absent { color: #dc2626; font-weight: bold; }
-    .val-ready { color: #10b981; font-weight: bold; }
-    .val-not-ready { color: #f59e0b; font-weight: bold; }
+    .val-absent-invalid { color: #dc2626; font-weight: bold; }
+    .val-absent-valid { color: #f59e0b; font-weight: bold; }
+    .val-absent-illness { color: #0284c7; font-weight: bold; }
 
 </style>
 
@@ -63,100 +63,168 @@
                 </h5>
                 <div>
                     <span class="badge bg-light text-dark border me-2">Неделя {{ week_num }}</span>
-                    <a href="{% url 'journal:journal_view' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
+                    <a href="{% url 'journal:journal_view' %}?clear=1" class="btn btn-outline-secondary btn-sm">Назад</a>
                 </div>
             </div>
-            <div>
-                <span class="badge bg-light text-dark border me-2">Неделя {{ week_num }}</span>
-                <a href="{% url 'journal:performance_journal' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-primary btn-sm me-2">
-                    <i class="bi bi-grid-3x3"></i> Сводная ведомость (Рейтинги)
-                </a>
-                <a href="{% url 'journal:journal_view' %}" class="btn btn-outline-secondary btn-sm">Назад</a>
+            <div class="px-3 pb-0 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <ul class="nav nav-tabs border-0" id="journalTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold" id="weekly-tab" data-bs-toggle="tab" data-bs-target="#weekly-pane" type="button" role="tab">
+                                <i class="bi bi-calendar-week"></i> Еженедельный журнал
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold" id="matrix-tab" data-bs-toggle="tab" data-bs-target="#matrix-pane" type="button" role="tab">
+                                <i class="bi bi-grid-3x3"></i> Сводная ведомость (Рейтинги)
+                            </button>
+                        </li>
+                    </ul>
+                    <a href="{% url 'journal:journal_view' %}?clear=1" class="btn btn-outline-secondary btn-sm mb-2">Назад к выбору</a>
+                </div>
             </div>
+            
             <div class="card-body p-0">
-                {% if is_future_week and not user_is_admin %}
-<div class="alert alert-warning py-2 mb-3">
-    <i class="bi bi-lock-fill"></i> <strong>Будущая неделя:</strong> Выставление итоговых баллов за эту неделю пока недоступно.
-</div>
-{% elif user_is_admin %}
-<div class="alert alert-info py-2 mb-3">
-    <i class="bi bi-shield-lock-fill"></i> <strong>Режим Администратора:</strong> Вы можете редактировать баллы за любые недели.
-</div>
-{% endif %}
-                <div class="d-flex justify-content-between bg-light p-2 border-bottom">
-                    <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" class="btn btn-sm btn-link text-decoration-none">&larr; Пред. неделя</a>
+                <div class="tab-content" id="journalTabsContent">
+                    <!-- ВКЛАДКА: ЕЖЕНЕДЕЛЬНЫЙ ЖУРНАЛ -->
+                    <div class="tab-pane fade show active" id="weekly-pane" role="tabpanel">
+                        {% if is_future_week and not user_is_admin %}
+                        <div class="alert alert-warning py-2 mb-0 rounded-0 border-start-0 border-end-0">
+                            <i class="bi bi-lock-fill"></i> <strong>Будущая неделя:</strong> Выставление итоговых баллов за эту неделю пока недоступно.
+                        </div>
+                        {% elif user_is_admin %}
+                        <div class="alert alert-info py-2 mb-0 rounded-0 border-start-0 border-end-0">
+                            <i class="bi bi-shield-lock-fill"></i> <strong>Режим Администратора:</strong> Вы можете редактировать баллы за любые недели.
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between bg-light p-2 border-bottom">
+                            <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'-1' }}" class="btn btn-sm btn-link text-decoration-none">&larr; Пред. неделя</a>
 
-                    <small class="text-muted align-self-center">
-                        Вводите <b>нб</b> для прогула, <b>г</b> (готов) или <b>нг</b> (не готов). Tab для перемещения.
-                    </small>
+                            <small class="text-muted align-self-center">
+                                Вводите <b>нб</b> (неуваж), <b>у</b> (уваж) или <b>б</b> (болезнь). Tab для перемещения.
+                            </small>
 
-                    <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'1' }}" class="btn btn-sm btn-link text-decoration-none">След. неделя &rarr;</a>
-                </div>
+                            <a href="?group={{ group.id }}&subject={{ subject.id }}&week={{ week_num|add:'1' }}" class="btn btn-sm btn-link text-decoration-none">След. неделя &rarr;</a>
+                        </div>
 
-                <div class="table-responsive">
-                    <table class="table table-bordered mb-0 journal-grid table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 250px;" class="ps-3 align-middle">ФИО Студента</th>
-                                {% for day in days_with_lessons %}
-                                    <th class="text-center" style="width: 80px;">
-                                        <div style="font-size: 0.8rem;">{{ day.day_name|slice:":2" }}</div>
-                                        <div style="font-size: 0.7rem;" class="text-muted">{{ day.date|date:"d.m" }}</div>
-                                        <div style="font-size: 0.65rem; color: #aaa;">{{ day.time|time:"H:i" }}</div>
-                                    </th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in journal_data %}
-                            <tr>
-                                <td class="ps-3 py-2">
-                                    <span class="fw-medium">{{ row.student.user.last_name }} {{ row.student.user.first_name|slice:":1" }}.</span>
-                                </td>
-                                {% for entry_data in row.entries %}
-                                    <td>
-                                        {% if entry_data.is_locked %}
-                                            <div class="cell-locked" title="Заблокировано (время истекло)">
-                                                {{ entry_data.entry.get_display_value }}
-                                                {% if entry_data.entry.attendance_status != 'PRESENT' and not entry_data.entry.grade %}
-                                                    <small>НБ</small>
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0 journal-grid table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 250px;" class="ps-3 align-middle">ФИО Студента</th>
+                                        {% for day in days_with_lessons %}
+                                            <th class="text-center" style="width: 80px;">
+                                                <div style="font-size: 0.8rem;">{{ day.day_name|slice:":2" }}</div>
+                                                <div style="font-size: 0.7rem;" class="text-muted">{{ day.date|date:"d.m" }}</div>
+                                                <div style="font-size: 0.65rem; color: #aaa;">{{ day.time|time:"H:i" }}</div>
+                                            </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in journal_data %}
+                                    <tr>
+                                        <td class="ps-3 py-2">
+                                            <span class="fw-medium">{{ row.student.user.last_name }} {{ row.student.user.first_name|slice:":1" }}.</span>
+                                        </td>
+                                        {% for entry_data in row.entries %}
+                                            <td>
+                                                {% if entry_data.is_locked %}
+                                                    <div class="cell-locked" title="Заблокировано (время истекло)">
+                                                        {% if entry_data.entry.grade %}
+                                                            <span class="val-grade">{{ entry_data.entry.grade }}</span>
+                                                        {% elif entry_data.entry.attendance_status == 'ABSENT_INVALID' %}
+                                                            <span class="val-absent-invalid">НБ</span>
+                                                        {% elif entry_data.entry.attendance_status == 'ABSENT_VALID' %}
+                                                            <span class="val-absent-valid">У</span>
+                                                        {% elif entry_data.entry.attendance_status == 'ABSENT_ILLNESS' %}
+                                                            <span class="val-absent-illness">Б</span>
+                                                        {% else %}
+                                                            <span class="text-muted">✓</span>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <select class="journal-input form-select form-select-sm px-1 py-0 {% if entry_data.entry.grade %}val-grade{% elif entry_data.entry.attendance_status == 'ABSENT_INVALID' %}val-absent-invalid{% elif entry_data.entry.attendance_status == 'ABSENT_VALID' %}val-absent-valid{% elif entry_data.entry.attendance_status == 'ABSENT_ILLNESS' %}val-absent-illness{% endif %}"
+                                                            data-entry-id="{{ entry_data.entry.id }}"
+                                                            style="height: 100%; border: none; background: transparent; text-align: center; font-weight: 600; cursor: pointer; box-shadow: none;">
+                                                        {% with current_val=entry_data.entry.grade|default_if_none:"" %}
+                                                        <option value="" {% if not current_val and entry_data.entry.attendance_status == 'PRESENT' %}selected{% endif %}></option>
+
+                                                        <optgroup label="Посещаемость">
+                                                            <option value="нб" class="text-danger fw-bold" {% if entry_data.entry.attendance_status == 'ABSENT_INVALID' %}selected{% endif %}>НБ (Неуваж.)</option>
+                                                            <option value="у" class="text-warning fw-bold" {% if entry_data.entry.attendance_status == 'ABSENT_VALID' %}selected{% endif %}>У (Уваж.)</option>
+                                                            <option value="б" class="text-primary fw-bold" {% if entry_data.entry.attendance_status == 'ABSENT_ILLNESS' %}selected{% endif %}>Б (Болезнь)</option>
+                                                        </optgroup>
+                                                        {% endwith %}
+                                                    </select>
                                                 {% endif %}
-                                            </div>
-                                        {% else %}
-                                            <select class="journal-input form-select form-select-sm px-1 py-0 {% if entry_data.entry.grade %}val-grade{% elif entry_data.entry.attendance_status != 'PRESENT' %}val-absent{% endif %}"
-                                                    data-entry-id="{{ entry_data.entry.id }}"
-                                                    style="height: 100%; border: none; background: transparent; text-align: center; font-weight: 600; cursor: pointer; box-shadow: none;">
-                                                {% with current_val=entry_data.entry.grade|default_if_none:"" %}
-                                                <option value="" {% if not current_val and entry_data.entry.attendance_status == 'PRESENT' and entry_data.entry.participation == 'NONE' %}selected{% endif %}></option>
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-                                                <optgroup label="Посещаемость">
-                                                    <option value="нб" class="text-danger fw-bold" {% if entry_data.entry.attendance_status == 'ABSENT_INVALID' %}selected{% endif %}>НБ</option>
-                                                    <option value="г" class="text-success fw-bold" {% if entry_data.entry.participation == 'READY' %}selected{% endif %}>Г (Готов)</option>
-                                                    <option value="нг" class="text-warning fw-bold" {% if entry_data.entry.participation == 'NOT_READY' %}selected{% endif %}>НГ (Не готов)</option>
-                                                </optgroup>
-                                                {% endwith %}
-                                            </select>
-                                        {% endif %}
-                                    </td>
-                                {% endfor %}
-                                <td class="bg-warning bg-opacity-10 p-1">
-    {% if weekly_column %}
-        <input type="text"
-               class="form-control form-control-sm text-center fw-bold weekly-score-input"
-               value="{{ row.weekly_score|default_if_none:'' }}"
-               data-student-id="{{ row.student.id }}"
-               data-subject-id="{{ subject.id }}"
-               data-column-id="{{ weekly_column.id }}"
-               {% if not can_edit_weekly_score %}disabled title="Неделя еще не наступила"{% endif %}
-               placeholder="-">
-    {% else %}
-        <small class="text-muted" style="font-size: 0.6rem;">Матрица не настроена</small>
-    {% endif %}
-</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <!-- ВКЛАДКА: СВОДНАЯ ВЕДОМОСТЬ (МАТРИЦА) -->
+                    <div class="tab-pane fade" id="matrix-pane" role="tabpanel">
+                        <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
+                            <small class="text-muted"><i class="bi bi-info-circle"></i> Баллы за недели и рейтинги выставляются здесь.</small>
+                            {% if user_is_admin %}
+                            <a href="{% url 'journal:matrix_constructor' %}{% if group.specialty and group.specialty.department.faculty.institute %}?institute={{ group.specialty.department.faculty.institute.id }}{% endif %}" class="btn btn-sm btn-warning shadow-sm"><i class="bi bi-gear"></i> Конструктор матрицы</a>
+                            {% endif %}
+                        </div>
+
+                        <div class="table-responsive" style="overflow-x: auto;">
+                            {% if not matrix_structure %}
+                                <div class="p-5 text-center text-muted">
+                                    <i class="bi bi-cone-striped display-4"></i>
+                                    <h4 class="mt-3">Структура ведомости не настроена</h4>
+                                    <p>Администратор или Декан должен создать структуру колонок для вашего факультета.</p>
+                                </div>
+                            {% else %}
+                                <table class="table table-bordered table-sm text-center align-middle matrix-table mb-0 table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 40px;">№</th>
+                                            <th style="width: 250px; position: sticky; left: 0; background: #f8f9fa; z-index: 10;" class="text-start ps-3">ФИО Студента</th>
+                                            {% for col in columns %}
+                                                <th class="{% if col.col_type == 'WEEK' %}bg-light{% elif col.col_type == 'RATING' %}bg-warning bg-opacity-25{% else %}bg-danger bg-opacity-10{% endif %}" title="Макс: {{ col.max_score }}">
+                                                    {{ col.name }}<br>
+                                                    <small class="text-muted" style="font-size:0.7rem;">(max: {{ col.max_score|floatformat:0 }})</small>
+                                                </th>
+                                            {% endfor %}
+                                            <th class="bg-success bg-opacity-10">Итог</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in students_matrix_data %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td class="text-start fw-bold ps-3" style="position: sticky; left: 0; background: #fff; z-index: 10;">
+                                                {{ item.obj.user.last_name }} {{ item.obj.user.first_name }}
+                                            </td>
+                                            
+                                            {% for score_item in item.scores %}
+                                                <td class="p-1">
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm text-center matrix-input fw-bold"
+                                                           value="{{ score_item.value|default_if_none:'' }}"
+                                                           data-student-id="{{ item.obj.id }}"
+                                                           data-subject-id="{{ subject.id }}"
+                                                           data-column-id="{{ score_item.column.id }}">
+                                                </td>
+                                            {% endfor %}
+                                            
+                                            <td class="bg-success bg-opacity-10 fw-bold fs-5 text-success">{{ item.total }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -214,12 +282,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (data.success) {
                     this.value = data.display;
-                    this.classList.remove('val-grade', 'val-absent', 'val-ready', 'val-not-ready');
+                    this.classList.remove('val-grade', 'val-absent-invalid', 'val-absent-valid', 'val-absent-illness');
 
                     if (data.type === 'grade') this.classList.add('val-grade');
-                    if (data.type === 'absent') this.classList.add('val-absent');
-                    if (data.type === 'ready') this.classList.add('val-ready');
-                    if (data.type === 'not_ready') this.classList.add('val-not-ready');
+                    if (data.type === 'absent_invalid') this.classList.add('val-absent-invalid');
+                    if (data.type === 'absent_valid') this.classList.add('val-absent-valid');
+                    if (data.type === 'absent_illness') this.classList.add('val-absent-illness');
 
                     this.dataset.oldValue = data.display;
                 } else {
@@ -237,42 +305,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-document.querySelectorAll('.weekly-score-input').forEach(input => {
-    input.addEventListener('change', function() {
-        const val = this.value;
-        this.style.opacity = '0.5';
-
-        fetch('{% url "journal:update_weekly_score" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                student_id: this.dataset.studentId,
-                subject_id: this.dataset.subjectId,
-                column_id: this.dataset.columnId,
-                value: val
+    document.querySelectorAll('.matrix-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const val = this.value;
+            this.style.opacity = '0.5';
+            
+            fetch('{% url "journal:update_weekly_score" %}', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    student_id: this.dataset.studentId,
+                    subject_id: this.dataset.subjectId,
+                    column_id: this.dataset.columnId,
+                    value: val
+                })
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            this.style.opacity = '1';
-            if(data.success) {
-                this.value = data.score !== null ? data.score : '';
-                this.classList.add('bg-success', 'text-white');
-                setTimeout(() => this.classList.remove('bg-success', 'text-white'), 1000);
-            } else {
-                alert(data.error);
-                this.value = ''; 
-            }
-        })
-        .catch(err => {
-            this.style.opacity = '1';
-            alert('Ошибка сети');
+            .then(res => res.json())
+            .then(data => {
+                this.style.opacity = '1';
+                if(data.success) {
+                    this.value = data.score !== null ? data.score : '';
+                    this.classList.add('border-success', 'bg-success', 'text-white');
+                    
+                    const tr = this.closest('tr');
+                    let total = 0;
+                    tr.querySelectorAll('.matrix-input').forEach(inp => {
+                        const v = parseFloat(inp.value.replace(',', '.'));
+                        if (!isNaN(v)) total += v;
+                    });
+                    const totalCell = tr.querySelector('.text-success.fw-bold.fs-5');
+                    if (totalCell) totalCell.textContent = total.toFixed(2);
+
+                    setTimeout(() => {
+                        this.classList.remove('border-success', 'bg-success', 'text-white');
+                    }, 500);
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(err => {
+                this.style.opacity = '1';
+                alert('Ошибка сети');
+            });
         });
     });
-});
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tab') === 'matrix') {
+        const matrixTab = new bootstrap.Tab(document.getElementById('matrix-tab'));
+        matrixTab.show();
+    }
 });
 </script>
 {% endblock %}

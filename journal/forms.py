@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from .models import JournalEntry, JournalChangeLog
-from accounts.models import Group
+from accounts.models import Group, Institute
 from schedule.models import Subject
 
 class JournalEntryForm(forms.ModelForm):
@@ -97,16 +97,22 @@ class BulkGradeForm(forms.Form):
         return cleaned_data
 
 class JournalFilterForm(forms.Form):
+    institute = forms.ModelChoiceField(
+        queryset=Institute.objects.all(),
+        required=False,
+        empty_label=_("-- Все институты --"),
+        widget=forms.Select(attrs={'class': 'form-select', 'onchange': 'this.form.submit()'})
+    )
     group = forms.ModelChoiceField(
-        queryset=Group.objects.all(),
-        required=True,
+        queryset=Group.objects.none(),
+        required=False,
         empty_label=_("-- Выберите группу --"),
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select', 'onchange': 'this.form.submit()'})
     )
     
     subject = forms.ModelChoiceField(
-        queryset=Subject.objects.all(),
-        required=True,
+        queryset=Subject.objects.none(),
+        required=False,
         empty_label=_("-- Выберите предмет --"),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
@@ -121,25 +127,48 @@ class JournalFilterForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         if user:
-            if user.is_superuser:
+            if user.is_superuser or hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'):
                 self.fields['group'].queryset = Group.objects.all()
                 self.fields['subject'].queryset = Subject.objects.all()
+                
+                if self.is_bound and self.data.get('institute'):
+                    inst_id = self.data.get('institute')
+                    self.fields['group'].queryset = self.fields['group'].queryset.filter(specialty__department__faculty__institute_id=inst_id)
+                    self.fields['subject'].queryset = self.fields['subject'].queryset.filter(department__faculty__institute_id=inst_id)
+                    
+                if self.is_bound and self.data.get('group'):
+                    group_id = self.data.get('group')
+                    self.fields['subject'].queryset = self.fields['subject'].queryset.filter(groups__id=group_id)
+
             elif hasattr(user, 'dean_profile') or hasattr(user, 'vicedean_profile'):
+                self.fields['institute'].widget = forms.HiddenInput()
                 profile = getattr(user, 'dean_profile', None) or getattr(user, 'vicedean_profile', None)
                 faculty = profile.faculty
                 self.fields['group'].queryset = Group.objects.filter(specialty__department__faculty=faculty)
-                self.fields['subject'].queryset = Subject.objects.filter(department__faculty=faculty)
+                
+                if self.is_bound and self.data.get('group'):
+                    group_id = self.data.get('group')
+                    self.fields['subject'].queryset = Subject.objects.filter(department__faculty=faculty, groups__id=group_id)
+                else:
+                    self.fields['subject'].queryset = Subject.objects.filter(department__faculty=faculty)
+                    
             elif hasattr(user, 'teacher_profile'):
+                self.fields['institute'].widget = forms.HiddenInput()
                 teacher = user.teacher_profile
                 subjects = Subject.objects.filter(teacher=teacher)
-                self.fields['subject'].queryset = subjects
-
+                
                 from schedule.models import ScheduleSlot
                 schedule_group_ids = ScheduleSlot.objects.filter(teacher=teacher, is_active=True).values_list('group_id', flat=True)
                 subject_group_ids = subjects.values_list('groups__id', flat=True)
 
                 all_group_ids = set(schedule_group_ids) | set(subject_group_ids)
                 self.fields['group'].queryset = Group.objects.filter(id__in=all_group_ids).distinct()
+                
+                if self.is_bound and self.data.get('group'):
+                    group_id = self.data.get('group')
+                    self.fields['subject'].queryset = subjects.filter(groups__id=group_id)
+                else:
+                    self.fields['subject'].queryset = subjects
 
 class ChangeLogFilterForm(forms.Form):
 

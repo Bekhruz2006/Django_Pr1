@@ -5,11 +5,11 @@ import random
 import copy
 from collections import defaultdict
 from django.db import transaction
-from .models import ScheduleSlot, Subject, Classroom, TimeSlot
+from .models import ScheduleSlot, Subject, Classroom, TimeSlot, TeacherUnavailableSlot
 
 class AutoScheduleEngine:
     def __init__(self, semester, target_groups=None, target_teachers=None, target_rooms=None, 
-                 avoid_gaps=True, overflow_mode=1, strict_room_types=False, iterations=5):
+                 avoid_gaps=True, overflow_mode=1, strict_room_types=False, iterations=50):
         self.semester = semester
         self.target_groups = target_groups
         self.target_teachers = target_teachers
@@ -21,14 +21,27 @@ class AutoScheduleEngine:
         self.iterations = iterations
         
         self.time_slots = list(TimeSlot.objects.filter(shift=semester.shift).order_by('start_time'))
-        self.days = [0, 1, 2, 3, 4, 5]
+        self.days = [0, 1, 2, 3, 4, 5] # Пн-Сб
         self.week_types = ['EVERY', 'RED', 'BLUE']
 
         self.base_teacher_busy = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(bool))))
         self.base_group_busy = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(bool))))
         self.base_room_busy = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(bool))))
         
+        # НОВОЕ: Хранилище недоступного времени преподавателей
+        self.teacher_unavailable = defaultdict(lambda: defaultdict(lambda: defaultdict(bool)))
+        
         self._load_existing_schedule()
+        self._load_teacher_unavailability()
+
+    def _load_teacher_unavailability(self):
+        """Загружаем дни и часы, когда преподаватели не могут вести занятия"""
+        unavailables_qs = TeacherUnavailableSlot.objects.all()
+        if self.target_teachers:
+            unavailables_qs = unavailables_qs.filter(teacher_id__in=self.target_teachers)
+            
+        for u in unavailables_qs:
+            self.teacher_unavailable[u.teacher_id][u.day_of_week][u.time_slot_id] = True
 
     def _load_existing_schedule(self):
         existing_slots = ScheduleSlot.objects.filter(semester=self.semester, is_active=True)
@@ -38,7 +51,7 @@ class AutoScheduleEngine:
             if slot.stream_id:
                 g_ids = list(ScheduleSlot.objects.filter(stream_id=slot.stream_id).values_list('group_id', flat=True))
             
-            w_types = ['RED', 'BLUE'] if slot.week_type == 'EVERY' else[slot.week_type]
+            w_types = ['RED', 'BLUE'] if slot.week_type == 'EVERY' else [slot.week_type]
             for wt in w_types:
                 if t_id: self.base_teacher_busy[t_id][slot.day_of_week][slot.time_slot_id][wt] = True
                 if slot.classroom_id: self.base_room_busy[slot.classroom_id][slot.day_of_week][slot.time_slot_id][wt] = True
@@ -46,8 +59,12 @@ class AutoScheduleEngine:
                     self.base_group_busy[g_id][slot.day_of_week][slot.time_slot_id][wt] = True
 
     def _is_free(self, state, t_id, g_ids, r_id, day, ts_id, week_type):
+        # НОВОЕ: Проверка, не поставил ли декан выходной на этот час
+        if t_id and self.teacher_unavailable[t_id][day][ts_id]: 
+            return False
+
         t_busy, g_busy, r_busy = state
-        w_types = ['RED', 'BLUE'] if week_type == 'EVERY' else[week_type]
+        w_types = ['RED', 'BLUE'] if week_type == 'EVERY' else [week_type]
         for wt in w_types:
             if t_id and t_busy[t_id][day][ts_id][wt]: return False
             if r_id and r_busy[r_id][day][ts_id][wt]: return False
@@ -80,7 +97,7 @@ class AutoScheduleEngine:
             has_next = next_ts_id and any(g_busy[g_id][day][next_ts_id].values())
             
             if has_prev or has_next:
-                score += 15
+                score += 15 
             else:
                 day_is_empty = True
                 for slot in self.time_slots:
@@ -88,9 +105,9 @@ class AutoScheduleEngine:
                         day_is_empty = False
                         break
                 if day_is_empty:
-                    score += 5
+                    score += 5 
                 else:
-                    score -= 30
+                    score -= 30 
         return score
 
     def generate(self):
@@ -128,7 +145,7 @@ class AutoScheduleEngine:
                                 'total_students': total_students, 'pref_room': subject.preferred_room_type
                             })
 
-        best_schedule = []
+        best_schedule =[]
         best_unassigned =[]
         best_score = -float('inf')
 
@@ -149,12 +166,12 @@ class AutoScheduleEngine:
             for task in tasks:
                 assigned = False
                 t_id = task['teacher'].id if task['teacher'] else None
-                g_ids =[g.id for g in task['groups']]
+                g_ids = [g.id for g in task['groups']]
                 
                 best_slot_choice = None
                 best_slot_score = -float('inf')
 
-                for week_type in self.week_types:
+                for week_type in ['EVERY']:
                     for day in self.days:
                         for ts_index, ts in enumerate(self.time_slots):
                             for room in available_rooms:
@@ -165,10 +182,13 @@ class AutoScheduleEngine:
                                 
                                 type_penalty = 0
                                 if self.strict_room_types:
-                                    if task['type'] == 'LECTURE' and room.room_type not in['LECTURE', 'SPORT']: continue
+                                    if task['type'] == 'LECTURE' and room.room_type not in ['LECTURE', 'SPORT']: continue
+                                    if task['type'] == 'LAB' and room.room_type != 'LAB': continue
                                     if task['pref_room'] and room.room_type != task['pref_room']: continue
                                 else:
                                     if task['type'] == 'LECTURE' and room.room_type not in['LECTURE', 'SPORT']:
+                                        type_penalty -= 50
+                                    if task['type'] == 'LAB' and room.room_type != 'LAB':
                                         type_penalty -= 50
                                     if task['pref_room'] and room.room_type != task['pref_room']:
                                         type_penalty -= 30
@@ -181,7 +201,6 @@ class AutoScheduleEngine:
 
                                 if self._is_free(current_state, t_id, g_ids, room.id, day, ts.id, week_type):
                                     time_score = self._evaluate_slot_quality(current_state, t_id, g_ids, day, ts_index)
-                                    
                                     total_score = time_score + type_penalty + cap_penalty - (ts_index * 2)
 
                                     if total_score > best_slot_score:

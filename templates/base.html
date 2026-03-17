@@ -626,6 +626,10 @@
                 <a class="sidebar-link" href="{% url 'lms:dashboard' %}"><i class="bi bi-laptop"></i>{% trans "LMS — Платформа обучения" %}</a>
                 <a class="sidebar-link" href="{% url 'journal:matrix_constructor' %}"><i class="bi bi-grid-3x3"></i>Конструктор ведомости</a>
                 <a class="sidebar-link" href="{% url 'lms:course_list' %}"><i class="bi bi-mortarboard"></i>{% trans "Все курсы" %}</a>
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-sub-label">{% trans "Аналитика" %}</div>
+                <a class="sidebar-link" href="{% url 'journal:dean_view' %}"><i class="bi bi-graph-up"></i>{% trans "Статистика успеваемости" %}</a>
+                <a class="sidebar-link" href="{% url 'journal:department_report' %}"><i class="bi bi-bar-chart-line"></i>{% trans "Аналитический отчет" %}</a>
             </div>
             <div class="sidebar-section-header" data-target="schedule-menu">
                 <span class="section-label"><i class="bi bi-calendar-week"></i>{% trans "Расписание" %}</span>
@@ -857,7 +861,6 @@
     </script>
     {% block extra_js %}{% endblock %}
 
-    <!-- Модальное окно для алгоритмического анализа студента -->
 <div class="modal fade" id="studentTrendModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -865,10 +868,20 @@
                 <h5 class="modal-title"><i class="bi bi-graph-up-arrow me-2"></i> Анализ динамики обучения</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="studentTrendBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2 text-muted">Сбор данных и расчет алгоритма...</p>
+            <div class="modal-body p-0">
+                <div class="bg-light p-2 border-bottom d-flex justify-content-center gap-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check trend-period" name="trendPeriod" id="tp_week" value="week">
+                        <label class="btn btn-outline-secondary" for="tp_week">За неделю</label>
+                        
+                        <input type="radio" class="btn-check trend-period" name="trendPeriod" id="tp_month" value="month">
+                        <label class="btn btn-outline-secondary" for="tp_month">За месяц</label>
+                        
+                        <input type="radio" class="btn-check trend-period" name="trendPeriod" id="tp_all" value="all" checked>
+                        <label class="btn btn-outline-secondary" for="tp_all">За всё время</label>
+                    </div>
+                </div>
+                <div id="studentTrendBody" class="p-4">
                 </div>
             </div>
         </div>
@@ -876,12 +889,32 @@
 </div>
 
 <script>
-function showStudentTrend(studentId, studentName) {
-    const modal = new bootstrap.Modal(document.getElementById('studentTrendModal'));
-    document.getElementById('studentTrendBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Сбор данных и расчет алгоритма...</p></div>';
-    modal.show();
+let currentTrendStudentId = null;
+let currentTrendStudentName = '';
 
-    fetch(`/journal/api/student-trend/${studentId}/`)
+function showStudentTrend(studentId, studentName) {
+    currentTrendStudentId = studentId;
+    currentTrendStudentName = studentName;
+    
+    const modal = new bootstrap.Modal(document.getElementById('studentTrendModal'));
+    modal.show();
+    
+    document.getElementById('tp_all').checked = true;
+    fetchTrendData('all');
+}
+
+document.querySelectorAll('.trend-period').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if(currentTrendStudentId) {
+            fetchTrendData(this.value);
+        }
+    });
+});
+
+function fetchTrendData(period) {
+    document.getElementById('studentTrendBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Сбор данных и расчет алгоритма...</p></div>';
+
+    fetch(`/journal/api/student-trend/${currentTrendStudentId}/?period=${period}`)
     .then(r => r.json())
     .then(data => {
         if(!data.success) {
@@ -899,11 +932,11 @@ function showStudentTrend(studentId, studentName) {
         const attColor = data.att_trend > 0 ? 'text-success' : (data.att_trend < 0 ? 'text-danger' : 'text-muted');
 
         document.getElementById('studentTrendBody').innerHTML = `
-            <h5 class="fw-bold text-center mb-4">${studentName}</h5>
+            <h5 class="fw-bold text-center mb-4">${currentTrendStudentName}</h5>
             <div class="row g-3 mb-4">
                 <div class="col-6">
                     <div class="p-3 border rounded bg-light text-center h-100">
-                        <small class="text-muted d-block text-uppercase fw-bold">Текущий GPA</small>
+                        <small class="text-muted d-block text-uppercase fw-bold">GPA (Период)</small>
                         <h2 class="mb-0 text-dark">${data.gpa_current}</h2>
                         <span class="${gpaColor} small fw-bold">${gpaSign}${data.gpa_trend}% (динамика)</span>
                     </div>
@@ -917,7 +950,7 @@ function showStudentTrend(studentId, studentName) {
                 </div>
             </div>
             <div class="alert alert-${data.color} border-0 shadow-sm mb-0">
-                <h6 class="fw-bold"><i class="bi bi-cpu"></i> Прогноз алгоритма:</h6>
+                <h6 class="fw-bold"><i class="bi bi-cpu"></i> Вывод алгоритма:</h6>
                 <p class="mb-0 small">${data.prediction}</p>
             </div>
         `;
@@ -926,5 +959,7 @@ function showStudentTrend(studentId, studentName) {
     });
 }
 </script>
+
+
 </body>
 </html>

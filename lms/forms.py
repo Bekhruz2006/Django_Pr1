@@ -64,10 +64,15 @@ class CourseForm(forms.ModelForm):
                 else:
                     f.widget.attrs.update({'class': 'form-control'})
 
+        from lms.services import LMSManager
         subjects = Subject.objects.select_related('department').all().order_by('name')
         choices =[('', '--- Не привязан к расписанию (Самостоятельный курс) ---')]
+        seen_codes = set()
         for sub in subjects:
-            choices.append((sub.code, f"{sub.name} ({sub.get_type_display()}) - {sub.department.name}"))
+            shared_id = LMSManager.get_shared_course_id(sub)
+            if shared_id not in seen_codes:
+                seen_codes.add(shared_id)
+                choices.append((shared_id, f"{sub.name} ({sub.get_type_display()}) - {sub.department.name}"))
 
         self.fields['id_number'].widget = forms.Select(choices=choices, attrs={'class': 'form-select border-primary'})
         self.fields['id_number'].label = "Связь с предметом расписания"

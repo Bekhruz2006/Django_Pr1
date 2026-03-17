@@ -17,7 +17,20 @@
             <div class="card-body">
                 <form method="get">
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        {% if institutes %}
+                        <div class="col-md-3">
+                            <label class="form-label">Институт</label>
+                            <select class="form-select" name="institute" onchange="this.form.submit()">
+                                <option value="">-- Все институты --</option>
+                                {% for inst in institutes %}
+                                    <option value="{{ inst.id }}" {% if request.GET.institute == inst.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ inst.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-{% if institutes %}7{% else %}10{% endif %}">
                             <label class="form-label">Группа</label>
                             <select class="form-select" name="group" onchange="this.form.submit()">
                                 <option value="">{% if user.role == 'TEACHER' %}-- Показать мое расписание (Все группы) --{% else %}Выбрать...{% endif %}</option>
@@ -98,7 +111,7 @@
                                                                 {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary">Синяя</span>{% endif %}
                                                             </div>
                                                         </div>
-                                                        <div class="d-flex justify-content-between align-items-end mt-2">
+                                                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" style="border-color: rgba(0,0,0,0.08) !important;">
                                                             <small class="text-muted">
                                                                 <i class="bi {% if is_teacher_view %}bi-people{% else %}bi-person{% endif %}"></i> 
                                                                 {% if is_teacher_view %}
@@ -107,7 +120,7 @@
                                                                     {{ slot.teacher.user.get_full_name|default:'—' }}
                                                                 {% endif %}
                                                             </small>
-                                                            <span class="badge bg-white text-dark border"><i class="bi bi-door-open"></i> Каб. {{ slot.room|default:'—' }}</span>
+                                                            <span class="badge bg-white text-dark border px-2 py-1 fs-6 shadow-sm"><i class="bi bi-door-open text-primary"></i> {{ slot.room|default:'—' }}</span>
                                                         </div>
                                                     </div>
                                                 {% endfor %}

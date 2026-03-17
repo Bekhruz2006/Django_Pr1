@@ -68,20 +68,47 @@ def journal_view(request):
     user_is_admin = is_dean_or_admin(request.user)
     teacher = getattr(request.user, 'teacher_profile', None)
 
-    group_id = request.GET.get('group')
-    subject_id = request.GET.get('subject')
+    if request.GET.get('clear'):
+        request.session.pop('last_journal_group', None)
+        request.session.pop('last_journal_subject', None)
+        return redirect('journal:journal_view')
+
+    if 'group' in request.GET:
+        group_id = request.GET.get('group')
+        if group_id:
+            request.session['last_journal_group'] = group_id
+        else:
+            request.session.pop('last_journal_group', None)
+    else:
+        group_id = request.session.get('last_journal_group')
+
+    if 'subject' in request.GET:
+        subject_id = request.GET.get('subject')
+        if subject_id:
+            request.session['last_journal_subject'] = subject_id
+        else:
+            request.session.pop('last_journal_subject', None)
+    else:
+        subject_id = request.session.get('last_journal_subject')
+
     week_num = request.GET.get('week')
 
     if not group_id or not subject_id:
-        form = JournalFilterForm(user=request.user)
+        form = JournalFilterForm(request.GET or None, user=request.user)
         return render(request, 'journal/select_journal.html', {'form': form})
 
-    group = get_object_or_404(Group, id=group_id)
+    group = Group.objects.filter(id=group_id).first()
 
     if user_is_admin:
-        subject = get_object_or_404(Subject, id=subject_id)
+        subject = Subject.objects.filter(id=subject_id).first()
     else:
-        subject = get_object_or_404(Subject, id=subject_id, teacher=teacher)
+        subject = Subject.objects.filter(id=subject_id, teacher=teacher).first()
+        
+    if not group or not subject:
+        request.session.pop('last_journal_group', None)
+        request.session.pop('last_journal_subject', None)
+        form = JournalFilterForm(request.GET or None, user=request.user)
+        return render(request, 'journal/select_journal.html', {'form': form})
 
     schedule_slots = ScheduleSlot.objects.filter(
         group=group,
@@ -180,21 +207,41 @@ def journal_view(request):
     is_future_week = week_num > current_week_actual
 
     user_is_admin = is_dean_or_admin(request.user)
-    can_edit_weekly_score = user_is_admin or not is_future_week
 
     faculty = group.specialty.department.faculty if group.specialty else None
-    matrix_structure = MatrixStructure.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True), is_active=True).first()
+    institute = faculty.institute if faculty else None
+    
+    matrix_structure = MatrixStructure.objects.filter(faculty=faculty, is_active=True).first()
+    if not matrix_structure and institute:
+        matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
+    if not matrix_structure:
+        matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
 
-    weekly_column = None
-    weekly_scores_dict = {}
+    columns =[]
     if matrix_structure:
-        weekly_column = MatrixColumn.objects.filter(structure=matrix_structure, col_type='WEEK', week_number=week_num).first()
-        if weekly_column:
-            scores = StudentMatrixScore.objects.filter(subject=subject, column=weekly_column, student__in=students)
-            weekly_scores_dict = {s.student_id: s.score for s in scores}
+        columns = matrix_structure.columns.all()
 
-    for row in journal_data:
-        row['weekly_score'] = weekly_scores_dict.get(row['student'].id, "")
+    scores = StudentMatrixScore.objects.filter(subject=subject, student__in=students)
+    scores_dict = {(s.student_id, s.column_id): s.score for s in scores}
+    
+    students_matrix_data = []
+    for s in students:
+        student_scores =[]
+        total_score = 0
+        for col in columns:
+            val = scores_dict.get((s.id, col.id))
+            student_scores.append({
+                'column': col,
+                'value': val
+            })
+            if val and col.col_type in ['RATING', 'WEEK', 'EXAM']:
+                total_score += val 
+                
+        students_matrix_data.append({
+            'obj': s,
+            'scores': student_scores,
+            'total': round(total_score, 2)
+        })
 
     return render(request, 'journal/journal_table_weekly.html', {
         'group': group,
@@ -205,11 +252,12 @@ def journal_view(request):
         'journal_data': journal_data,
         'day_stats': day_stats,
         'can_edit': True,
-        'can_edit_weekly_score': can_edit_weekly_score,
         'is_future_week': is_future_week,
         'user_is_admin': user_is_admin,
-        'weekly_column': weekly_column,
-        'is_red_week': current_week_type == 'RED'
+        'is_red_week': current_week_type == 'RED',
+        'matrix_structure': matrix_structure,
+        'columns': columns,
+        'students_matrix_data': students_matrix_data,
     })
 
 
@@ -663,23 +711,23 @@ def update_journal_cell(request):
                 response_data['display'] = ''
                 response_data['type'] = 'clear'
                 
-            elif value in ['н', 'нб', 'nb', 'n', 'abs']:
+            elif value in['н', 'нб', 'nb', 'n', 'abs']:
                 entry.grade = None
                 entry.attendance_status = 'ABSENT_INVALID' 
                 response_data['display'] = 'НБ'
-                response_data['type'] = 'absent'
+                response_data['type'] = 'absent_invalid'
                 
-            elif value in ['г', 'готов', 'g']:
-                entry.participation = 'READY'
-                entry.attendance_status = 'PRESENT'
-                response_data['display'] = 'Готов'
-                response_data['type'] = 'ready'
+            elif value in ['у', 'ув', 'уваж', 'u', 'v']:
+                entry.grade = None
+                entry.attendance_status = 'ABSENT_VALID'
+                response_data['display'] = 'У'
+                response_data['type'] = 'absent_valid'
                 
-            elif value in ['нг', 'не готов', 'ng']:
-                entry.participation = 'NOT_READY'
-                entry.attendance_status = 'PRESENT'
-                response_data['display'] = 'Не готов'
-                response_data['type'] = 'not_ready'
+            elif value in ['б', 'бол', 'болезнь', 'b', 'ill']:
+                entry.grade = None
+                entry.attendance_status = 'ABSENT_ILLNESS'
+                response_data['display'] = 'Б'
+                response_data['type'] = 'absent_illness'
                 
             else:
                 try:
@@ -692,7 +740,7 @@ def update_journal_cell(request):
                     else:
                         return JsonResponse({'success': False, 'error': _('Оценка должна быть от 0 до 100')}, status=400)
                 except ValueError:
-                    return JsonResponse({'success': False, 'error': _('Введите число (до 100), "нб", "г" (готов) или "нг" (не готов)')}, status=400)
+                    return JsonResponse({'success': False, 'error': _('Введите число (до 100), "нб" (неуваж), "у" (уваж) или "б" (болезнь)')}, status=400)
 
             entry.modified_by = teacher
             entry.save()
@@ -719,17 +767,48 @@ def update_journal_cell(request):
 @login_required
 @user_passes_test(is_teacher_or_management)
 def performance_journal_view(request):
-    group_id = request.GET.get('group')
-    subject_id = request.GET.get('subject')
+    if request.GET.get('clear'):
+        request.session.pop('last_journal_group', None)
+        request.session.pop('last_journal_subject', None)
+        return redirect('journal:journal_view')
+
+    if 'group' in request.GET:
+        group_id = request.GET.get('group')
+        if group_id:
+            request.session['last_journal_group'] = group_id
+        else:
+            request.session.pop('last_journal_group', None)
+    else:
+        group_id = request.session.get('last_journal_group')
+
+    if 'subject' in request.GET:
+        subject_id = request.GET.get('subject')
+        if subject_id:
+            request.session['last_journal_subject'] = subject_id
+        else:
+            request.session.pop('last_journal_subject', None)
+    else:
+        subject_id = request.session.get('last_journal_subject')
     
     if not group_id or not subject_id:
         return redirect('journal:journal_view')
         
-    group = get_object_or_404(Group, id=group_id)
-    subject = get_object_or_404(Subject, id=subject_id)
+    group = Group.objects.filter(id=group_id).first()
+    subject = Subject.objects.filter(id=subject_id).first()
+    
+    if not group or not subject:
+        request.session.pop('last_journal_group', None)
+        request.session.pop('last_journal_subject', None)
+        return redirect('journal:journal_view')
     
     faculty = group.specialty.department.faculty if group.specialty else None
-    matrix_structure = MatrixStructure.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True), is_active=True).first()
+    institute = faculty.institute if faculty else None
+    
+    matrix_structure = MatrixStructure.objects.filter(faculty=faculty, is_active=True).first()
+    if not matrix_structure and institute:
+        matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
+    if not matrix_structure:
+        matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
     
     columns =[]
     if matrix_structure:
@@ -784,7 +863,7 @@ def update_matrix_cell(request):
         if col_type not in ['r1', 'r2', 'exam']:
             return JsonResponse({'success': True})
 
-        rating, _ = SubjectRating.objects.get_or_create(student_id=student_id, subject_id=subject_id)
+        rating, created_rating = SubjectRating.objects.get_or_create(student_id=student_id, subject_id=subject_id)
         val_float = float(value.replace(',', '.')) if value else None
         
         if val_float is not None and (val_float < 0 or val_float > 100):
@@ -861,29 +940,38 @@ def update_weekly_score(request):
 
 @login_required
 def matrix_constructor(request):
+    from accounts.models import Institute
+    from django.urls import reverse
+    
     if not is_dean_or_admin(request.user):
         messages.error(request, "Доступ запрещен")
         return redirect('core:dashboard')
         
-    faculty = None
     institute = None
+    institute_id = request.GET.get('institute')
     
-    if hasattr(request.user, 'dean_profile'):
+    if request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+        if institute_id:
+            institute = get_object_or_404(Institute, id=institute_id)
+        elif hasattr(request.user, 'director_profile') and request.user.director_profile.institute:
+            institute = request.user.director_profile.institute
+        elif hasattr(request.user, 'prorector_profile') and request.user.prorector_profile.institute:
+            institute = request.user.prorector_profile.institute
+    elif hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         institute = faculty.institute if faculty else None
-    elif hasattr(request.user, 'director_profile'):
-        institute = request.user.director_profile.institute
         
-    structure = MatrixStructure.objects.filter(faculty=faculty).first()
-    if not structure and institute:
+    if institute:
         structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True).first()
-        
-    if not structure:
-        structure = MatrixStructure.objects.create(
-            institute=institute,
-            faculty=faculty,
-            name=f"Матрица {faculty.code if faculty else (institute.abbreviation if institute else 'Глобальная')}"
-        )
+        if not structure:
+            structure = MatrixStructure.objects.create(
+                institute=institute,
+                name=f"Матрица {institute.abbreviation}"
+            )
+    else:
+        structure = MatrixStructure.objects.filter(faculty__isnull=True, institute__isnull=True).first()
+        if not structure:
+            structure = MatrixStructure.objects.create(name="Глобальная матрица (По умолчанию)")
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -910,33 +998,91 @@ def matrix_constructor(request):
             MatrixColumn.objects.filter(id=request.POST.get('col_id'), structure=structure).delete()
             messages.success(request, "Колонка удалена")
             
-        return redirect('journal:matrix_constructor')
+        elif action == 'generate_bologna':
+            with transaction.atomic():
+                structure.columns.all().delete()
+                for i in range(1, 17):
+                    MatrixColumn.objects.create(
+                        structure=structure,
+                        name=f"Неделя {i}",
+                        col_type='WEEK',
+                        week_number=i,
+                        max_score=12.5,
+                        order=i
+                    )
+                MatrixColumn.objects.create(
+                    structure=structure,
+                    name="Рейтинг 1 (Р1)",
+                    col_type='RATING',
+                    max_score=100.0,
+                    order=17
+                )
+                MatrixColumn.objects.create(
+                    structure=structure,
+                    name="Рейтинг 2 (Р2)",
+                    col_type='RATING',
+                    max_score=100.0,
+                    order=18
+                )
+                MatrixColumn.objects.create(
+                    structure=structure,
+                    name="Экзамен",
+                    col_type='EXAM',
+                    max_score=100.0,
+                    order=19
+                )
+            messages.success(request, "Стандартная Болонская система (16 недель + Р1 + Р2 + Экзамен) успешно сгенерирована!")
+            
+        redirect_url = reverse('journal:matrix_constructor')
+        if institute_id:
+            redirect_url += f"?institute={institute_id}"
+        return redirect(redirect_url)
         
     columns = structure.columns.all().order_by('order', 'id')
+    
+    institutes_list = None
+    if request.user.is_superuser:
+        institutes_list = Institute.objects.all()
+        
     return render(request, 'journal/matrix_constructor.html', {
         'structure': structure,
-        'columns': columns
+        'columns': columns,
+        'institutes': institutes_list,
+        'selected_institute_id': int(institute_id) if institute_id and institute_id.isdigit() else (institute.id if institute else None)
     })
 
 @login_required
 def api_student_trend(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-    
+    period = request.GET.get('period', 'all') 
+    today = timezone.now().date()
+
     entries = JournalEntry.objects.filter(
         student=student, 
-        lesson_date__lte=timezone.now().date()
+        lesson_date__lte=today
     ).order_by('lesson_date')
 
-    if entries.count() < 4:
+    if entries.count() < 2:
         return JsonResponse({
             'success': True, 
             'has_data': False, 
-            'message': 'Недостаточно данных для анализа тренда (нужно минимум 4 прошедших занятия).'
+            'message': 'Недостаточно данных для анализа тренда.'
         })
 
-    half_idx = entries.count() // 2
-    first_half = entries[:half_idx]
-    second_half = entries[half_idx:]
+    if period == 'week':
+        curr_start = today - timedelta(days=7)
+        prev_start = curr_start - timedelta(days=7)
+        curr_entries = entries.filter(lesson_date__gt=curr_start)
+        prev_entries = entries.filter(lesson_date__gt=prev_start, lesson_date__lte=curr_start)
+    elif period == 'month':
+        curr_start = today - timedelta(days=30)
+        prev_start = curr_start - timedelta(days=30)
+        curr_entries = entries.filter(lesson_date__gt=curr_start)
+        prev_entries = entries.filter(lesson_date__gt=prev_start, lesson_date__lte=curr_start)
+    else: # all
+        half_idx = entries.count() // 2
+        prev_entries = entries[:half_idx]
+        curr_entries = entries[half_idx:]
 
     def calc_stats(qs):
         grades =[e.grade for e in qs if e.grade is not None and e.grade > 0]
@@ -946,8 +1092,8 @@ def api_student_trend(request, student_id):
         att_pct = (attended / total * 100) if total > 0 else 0
         return gpa, att_pct
 
-    gpa1, att1 = calc_stats(first_half)
-    gpa2, att2 = calc_stats(second_half)
+    gpa1, att1 = calc_stats(prev_entries)
+    gpa2, att2 = calc_stats(curr_entries)
 
     gpa_diff = gpa2 - gpa1
     att_diff = att2 - att1
@@ -958,10 +1104,10 @@ def api_student_trend(request, student_id):
     color = "secondary"
 
     if gpa_trend_pct <= -10 or att_diff <= -15:
-        prediction = f"Ухудшение. Алгоритм прогнозирует спад успеваемости на {abs(round(gpa_trend_pct, 1))}% в ближайшее время, если тенденция сохранится."
+        prediction = f"Ухудшение. Спад успеваемости на {abs(round(gpa_trend_pct, 1))}% за выбранный период."
         color = "danger"
     elif gpa_trend_pct >= 10 or att_diff >= 15:
-        prediction = f"Улучшение. Алгоритм фиксирует положительную динамику. Ожидается рост показателей на {round(gpa_trend_pct, 1)}%."
+        prediction = f"Улучшение. Положительная динамика. Рост показателей на {round(gpa_trend_pct, 1)}%."
         color = "success"
     else:
         prediction = "Показатели стабильны. Значительных изменений не предвидится."
@@ -977,6 +1123,5 @@ def api_student_trend(request, student_id):
         'prediction': prediction,
         'color': color
     })
-
 
     

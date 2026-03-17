@@ -204,7 +204,7 @@ class ScheduleImporter:
                         else:
                             try:
                                 base_u = f"imp_{datetime.now().microsecond}_{surname[:5]}"
-                                u = User.objects.create_user(username=base_u, password=None, role='TEACHER', last_name=surname, first_name=t_name[:100])
+                                u = User.objects.create_user(username=base_u, password='password123', role='TEACHER', last_name=surname, first_name=t_name[:100])
                                 teacher_obj = Teacher.objects.create(user=u, department=dept)
                                 stats['teachers'] += 1
                             except: pass

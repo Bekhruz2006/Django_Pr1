@@ -134,7 +134,7 @@ def course_detail(request, course_id):
 
     announcements = course.announcements.all()[:5]
     
-    subject = Subject.objects.filter(code=course.id_number).first()
+    subject = LMSManager.get_subject_from_shared_id(course.id_number)
     single_group = None
     if subject and subject.groups.count() == 1:
         single_group = subject.groups.first()
@@ -350,7 +350,7 @@ def module_detail(request, module_id):
     if not module.is_visible and not can_manage_course(user, course):
         raise Http404
 
-    completion, _ = ModuleCompletion.objects.get_or_create(user=user, module=module)
+    completion, created_completion = ModuleCompletion.objects.get_or_create(user=user, module=module)
     completion.view_count += 1
     if module.completion_required and not completion.is_completed:
         completion.is_completed = True
@@ -408,7 +408,7 @@ def assignment_submit(request, module_id):
         return HttpResponseForbidden()
 
     assignment = module.assignment
-    submission, _ = AssignmentSubmission.objects.get_or_create(
+    submission, created_submission = AssignmentSubmission.objects.get_or_create(
         assignment=assignment, student=user
     )
 
@@ -590,7 +590,7 @@ def grade_entry_save(request, item_id, student_id):
     student = get_object_or_404(User, pk=student_id)
     if not can_manage_course(request.user, gi.course):
         return HttpResponseForbidden()
-    entry, _ = GradeEntry.objects.get_or_create(grade_item=gi, student=student)
+    entry, created_entry = GradeEntry.objects.get_or_create(grade_item=gi, student=student)
     form = GradeEntryForm(request.POST or None, instance=entry)
     if form.is_valid():
         e = form.save(commit=False)
@@ -658,7 +658,7 @@ def folder_file_add(request, module_id):
     module = get_object_or_404(CourseModule, pk=module_id, module_type='FOLDER')
     if not can_manage_course(request.user, module.section.course):
         return HttpResponseForbidden()
-    folder, _ = FolderResource.objects.get_or_create(module=module)
+    folder, created_folder = FolderResource.objects.get_or_create(module=module)
     form = FolderFileForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         f = form.save(commit=False)
@@ -687,7 +687,7 @@ def glossary_entry_add(request, module_id):
     course = module.section.course
     if not can_view_course(request.user, course):
         return HttpResponseForbidden()
-    glossary, _ = Glossary.objects.get_or_create(module=module)
+    glossary, created_glossary = Glossary.objects.get_or_create(module=module)
     form = GlossaryEntryForm(request.POST or None)
     if form.is_valid():
         entry = form.save(commit=False)
@@ -812,14 +812,14 @@ def section_grading(request, section_id):
     if not can_manage_course(request.user, course):
         return HttpResponseForbidden("Нет прав")
 
-    subject = Subject.objects.filter(code=course.id_number).first()
+    subject = LMSManager.get_subject_from_shared_id(course.id_number)
     if not subject:
-        messages.error(request, "Курс не привязан к предмету (ID-номер курса не совпадает с кодом предмета).")
+        messages.error(request, "Курс не привязан к предмету из расписания (не совпадает ID-номер).")
         return redirect('lms:course_detail', course_id=course.id)
 
     faculty = subject.department.faculty
 
-    structure, _ = MatrixStructure.objects.get_or_create(
+    structure, created_structure = MatrixStructure.objects.get_or_create(
         faculty=faculty,
         defaults={'name': f"Матрица {faculty.code if faculty else 'Глобальная'}"}
     )
@@ -832,7 +832,7 @@ def section_grading(request, section_id):
 
     is_auto_rating = col_type in ['RATING', 'EXAM']
 
-    column, _ = MatrixColumn.objects.get_or_create(
+    column, created_column = MatrixColumn.objects.get_or_create(
         structure=structure,
         name=section.name[:100],
         defaults={

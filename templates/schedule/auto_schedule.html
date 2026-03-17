@@ -16,9 +16,9 @@
 
                 <form method="post">
                     {% csrf_token %}
-                    
+
                     <div class="row g-4 mb-4">
-Глубина поиска                        <div class="col-md-6">
+                        <div class="col-md-6">
                             <div class="card h-100 border-0 shadow-sm">
                                 <div class="card-header bg-white fw-bold text-dark"><i class="bi bi-gear"></i> 1. Базовые параметры</div>
                                 <div class="card-body">
@@ -42,9 +42,14 @@
 
                         <div class="col-md-6">
                             <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-header bg-white fw-bold text-dark"><i class="bi bi-sliders"></i> 2. Тонкая настройка ИИ</div>
+                                <div class="card-header bg-white fw-bold text-dark d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-sliders"></i> 2. Тонкая настройка ИИ</span>
+                                    <a href="{% url 'schedule:manage_teacher_availability' %}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-calendar-x"></i> Выходные преподавателей
+                                    </a>
+                                </div>
                                 <div class="card-body">
-                                    
+
                                     <div class="mb-3">
                                         <label class="form-label fw-bold small text-primary">Лимит вместимости кабинетов</label>
                                         <select name="overflow_mode" class="form-select form-select-sm">
@@ -68,12 +73,11 @@
 
                                     <div class="mb-2">
                                         <label class="form-label fw-bold small">Глубина поиска (Кол-во вариантов)</label>
-                                        <select name="iterations" class="form-select form-select-sm">
-                                            <option value="1">1 (Очень быстро)</option>
-                                            <option value="5">5 (Баланс)</option>
-                                            <option value="20" selected>20 (Медленно, высокое качество)</option>
-                                            <option value="50">50 (Максимальный поиск)</option>
-                                        </select>
+                                        <input type="number" name="iterations" class="form-control form-control-sm border-primary" value="50" min="1" max="10000">
+                                        <div class="form-text" style="font-size: 0.7rem;">
+                                            Больше вариантов = лучше качество, но дольше расчет.<br>
+                                            <em>50 — оптимально (до 5 сек). 1000 — глубокий поиск (до 1 мин).</em>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

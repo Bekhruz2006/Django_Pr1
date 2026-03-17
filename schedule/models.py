@@ -20,6 +20,17 @@ ROOM_TYPES =[
     ('LINGUISTIC', _('Лингафонный кабинет')),
     ('SPORT', _('Спортивный зал')),
 ]
+class CreditType(models.Model):
+    name = models.CharField(max_length=100, verbose_name=_("Название системы (напр. ECTS)"))
+    hours_per_credit = models.IntegerField(default=24, verbose_name=_("Часов в 1 кредите"))
+    faculty = models.ForeignKey('accounts.Faculty', on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Тип кредита")
+        verbose_name_plural = _("Типы кредитов")
+
+    def __str__(self):
+        return f"{self.name} ({self.hours_per_credit} ч.)"
 
 
 class Subgroup(models.Model):
@@ -60,9 +71,10 @@ class Building(models.Model):
         return self.name
 
 class Subject(models.Model):
-    TYPE_CHOICES = [
+    TYPE_CHOICES =[
         ('LECTURE', _('Лекция')),
         ('PRACTICE', _('Практика')),
+        ('LAB', _('Лабораторная')),
         ('SRSP', _('СРСП (КМРО)')),
     ]
     name = models.CharField(max_length=200, verbose_name=_("Название"))
@@ -79,6 +91,7 @@ class Subject(models.Model):
 
     lecture_hours = models.IntegerField(default=0, verbose_name=_("Лекции (Л) часов за семестр"))
     practice_hours = models.IntegerField(default=0, verbose_name=_("Практика (А) часов за семестр"))
+    lab_hours = models.IntegerField(default=0, verbose_name=_("Лабораторные часов за семестр"))
     control_hours = models.IntegerField(default=0, verbose_name=_("Контроль (КМРО) часов за семестр"))
     independent_work_hours = models.IntegerField(default=0, verbose_name=_("КМД часов за семестр"))
 
@@ -100,14 +113,14 @@ class Subject(models.Model):
         blank=True,
         verbose_name=_("Преподаватель")
     )
-    
+
     required_competencies = models.ManyToManyField(
         'accounts.KnowledgeArea',
         blank=True,
         related_name='subjects',
         verbose_name=_("Требуемые компетенции (Для ИИ)")
     )
-    
+
     groups = models.ManyToManyField('accounts.Group', related_name='subjects', blank=True, verbose_name=_("Группы"))
     description = models.TextField(blank=True, verbose_name=_("Описание"))
     syllabus_file = models.FileField(
@@ -119,6 +132,8 @@ class Subject(models.Model):
 
     credits = models.IntegerField(default=0, verbose_name=_("Кредиты (устарело)"))
     hours_per_semester = models.IntegerField(default=0, verbose_name=_("Часов (устарело)"))
+
+    credit_type = models.ForeignKey(CreditType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Система кредитов"))
 
     plan_discipline = models.ForeignKey(
         'PlanDiscipline',
@@ -138,7 +153,7 @@ class Subject(models.Model):
 
     @property
     def total_auditory_hours(self):
-        return self.lecture_hours + self.practice_hours + self.control_hours
+        return self.lecture_hours + self.practice_hours + self.lab_hours + self.control_hours
 
     @property
     def total_hours(self):
@@ -198,27 +213,18 @@ class Subject(models.Model):
         return self.groups.count() > 1
 
     def get_hours_in_pairs(self, hours_count):
-        try:
-            institute = self.department.faculty.institute
-            acad_duration = institute.academic_hour_duration
-            pair_duration = institute.pair_duration
-            ratio = pair_duration / acad_duration
-
-            if ratio <= 0: return 0
-
-            import math
-            return math.ceil(hours_count / ratio)
-        except AttributeError:
-            return hours_count
+        import math
+        return math.ceil(hours_count / 2)
 
     def get_weekly_slots_needed(self):
-            if self.semester_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'SRSP': 0}
+            if self.semester_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'LAB': 0, 'SRSP': 0}
 
             lec_h = self.lecture_hours
             prac_h = self.practice_hours
+            lab_h = self.lab_hours
             srsp_h = self.control_hours
 
-            if lec_h == 0 and prac_h == 0 and srsp_h == 0 and self.credits > 0:
+            if lec_h == 0 and prac_h == 0 and lab_h == 0 and srsp_h == 0 and self.credits > 0:
                 total_auditory = (self.credits * 24) * 2 // 3
                 lec_h = total_auditory // 3
                 prac_h = total_auditory // 3
@@ -226,13 +232,18 @@ class Subject(models.Model):
 
             total_lec_pairs = self.get_hours_in_pairs(lec_h)
             total_prac_pairs = self.get_hours_in_pairs(prac_h)
+            total_lab_pairs = self.get_hours_in_pairs(lab_h)
             total_srsp_pairs = self.get_hours_in_pairs(srsp_h)
 
             return {
                 'LECTURE': math.ceil(total_lec_pairs / self.semester_weeks),
                 'PRACTICE': math.ceil(total_prac_pairs / self.semester_weeks),
+                'LAB': math.ceil(total_lab_pairs / self.semester_weeks),
                 'SRSP': math.ceil(total_srsp_pairs / self.semester_weeks),
             }
+    
+
+
 class TimeSlot(models.Model):
     SHIFT_CHOICES = [
         ('MORNING', _('Утренняя смена (1-я)')),
@@ -387,6 +398,7 @@ class ScheduleSlot(models.Model):
     LESSON_TYPE_CHOICES = [
         ('LECTURE', _('Лекция')),
         ('PRACTICE', _('Практика')),
+        ('LAB', _('Лабораторная')),
         ('SRSP', _('СРСП (КМРО)')),
     ]
 
@@ -487,6 +499,13 @@ class SubjectTemplate(models.Model):
     def __str__(self):
         return self.name
 
+
+
+
+
+
+
+
 class AcademicPlan(models.Model):
     specialty = models.ForeignKey(
         'accounts.Specialty', 
@@ -511,7 +530,21 @@ class AcademicPlan(models.Model):
     class Meta:
         verbose_name = _("Учебный план (РУП)")
         verbose_name_plural = _("Учебные планы")
-        unique_together = ['specialty', 'admission_year', 'group']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['specialty', 'admission_year'], 
+                condition=models.Q(group__isnull=True), 
+                name='unique_specialty_year_no_group'
+            ),
+            models.UniqueConstraint(
+                fields=['specialty', 'admission_year', 'group'], 
+                condition=models.Q(group__isnull=False), 
+                name='unique_specialty_year_group'
+            )
+        ]
+
+
+        
     def __str__(self):
         if self.group:
             return f"РУП Группы: {self.group.name} ({self.admission_year})"
@@ -564,6 +597,7 @@ class PlanDiscipline(models.Model):
         max_length=20, choices=ROOM_TYPES, blank=True, null=True,
         verbose_name=_("Рекомендуемый тип аудитории")
     )
+    credit_type = models.ForeignKey(CreditType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Система кредитов"))
 
     class Meta:
         verbose_name = _("Дисциплина плана")
@@ -583,6 +617,8 @@ class SubjectMaterial(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Название материала"))
     file = models.FileField(upload_to='materials/%Y/%m/', verbose_name=_("Файл"))
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Дата загрузки"))
+    credits = models.IntegerField(default=0, verbose_name=_("Кредиты (устарело)"))
+    credit_type = models.ForeignKey(CreditType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Система кредитов"))
 
     class Meta:
         verbose_name = _("Учебный материал")
@@ -601,3 +637,27 @@ def auto_delete_syllabus_file(sender, instance, **kwargs):
     if getattr(instance, 'syllabus_file', None) and os.path.isfile(instance.syllabus_file.path):
         os.remove(instance.syllabus_file.path)
 
+class TeacherUnavailableSlot(models.Model):
+    teacher = models.ForeignKey(
+        'accounts.Teacher', 
+        on_delete=models.CASCADE, 
+        related_name='unavailable_slots', 
+        verbose_name=_("Преподаватель")
+    )
+    day_of_week = models.IntegerField(
+        choices=ScheduleSlot.DAYS_OF_WEEK, 
+        verbose_name=_("День недели")
+    )
+    time_slot = models.ForeignKey(
+        TimeSlot, 
+        on_delete=models.CASCADE, 
+        verbose_name=_("Время")
+    )
+
+    class Meta:
+        verbose_name = _("Недоступное время преподавателя")
+        verbose_name_plural = _("Недоступное время преподавателей")
+        unique_together =['teacher', 'day_of_week', 'time_slot']
+
+    def __str__(self):
+        return f"{self.teacher} - {self.get_day_of_week_display()} {self.time_slot}"

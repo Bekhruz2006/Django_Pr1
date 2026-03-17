@@ -2,7 +2,30 @@
 {% block title %}Конструктор ведомости{% endblock %}
 
 {% block content %}
+{% if institutes %}
 <div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4 border-primary">
+            <div class="card-body bg-light d-flex align-items-center gap-3">
+                <i class="bi bi-bank fs-4 text-primary"></i>
+                <label class="fw-bold mb-0 text-nowrap">Выберите институт для настройки матрицы:</label>
+                <form method="get" class="flex-grow-1">
+                    <select name="institute" class="form-select border-primary fw-bold" onchange="this.form.submit()">
+                        <option value="">-- Глобальная матрица (По умолчанию для всех) --</option>
+                        {% for inst in institutes %}
+                            <option value="{{ inst.id }}" {% if selected_institute_id == inst.id %}selected{% endif %}>
+                                {{ inst.name }} ({{ inst.abbreviation }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row {% if not institutes %}mt-4{% endif %}">
     <div class="col-lg-4">
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-primary text-white">
@@ -48,6 +71,13 @@
         <div class="card shadow-sm">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-layout-three-columns"></i> Структура: {{ structure.name }}</h5>
+                <form method="post" class="m-0" onsubmit="return confirm('Внимание! Это удалит все текущие колонки и создаст стандартные 16 недель, 2 рейтинга и экзамен. Продолжить?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="generate_bologna">
+                    <button type="submit" class="btn btn-sm btn-warning fw-bold">
+                        <i class="bi bi-magic"></i> Стандарт (Болонская система)
+                    </button>
+                </form>
             </div>
             <div class="card-body p-0">
                 <div class="alert alert-info m-3 border shadow-sm">

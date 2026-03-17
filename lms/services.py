@@ -8,6 +8,43 @@ from datetime import timedelta
 
 class LMSManager:
     @staticmethod
+    def get_shared_course_id(subject):
+        if subject.plan_discipline_id:
+            base = f"DISC_{subject.plan_discipline_id}"
+        else:
+            base = f"NAME_{abs(hash(subject.name))}"
+        teacher_id = subject.teacher_id if subject.teacher_id else 0
+        return f"{base}_T{teacher_id}_{subject.type}"
+
+    @staticmethod
+    def get_subject_from_shared_id(shared_id):
+        from schedule.models import Subject
+        if not shared_id:
+            return None
+        if shared_id.startswith("DISC_"):
+            try:
+                parts = shared_id.split('_')
+                disc_id = int(parts[1])
+                teacher_id = int(parts[2][1:])
+                type_part = parts[3]
+                
+                qs = Subject.objects.filter(plan_discipline_id=disc_id, type=type_part)
+                if teacher_id > 0:
+                    qs = qs.filter(teacher_id=teacher_id)
+                sub = qs.first()
+                if sub: return sub
+            except:
+                pass
+        
+        sub = Subject.objects.filter(code=shared_id).first()
+        if sub: return sub
+        
+        for sub in Subject.objects.all():
+            if LMSManager.get_shared_course_id(sub) == shared_id:
+                return sub
+        return None
+
+    @staticmethod
     def sync_subject_to_course(subject):
         with transaction.atomic():
             category, _ = CourseCategory.objects.get_or_create(
@@ -52,10 +89,11 @@ class LMSManager:
     def generate_structure_from_schedule(course):
         from journal.models import MatrixStructure
         from testing.models import Quiz
+        from schedule.models import Subject, Semester
         
-        subject = Subject.objects.filter(code=course.id_number).first()
+        subject = LMSManager.get_subject_from_shared_id(course.id_number)
         if not subject:
-            return False, "Предмет не найден. Убедитесь, что ID-номер курса совпадает с кодом предмета."
+            return False, "Предмет не найден. Убедитесь, что курс привязан к предмету из расписания."
 
         group = subject.groups.first()
         if not group:
