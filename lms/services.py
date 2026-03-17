@@ -12,7 +12,7 @@ class LMSManager:
         if subject.plan_discipline_id:
             base = f"DISC_{subject.plan_discipline_id}"
         else:
-            base = f"NAME_{abs(hash(subject.name))}"
+            base = f"SUBJ_{subject.id}"
         teacher_id = subject.teacher_id if subject.teacher_id else 0
         return f"{base}_T{teacher_id}_{subject.type}"
 
@@ -21,17 +21,24 @@ class LMSManager:
         from schedule.models import Subject
         if not shared_id:
             return None
+            
         if shared_id.startswith("DISC_"):
             try:
                 parts = shared_id.split('_')
                 disc_id = int(parts[1])
-                teacher_id = int(parts[2][1:])
                 type_part = parts[3]
                 
                 qs = Subject.objects.filter(plan_discipline_id=disc_id, type=type_part)
-                if teacher_id > 0:
-                    qs = qs.filter(teacher_id=teacher_id)
                 sub = qs.first()
+                if sub: return sub
+            except:
+                pass
+                
+        if shared_id.startswith("SUBJ_"):
+            try:
+                parts = shared_id.split('_')
+                subj_id = int(parts[1])
+                sub = Subject.objects.filter(id=subj_id).first()
                 if sub: return sub
             except:
                 pass
@@ -40,8 +47,14 @@ class LMSManager:
         if sub: return sub
         
         for sub in Subject.objects.all():
-            if LMSManager.get_shared_course_id(sub) == shared_id:
+            base = f"DISC_{sub.plan_discipline_id}" if sub.plan_discipline_id else f"SUBJ_{sub.id}"
+            if shared_id.startswith(base) and shared_id.endswith(sub.type):
                 return sub
+                
+            old_base = f"NAME_{abs(hash(sub.name))}"
+            if shared_id.startswith(old_base) and shared_id.endswith(sub.type):
+                return sub
+                
         return None
 
     @staticmethod

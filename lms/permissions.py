@@ -48,14 +48,10 @@ def can_manage_course(user, course):
             from schedule.models import Subject
             if Subject.objects.filter(code=course.id_number, department__faculty=faculty).exists():
                 return True
-        return False
-        
-    if role == 'TEACHER':
-        return CourseEnrolment.objects.filter(
-            course=course, user=user, role__in=('TEACHER', 'MANAGER')
-        ).exists()
-        
-    return False
+    
+    return CourseEnrolment.objects.filter(
+        course=course, user=user, role__in=('TEACHER', 'MANAGER')
+    ).exists()
 
 
 def can_view_course(user, course):
@@ -74,20 +70,21 @@ def get_manageable_courses(user, queryset=None):
     from .models import Course
     qs = queryset if queryset is not None else Course.objects.all()
     role = get_lms_role(user)
+    
     if role == 'ADMIN':
         return qs
+        
+    filters = Q(enrolments__user=user, enrolments__role__in=('TEACHER', 'MANAGER'))
+    
     if role == 'SPECIALIST':
         faculty = _get_user_faculty(user)
         dept    = _get_user_department(user)
-        filters = Q()
         if faculty:
             filters |= Q(category__faculty=faculty) | Q(allowed_faculty=faculty)
         if dept:
             filters |= Q(category__department=dept) | Q(allowed_department=dept)
-        return qs.filter(filters) if filters else qs.none()
-    if role == 'TEACHER':
-        return qs.filter(enrolments__user=user, enrolments__role__in=('TEACHER', 'MANAGER'))
-    return qs.none()
+            
+    return qs.filter(filters).distinct()
 
 
 def _get_user_faculty(user):

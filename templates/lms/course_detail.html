@@ -442,6 +442,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return cookieValue;
     }
 
+    document.addEventListener('dragover', e => e.preventDefault());
+    document.addEventListener('drop', e => e.preventDefault());
+
     {% if can_manage %}
     document.querySelectorAll('.card[data-section-id]').forEach(section => {
         section.addEventListener('dragover', e => {
@@ -452,38 +455,46 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             section.classList.remove('border-primary');
         });
-        section.addEventListener('drop', e => {
+        section.addEventListener('drop', async e => {
             e.preventDefault();
             section.classList.remove('border-primary');
 
             if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
 
-            const file = e.dataTransfer.files[0];
             const sectionId = section.dataset.sectionId;
-
-            const formData = new FormData();
-            formData.append('section_id', sectionId);
-            formData.append('module_type', 'FILE');
-            formData.append('title', file.name);
-            formData.append('file', file);
-
             const list = section.querySelector('ul');
-            const li = document.createElement('li');
-            li.className = 'list-group-item text-center text-muted py-3';
-            li.innerHTML = '<div class="spinner-border spinner-border-sm text-primary me-2"></div>Загрузка файла...';
-            list.appendChild(li);
 
-            fetch('{% url "lms:api_add_module" %}', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) location.reload();
-                else { alert('Ошибка: ' + data.error); li.remove(); }
-            })
-            .catch(err => { console.error(err); alert('Ошибка сети'); li.remove(); });
+            for (let i = 0; i < e.dataTransfer.files.length; i++) {
+                const file = e.dataTransfer.files[i];
+                const formData = new FormData();
+                formData.append('section_id', sectionId);
+                formData.append('module_type', 'FILE');
+                formData.append('title', file.name);
+                formData.append('file', file);
+
+                const li = document.createElement('li');
+                li.className = 'list-group-item text-center text-muted py-3';
+                li.innerHTML = `<div class="spinner-border spinner-border-sm text-primary me-2"></div>Загрузка ${file.name}...`;
+                list.appendChild(li);
+
+                try {
+                    const res = await fetch('{% url "lms:api_add_module" %}', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (!data.success) {
+                        alert('Ошибка при загрузке ' + file.name + ': ' + data.error);
+                        li.remove();
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Ошибка сети при загрузке ' + file.name);
+                    li.remove();
+                }
+            }
+            location.reload();
         });
     });
     {% endif %}

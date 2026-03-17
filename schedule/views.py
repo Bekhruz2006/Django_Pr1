@@ -1364,11 +1364,22 @@ def export_schedule(request):
 
 @user_passes_test(is_dean_or_admin)
 def manage_plans(request):
-    plans = AcademicPlan.objects.all().select_related('specialty', 'specialty__department__faculty')
+    plans = AcademicPlan.objects.all().select_related('specialty', 'specialty__department__faculty', 'group')
     
     if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
-        plans = plans.filter(specialty__department__faculty=faculty)
+        plans = plans.filter(
+            Q(specialty__department__faculty=faculty) | 
+            Q(group__specialty__department__faculty=faculty)
+        )
+        
+    for plan in plans:
+        if plan.group:
+            plan.linked_groups = [plan.group]
+        elif plan.specialty:
+            plan.linked_groups = list(plan.specialty.groups.all())
+        else:
+            plan.linked_groups = []
         
     return render(request, 'schedule/plans/manage_plans.html', {'plans': plans})
 
