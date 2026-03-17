@@ -76,9 +76,15 @@ def schedule_constructor(request):
 
     groups = Group.objects.all().select_related('specialty').order_by('course', 'name')
 
-    if hasattr(request.user, 'dean_profile'):
-        faculty = request.user.dean_profile.faculty
+    if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
+        profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
+        faculty = profile.faculty
         groups = groups.filter(specialty__department__faculty=faculty)
+    elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+        profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
+        institute = profile.institute
+        if institute:
+            groups = groups.filter(specialty__department__faculty__institute=institute)
 
     if 'group' in request.GET:
         selected_group_id = request.GET.get('group')
@@ -113,9 +119,16 @@ def schedule_constructor(request):
     if not active_semester and selected_group:
         active_semester = get_active_semester_for_group(selected_group)
     else:
-        if hasattr(request.user, 'dean_profile'):
-            faculty = request.user.dean_profile.faculty
-            active_semester = Semester.objects.filter(faculty=faculty, is_active=True).first()
+        if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
+            profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
+            faculty = profile.faculty
+            active_semester = Semester.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True), is_active=True).first()
+        elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+            profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
+            institute = profile.institute
+            if institute:
+                active_semester = Semester.objects.filter(Q(faculty__institute=institute) | Q(faculty__isnull=True), is_active=True).first()
+        
         if not active_semester:
             active_semester = Semester.objects.filter(is_active=True).first()
 
@@ -204,8 +217,13 @@ def schedule_constructor(request):
 
     days = [(0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')), (3, _('Четверг')), (4, _('Пятница')), (5, _('Суббота'))]
     all_semesters = Semester.objects.all().order_by('-is_active', '-start_date')
-    if hasattr(request.user, 'dean_profile'):
-        all_semesters = all_semesters.filter(faculty=request.user.dean_profile.faculty)
+    if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
+        profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
+        all_semesters = all_semesters.filter(Q(faculty=profile.faculty) | Q(faculty__isnull=True))
+    elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+        profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
+        if profile.institute:
+            all_semesters = all_semesters.filter(Q(faculty__institute=profile.institute) | Q(faculty__isnull=True))
 
     classrooms = Classroom.objects.filter(is_active=True).select_related('building').order_by('building__name', 'number')
 
@@ -2276,21 +2294,44 @@ def api_ai_assign_teachers(request):
         subjects = data.get('subjects', [])
         teacher_ids = data.get('teacher_ids',[])
         model_name = data.get('model_name', 'gemma3:4b')
-        assign_method = data.get('method', 'algo') # Получаем метод из запроса
+        assign_method = data.get('method', 'algo')
         
         if not subjects:
             return JsonResponse({'success': False, 'error': 'Нет предметов для распределения'})
 
         teachers_qs = Teacher.objects.select_related('user', 'department').prefetch_related('competencies', 'additional_departments').all()
-        if hasattr(request.user, 'dean_profile'):
-            faculty = request.user.dean_profile.faculty
-            teachers_qs = teachers_qs.filter(
-                Q(department__faculty=faculty) | 
-                Q(additional_departments__faculty=faculty) |
-                Q(subject__department__faculty=faculty) |
-                Q(subject__groups__specialty__department__faculty=faculty) |
-                Q(scheduleslot__group__specialty__department__faculty=faculty)
-            ).distinct()
+        
+        if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
+            profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
+            faculty = profile.faculty
+            institute = faculty.institute if faculty else None
+            if institute:
+                teachers_qs = teachers_qs.filter(
+                    Q(department__faculty__institute=institute) | 
+                    Q(additional_departments__faculty__institute=institute) |
+                    Q(subject__department__faculty__institute=institute) |
+                    Q(subject__groups__specialty__department__faculty__institute=institute) |
+                    Q(scheduleslot__group__specialty__department__faculty__institute=institute)
+                ).distinct()
+            else:
+                teachers_qs = teachers_qs.filter(
+                    Q(department__faculty=faculty) | 
+                    Q(additional_departments__faculty=faculty) |
+                    Q(subject__department__faculty=faculty) |
+                    Q(subject__groups__specialty__department__faculty=faculty) |
+                    Q(scheduleslot__group__specialty__department__faculty=faculty)
+                ).distinct()
+        elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+            profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
+            institute = profile.institute
+            if institute:
+                teachers_qs = teachers_qs.filter(
+                    Q(department__faculty__institute=institute) | 
+                    Q(additional_departments__faculty__institute=institute) |
+                    Q(subject__department__faculty__institute=institute) |
+                    Q(subject__groups__specialty__department__faculty__institute=institute) |
+                    Q(scheduleslot__group__specialty__department__faculty__institute=institute)
+                ).distinct()
             
         if teacher_ids:
             teachers_qs = teachers_qs.filter(id__in=teacher_ids)
@@ -2359,18 +2400,52 @@ def global_semester_setup(request):
 @user_passes_test(is_dean_or_admin)
 def auto_schedule_config(request):
     semesters = Semester.objects.filter(is_active=True)
-    if hasattr(request.user, 'dean_profile'):
-        faculty = request.user.dean_profile.faculty
-        semesters = semesters.filter(faculty=faculty)
+    
+    if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
+        profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
+        faculty = profile.faculty
+        institute = faculty.institute if faculty else None
+        
+        semesters = semesters.filter(Q(faculty=faculty) | Q(faculty__isnull=True))
         groups = Group.objects.filter(specialty__department__faculty=faculty)
-        teachers = Teacher.objects.filter(
-            Q(department__faculty=faculty) | 
-            Q(additional_departments__faculty=faculty) |
-            Q(subject__department__faculty=faculty) |
-            Q(subject__groups__specialty__department__faculty=faculty) |
-            Q(scheduleslot__group__specialty__department__faculty=faculty)
-        ).distinct()
-        rooms = Classroom.objects.filter(building__institute=faculty.institute, is_active=True)
+        
+        if institute:
+            teachers = Teacher.objects.filter(
+                Q(department__faculty__institute=institute) | 
+                Q(additional_departments__faculty__institute=institute) |
+                Q(subject__department__faculty__institute=institute) |
+                Q(subject__groups__specialty__department__faculty__institute=institute) |
+                Q(scheduleslot__group__specialty__department__faculty__institute=institute)
+            ).distinct()
+            rooms = Classroom.objects.filter(building__institute=institute, is_active=True)
+        else:
+            teachers = Teacher.objects.filter(
+                Q(department__faculty=faculty) | 
+                Q(additional_departments__faculty=faculty) |
+                Q(subject__department__faculty=faculty) |
+                Q(subject__groups__specialty__department__faculty=faculty) |
+                Q(scheduleslot__group__specialty__department__faculty=faculty)
+            ).distinct()
+            rooms = Classroom.objects.none()
+            
+    elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+        profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
+        institute = profile.institute
+        if institute:
+            semesters = semesters.filter(Q(faculty__institute=institute) | Q(faculty__isnull=True))
+            groups = Group.objects.filter(specialty__department__faculty__institute=institute)
+            teachers = Teacher.objects.filter(
+                Q(department__faculty__institute=institute) | 
+                Q(additional_departments__faculty__institute=institute) |
+                Q(subject__department__faculty__institute=institute) |
+                Q(subject__groups__specialty__department__faculty__institute=institute) |
+                Q(scheduleslot__group__specialty__department__faculty__institute=institute)
+            ).distinct()
+            rooms = Classroom.objects.filter(building__institute=institute, is_active=True)
+        else:
+            groups = Group.objects.all()
+            teachers = Teacher.objects.all()
+            rooms = Classroom.objects.filter(is_active=True)
     else:
         groups = Group.objects.all()
         teachers = Teacher.objects.all()
@@ -2437,15 +2512,38 @@ def auto_schedule_config(request):
 @user_passes_test(is_dean_or_admin)
 def manage_teacher_availability(request):
     teachers = Teacher.objects.select_related('user', 'department').all()
-    if hasattr(request.user, 'dean_profile'):
-        faculty = request.user.dean_profile.faculty
-        teachers = teachers.filter(
-            Q(department__faculty=faculty) | 
-            Q(additional_departments__faculty=faculty) |
-            Q(subject__department__faculty=faculty) |
-            Q(subject__groups__specialty__department__faculty=faculty) |
-            Q(scheduleslot__group__specialty__department__faculty=faculty)
-        ).distinct()
+    
+    if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
+        profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
+        faculty = profile.faculty
+        institute = faculty.institute if faculty else None
+        if institute:
+            teachers = teachers.filter(
+                Q(department__faculty__institute=institute) | 
+                Q(additional_departments__faculty__institute=institute) |
+                Q(subject__department__faculty__institute=institute) |
+                Q(subject__groups__specialty__department__faculty__institute=institute) |
+                Q(scheduleslot__group__specialty__department__faculty__institute=institute)
+            ).distinct()
+        elif faculty:
+            teachers = teachers.filter(
+                Q(department__faculty=faculty) | 
+                Q(additional_departments__faculty=faculty) |
+                Q(subject__department__faculty=faculty) |
+                Q(subject__groups__specialty__department__faculty=faculty) |
+                Q(scheduleslot__group__specialty__department__faculty=faculty)
+            ).distinct()
+    elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
+        profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
+        institute = profile.institute
+        if institute:
+            teachers = teachers.filter(
+                Q(department__faculty__institute=institute) | 
+                Q(additional_departments__faculty__institute=institute) |
+                Q(subject__department__faculty__institute=institute) |
+                Q(subject__groups__specialty__department__faculty__institute=institute) |
+                Q(scheduleslot__group__specialty__department__faculty__institute=institute)
+            ).distinct()
         
     teacher_id = request.GET.get('teacher_id')
     selected_teacher = None
