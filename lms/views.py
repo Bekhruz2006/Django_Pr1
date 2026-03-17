@@ -846,10 +846,19 @@ def section_grading(request, section_id):
     students = [e.user.student_profile for e in course.enrolments.filter(role='STUDENT', is_active=True) if hasattr(e.user, 'student_profile')]
 
     is_future = False
+    active_sem = Semester.objects.filter(is_active=True).first()
+    curr_week = active_sem.get_current_week_number() if active_sem else 1
+    
     if col_type == 'WEEK':
-        active_sem = Semester.objects.filter(is_active=True).first()
-        curr_week = active_sem.get_current_week_number() if active_sem else 1
         if section.sequence > curr_week:
+            is_future = True
+    elif col_type == 'RATING':
+        if '1' in column.name and curr_week < 8:
+            is_future = True
+        elif '2' in column.name and curr_week < 16:
+            is_future = True
+    elif col_type == 'EXAM':
+        if curr_week < 16:
             is_future = True
 
     user_is_admin = is_dean_or_admin(request.user)

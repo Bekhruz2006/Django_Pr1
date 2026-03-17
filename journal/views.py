@@ -863,6 +863,16 @@ def update_matrix_cell(request):
         if col_type not in ['r1', 'r2', 'exam']:
             return JsonResponse({'success': True})
 
+        active_sem = Semester.objects.filter(is_active=True).first()
+        curr_week = active_sem.get_current_week_number() if active_sem else 1
+        if not is_dean_or_admin(request.user):
+            if col_type == 'r1' and curr_week < 8:
+                return JsonResponse({'success': False, 'error': 'Рейтинг 1 доступен только с 8-й недели!'})
+            if col_type == 'r2' and curr_week < 16:
+                return JsonResponse({'success': False, 'error': 'Рейтинг 2 доступен только с 16-й недели!'})
+            if col_type == 'exam' and curr_week < 16:
+                return JsonResponse({'success': False, 'error': 'Экзамен доступен только с 16-й недели!'})
+
         rating, created_rating = SubjectRating.objects.get_or_create(student_id=student_id, subject_id=subject_id)
         val_float = float(value.replace(',', '.')) if value else None
         
@@ -915,6 +925,18 @@ def update_weekly_score(request):
             
             if column.week_number > curr_week and not is_dean_or_admin(request.user):
                 return JsonResponse({'success': False, 'error': 'Нельзя выставлять баллы за будущие недели!'})
+        elif column.col_type == 'RATING' and not is_dean_or_admin(request.user):
+            active_sem = get_active_semester_for_group(student.group)
+            curr_week = active_sem.get_current_week_number() if active_sem else 1
+            if '1' in column.name and curr_week < 8:
+                return JsonResponse({'success': False, 'error': 'Рейтинг 1 доступен только с 8-й недели!'})
+            elif '2' in column.name and curr_week < 16:
+                return JsonResponse({'success': False, 'error': 'Рейтинг 2 доступен только с 16-й недели!'})
+        elif column.col_type == 'EXAM' and not is_dean_or_admin(request.user):
+            active_sem = get_active_semester_for_group(student.group)
+            curr_week = active_sem.get_current_week_number() if active_sem else 1
+            if curr_week < 16:
+                return JsonResponse({'success': False, 'error': 'Экзамен доступен только с 16-й недели!'})
 
         score_val = float(value.replace(',', '.')) if value else None
         

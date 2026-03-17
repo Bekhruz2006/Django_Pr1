@@ -630,24 +630,10 @@ def schedule_view(request):
              return render(request, 'schedule/no_semester.html')
 
     groups = Group.objects.none()
+    is_management = hasattr(user, 'dean_profile') or user.is_superuser or hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile')
+    is_teacher = hasattr(user, 'teacher_profile')
     
-    if hasattr(user, 'teacher_profile'):
-        try:
-            teacher = user.teacher_profile
-            group_ids = ScheduleSlot.objects.filter(
-                teacher=teacher, semester=active_semester, is_active=True
-            ).values_list('group_id', flat=True).distinct()
-
-            groups = Group.objects.filter(id__in=group_ids)
-            group_id = request.GET.get('group')
-
-            if group_id:
-                group = get_object_or_404(Group, id=group_id, id__in=group_ids)
-
-        except Teacher.DoesNotExist:
-            pass
-
-    elif hasattr(user, 'dean_profile') or user.is_superuser or hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'):
+    if is_management:
         if 'group' in request.GET:
             group_id = request.GET.get('group')
             if group_id:
@@ -683,6 +669,20 @@ def schedule_view(request):
                 active_semester = get_active_semester_for_group(group)
                 if not active_semester:
                     messages.warning(request, _('Нет активного семестра для %(course)s курса') % {'course': group.course})
+        elif is_teacher and request.GET.get('view') != 'groups':
+            teacher = user.teacher_profile
+            
+    elif is_teacher:
+        teacher = user.teacher_profile
+        group_ids = ScheduleSlot.objects.filter(
+            teacher=teacher, semester=active_semester, is_active=True
+        ).values_list('group_id', flat=True).distinct()
+
+        groups = Group.objects.filter(id__in=group_ids)
+        group_id = request.GET.get('group')
+
+        if group_id:
+            group = get_object_or_404(Group, id=group_id, id__in=group_ids)
 
     slots = None
     target_key = None

@@ -41,7 +41,8 @@ def create_user_profile(sender, instance, created, **kwargs):
             old_role = instance._old_role
             attr = old_profile_map.get(old_role)
             if attr and hasattr(instance, attr):
-                getattr(instance, attr).delete()
+                if attr != 'teacher_profile':
+                    getattr(instance, attr).delete()
         
         if instance.role == 'STUDENT':
             year = datetime.now().year
