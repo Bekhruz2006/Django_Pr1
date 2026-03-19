@@ -8,9 +8,14 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3><i class="bi bi-book"></i> Предметы семестра</h3>
-            <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning">
-                <i class="bi bi-magic"></i> Генерировать из РУП
-            </a>
+            <div>
+                <a href="{% url 'schedule:import_department_load' %}" class="btn btn-success me-2">
+                    <i class="bi bi-file-earmark-excel"></i> Импорт нагрузки (Excel)
+                </a>
+                <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning">
+                    <i class="bi bi-magic"></i> Генерировать из РУП
+                </a>
+            </div>
         </div>
 
         <div class="card shadow-sm">
@@ -73,6 +78,12 @@
                                     <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-sm btn-light text-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    <button type="button" class="btn btn-sm btn-light text-warning" data-bs-toggle="modal" data-bs-target="#splitModal{{ subject.id }}" title="Разделить кредиты/часы">
+                                        <i class="bi bi-scissors"></i>
+                                    </button>
+                                    <a href="{% url 'schedule:toggle_subject_active' subject.id %}" class="btn btn-sm btn-light {% if subject.is_active|default:True %}text-success{% else %}text-secondary{% endif %}" title="Вкл/Выкл активность">
+                                        <i class="bi bi-power"></i>
+                                    </a>
                                     <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-sm btn-light text-danger" onclick="return confirm('Удалить?')">
                                         <i class="bi bi-trash"></i>
                                     </a>
@@ -88,4 +99,53 @@
         </div>
     </div>
 </div>
+
+{% for subject in subjects %}
+<div class="modal fade" id="splitModal{{ subject.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'schedule:split_subject_load' subject.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="bi bi-scissors"></i> Перераспределение нагрузки</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Укажите, сколько часов/кредитов нужно "отщипнуть" от <strong>{{ subject.name }}</strong> и передать другому преподавателю.</p>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-3">
+                            <label class="small fw-bold">Кредиты</label>
+                            <input type="number" name="transfer_credits" class="form-control" value="0" max="{{ subject.credits }}">
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold">Лекции</label>
+                            <input type="number" name="transfer_lec" class="form-control" value="0" max="{{ subject.lecture_hours }}">
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold">Практика</label>
+                            <input type="number" name="transfer_prac" class="form-control" value="0" max="{{ subject.practice_hours }}">
+                        </div>
+                        <div class="col-3">
+                            <label class="small fw-bold">Лаб.</label>
+                            <input type="number" name="transfer_lab" class="form-control" value="0" max="{{ subject.lab_hours }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">Передать преподавателю:</label>
+                        <select name="new_teacher_id" class="form-select" required>
+                            <option value="">-- Выберите преподавателя --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-warning fw-bold">Разделить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

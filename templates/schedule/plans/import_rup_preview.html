@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Предпросмотр РУП{% endblock %}
+{% block content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-eye"></i> Предпросмотр импорта РУП</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info small">
+            Проверьте распознанные дисциплины. Вы можете изменить семестр, кредиты и часы перед сохранением.
+            Удалите галочку слева, если не хотите импортировать строку.
+        </div>
+        <form method="post" action="{% url 'schedule:import_rup_excel' plan.id semester_num %}">
+            {% csrf_token %}
+            <input type="hidden" name="confirm_import" value="1">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Импорт</th>
+                            <th>Дисциплина</th>
+                            <th>Семестр</th>
+                            <th>Тип</th>
+                            <th>Кредиты</th>
+                            <th>Лекц</th>
+                            <th>Прак</th>
+                            <th>СРСП</th>
+                            <th>СРС</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in preview_data %}
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input" name="import_{{ item.id }}" value="1" checked onchange="toggleRow(this, {{ item.id }})">
+                            </td>
+                            <td>
+                                <input type="text" name="name_{{ item.id }}" id="name_{{ item.id }}" class="form-control form-control-sm fw-bold" value="{{ item.name }}">
+                            </td>
+                            <td>
+                                <input type="number" name="semester_{{ item.id }}" id="semester_{{ item.id }}" class="form-control form-control-sm" value="{{ semester_num }}" style="width: 60px;">
+                            </td>
+                            <td>
+                                <select name="type_{{ item.id }}" id="type_{{ item.id }}" class="form-select form-select-sm">
+                                    <option value="REQUIRED" {% if item.type == 'REQUIRED' %}selected{% endif %}>Обязательная</option>
+                                    <option value="ELECTIVE" {% if item.type == 'ELECTIVE' %}selected{% endif %}>По выбору</option>
+                                </select>
+                            </td>
+                            <td><input type="number" name="credits_{{ item.id }}" id="credits_{{ item.id }}" class="form-control form-control-sm" value="{{ item.credits }}" style="width: 60px;"></td>
+                            <td><input type="number" name="lec_{{ item.id }}" id="lec_{{ item.id }}" class="form-control form-control-sm" value="{{ item.lec }}" style="width: 60px;"></td>
+                            <td><input type="number" name="prac_{{ item.id }}" id="prac_{{ item.id }}" class="form-control form-control-sm" value="{{ item.prac }}" style="width: 60px;"></td>
+                            <td><input type="number" name="srsp_{{ item.id }}" id="srsp_{{ item.id }}" class="form-control form-control-sm" value="{{ item.srsp }}" style="width: 60px;"></td>
+                            <td><input type="number" name="srs_{{ item.id }}" id="srs_{{ item.id }}" class="form-control form-control-sm" value="{{ item.srs }}" style="width: 60px;"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-all"></i> Сохранить в РУП</button>
+                <a href="{% url 'schedule:plan_detail' plan.id %}?semester={{ semester_num }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function toggleRow(cb, id) {
+    const disabled = !cb.checked;
+    document.getElementById('name_' + id).disabled = disabled;
+    document.getElementById('semester_' + id).disabled = disabled;
+    document.getElementById('type_' + id).disabled = disabled;
+    document.getElementById('credits_' + id).disabled = disabled;
+    document.getElementById('lec_' + id).disabled = disabled;
+    document.getElementById('prac_' + id).disabled = disabled;
+    document.getElementById('srsp_' + id).disabled = disabled;
+    document.getElementById('srs_' + id).disabled = disabled;
+}
+</script>
+{% endblock %}

@@ -14,6 +14,17 @@
                 </a>
             </div>
             <div class="card-body">
+                {% if is_head_of_dept %}
+                <div class="alert alert-info shadow-sm border-0 mb-4">
+                    <h6 class="fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Памятка заведующему кафедрой</h6>
+                    <p class="mb-1 small">В этом разделе вы управляете группами, прикрепленными к специальностям вашей кафедры. Ваши возможности:</p>
+                    <ul class="mb-0 small">
+                        <li><strong>Просмотр состава:</strong> Нажмите на иконку глаза <i class="bi bi-eye"></i>, чтобы увидеть список студентов группы.</li>
+                        <li><strong>Редактирование:</strong> Иконка карандаша <i class="bi bi-pencil"></i> позволяет изменить куратора, язык обучения или профиль группы.</li>
+                        <li><strong>Перевод студентов:</strong> Осуществляется через раздел "Контингент -> Студенты".</li>
+                    </ul>
+                </div>
+                {% endif %}
                 
                 <form method="get" class="row g-3 mb-3">
                     <div class="col-md-4">

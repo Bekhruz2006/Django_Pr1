@@ -189,6 +189,17 @@
                             <span class="badge bg-light text-primary" id="add_total_credits_badge">0 ч. всего</span>
                         </div>
                         <div class="card-body p-2 bg-light">
+                            <div class="mb-3 p-2 bg-white rounded border border-success">
+                                <label class="small fw-bold text-success mb-1"><i class="bi bi-magic"></i> Быстрый шаблон (Автозаполнение)</label>
+                                <select id="add_template_selector" class="form-select form-select-sm border-success fw-bold text-dark">
+                                    <option value="">-- Выберите шаблон кредитов --</option>
+                                    {% for t in credit_templates %}
+                                        <option value="{{ t.credits }}" data-lec="{{ t.lecture_pairs|stringformat:'s' }}" data-prac="{{ t.practice_pairs|stringformat:'s' }}" data-lab="{{ t.lab_pairs|stringformat:'s' }}" data-srsp="{{ t.srsp_pairs|stringformat:'s' }}">
+                                            {{ t.credits }} кр. (Л:{{ t.lecture_pairs }}, П:{{ t.practice_pairs }}, Лаб:{{ t.lab_pairs }}, СРСП:{{ t.srsp_pairs }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div class="row g-2 mb-2">
                                 <div class="col-6">
                                     <label class="small fw-bold text-muted">Система кредитов</label>
@@ -722,6 +733,40 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     updateWeekly();
+
+    function applyTemplate(selectorId, prefix) {
+        const selector = document.getElementById(selectorId);
+        if (!selector) return;
+        
+        selector.addEventListener('change', function() {
+            if (!this.value) return;
+            const opt = this.options[this.selectedIndex];
+            
+            document.getElementById(prefix === 'add_' ? 'id_credits' : 'edit_credits').value = this.value;
+            
+            function setSelectSafe(selectId, pairs) {
+                const select = document.getElementById(selectId);
+                let exists = false;
+                for(let i=0; i<select.options.length; i++) {
+                    if(parseFloat(select.options[i].value) === parseFloat(pairs)) { exists = true; break; }
+                }
+                if(!exists && pairs > 0) { select.add(new Option(pairs + " пар", pairs)); }
+                select.value = parseFloat(pairs).toString();
+            }
+
+            setSelectSafe(prefix + 'ui_lec', opt.dataset.lec);
+            setSelectSafe(prefix + 'ui_prac', opt.dataset.prac);
+            setSelectSafe(prefix + 'ui_lab', opt.dataset.lab);
+            setSelectSafe(prefix + 'ui_srsp', opt.dataset.srsp);
+            
+            calculateHours(prefix);
+            
+            this.classList.add('bg-success', 'text-white');
+            setTimeout(() => this.classList.remove('bg-success', 'text-white'), 500);
+        });
+    }
+
+    applyTemplate('add_template_selector', 'add_');
 });
 </script>
 {% endblock %}

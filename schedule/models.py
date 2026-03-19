@@ -33,6 +33,24 @@ class CreditType(models.Model):
         return f"{self.name} ({self.hours_per_credit} ч.)"
 
 
+class CreditTemplate(models.Model):
+    credits = models.IntegerField(verbose_name=_("Количество кредитов"))
+    lecture_pairs = models.FloatField(default=0, verbose_name=_("Лекции (пар в неделю)"))
+    practice_pairs = models.FloatField(default=0, verbose_name=_("Практика (пар в неделю)"))
+    lab_pairs = models.FloatField(default=0, verbose_name=_("Лабораторные (пар в неделю)"))
+    srsp_pairs = models.FloatField(default=0, verbose_name=_("СРСП (пар в неделю)"))
+    
+    faculty = models.ForeignKey('accounts.Faculty', on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Факультет"))
+
+    class Meta:
+        verbose_name = _("Шаблон распределения кредитов")
+        verbose_name_plural = _("Шаблоны распределения кредитов")
+        ordering = ['credits', 'lecture_pairs']
+
+    def __str__(self):
+        return f"{self.credits} кр. (Л:{self.lecture_pairs}, П:{self.practice_pairs}, Лаб:{self.lab_pairs}, СРСП:{self.srsp_pairs})"
+
+
 class Subgroup(models.Model):
     subject = models.ForeignKey('schedule.Subject', on_delete=models.CASCADE, related_name='subgroups', verbose_name="Предмет")
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='subgroups', verbose_name="Основная группа")
@@ -142,6 +160,7 @@ class Subject(models.Model):
         blank=True,
         verbose_name=_("Основание (из плана)")
     )
+    is_active = models.BooleanField(default=True, verbose_name=_("Активен (учитывается в нагрузке)"))
 
     class Meta:
         verbose_name = _("Предмет")

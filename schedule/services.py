@@ -306,12 +306,14 @@ class ScheduleImporter:
 
 class RupImporter:
     @staticmethod
-    def import_from_excel(file, plan_id, semester_number):
-        plan = AcademicPlan.objects.get(id=plan_id)
+    def parse_for_preview(file):
+        import openpyxl
+        import re
         wb = openpyxl.load_workbook(file, data_only=True)
         sheet = wb.active
 
-        stats = {'created': 0, 'updated': 0, 'errors': []}
+        stats = {'created': 0, 'updated': 0, 'errors':[]}
+        preview_data =[]
 
         def to_int(val):
             if val is None:
@@ -340,47 +342,29 @@ class RupImporter:
             if 'номгӯйи' in lower_name or 'наименование' in lower_name or 'семестр' in lower_name:
                 continue
 
-            try:
-                with transaction.atomic():
-                    template, _ = SubjectTemplate.objects.get_or_create(name=subj_name)
+            credits = to_int(row[1]) if len(row) > 1 else 0
+            lec = to_int(row[4]) if len(row) > 4 else 0
+            prac = to_int(row[5]) if len(row) > 5 else 0
+            srsp = to_int(row[6]) if len(row) > 6 else 0
+            srs = to_int(row[7]) if len(row) > 7 else 0
 
-                    credits = to_int(row[1]) if len(row) > 1 else 0
-                    lec = to_int(row[4]) if len(row) > 4 else 0
-                    prac = to_int(row[5]) if len(row) > 5 else 0
-                    srsp = to_int(row[6]) if len(row) > 6 else 0
-                    srs = to_int(row[7]) if len(row) > 7 else 0
+            if lec == 0 and prac == 0 and srsp == 0 and srs == 0:
+                total_h = to_int(row[3]) if len(row) > 3 else 0
+                if total_h > 0:
+                    srs = total_h
 
-                    if lec == 0 and prac == 0 and srsp == 0 and srs == 0:
-                        total_h = to_int(row[3]) if len(row) > 3 else 0
-                        if total_h > 0:
-                            srs = total_h
+            preview_data.append({
+                'id': row_idx,
+                'name': subj_name,
+                'type': current_disc_type,
+                'credits': credits,
+                'lec': lec,
+                'prac': prac,
+                'srsp': srsp,
+                'srs': srs,
+            })
 
-                    discipline, created = PlanDiscipline.objects.update_or_create(
-                        plan=plan,
-                        subject_template=template,
-                        semester_number=semester_number,
-                        defaults={
-                            'discipline_type': current_disc_type,
-                            'credits': credits,
-                            'lecture_hours': lec,
-                            'practice_hours': prac,
-                            'lab_hours': 0,
-                            'control_hours': srsp,
-                            'independent_hours': srs,
-                            'control_type': 'EXAM',
-                            'cycle': 'OTHER'
-                        }
-                    )
-
-                    if created:
-                        stats['created'] += 1
-                    else:
-                        stats['updated'] += 1
-
-            except Exception as e:
-                stats['errors'].append(f"Строка {row_idx} ({subj_name}): {str(e)}")
-
-        return stats
+        return preview_data
 
 class AlgorithmicAssignmentService:
     @staticmethod

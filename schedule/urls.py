@@ -24,6 +24,9 @@ urlpatterns = [
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
     path('subjects/<int:subject_id>/delete/', views.delete_subject, name='delete_subject'),
     path('subjects/<int:subject_id>/split/', views.split_subject, name='split_subject'),
+    path('subjects/<int:subject_id>/split-load/', views.split_subject_load, name='split_subject_load'),
+    path('subjects/<int:subject_id>/toggle-active/', views.toggle_subject_active, name='toggle_subject_active'),
+    path('import-department-load/', views.import_department_load, name='import_department_load'),
     
     path('semesters/', views.manage_semesters, name='manage_semesters'),
     path('semesters/add/', views.add_semester, name='add_semester'),
@@ -63,5 +66,8 @@ urlpatterns = [
     path('teachers/availability/', views.manage_teacher_availability, name='manage_teacher_availability'), # НОВЫЙ МАРШРУТ
     path('api/credit-type/create/', views.api_create_credit_type, name='api_create_credit_type'),
     path('plans/discipline/<int:discipline_id>/edit/', views.edit_plan_discipline, name='edit_plan_discipline'),
-
+    path('credit-templates/', views.manage_credit_templates, name='manage_credit_templates'),
+    path('credit-templates/add/', views.add_credit_template, name='add_credit_template'),
+    path('credit-templates/<int:template_id>/edit/', views.edit_credit_template, name='edit_credit_template'),
+    path('credit-templates/<int:template_id>/delete/', views.delete_credit_template, name='delete_credit_template'),
 ]

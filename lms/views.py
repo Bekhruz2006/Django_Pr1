@@ -818,10 +818,12 @@ def section_grading(request, section_id):
         return redirect('lms:course_detail', course_id=course.id)
 
     faculty = subject.department.faculty
+    institute = faculty.institute
 
     structure, created_structure = MatrixStructure.objects.get_or_create(
-        faculty=faculty,
-        defaults={'name': f"Матрица {faculty.code if faculty else 'Глобальная'}"}
+        institute=institute,
+        faculty=None,
+        defaults={'name': f"Матрица {institute.abbreviation if institute else 'Глобальная'}"}
     )
 
     col_type = 'WEEK'

@@ -132,11 +132,9 @@ class LMSManager:
         faculty = subject.department.faculty
         institute = faculty.institute
         
-        matrix = MatrixStructure.objects.filter(faculty=faculty, is_active=True).first()
+        matrix = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
         if not matrix:
-            matrix = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
-        if not matrix:
-            matrix = MatrixStructure.objects.filter(faculty__isnull=True, institute__isnull=True, is_active=True).first()
+            matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
             
         if not matrix or not matrix.columns.exists():
             return False, "Структура Сводной ведомости (Матрица) не настроена деканатом. Настройте её в Журнале."

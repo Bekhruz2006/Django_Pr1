@@ -723,7 +723,6 @@ body.dark-mode .modal-footer {
     border-top-color: #1e3052;
 }
 
-/* Исправление временных слотов и hover-эффектов в конструкторе расписания */
 body.dark-mode .time-cell {
     background-color: #1e3052 !important;
     color: #e2e8f0 !important;

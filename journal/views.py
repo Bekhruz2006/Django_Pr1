@@ -211,9 +211,7 @@ def journal_view(request):
     faculty = group.specialty.department.faculty if group.specialty else None
     institute = faculty.institute if faculty else None
     
-    matrix_structure = MatrixStructure.objects.filter(faculty=faculty, is_active=True).first()
-    if not matrix_structure and institute:
-        matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
+    matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
     if not matrix_structure:
         matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
 
@@ -804,9 +802,7 @@ def performance_journal_view(request):
     faculty = group.specialty.department.faculty if group.specialty else None
     institute = faculty.institute if faculty else None
     
-    matrix_structure = MatrixStructure.objects.filter(faculty=faculty, is_active=True).first()
-    if not matrix_structure and institute:
-        matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
+    matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
     if not matrix_structure:
         matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
     

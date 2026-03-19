@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Предпросмотр нагрузки" %}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-eye"></i> {% trans "Предпросмотр и распределение нагрузки" %}</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info small">
+            {% trans "Проверьте корректность распознанных данных. Вы можете сразу назначить преподавателей на дисциплины перед финальным импортом." %}
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="confirm_import" value="1">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans "Дисциплина" %}</th>
+                            <th>{% trans "Группа" %}</th>
+                            <th>{% trans "Кр/Л/П/Лаб" %}</th>
+                            <th>{% trans "Преподаватель (из файла)" %}</th>
+                            <th>{% trans "Назначить преподавателя" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in preview_data %}
+                        <tr class="{% if not item.group_id %}table-danger{% endif %}">
+                            <td class="fw-bold">{{ item.subject }}</td>
+                            <td>
+                                {{ item.group }}
+                                {% if not item.group_id %}<br><small class="text-danger">{% trans "Группа не найдена в БД!" %}</small>{% endif %}
+                            </td>
+                            <td>{{ item.credits }} / {{ item.lec }} / {{ item.prac }} / {{ item.lab }}</td>
+                            <td class="text-muted">{{ item.teacher_name }}</td>
+                            <td>
+                                {% if item.group_id %}
+                                <select name="teacher_{{ item.id }}" class="form-select form-select-sm">
+                                    <option value="">-- {% trans "Не назначен" %} --</option>
+                                    {% for t in teachers %}
+                                        <option value="{{ t.id }}" {% if item.teacher_id == t.id %}selected{% endif %}>{{ t.user.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% else %}
+                                <span class="text-danger">{% trans "Импорт невозможен" %}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <button type="submit" class="btn btn-success mt-3"><i class="bi bi-check-all"></i> {% trans "Подтвердить и создать нагрузку" %}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -4,13 +4,15 @@ from django.contrib import messages
 from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
+from django.http import JsonResponse
 from accounts.models import Student, Teacher, Group, Institute, Department, Order, User
 from news.models import News
 from journal.models import StudentStatistics
 from schedule.models import ScheduleSlot
 import json
 from datetime import datetime
-from schedule.models import Semester, SubjectMaterial, AcademicPlan
+from schedule.models import Semester, SubjectMaterial, AcademicPlan, Classroom, Subject
+from lms.models import Course
 
 def get_ai_report_status():
     active_sems = Semester.objects.filter(is_active=True)
@@ -322,3 +324,132 @@ def dashboard(request):
         context['today'] = datetime.now()
 
     return render(request, 'core/dashboard_student.html', context)
+
+
+@login_required
+def global_search(request):
+    query = request.GET.get('q', '').strip()
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if not query or len(query) < 2:
+            return JsonResponse({'results':[]})
+        
+        user = request.user
+        institute = None
+        is_management = False
+        
+        if hasattr(user, 'dean_profile') and user.dean_profile.faculty:
+            institute = user.dean_profile.faculty.institute
+            is_management = True
+        elif hasattr(user, 'vicedean_profile') and user.vicedean_profile.faculty:
+            institute = user.vicedean_profile.faculty.institute
+            is_management = True
+        elif hasattr(user, 'director_profile') and user.director_profile.institute:
+            institute = user.director_profile.institute
+            is_management = True
+        elif hasattr(user, 'prorector_profile') and user.prorector_profile.institute:
+            institute = user.prorector_profile.institute
+            is_management = True
+        elif hasattr(user, 'head_of_dept_profile') and user.head_of_dept_profile.department:
+            institute = user.head_of_dept_profile.department.faculty.institute
+            is_management = True
+        elif user.is_superuser:
+            is_management = True
+        elif hasattr(user, 'teacher_profile') and user.teacher_profile.department:
+            institute = user.teacher_profile.department.faculty.institute
+        elif hasattr(user, 'student_profile') and user.student_profile.group and user.student_profile.group.specialty:
+            institute = user.student_profile.group.specialty.department.faculty.institute
+
+        students_qs = Student.objects.select_related('user', 'group')
+        teachers_qs = Teacher.objects.select_related('user', 'department')
+        groups_qs = Group.objects.all()
+        courses_qs = Course.objects.select_related('category')
+        subjects_qs = Subject.objects.select_related('department')
+        classrooms_qs = Classroom.objects.select_related('building')
+
+        if not user.is_superuser and institute:
+            students_qs = students_qs.filter(group__specialty__department__faculty__institute=institute)
+            teachers_qs = teachers_qs.filter(department__faculty__institute=institute)
+            groups_qs = groups_qs.filter(specialty__department__faculty__institute=institute)
+            courses_qs = courses_qs.filter(
+                Q(allowed_faculty__institute=institute) | 
+                Q(category__faculty__institute=institute) | 
+                Q(category__institute=institute) |
+                Q(enrolments__user=user)
+            ).distinct()
+            subjects_qs = subjects_qs.filter(department__faculty__institute=institute)
+            classrooms_qs = classrooms_qs.filter(building__institute=institute)
+
+        results =[]
+
+        students = students_qs.filter(
+            Q(user__first_name__icontains=query) | 
+            Q(user__last_name__icontains=query) | 
+            Q(student_id__icontains=query)
+        )[:5]
+        for s in students:
+            results.append({
+                'title': s.user.get_full_name(),
+                'subtitle': f"Студент | {s.group.name if s.group else 'Без группы'}",
+                'url': f"/accounts/profile/view/{s.user.id}/",
+                'icon': 'bi-mortarboard text-primary'
+            })
+
+        teachers = teachers_qs.filter(
+            Q(user__first_name__icontains=query) | 
+            Q(user__last_name__icontains=query)
+        )[:5]
+        for t in teachers:
+            results.append({
+                'title': t.user.get_full_name(),
+                'subtitle': f"Преподаватель | {t.department.name if t.department else ''}",
+                'url': f"/accounts/profile/view/{t.user.id}/",
+                'icon': 'bi-person-video3 text-success'
+            })
+
+        groups = groups_qs.filter(name__icontains=query)[:5]
+        for g in groups:
+            results.append({
+                'title': g.name,
+                'subtitle': f"Группа | {g.course} курс",
+                'url': f"/accounts/groups/{g.id}/view/",
+                'icon': 'bi-people text-warning'
+            })
+
+        courses = courses_qs.filter(
+            Q(full_name__icontains=query) | Q(short_name__icontains=query)
+        )[:5]
+        for c in courses:
+            results.append({
+                'title': c.short_name,
+                'subtitle': f"Курс (LMS) | {c.category.name}",
+                'url': f"/lms/courses/{c.id}/",
+                'icon': 'bi-laptop text-info'
+            })
+
+        if is_management or hasattr(user, 'teacher_profile'):
+            subjects = subjects_qs.filter(
+                Q(name__icontains=query) | Q(code__icontains=query)
+            )[:5]
+            for sub in subjects:
+                url = f"/schedule/subjects/{sub.id}/edit/" if is_management else f"/schedule/subject/{sub.id}/materials/"
+                results.append({
+                    'title': sub.name,
+                    'subtitle': f"Предмет | {sub.department.name if sub.department else ''}",
+                    'url': url,
+                    'icon': 'bi-book text-secondary'
+                })
+
+        if is_management:
+            classrooms = classrooms_qs.filter(number__icontains=query)[:5]
+            for room in classrooms:
+                results.append({
+                    'title': f"Аудитория {room.number}",
+                    'subtitle': f"Кабинет | {room.building.name if room.building else ''} ({room.get_room_type_display()})",
+                    'url': f"/schedule/classrooms/{room.id}/edit/",
+                    'icon': 'bi-door-open text-danger'
+                })
+
+        return JsonResponse({'results': results})
+
+    return render(request, 'core/search_results.html', {'query': query})

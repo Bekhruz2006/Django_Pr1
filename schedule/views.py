@@ -9,6 +9,7 @@ from django.utils import translation
 from datetime import datetime, timedelta, date
 import json
 import uuid
+import re
 from io import BytesIO 
 from django.db.models import Q, Sum
 try:
@@ -22,8 +23,8 @@ try:
 except ImportError:
     DOCX_AVAILABLE = False
 from django import forms
-from .models import Subject, CreditType, ScheduleSlot, Semester, Classroom, TimeSlot, TeacherUnavailableSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
-from .forms import SubjectForm, RupImportForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm
+from .models import Subject, CreditType, CreditTemplate, ScheduleSlot, Semester, Classroom, TimeSlot, TeacherUnavailableSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
+from .forms import SubjectForm, RupImportForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm, CreditTemplateForm
 from .services import ScheduleImporter, RupImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department, Faculty
 import math
@@ -54,8 +55,24 @@ def get_time_slots_for_shift(shift, institute=None):
 def is_dean_or_admin(user):
     return user.is_authenticated and (
         user.is_superuser or 
-        user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR', 'DEAN', 'VICE_DEAN']
+        user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR', 'DEAN', 'VICE_DEAN', 'HEAD_OF_DEPT']
     )
+
+def is_dept_head_or_above(user):
+    return user.is_authenticated and (
+        user.is_superuser or 
+        user.role in['RECTOR', 'PRO_RECTOR', 'DIRECTOR', 'DEAN', 'VICE_DEAN', 'HEAD_OF_DEPT']
+    )
+
+def safe_int(val):
+    try:
+        if isinstance(val, str):
+            match = re.search(r'\d+', val)
+            if match:
+                return int(match.group())
+        return int(float(val))
+    except (ValueError, TypeError):
+        return 0
 
 def get_active_semester_for_group(group):
     if group and group.specialty and group.specialty.department.faculty:
@@ -919,7 +936,10 @@ def add_subject(request):
                 Q(scheduleslot__group__specialty__department__faculty=faculty)
             ).distinct()
 
-    return render(request, 'schedule/subject_form.html', {'form': form, 'title': _('Добавить предмет')})
+    faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
+    credit_templates = CreditTemplate.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True)).order_by('credits')
+
+    return render(request, 'schedule/subject_form.html', {'form': form, 'title': _('Добавить предмет'), 'credit_templates': credit_templates})
 
 
 @login_required
@@ -1022,7 +1042,10 @@ def edit_subject(request, subject_id):
                 Q(scheduleslot__group__specialty__department__faculty=faculty)
             ).distinct()
             
-    return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': _('Редактировать предмет')})
+    faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
+    credit_templates = CreditTemplate.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True)).order_by('credits')
+    
+    return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': _('Редактировать предмет'), 'credit_templates': credit_templates})
 
 @login_required
 @user_passes_test(is_dean_or_admin)
@@ -1640,6 +1663,8 @@ def plan_detail(request, plan_id):
 
     disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_sem_num)
 
+    credit_templates = CreditTemplate.objects.filter(Q(faculty=user_faculty) | Q(faculty__isnull=True)).order_by('credits')
+
     return render(request, 'schedule/plans/plan_detail.html', {
         'plan': plan,
         'disciplines': disciplines,
@@ -1650,6 +1675,7 @@ def plan_detail(request, plan_id):
         'available_semesters': available_semesters,
         'active_semester': active_semester,
         'credit_types': credit_types,
+        'credit_templates': credit_templates,
     })
 
 
@@ -2453,28 +2479,81 @@ def check_schedule_conflicts(request):
     return JsonResponse({'success': True})
 
 @user_passes_test(is_dean_or_admin)
+@login_required
+@user_passes_test(is_dean_or_admin)
 def import_rup_excel(request, plan_id, semester_num):
     plan = get_object_or_404(AcademicPlan, id=plan_id)
     
-    if request.method == 'POST':
-        form = RupImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                stats = RupImporter.import_from_excel(
-                    file=request.FILES['file'], 
-                    plan_id=plan.id, 
-                    semester_number=semester_num
-                )
-                messages.success(request, f"Успешно! Добавлено: {stats['created']}, Обновлено: {stats['updated']}")
-                if stats['errors']:
-                    messages.warning(request, f"Ошибки ({len(stats['errors'])}): {'; '.join(stats['errors'][:3])}...")
-            except Exception as e:
-                messages.error(request, f"Ошибка обработки файла: {str(e)}")
-                
+    if request.method == 'POST' and 'file' in request.FILES:
+        try:
+            preview_data = RupImporter.parse_for_preview(request.FILES['file'])
+            request.session['rup_import_preview'] = preview_data
+            return render(request, 'schedule/plans/import_rup_preview.html', {
+                'plan': plan,
+                'semester_num': semester_num,
+                'preview_data': preview_data
+            })
+        except Exception as e:
+            messages.error(request, f"Ошибка обработки файла: {str(e)}")
             return redirect(f"/schedule/plans/{plan.id}/?semester={semester_num}")
-    
+
+    elif request.method == 'POST' and 'confirm_import' in request.POST:
+        preview_data = request.session.get('rup_import_preview', [])
+        stats = {'created': 0, 'updated': 0, 'errors':[]}
+        
+        with transaction.atomic():
+            for item in preview_data:
+                idx = str(item['id'])
+                if not request.POST.get(f"import_{idx}"):
+                    continue
+                name = request.POST.get(f"name_{idx}")
+                if not name: continue
+                
+                disc_type = request.POST.get(f"type_{idx}")
+                credits = safe_int(request.POST.get(f"credits_{idx}"))
+                lec = safe_int(request.POST.get(f"lec_{idx}"))
+                prac = safe_int(request.POST.get(f"prac_{idx}"))
+                srsp = safe_int(request.POST.get(f"srsp_{idx}"))
+                srs = safe_int(request.POST.get(f"srs_{idx}"))
+                sem_num = safe_int(request.POST.get(f"semester_{idx}", semester_num))
+                
+                try:
+                    template, _ = SubjectTemplate.objects.get_or_create(name=name)
+                    discipline, created = PlanDiscipline.objects.update_or_create(
+                        plan=plan,
+                        subject_template=template,
+                        semester_number=sem_num,
+                        defaults={
+                            'discipline_type': disc_type,
+                            'credits': credits,
+                            'lecture_hours': lec,
+                            'practice_hours': prac,
+                            'lab_hours': 0,
+                            'control_hours': srsp,
+                            'independent_hours': srs,
+                            'control_type': 'EXAM',
+                            'cycle': 'OTHER'
+                        }
+                    )
+                    if created:
+                        stats['created'] += 1
+                    else:
+                        stats['updated'] += 1
+                except Exception as e:
+                    stats['errors'].append(f"Строка {idx} ({name}): {str(e)}")
+        
+        if 'rup_import_preview' in request.session:
+            del request.session['rup_import_preview']
+            
+        messages.success(request, f"Успешно! Добавлено: {stats['created']}, Обновлено: {stats['updated']}")
+        if stats['errors']:
+            messages.warning(request, f"Ошибки ({len(stats['errors'])}): {'; '.join(stats['errors'][:3])}...")
+            
+        return redirect(f"/schedule/plans/{plan.id}/?semester={semester_num}")
+
     messages.error(request, "Неверный запрос")
     return redirect(f"/schedule/plans/{plan.id}/?semester={semester_num}")
+
 
 
 @login_required
@@ -2815,5 +2894,191 @@ def edit_plan_discipline(request, discipline_id):
     return redirect(f"/schedule/plans/{disc.plan.id}/?semester={disc.semester_number}")
 
 
+@user_passes_test(is_dean_or_admin)
+def manage_credit_templates(request):
+    templates = CreditTemplate.objects.all()
+    if hasattr(request.user, 'dean_profile'):
+        templates = templates.filter(Q(faculty=request.user.dean_profile.faculty) | Q(faculty__isnull=True))
+    return render(request, 'schedule/manage_credit_templates.html', {'templates': templates})
 
+
+@user_passes_test(is_dean_or_admin)
+def add_credit_template(request):
+    if request.method == 'POST':
+        form = CreditTemplateForm(request.POST)
+        if form.is_valid():
+            template = form.save(commit=False)
+            if hasattr(request.user, 'dean_profile'):
+                template.faculty = request.user.dean_profile.faculty
+            template.save()
+            messages.success(request, _("Шаблон кредитов успешно добавлен!"))
+            return redirect('schedule:manage_credit_templates')
+    else:
+        form = CreditTemplateForm()
+    return render(request, 'schedule/credit_template_form.html', {'form': form, 'title': _('Добавить шаблон')})
+
+
+@user_passes_test(is_dean_or_admin)
+def edit_credit_template(request, template_id):
+    template = get_object_or_404(CreditTemplate, id=template_id)
+    if request.method == 'POST':
+        form = CreditTemplateForm(request.POST, instance=template)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Шаблон обновлен!"))
+            return redirect('schedule:manage_credit_templates')
+    else:
+        form = CreditTemplateForm(instance=template)
+    return render(request, 'schedule/credit_template_form.html', {'form': form, 'title': _('Редактировать шаблон')})
+
+
+@user_passes_test(is_dean_or_admin)
+def delete_credit_template(request, template_id):
+    template = get_object_or_404(CreditTemplate, id=template_id)
+    template.delete()
+    messages.success(request, _("Шаблон удален!"))
+    return redirect('schedule:manage_credit_templates')
+
+
+@login_required
+@user_passes_test(is_dept_head_or_above)
+@require_POST
+def split_subject_load(request, subject_id):
+    original_subject = get_object_or_404(Subject, id=subject_id)
+    
+    try:
+        transfer_credits = int(request.POST.get('transfer_credits', 0))
+        transfer_lec = int(request.POST.get('transfer_lec', 0))
+        transfer_prac = int(request.POST.get('transfer_prac', 0))
+        transfer_lab = int(request.POST.get('transfer_lab', 0))
+        new_teacher_id = request.POST.get('new_teacher_id')
+        
+        if transfer_credits <= 0 and (transfer_lec + transfer_prac + transfer_lab) <= 0:
+            messages.error(request, _("Укажите часы или кредиты для переноса."))
+            return redirect('schedule:manage_subjects')
+
+        with transaction.atomic():
+            original_subject.credits = max(0, original_subject.credits - transfer_credits)
+            original_subject.lecture_hours = max(0, original_subject.lecture_hours - transfer_lec)
+            original_subject.practice_hours = max(0, original_subject.practice_hours - transfer_prac)
+            original_subject.lab_hours = max(0, original_subject.lab_hours - transfer_lab)
+            original_subject.save()
+
+            new_teacher = Teacher.objects.filter(id=new_teacher_id).first() if new_teacher_id else None
+            
+            new_subject = Subject.objects.create(
+                name=f"{original_subject.name} (Часть 2)",
+                code=f"{original_subject.code}_split_{uuid.uuid4().hex[:4]}",
+                department=original_subject.department,
+                type=original_subject.type,
+                credits=transfer_credits,
+                lecture_hours=transfer_lec,
+                practice_hours=transfer_prac,
+                lab_hours=transfer_lab,
+                control_hours=0,
+                independent_work_hours=0,
+                semester_weeks=original_subject.semester_weeks,
+                teacher=new_teacher,
+                plan_discipline=original_subject.plan_discipline,
+                is_active=True
+            )
+            new_subject.groups.set(original_subject.groups.all())
+            
+        messages.success(request, _("Нагрузка успешно разделена. Создана новая карточка предмета."))
+    except Exception as e:
+        messages.error(request, _("Ошибка при разделении нагрузки: ") + str(e))
+        
+    return redirect('schedule:manage_subjects')
+
+
+@login_required
+@user_passes_test(is_dept_head_or_above)
+def toggle_subject_active(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    subject.is_active = not getattr(subject, 'is_active', True)
+    subject.save()
+    status = _("активирована") if subject.is_active else _("деактивирована (исключена из нагрузки)")
+    messages.success(request, _("Дисциплина ") + subject.name + " " + status + ".")
+    return redirect('schedule:manage_subjects')
+
+
+@login_required
+@user_passes_test(is_dept_head_or_above)
+@login_required
+@user_passes_test(is_dept_head_or_above)
+def import_department_load(request):
+    if request.method == 'POST' and 'excel_file' in request.FILES:
+        excel_file = request.FILES['excel_file']
+        import openpyxl
+        wb = openpyxl.load_workbook(excel_file, data_only=True)
+        sheet = wb.active
+        
+        preview_data =[]
+        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not row[0]: continue
+            
+            subj_name = str(row[0]).strip()
+            group_name = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+            teacher_name = str(row[6]).strip() if len(row) > 6 and row[6] else ""
+            
+            group_obj = Group.objects.filter(name__iexact=group_name).first()
+            teacher_obj = Teacher.objects.filter(user__last_name__icontains=teacher_name.split()[0]).first() if teacher_name else None
+            
+            preview_data.append({
+                'id': row_idx,
+                'subject': subj_name,
+                'group': group_name,
+                'group_id': group_obj.id if group_obj else None,
+                'credits': safe_int(row[2]) if len(row)>2 else 0,
+                'lec': safe_int(row[3]) if len(row)>3 else 0,
+                'prac': safe_int(row[4]) if len(row)>4 else 0,
+                'lab': safe_int(row[5]) if len(row)>5 else 0,
+                'teacher_name': teacher_name,
+                'teacher_id': teacher_obj.id if teacher_obj else None,
+            })
+            
+        request.session['dept_load_preview'] = preview_data
+        teachers = Teacher.objects.filter(department=request.user.head_of_dept_profile.department) if hasattr(request.user, 'head_of_dept_profile') else Teacher.objects.all()
+        
+        return render(request, 'schedule/import_dept_load_preview.html', {
+            'preview_data': preview_data,
+            'teachers': teachers
+        })
+
+    elif request.method == 'POST' and 'confirm_import' in request.POST:
+        preview_data = request.session.get('dept_load_preview',[])
+        dept = request.user.head_of_dept_profile.department if hasattr(request.user, 'head_of_dept_profile') else Department.objects.first()
+        
+        created_count = 0
+        with transaction.atomic():
+            for item in preview_data:
+                idx = str(item['id'])
+                teacher_id = request.POST.get(f'teacher_{idx}')
+                group_id = item['group_id']
+                
+                if not group_id: continue 
+                
+                teacher_obj = Teacher.objects.filter(id=teacher_id).first() if teacher_id else None
+                group_obj = Group.objects.get(id=group_id)
+                
+                subject = Subject.objects.create(
+                    name=item['subject'],
+                    code=f"IMP_{uuid.uuid4().hex[:6]}",
+                    department=dept,
+                    credits=item['credits'],
+                    lecture_hours=item['lec'],
+                    practice_hours=item['prac'],
+                    lab_hours=item['lab'],
+                    teacher=teacher_obj,
+                    is_active=True
+                )
+                subject.groups.add(group_obj)
+                created_count += 1
+                
+        if 'dept_load_preview' in request.session:
+            del request.session['dept_load_preview']
+        messages.success(request, f"Успешно импортировано и распределено {created_count} дисциплин.")
+        return redirect('schedule:manage_subjects')
+
+    return render(request, 'schedule/import_dept_load.html')
 

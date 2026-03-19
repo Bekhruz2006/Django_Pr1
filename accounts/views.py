@@ -779,8 +779,15 @@ def view_user_profile(request, user_id):
     return render(request, template, context)
 
 @user_passes_test(is_management)
+@user_passes_test(is_management)
 def group_management(request):
     groups = Group.objects.all().order_by('course', 'name')
+    
+    if hasattr(request.user, 'head_of_dept_profile'):
+        groups = groups.filter(specialty__department=request.user.head_of_dept_profile.department)
+    elif hasattr(request.user, 'dean_profile'):
+        groups = groups.filter(specialty__department__faculty=request.user.dean_profile.faculty)
+
     search = request.GET.get('search', '')
     course_filter = request.GET.get('course', '')
     
@@ -797,6 +804,7 @@ def group_management(request):
         'groups': groups,
         'search': search,
         'course_filter': course_filter,
+        'is_head_of_dept': hasattr(request.user, 'head_of_dept_profile')
     })
 
 @login_required

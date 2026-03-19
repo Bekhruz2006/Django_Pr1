@@ -2,7 +2,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import FieldError
 from django.core.validators import FileExtensionValidator
-from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, CreditType,  AcademicPlan, PlanDiscipline, SubjectTemplate
+from .models import Subject, ScheduleSlot, ScheduleException, Semester, Classroom, CreditType, CreditTemplate, AcademicPlan, PlanDiscipline, SubjectTemplate
 from accounts.models import Group, Teacher, Department, Specialty, Institute
 from .models import SubjectMaterial
 from .models import PlanDiscipline, AcademicPlan
@@ -426,6 +426,20 @@ class BuildingForm(forms.ModelForm):
                 self.fields['institute'].initial = faculty.institute
                 self.fields['institute'].widget.attrs['readonly'] = True
                 self.fields['institute'].queryset = Institute.objects.filter(id=faculty.institute.id)
+
+
+class CreditTemplateForm(forms.ModelForm):
+    class Meta:
+        model = CreditTemplate
+        fields = ['credits', 'lecture_pairs', 'practice_pairs', 'lab_pairs', 'srsp_pairs']
+        widgets = {
+            'credits': forms.NumberInput(attrs={'class': 'form-control fw-bold text-primary'}),
+            'lecture_pairs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
+            'practice_pairs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
+            'lab_pairs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
+            'srsp_pairs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
+        }
+
 
 
 

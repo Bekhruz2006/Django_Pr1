@@ -507,6 +507,28 @@
             </a>
 
             <div class="d-flex align-items-center gap-2">
+                <div class="d-none d-md-flex me-2 position-relative" id="globalSearchContainer">
+                    <div class="input-group input-group-sm" style="width: 280px; background: rgba(255, 255, 255, 0.15); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <span class="input-group-text bg-transparent border-0 text-white"><i class="bi bi-search"></i></span>
+                        <input type="text" id="globalSearchInput" class="form-control bg-transparent border-0 shadow-none text-white search-input" placeholder="{% trans 'Поиск...' %}" style="border-radius: 0 20px 20px 0;" autocomplete="off">
+                    </div>
+                    <div id="globalSearchResults" class="dropdown-menu shadow-lg w-100 position-absolute" style="top: 100%; left: 0; margin-top: 10px; border-radius: 12px; display: none; max-height: 400px; overflow-y: auto; z-index: 1050; padding: 0; overflow: hidden;">
+                    </div>
+                </div>
+                
+                <style>
+                    .search-input::placeholder { color: rgba(255, 255, 255, 0.7); }
+                    .search-input:focus { background: rgba(255, 255, 255, 0.2) !important; color: white; }
+                    .search-result-item { padding: 10px 16px; border-bottom: 1px solid var(--border-light); transition: background 0.2s; display: block; text-decoration: none; color: var(--text-light); }
+                    .search-result-item:last-child { border-bottom: none; }
+                    .search-result-item:hover { background: rgba(37, 99, 235, 0.05); color: var(--primary); }
+                    .search-result-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+                    .search-result-subtitle { font-size: 0.75rem; color: #64748b; }
+                    body.dark-mode .search-result-item { color: var(--text-dark); border-color: var(--border-dark); background: var(--card-dark); }
+                    body.dark-mode .search-result-item:hover { background: rgba(96, 165, 250, 0.1); color: #60a5fa; }
+                    body.dark-mode .search-result-subtitle { color: #94a3b8; }
+                </style>
+                
                 <form action="{% url 'set_language' %}" method="post" class="lang-switcher d-none d-sm-block">
                     {% csrf_token %}
                     <input name="next" type="hidden" value="{{ redirect_to }}">
@@ -610,6 +632,12 @@
                 <a class="sidebar-link" href="{% url 'lms:dashboard' %}"><i class="bi bi-laptop"></i>{% trans "LMS — Платформа обучения" %}</a>
                 <a class="sidebar-link" href="{% url 'journal:matrix_constructor' %}"><i class="bi bi-grid-3x3"></i>Конструктор ведомости</a>
                 <a class="sidebar-link" href="{% url 'lms:course_list' %}"><i class="bi bi-mortarboard"></i>{% trans "Все курсы" %}</a>
+                {% if user.role == 'HEAD_OF_DEPT' or user.is_superuser %}
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-sub-label">Управление кафедрой</div>
+                <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}"><i class="bi bi-briefcase"></i>Нагрузка кафедры</a>
+                <a class="sidebar-link" href="{% url 'schedule:import_department_load' %}"><i class="bi bi-file-earmark-excel"></i>Импорт нагрузки</a>
+                {% endif %}
                 <div class="sidebar-divider"></div>
                 <div class="sidebar-sub-label">{% trans "Аналитика" %}</div>
                 <a class="sidebar-link" href="{% url 'journal:dean_view' %}"><i class="bi bi-graph-up"></i>{% trans "Статистика успеваемости" %}</a>
@@ -624,6 +652,7 @@
                 <a class="sidebar-link" href="{% url 'schedule:view' %}"><i class="bi bi-eye"></i>{% trans "Просмотр сетки" %}</a>
                 <div class="sidebar-divider"></div>
                 <div class="sidebar-sub-label">{% trans "Настройки" %}</div>
+                <a class="sidebar-link" href="{% url 'schedule:manage_credit_templates' %}"><i class="bi bi-diagram-2"></i>{% trans "Шаблоны кредитов" %}</a>
                 <a class="sidebar-link" href="{% url 'schedule:manage_semesters' %}"><i class="bi bi-calendar-range"></i>{% trans "Семестры" %}</a>
                 {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
                 <a class="sidebar-link" href="{% url 'schedule:manage_time_slots' %}"><i class="bi bi-clock-history"></i>{% trans "Звонки (Временные слоты)" %}</a>
@@ -948,6 +977,70 @@ function fetchTrendData(period) {
 }
 </script>
 
+<script>
+const searchInput = document.getElementById('globalSearchInput');
+const searchResults = document.getElementById('globalSearchResults');
+let searchTimeout = null;
+
+if (searchInput && searchResults) {
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            fetch(`/search/?q=${encodeURIComponent(query)}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                searchResults.innerHTML = '';
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(item => {
+                        const a = document.createElement('a');
+                        a.href = item.url;
+                        a.className = 'search-result-item';
+                        a.innerHTML = `
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 fs-5"><i class="bi ${item.icon}"></i></div>
+                                <div>
+                                    <div class="search-result-title">${item.title}</div>
+                                    <div class="search-result-subtitle">${item.subtitle}</div>
+                                </div>
+                            </div>
+                        `;
+                        searchResults.appendChild(a);
+                    });
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.innerHTML = '<div class="p-3 text-center text-muted small">Ничего не найдено</div>';
+                    searchResults.style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Search error:', error));
+        }, 300); 
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!document.getElementById('globalSearchContainer').contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+    
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim().length >= 2 && searchResults.innerHTML !== '') {
+            searchResults.style.display = 'block';
+        }
+    });
+}
+</script>
 
 </body>
 </html>

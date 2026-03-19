@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Импорт нагрузки" %}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mt-4" style="max-width: 600px; margin: 0 auto;">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-excel"></i> {% trans "Загрузка нагрузки кафедры" %}</h5>
+    </div>
+    <div class="card-body">
+        <p>{% trans "Загрузите Excel файл со следующими колонками (начиная со 2-й строки):" %}</p>
+        <ol class="small text-muted">
+            <li>{% trans "Название дисциплины" %}</li>
+            <li>{% trans "Название группы (точное совпадение)" %}</li>
+            <li>{% trans "Кредиты (число)" %}</li>
+            <li>{% trans "Лекции (часы)" %}</li>
+            <li>{% trans "Практика (часы)" %}</li>
+            <li>{% trans "Лабораторные (часы)" %}</li>
+            <li>{% trans "ФИО Преподавателя (опционально)" %}</li>
+        </ol>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="excel_file" class="form-control mb-3" accept=".xlsx, .xls" required>
+            <button type="submit" class="btn btn-primary w-100">{% trans "Далее: Предпросмотр" %}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -94,6 +94,17 @@
                             <span class="badge bg-light text-primary" id="subj_total_credits_badge">0 ч. всего</span>
                         </div>
                         <div class="card-body bg-light">
+                            <div class="mb-3 p-2 bg-white rounded border border-success">
+                                <label class="small fw-bold text-success mb-1"><i class="bi bi-magic"></i> Быстрый шаблон (Автозаполнение)</label>
+                                <select id="subj_template_selector" class="form-select form-select-sm border-success fw-bold text-dark">
+                                    <option value="">-- Выберите шаблон кредитов --</option>
+                                    {% for t in credit_templates %}
+                                        <option value="{{ t.credits }}" data-lec="{{ t.lecture_pairs|stringformat:'s' }}" data-prac="{{ t.practice_pairs|stringformat:'s' }}" data-lab="{{ t.lab_pairs|stringformat:'s' }}" data-srsp="{{ t.srsp_pairs|stringformat:'s' }}">
+                                            {{ t.credits }} кр. (Л:{{ t.lecture_pairs }}, П:{{ t.practice_pairs }}, Лаб:{{ t.lab_pairs }}, СРСП:{{ t.srsp_pairs }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Система кредитов</label>
@@ -279,5 +290,39 @@ document.querySelectorAll('.subj-ui-calc').forEach(el => {
 document.getElementById('id_credits').addEventListener('input', calculateSubjHours);
 document.getElementById('id_credit_type').addEventListener('change', calculateSubjHours);
 document.getElementById('id_semester_weeks').addEventListener('input', calculateSubjHours);
+
+function applyTemplateSubj(selectorId) {
+    const selector = document.getElementById(selectorId);
+    if (!selector) return;
+    
+    selector.addEventListener('change', function() {
+        if (!this.value) return;
+        const opt = this.options[this.selectedIndex];
+        
+        document.getElementById('id_credits').value = this.value;
+        
+        function setSelectSafe(selectId, pairs) {
+            const select = document.getElementById(selectId);
+            let exists = false;
+            for(let i=0; i<select.options.length; i++) {
+                if(parseFloat(select.options[i].value) === parseFloat(pairs)) { exists = true; break; }
+            }
+            if(!exists && pairs > 0) { select.add(new Option(pairs + " пар", pairs)); }
+            select.value = parseFloat(pairs).toString();
+        }
+
+        setSelectSafe('subj_ui_lec', opt.dataset.lec);
+        setSelectSafe('subj_ui_prac', opt.dataset.prac);
+        setSelectSafe('subj_ui_lab', opt.dataset.lab);
+        setSelectSafe('subj_ui_srsp', opt.dataset.srsp);
+        
+        calculateSubjHours();
+        
+        this.classList.add('bg-success', 'text-white');
+        setTimeout(() => this.classList.remove('bg-success', 'text-white'), 500);
+    });
+}
+
+applyTemplateSubj('subj_template_selector');
 </script>
 {% endblock %}
