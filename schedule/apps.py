@@ -6,4 +6,4 @@ class ScheduleConfig(AppConfig):
     verbose_name = 'Управление расписанием'
 
     def ready(self):
-        import schedule.signals  # Подключаем сигналы при запуске
+        import schedule.signals 

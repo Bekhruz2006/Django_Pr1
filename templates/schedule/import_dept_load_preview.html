@@ -1,60 +1,216 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Предпросмотр нагрузки" %}{% endblock %}
+{% block title %}{% trans "Предпросмотр нагрузки кафедры" %}{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm mt-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-eye"></i> {% trans "Предпросмотр и распределение нагрузки" %}</h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-eye"></i>
+            {% trans "Предпросмотр: нагрузка кафедры" %}
+        </h5>
+        <span class="badge bg-white text-primary fs-6">{{ preview_data|length }} {% trans "строк" %}</span>
     </div>
+
     <div class="card-body">
-        <div class="alert alert-info small">
-            {% trans "Проверьте корректность распознанных данных. Вы можете сразу назначить преподавателей на дисциплины перед финальным импортом." %}
+
+        {% if parse_warnings_count %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            {% blocktrans with cnt=parse_warnings_count %}
+                Обнаружено {{ cnt }} предупреждений при разборе файла (см. выше).
+                Строки с незнакомой группой будут выделены красным — такие строки не сохранятся в БД.
+            {% endblocktrans %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <form method="post">
+        {% endif %}
+
+        <div class="alert alert-info small">
+            <i class="bi bi-info-circle me-1"></i>
+            {% trans "Вы можете отредактировать любое поле прямо в таблице перед сохранением. Строки, выделенные красным, не будут сохранены (группа не найдена)." %}
+        </div>
+
+        <form method="post" id="importForm">
             {% csrf_token %}
             <input type="hidden" name="confirm_import" value="1">
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle">
-                    <thead class="table-light">
+
+            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                <table class="table table-bordered table-sm align-middle small">
+                    <thead class="table-dark sticky-top">
                         <tr>
+                            <th style="width:28px">
+                                <input type="checkbox" id="selectAll"
+                                       class="form-check-input" checked
+                                       title="{% trans 'Выбрать / снять все' %}"
+                                       onchange="toggleAll(this)">
+                            </th>
                             <th>{% trans "Дисциплина" %}</th>
                             <th>{% trans "Группа" %}</th>
-                            <th>{% trans "Кр/Л/П/Лаб" %}</th>
+                            <th class="text-center">{% trans "Кр." %}</th>
+                            <th class="text-center">{% trans "Лекц." %}</th>
+                            <th class="text-center">{% trans "Прак." %}</th>
+                            <th class="text-center">{% trans "Лаб." %}</th>
                             <th>{% trans "Преподаватель (из файла)" %}</th>
-                            <th>{% trans "Назначить преподавателя" %}</th>
+                            <th style="min-width:160px">{% trans "Назначить преподавателя" %}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in preview_data %}
-                        <tr class="{% if not item.group_id %}table-danger{% endif %}">
-                            <td class="fw-bold">{{ item.subject }}</td>
-                            <td>
-                                {{ item.group }}
-                                {% if not item.group_id %}<br><small class="text-danger">{% trans "Группа не найдена в БД!" %}</small>{% endif %}
+                        <tr id="row_{{ item.id }}"
+                            class="{% if not item.group_id %}table-danger{% endif %}">
+
+                            <td class="text-center">
+                                {% if item.group_id %}
+                                <input type="checkbox"
+                                       class="form-check-input row-check"
+                                       name="row_enabled_{{ item.id }}"
+                                       id="chk_{{ item.id }}"
+                                       checked
+                                       onchange="toggleRow(this, {{ item.id }})">
+                                {% else %}
+                                <i class="bi bi-x-circle-fill text-danger"
+                                   title="{% trans 'Группа не найдена' %}"></i>
+                                {% endif %}
                             </td>
-                            <td>{{ item.credits }} / {{ item.lec }} / {{ item.prac }} / {{ item.lab }}</td>
-                            <td class="text-muted">{{ item.teacher_name }}</td>
+
                             <td>
                                 {% if item.group_id %}
-                                <select name="teacher_{{ item.id }}" class="form-select form-select-sm">
-                                    <option value="">-- {% trans "Не назначен" %} --</option>
+                                <input type="text"
+                                       id="subject_{{ item.id }}"
+                                       name="subject_{{ item.id }}"
+                                       class="form-control form-control-sm fw-semibold"
+                                       value="{{ item.subject }}"
+                                       required>
+                                {% else %}
+                                <span class="text-danger fw-semibold">{{ item.subject }}</span>
+                                <br><small class="text-danger">{% trans "Группа не найдена" %}</small>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-nowrap">
+                                <strong>{{ item.group }}</strong>
+                            </td>
+
+                            <td>
+                                <input type="number" min="0" max="30"
+                                       id="credits_{{ item.id }}"
+                                       name="credits_{{ item.id }}"
+                                       class="form-control form-control-sm text-center"
+                                       value="{{ item.credits }}"
+                                       style="width:54px"
+                                       {% if not item.group_id %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <input type="number" min="0"
+                                       id="lec_{{ item.id }}"
+                                       name="lec_{{ item.id }}"
+                                       class="form-control form-control-sm text-center"
+                                       value="{{ item.lec }}"
+                                       style="width:54px"
+                                       {% if not item.group_id %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <input type="number" min="0"
+                                       id="prac_{{ item.id }}"
+                                       name="prac_{{ item.id }}"
+                                       class="form-control form-control-sm text-center"
+                                       value="{{ item.prac }}"
+                                       style="width:54px"
+                                       {% if not item.group_id %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <input type="number" min="0"
+                                       id="lab_{{ item.id }}"
+                                       name="lab_{{ item.id }}"
+                                       class="form-control form-control-sm text-center"
+                                       value="{{ item.lab }}"
+                                       style="width:54px"
+                                       {% if not item.group_id %}disabled{% endif %}>
+                            </td>
+
+                            <td class="text-muted small">{{ item.teacher_name|default:"—" }}</td>
+
+                            <td>
+                                {% if item.group_id %}
+                                <select name="teacher_{{ item.id }}"
+                                        id="teacher_{{ item.id }}"
+                                        class="form-select form-select-sm">
+                                    <option value="">— {% trans "Не назначен" %} —</option>
                                     {% for t in teachers %}
-                                        <option value="{{ t.id }}" {% if item.teacher_id == t.id %}selected{% endif %}>{{ t.user.get_full_name }}</option>
+                                    <option value="{{ t.id }}"
+                                        {% if item.teacher_id == t.id %}selected{% endif %}>
+                                        {{ t.user.get_full_name }}
+                                        {% if t.department %}
+                                            ({{ t.department.name|truncatechars:20 }})
+                                        {% endif %}
+                                    </option>
                                     {% endfor %}
                                 </select>
                                 {% else %}
-                                <span class="text-danger">{% trans "Импорт невозможен" %}</span>
+                                <span class="text-muted small">{% trans "Импорт невозможен" %}</span>
                                 {% endif %}
+                            </td>
+
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                {% trans "Нет данных для отображения." %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <button type="submit" class="btn btn-success mt-3"><i class="bi bi-check-all"></i> {% trans "Подтвердить и создать нагрузку" %}</button>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                <span class="text-muted small">
+                    <span id="selectedCount">{{ preview_data|length }}</span>
+                    {% trans "строк отмечено к импорту" %}
+                </span>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'schedule:import_department_load' %}"
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> {% trans "Назад" %}
+                    </a>
+                    <button type="submit" class="btn btn-success" id="submitBtn">
+                        <i class="bi bi-check-all"></i>
+                        {% trans "Подтвердить и создать нагрузку" %}
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
 </div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function toggleAll(masterCb) {
+    document.querySelectorAll('.row-check').forEach(cb => {
+        cb.checked = masterCb.checked;
+        toggleRow(cb, cb.id.replace('chk_', ''));
+    });
+    updateCount();
+}
+
+function toggleRow(cb, rowId) {
+    const fieldIds = ['subject', 'credits', 'lec', 'prac', 'lab', 'teacher'];
+    fieldIds.forEach(f => {
+        const el = document.getElementById(f + '_' + rowId);
+        if (el) el.disabled = !cb.checked;
+    });
+    updateCount();
+}
+
+function updateCount() {
+    const cnt = document.querySelectorAll('.row-check:checked').length;
+    document.getElementById('selectedCount').textContent = cnt;
+    document.getElementById('submitBtn').disabled = cnt === 0;
+}
+
+document.addEventListener('DOMContentLoaded', updateCount);
+</script>
 {% endblock %}

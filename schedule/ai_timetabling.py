@@ -1,4 +1,3 @@
-# schedule/ai_timetabling.py
 import math
 import uuid
 import random
@@ -9,26 +8,36 @@ from .models import ScheduleSlot, Subject, Classroom, TimeSlot, TeacherUnavailab
 
 class AutoScheduleEngine:
     def __init__(self, semester, target_groups=None, target_teachers=None, target_rooms=None, 
-                 avoid_gaps=True, overflow_mode=1, strict_room_types=False, iterations=50):
+                 avoid_gaps=True, overflow_mode=1, strict_room_types=False, iterations=50, institute=None):
         self.semester = semester
         self.target_groups = target_groups
         self.target_teachers = target_teachers
         self.target_rooms = target_rooms
+        self.institute = institute
         
         self.avoid_gaps = avoid_gaps
         self.overflow_mode = overflow_mode 
         self.strict_room_types = strict_room_types 
         self.iterations = iterations
         
-        self.time_slots = list(TimeSlot.objects.filter(shift=semester.shift).order_by('start_time'))
-        self.days = [0, 1, 2, 3, 4, 5] # Пн-Сб
+        ts_qs = TimeSlot.objects.filter(shift=semester.shift)
+        if self.institute:
+            inst_ts = ts_qs.filter(institute=self.institute)
+            if inst_ts.exists():
+                ts_qs = inst_ts
+            else:
+                ts_qs = ts_qs.filter(institute__isnull=True)
+        else:
+            ts_qs = ts_qs.filter(institute__isnull=True)
+        
+        self.time_slots = list(ts_qs.order_by('start_time'))
+        self.days = [0, 1, 2, 3, 4, 5]
         self.week_types = ['EVERY', 'RED', 'BLUE']
 
         self.base_teacher_busy = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(bool))))
         self.base_group_busy = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(bool))))
         self.base_room_busy = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(bool))))
         
-        # НОВОЕ: Хранилище недоступного времени преподавателей
         self.teacher_unavailable = defaultdict(lambda: defaultdict(lambda: defaultdict(bool)))
         
         self._load_existing_schedule()
@@ -59,7 +68,6 @@ class AutoScheduleEngine:
                     self.base_group_busy[g_id][slot.day_of_week][slot.time_slot_id][wt] = True
 
     def _is_free(self, state, t_id, g_ids, r_id, day, ts_id, week_type):
-        # НОВОЕ: Проверка, не поставил ли декан выходной на этот час
         if t_id and self.teacher_unavailable[t_id][day][ts_id]: 
             return False
 

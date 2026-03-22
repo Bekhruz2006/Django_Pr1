@@ -50,14 +50,12 @@ class Command(BaseCommand):
 
         self.building, _ = Building.objects.get_or_create(name='Главный корпус', defaults={'institute': self.institute, 'address': 'ул. Главная 1'})
         
-        # Аудитории
         rooms =[('101', 'LECTURE', 100), ('102', 'PRACTICE', 30), ('201', 'COMPUTER', 25), ('202', 'COMPUTER', 25)]
         self.classrooms =[]
         for num, r_type, cap in rooms:
             room, _ = Classroom.objects.get_or_create(building=self.building, number=num, defaults={'floor': int(num[0]), 'capacity': cap, 'room_type': r_type})
             self.classrooms.append(room)
 
-        # Сетка звонков (1 смена)
         times =[(time(8,0), time(8,50)), (time(9,0), time(9,50)), (time(10,10), time(11,0)), (time(11,10), time(12,0))]
         self.time_slots =[]
         for i, (st, et) in enumerate(times, 1):
@@ -80,7 +78,6 @@ class Command(BaseCommand):
         self.dean_u = make_user('dean_test', 'Мирзо', 'Турсунов', 'DEAN')
         Dean.objects.get_or_create(user=self.dean_u, defaults={'faculty': self.faculty_it})
 
-        # Преподаватели
         self.teachers = []
         t_data =[('Абдулло', 'Рустамов', 'Доцент'), ('Зарина', 'Садыкова', 'Ст. преподаватель'), ('Фирдавс', 'Гафуров', 'Ассистент')]
         for i, (fn, ln, title) in enumerate(t_data):
@@ -88,13 +85,11 @@ class Command(BaseCommand):
             t, _ = Teacher.objects.get_or_create(user=u, defaults={'department': self.dept_cs, 'title': title})
             self.teachers.append(t)
 
-        # Группы
         self.groups = []
         for name in['400101-24А', '400101-24Б']:
             g, _ = Group.objects.get_or_create(name=name, defaults={'specialty': self.spec_cs, 'course': 1, 'academic_year': '2024-2025', 'curator': self.teachers[0]})
             self.groups.append(g)
 
-        # Студенты
         student_names =[('Алишер', 'Каримов'), ('Нилуфар', 'Рахимова'), ('Фирдавс', 'Турсунов'), ('Зарина', 'Юсупова'), ('Баходур', 'Назаров'), ('Шахло', 'Маликова')]
         for idx, (fn, ln) in enumerate(student_names):
             u = make_user(f'student_{idx+1:02d}', fn, ln, 'STUDENT')
@@ -142,14 +137,13 @@ class Command(BaseCommand):
         from schedule.models import ScheduleSlot
         self.stdout.write('  → Построение расписания (Шахматки)...')
         
-        # Расставляем предметы по дням и времени
         schedule_mapping = [
-            (0, 0, self.subjects[0], 'LECTURE', self.classrooms[0]), # Пн, 1 пара, Python Лекция
-            (0, 1, self.subjects[0], 'PRACTICE', self.classrooms[2]),# Пн, 2 пара, Python Практика
-            (1, 0, self.subjects[1], 'LECTURE', self.classrooms[0]), # Вт, 1 пара, Математика Лекция
-            (1, 1, self.subjects[1], 'PRACTICE', self.classrooms[1]),# Вт, 2 пара, Математика Практика
-            (2, 0, self.subjects[2], 'LECTURE', self.classrooms[0]), # Ср, 1 пара, БД Лекция
-            (2, 1, self.subjects[2], 'PRACTICE', self.classrooms[3]),# Ср, 2 пара, БД Практика
+            (0, 0, self.subjects[0], 'LECTURE', self.classrooms[0]), 
+            (0, 1, self.subjects[0], 'PRACTICE', self.classrooms[2]),
+            (1, 0, self.subjects[1], 'LECTURE', self.classrooms[0]), 
+            (1, 1, self.subjects[1], 'PRACTICE', self.classrooms[1]),
+            (2, 0, self.subjects[2], 'LECTURE', self.classrooms[0]), 
+            (2, 1, self.subjects[2], 'PRACTICE', self.classrooms[3]),
         ]
 
         for group in self.groups:
@@ -168,12 +162,11 @@ class Command(BaseCommand):
         today = timezone.now().date()
         start_date = today - timedelta(days=45)
 
-        # 1. Журнал посещаемости
         entries =[]
         for group in self.groups:
             students = list(group.students.all())
             for idx, student in enumerate(students):
-                student_type = idx % 4 # 0-Отличник, 1-Хорошист, 2-Болеет, 3-Прогульщик
+                student_type = idx % 4 
                 for subj in self.subjects:
                     for day_offset in range(10):
                         lesson_date = start_date + timedelta(days=day_offset * 4)
@@ -206,7 +199,6 @@ class Command(BaseCommand):
         for group in self.groups:
             StudentStatistics.recalculate_group(group)
 
-        # 2. Матрица (Сводная ведомость)
         matrix, _ = MatrixStructure.objects.get_or_create(faculty=self.faculty_it, defaults={'name': 'Стандартная матрица ФИТ'})
         cols =[
             ('Неделя 1', 'WEEK', 12.5, 1), ('Неделя 2', 'WEEK', 12.5, 2),

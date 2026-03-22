@@ -388,10 +388,16 @@ class MatrixColumn(models.Model):
         ('EXAM', 'Экзамен'),
         ('CALC', 'Вычисляемая (Итог)')
     ]
+    WEEK_TYPES = [
+        ('EVERY', 'Каждую неделю'),
+        ('RED', 'Красная неделя (Числитель)'),
+        ('BLUE', 'Синяя неделя (Знаменатель)'),
+    ]
     structure = models.ForeignKey(MatrixStructure, on_delete=models.CASCADE, related_name='columns')
     name = models.CharField(max_length=100, verbose_name="Название (напр. Неделя 1, Р1 ПБ)")
     col_type = models.CharField(max_length=20, choices=COL_TYPES, default='WEEK')
     week_number = models.IntegerField(null=True, blank=True, verbose_name="Номер недели (если тип 'Неделя')")
+    week_type = models.CharField(max_length=10, choices=WEEK_TYPES, default='EVERY', verbose_name="Тип недели")
     max_score = models.FloatField(default=100.0, verbose_name="Макс. балл")
     order = models.IntegerField(default=0, verbose_name="Порядок отображения")
 

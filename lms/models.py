@@ -111,10 +111,12 @@ class CourseEnrolment(models.Model):
 
 class CourseSection(models.Model):
     SECTION_TYPES =[
+        ('REGULAR', _('Обычная')),
         ('RED', _('Красная неделя')),
         ('BLUE', _('Синяя неделя')),
         ('RATING1', _('Рейтинг 1')),
         ('RATING2', _('Рейтинг 2')),
+        ('EXAM', _('Экзамен')),
     ]
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sections')
     name = models.CharField(max_length=255)

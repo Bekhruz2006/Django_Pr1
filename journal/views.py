@@ -142,7 +142,7 @@ def journal_view(request):
         week_num = 20
 
     if active_semester and active_semester.start_date:
-        week_start = active_semester.start_date + timedelta(weeks=week_num - 1)
+        week_start = active_semester.get_week_start_date(week_num)
     else:
         today = timezone.now().date()
         week_start = today - timedelta(days=today.weekday())
@@ -1025,6 +1025,7 @@ def matrix_constructor(request):
                         name=f"Неделя {i}",
                         col_type='WEEK',
                         week_number=i,
+                        week_type='RED' if i % 2 != 0 else 'BLUE',
                         max_score=12.5,
                         order=i
                     )
@@ -1097,7 +1098,7 @@ def api_student_trend(request, student_id):
         prev_start = curr_start - timedelta(days=30)
         curr_entries = entries.filter(lesson_date__gt=curr_start)
         prev_entries = entries.filter(lesson_date__gt=prev_start, lesson_date__lte=curr_start)
-    else: # all
+    else: 
         half_idx = entries.count() // 2
         prev_entries = entries[:half_idx]
         curr_entries = entries[half_idx:]

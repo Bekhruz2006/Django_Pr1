@@ -420,7 +420,6 @@ def assignment_submit(request, module_id):
     if form.is_valid():
         sub = form.save(commit=False)
         sub.status = 'SUBMITTED'
-        # Check if late
         if assignment.due_date and timezone.now() > assignment.due_date:
             sub.is_late = True
         sub.save()
@@ -475,7 +474,6 @@ def forum_thread_create(request, module_id):
         thread.forum  = forum
         thread.author = request.user
         thread.save()
-        # Add first post from body if provided
         body = request.POST.get('body', '').strip()
         if body:
             ForumPost.objects.create(thread=thread, author=request.user, body=body)

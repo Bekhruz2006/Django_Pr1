@@ -119,10 +119,8 @@ def get_new_messages(request, room_id):
 
     new_msgs = room.messages.filter(id__gt=last_id).select_related('sender').order_by('created_at')
 
-    # Mark incoming messages as read
     new_msgs.exclude(sender=request.user).update(is_read=True)
 
-    # IDs of OUR messages the other party already read
     read_ids = list(
         room.messages.filter(sender=request.user, is_read=True)
         .values_list('id', flat=True)

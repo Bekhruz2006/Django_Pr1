@@ -1,79 +1,516 @@
 {% extends 'base.html' %}
-{% block title %}Предпросмотр РУП{% endblock %}
+{% load i18n %}
+
+{% block title %}{% trans "Предпросмотр РУП" %}{% endblock %}
+
 {% block content %}
-<div class="card shadow-sm mt-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-eye"></i> Предпросмотр импорта РУП</h5>
-    </div>
-    <div class="card-body">
-        <div class="alert alert-info small">
-            Проверьте распознанные дисциплины. Вы можете изменить семестр, кредиты и часы перед сохранением.
-            Удалите галочку слева, если не хотите импортировать строку.
+<div class="mt-3">
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card border-primary h-100">
+                <div class="card-body py-2 px-3 d-flex flex-wrap gap-3 align-items-center">
+                    <div>
+                        <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">{% trans "Учебный план" %}</div>
+                        <div class="fw-bold">
+                            {% if plan.specialty %}{{ plan.specialty.code }} — {{ plan.specialty.name }}
+                            {% elif plan.group %}{% trans "Группа" %}: {{ plan.group.name }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="vr"></div>
+                    <div>
+                        <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">{% trans "Год набора" %}</div>
+                        <div class="fw-bold">{{ plan.admission_year }}</div>
+                    </div>
+                    <div class="vr"></div>
+                    <div>
+                        <div class="text-muted" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">{% trans "Семестр" %}</div>
+                        <div class="fw-bold text-primary fs-4 lh-1">{{ semester_num }}</div>
+                    </div>
+                    <div class="vr"></div>
+                    <div>
+                        {% if plan.is_active %}<span class="badge bg-success">{% trans "Активный" %}</span>
+                        {% else %}<span class="badge bg-secondary">{% trans "Неактивный" %}</span>{% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
-        <form method="post" action="{% url 'schedule:import_rup_excel' plan.id semester_num %}">
-            {% csrf_token %}
-            <input type="hidden" name="confirm_import" value="1">
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Импорт</th>
-                            <th>Дисциплина</th>
-                            <th>Семестр</th>
-                            <th>Тип</th>
-                            <th>Кредиты</th>
-                            <th>Лекц</th>
-                            <th>Прак</th>
-                            <th>СРСП</th>
-                            <th>СРС</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in preview_data %}
-                        <tr>
-                            <td class="text-center">
-                                <input type="checkbox" class="form-check-input" name="import_{{ item.id }}" value="1" checked onchange="toggleRow(this, {{ item.id }})">
-                            </td>
-                            <td>
-                                <input type="text" name="name_{{ item.id }}" id="name_{{ item.id }}" class="form-control form-control-sm fw-bold" value="{{ item.name }}">
-                            </td>
-                            <td>
-                                <input type="number" name="semester_{{ item.id }}" id="semester_{{ item.id }}" class="form-control form-control-sm" value="{{ semester_num }}" style="width: 60px;">
-                            </td>
-                            <td>
-                                <select name="type_{{ item.id }}" id="type_{{ item.id }}" class="form-select form-select-sm">
-                                    <option value="REQUIRED" {% if item.type == 'REQUIRED' %}selected{% endif %}>Обязательная</option>
-                                    <option value="ELECTIVE" {% if item.type == 'ELECTIVE' %}selected{% endif %}>По выбору</option>
-                                </select>
-                            </td>
-                            <td><input type="number" name="credits_{{ item.id }}" id="credits_{{ item.id }}" class="form-control form-control-sm" value="{{ item.credits }}" style="width: 60px;"></td>
-                            <td><input type="number" name="lec_{{ item.id }}" id="lec_{{ item.id }}" class="form-control form-control-sm" value="{{ item.lec }}" style="width: 60px;"></td>
-                            <td><input type="number" name="prac_{{ item.id }}" id="prac_{{ item.id }}" class="form-control form-control-sm" value="{{ item.prac }}" style="width: 60px;"></td>
-                            <td><input type="number" name="srsp_{{ item.id }}" id="srsp_{{ item.id }}" class="form-control form-control-sm" value="{{ item.srsp }}" style="width: 60px;"></td>
-                            <td><input type="number" name="srs_{{ item.id }}" id="srs_{{ item.id }}" class="form-control form-control-sm" value="{{ item.srs }}" style="width: 60px;"></td>
-                        </tr>
+        <div class="col-lg-5">
+            <div class="card h-100" style="border-color:#dee2e6;">
+                <div class="card-body py-2 px-3">
+                    <div class="text-muted mb-2" style="font-size:.7rem;font-weight:600;text-transform:uppercase;">
+                        <i class="bi bi-people-fill me-1"></i>{% trans "Группы плана" %}
+                        <span class="badge bg-secondary ms-1">{{ plan_groups|length }}</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for grp in plan_groups %}
+                        <span class="badge d-flex align-items-center gap-1 px-2 py-1"
+                              style="background:#e8f0fe;color:#1a56db;font-size:.82rem;">
+                            <i class="bi bi-mortarboard"></i>{{ grp.name }}
+                            <span style="font-weight:400;color:#6b7280;">{{ grp.course }}к · {{ grp.language }}</span>
+                        </span>
+                        {% empty %}
+                        <span class="text-muted small">{% trans "Нет привязанных групп" %}</span>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-success"><i class="bi bi-check-all"></i> Сохранить в РУП</button>
-                <a href="{% url 'schedule:plan_detail' plan.id %}?semester={{ semester_num }}" class="btn btn-secondary">Отмена</a>
-            </div>
-        </form>
+        </div>
     </div>
+
+    {% if not plan_groups %}
+    <div class="alert alert-danger">
+        <i class="bi bi-x-circle-fill me-2"></i>
+        <strong>{% trans "Импорт невозможен:" %}</strong>
+        {% trans "К плану не привязана ни одна группа." %}
+    </div>
+    {% else %}
+
+    <form method="post" action="{% url 'schedule:import_rup_excel' plan.id semester_num %}"
+          id="importForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="confirm_import" value="1">
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-3">
+                <h6 class="mb-0 fw-bold">
+                    {% trans "Дисциплины" %}
+                    <span class="badge bg-primary ms-1">{{ preview_data|length }}</span>
+                </h6>
+                <div class="form-check mb-0">
+                    <input type="checkbox" id="selAll" class="form-check-input" checked
+                           onchange="toggleAll(this)">
+                    <label class="form-check-label small fw-semibold" for="selAll">
+                        {% trans "Выбрать все" %}
+                        (<span id="selCount">{{ preview_data|length }}</span> {% trans "выбрано" %})
+                    </label>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'schedule:plan_detail' plan.id %}?semester={{ semester_num %}"
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-lg"></i> {% trans "Отмена" %}
+                </a>
+                <button type="submit" class="btn btn-success px-4" id="submitBtn">
+                    <i class="bi bi-check2-all me-1"></i>{% trans "Сохранить в РУП" %}
+                </button>
+            </div>
+        </div>
+
+        {% for item in preview_data %}
+        <div id="card_{{ item.id }}"
+             class="card mb-3 shadow-sm{% if item.name == 'Нераспознанный предмет' %} border-warning{% endif %}">
+
+            <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
+                 style="background:#f8fafc;">
+                <div class="d-flex align-items-center gap-2 flex-grow-1 me-3">
+                    <input type="checkbox" class="form-check-input flex-shrink-0 row-cb"
+                           id="chk_{{ item.id }}" checked
+                           onchange="toggleCard(this, '{{ item.id }}')">
+                    <input type="text"
+                           id="name_{{ item.id }}" name="name_{{ item.id }}"
+                           class="form-control form-control-sm fw-bold border-0 bg-transparent ps-0
+                                  {% if item.name == 'Нераспознанный предмет' %}text-warning{% endif %}"
+                           style="font-size:1rem;box-shadow:none;"
+                           value="{{ item.name }}" required>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <span class="badge bg-light text-dark border" style="font-size:.75rem;">
+                        #{{ forloop.counter }}
+                    </span>
+                    {% if item.type == 'REQUIRED' %}<span class="badge bg-success">{% trans "Обязательная" %}</span>
+                    {% elif item.type == 'ELECTIVE' %}<span class="badge bg-warning text-dark">{% trans "По выбору" %}</span>
+                    {% else %}<span class="badge bg-info text-dark">{% trans "Практика" %}</span>{% endif %}
+                </div>
+            </div>
+
+            <div class="card-body py-3 px-3" id="body_{{ item.id }}">
+                <div class="row g-3">
+
+                    <div class="col-lg-5">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">{% trans "Семестр" %}</label>
+                                <input type="number" min="1" max="12"
+                                       id="semester_{{ item.id }}" name="semester_{{ item.id }}"
+                                       class="form-control text-center fw-bold" style="font-size:1.1rem;"
+                                       value="{{ semester_num }}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">{% trans "Тип блока" %}</label>
+                                <select id="type_{{ item.id }}" name="type_{{ item.id }}"
+                                        class="form-select">
+                                    <option value="REQUIRED" {% if item.type == 'REQUIRED' %}selected{% endif %}>{% trans "Обязательная" %}</option>
+                                    <option value="ELECTIVE"  {% if item.type == 'ELECTIVE'  %}selected{% endif %}>{% trans "По выбору" %}</option>
+                                    <option value="PRACTICE"  {% if item.type == 'PRACTICE'  %}selected{% endif %}>{% trans "Практика" %}</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 mt-1">
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">{% trans "Часы и кредиты" %}</label>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Кредиты" %}</label>
+                                        <input type="number" min="0" max="30"
+                                               id="credits_{{ item.id }}" name="credits_{{ item.id }}"
+                                               class="form-control text-center fw-bold text-primary"
+                                               style="font-size:1rem;" value="{{ item.credits }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Лекции" %}</label>
+                                        <input type="number" min="0"
+                                               id="lec_{{ item.id }}" name="lec_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.lec }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Практика" %}</label>
+                                        <input type="number" min="0"
+                                               id="prac_{{ item.id }}" name="prac_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.prac }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРСП" %}</label>
+                                        <input type="number" min="0"
+                                               id="srsp_{{ item.id }}" name="srsp_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.srsp }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРС" %}</label>
+                                        <input type="number" min="0"
+                                               id="srs_{{ item.id }}" name="srs_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.srs }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label mb-2 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                            {% trans "Группы" %} <span class="text-danger">*</span>
+                        </label>
+                        <div class="border rounded p-2" style="background:#f9fafb;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted" style="font-size:.75rem;">{% trans "Отметьте нужные" %}</span>
+                                <button type="button" class="btn btn-link p-0 text-primary" style="font-size:.75rem;"
+                                        onclick="selectAllGroups('{{ item.id }}')">{% trans "Все" %}</button>
+                            </div>
+                            {% for grp in plan_groups %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input group-check-{{ item.id }}"
+                                       type="checkbox"
+                                       id="grp_{{ item.id }}_{{ grp.id }}"
+                                       name="groups_{{ item.id }}" value="{{ grp.id }}"
+                                       {% if plan_groups|length == 1 %}checked{% endif %}>
+                                <label class="form-check-label" for="grp_{{ item.id }}_{{ grp.id }}">
+                                    <span class="fw-semibold">{{ grp.name }}</span>
+                                    <span class="text-muted" style="font-size:.8rem;">{{ grp.course }}к · {{ grp.language }}</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                            <div id="err_grp_{{ item.id }}" class="text-danger d-none mt-1" style="font-size:.75rem;">
+                                <i class="bi bi-exclamation-circle me-1"></i>{% trans "Выберите хотя бы одну группу" %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <label class="form-label mb-2 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                            <i class="bi bi-person-fill me-1"></i>{% trans "Преподаватель 1" %}
+                        </label>
+                        <select id="teacher1_{{ item.id }}" name="teacher1_{{ item.id }}"
+                                class="form-select mb-3">
+                            <option value="">— {% trans "Не назначен" %} —</option>
+                            {% for t in teachers %}
+                            <option value="{{ t.id }}">
+                                {{ t.user.get_full_name }}{% if t.department %} · {{ t.department.name|truncatechars:22 }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox"
+                                   id="split_{{ item.id }}" name="split_{{ item.id }}"
+                                   role="switch"
+                                   onchange="toggleSplit(this, '{{ item.id }}')">
+                            <label class="form-check-label fw-semibold text-primary" for="split_{{ item.id }}">
+                                <i class="bi bi-scissors me-1"></i>{% trans "Разделить нагрузку между двумя преподавателями" %}
+                            </label>
+                        </div>
+
+                        <div id="split_block_{{ item.id }}" class="d-none">
+                            <div class="border border-primary rounded p-3" style="background:#f0f4ff;">
+
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                                    <i class="bi bi-person-fill text-primary me-1"></i>{% trans "Преподаватель 2" %}
+                                </label>
+                                <select id="teacher2_{{ item.id }}" name="teacher2_{{ item.id }}"
+                                        class="form-select mb-3">
+                                    <option value="">— {% trans "Выберите" %} —</option>
+                                    {% for t in teachers %}
+                                    <option value="{{ t.id }}">
+                                        {{ t.user.get_full_name }}{% if t.department %} · {{ t.department.name|truncatechars:22 }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+
+                                <label class="form-label mb-2 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                                    {% trans "Часы преподавателя 2 (остаток — преподавателю 1)" %}
+                                </label>
+                                <div class="row g-2 mb-2">
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Кредиты" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_credits_{{ item.id }}" name="split_credits_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="credits_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Лекции" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_lec_{{ item.id }}" name="split_lec_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="lec_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Практика" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_prac_{{ item.id }}" name="split_prac_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="prac_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРСП" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_srsp_{{ item.id }}" name="split_srsp_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="srsp_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРС" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_srs_{{ item.id }}" name="split_srs_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="srs_{{ item.id }}">
+                                    </div>
+                                </div>
+
+                                <div id="split_preview_{{ item.id }}" class="d-none">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="rounded p-2 text-center" style="background:#dcfce7;">
+                                                <div class="fw-bold text-success mb-1" style="font-size:.78rem;">
+                                                    <i class="bi bi-person-fill me-1"></i>{% trans "Преп. 1 получит" %}
+                                                </div>
+                                                <div id="preview1_{{ item.id }}" class="fw-semibold" style="font-size:.82rem;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="rounded p-2 text-center" style="background:#dbeafe;">
+                                                <div class="fw-bold text-primary mb-1" style="font-size:.78rem;">
+                                                    <i class="bi bi-person-fill me-1"></i>{% trans "Преп. 2 получит" %}
+                                                </div>
+                                                <div id="preview2_{{ item.id }}" class="fw-semibold" style="font-size:.82rem;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="err_split_{{ item.id }}" class="alert alert-danger py-1 px-2 mb-0 mt-2 d-none" style="font-size:.8rem;">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    <span id="err_split_msg_{{ item.id }}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-warning">
+            <i class="bi bi-inbox me-2"></i>{% trans "Нет данных для отображения." %}
+        </div>
+        {% endfor %}
+
+        <div class="d-flex justify-content-between align-items-center py-3 border-top mt-2">
+            <p class="text-muted small mb-0">
+                {% trans "Для каждой отмеченной строки создаётся запись в плане и отдельный предмет для каждой выбранной группы. При разделении нагрузки создаются два предмета." %}
+            </p>
+            <div class="d-flex gap-2 flex-shrink-0 ms-3">
+                <a href="{% url 'schedule:plan_detail' plan.id %}?semester={{ semester_num }}"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i> {% trans "Отмена" %}
+                </a>
+                <button type="submit" class="btn btn-success btn-lg px-4" id="submitBtn2">
+                    <i class="bi bi-check2-all me-1"></i>{% trans "Сохранить в РУП" %}
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-function toggleRow(cb, id) {
-    const disabled = !cb.checked;
-    document.getElementById('name_' + id).disabled = disabled;
-    document.getElementById('semester_' + id).disabled = disabled;
-    document.getElementById('type_' + id).disabled = disabled;
-    document.getElementById('credits_' + id).disabled = disabled;
-    document.getElementById('lec_' + id).disabled = disabled;
-    document.getElementById('prac_' + id).disabled = disabled;
-    document.getElementById('srsp_' + id).disabled = disabled;
-    document.getElementById('srs_' + id).disabled = disabled;
+const RUP_FIELDS = ['name', 'semester', 'type', 'credits', 'lec', 'prac', 'srsp', 'srs'];
+const ROW_IDS = [{% for item in preview_data %}'{{ item.id }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+
+function toggleAll(cb) {
+    document.querySelectorAll('.row-cb').forEach(c => {
+        c.checked = cb.checked;
+        setCardEnabled(c.id.replace('chk_', ''), cb.checked);
+    });
+    updateCount();
 }
+
+function toggleCard(cb, id) {
+    setCardEnabled(id, cb.checked);
+    updateCount();
+}
+
+function setCardEnabled(id, enabled) {
+    const card = document.getElementById('card_' + id);
+    if (card) card.style.opacity = enabled ? '1' : '0.45';
+    const body = document.getElementById('body_' + id);
+    if (body) body.style.pointerEvents = enabled ? '' : 'none';
+    RUP_FIELDS.forEach(f => {
+        const el = document.getElementById(f + '_' + id);
+        if (el) el.disabled = !enabled;
+    });
+    document.querySelectorAll('.group-check-' + id).forEach(el => el.disabled = !enabled);
+    document.querySelectorAll('.split-field-' + id).forEach(el => el.disabled = !enabled);
+    ['teacher1_', 'teacher2_', 'split_'].forEach(p => {
+        const el = document.getElementById(p + id);
+        if (el) el.disabled = !enabled;
+    });
+}
+
+function toggleSplit(cb, id) {
+    const block = document.getElementById('split_block_' + id);
+    if (!block) return;
+    block.classList.toggle('d-none', !cb.checked);
+    if (cb.checked) updateSplitPreview(id);
+}
+
+function updateSplitPreview(id) {
+    const FMAP = {credits:'Кр', lec:'Л', prac:'П', srsp:'СРСП', srs:'СРС'};
+    let hasAny = false, overErr = false;
+    let p1 = [], p2 = [];
+
+    Object.keys(FMAP).forEach(f => {
+        const total = parseInt(document.getElementById(f + '_' + id)?.value || '0') || 0;
+        const split = parseInt(document.getElementById('split_' + f + '_' + id)?.value || '0') || 0;
+        if (split > 0) hasAny = true;
+        if (split > total) overErr = true;
+        if (total > 0) {
+            p1.push(`${FMAP[f]}: ${Math.max(0, total - split)}`);
+            p2.push(`${FMAP[f]}: ${split}`);
+        }
+    });
+
+    const previewEl = document.getElementById('split_preview_' + id);
+    const errEl = document.getElementById('err_split_' + id);
+    const msgEl = document.getElementById('err_split_msg_' + id);
+    const p1el  = document.getElementById('preview1_' + id);
+    const p2el  = document.getElementById('preview2_' + id);
+
+    if (hasAny && !overErr) {
+        previewEl?.classList.remove('d-none');
+        if (p1el) p1el.innerHTML = p1.join(' &nbsp;·&nbsp; ');
+        if (p2el) p2el.innerHTML = p2.join(' &nbsp;·&nbsp; ');
+    } else {
+        previewEl?.classList.add('d-none');
+    }
+
+    if (overErr) {
+        errEl?.classList.remove('d-none');
+        if (msgEl) msgEl.textContent = '{% trans "Часы для преп. 2 превышают общие часы дисциплины" %}';
+    } else {
+        errEl?.classList.add('d-none');
+    }
+}
+
+function selectAllGroups(id) {
+    document.querySelectorAll('.group-check-' + id).forEach(el => {
+        if (!el.disabled) el.checked = true;
+    });
+    document.getElementById('err_grp_' + id)?.classList.add('d-none');
+}
+
+function updateCount() {
+    const total = document.querySelectorAll('.row-cb').length;
+    const n = document.querySelectorAll('.row-cb:checked').length;
+    document.getElementById('selCount').textContent = n;
+    const selAll = document.getElementById('selAll');
+    if (selAll) {
+        selAll.indeterminate = n > 0 && n < total;
+        selAll.checked = n === total;
+    }
+    const disabled = n === 0;
+    ['submitBtn', 'submitBtn2'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+    });
+}
+
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    let valid = true;
+    ROW_IDS.forEach(id => {
+        const cb = document.getElementById('chk_' + id);
+        if (!cb?.checked) return;
+
+        const anyGroup = [...document.querySelectorAll('.group-check-' + id)].some(el => el.checked);
+        if (!anyGroup) {
+            valid = false;
+            document.getElementById('err_grp_' + id)?.classList.remove('d-none');
+            document.getElementById('card_' + id)?.scrollIntoView({behavior:'smooth', block:'center'});
+        }
+
+        const splitCb = document.getElementById('split_' + id);
+        if (splitCb?.checked) {
+            const FKEYS = ['credits', 'lec', 'prac', 'srsp', 'srs'];
+            const over = FKEYS.some(f => {
+                const tot = parseInt(document.getElementById(f + '_' + id)?.value || '0') || 0;
+                const spl = parseInt(document.getElementById('split_' + f + '_' + id)?.value || '0') || 0;
+                return spl > tot;
+            });
+            if (over) {
+                valid = false;
+                const errEl = document.getElementById('err_split_' + id);
+                const msgEl = document.getElementById('err_split_msg_' + id);
+                errEl?.classList.remove('d-none');
+                if (msgEl) msgEl.textContent = '{% trans "Часы для преп. 2 превышают общие часы дисциплины" %}';
+                document.getElementById('card_' + id)?.scrollIntoView({behavior:'smooth', block:'center'});
+            }
+        }
+    });
+    if (!valid) e.preventDefault();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateCount();
+
+    if (ROW_IDS.length > 0 && document.querySelectorAll('.group-check-' + ROW_IDS[0]).length === 1) {
+        ROW_IDS.forEach(id => {
+            document.querySelectorAll('.group-check-' + id).forEach(el => { el.checked = true; });
+        });
+    }
+
+    ROW_IDS.forEach(id => {
+        ['credits', 'lec', 'prac', 'srsp', 'srs'].forEach(f => {
+            [f + '_' + id, 'split_' + f + '_' + id].forEach(elId => {
+                document.getElementById(elId)?.addEventListener('input', () => updateSplitPreview(id));
+            });
+        });
+        document.querySelectorAll('.group-check-' + id).forEach(el => {
+            el.addEventListener('change', () => {
+                document.getElementById('err_grp_' + id)?.classList.add('d-none');
+            });
+        });
+    });
+});
 </script>
 {% endblock %}

@@ -39,7 +39,7 @@ class SubjectForm(forms.ModelForm):
         model = Subject
         fields =[
             'name', 'code', 'department', 'semester_weeks', 'type',
-            'credit_type', 'credits', # Добавлено credit_type
+            'credit_type', 'credits',
             'lecture_hours', 'practice_hours', 'lab_hours', 'control_hours', 'independent_work_hours',
             'teacher', 'groups', 'description', 'is_stream_subject', 'preferred_room_type', 'required_competencies'
         ]
@@ -48,7 +48,7 @@ class SubjectForm(forms.ModelForm):
             'code': forms.TextInput(attrs={'class': 'form-control'}),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'type': forms.Select(attrs={'class': 'form-select'}),
-            'credit_type': forms.Select(attrs={'class': 'form-select'}), # Виджет для типа кредита
+            'credit_type': forms.Select(attrs={'class': 'form-select'}),
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'groups': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -101,7 +101,7 @@ class SemesterForm(forms.ModelForm):
 
     class Meta:
         model = Semester
-        fields = ['faculty', 'academic_year', 'name', 'number', 'course', 'shift', 'start_date', 'end_date', 'is_active']
+        fields = ['faculty', 'academic_year', 'name', 'number', 'course', 'shift', 'start_date', 'end_date', 'vacation_weeks', 'is_active']
         widgets = {
             'faculty': forms.Select(attrs={'class': 'form-select', 'id': 'faculty_selector'}),
             'academic_year': forms.Select(attrs={'class': 'form-select'}),
@@ -111,6 +111,7 @@ class SemesterForm(forms.ModelForm):
             'number': forms.Select(attrs={'class': 'form-select'}),
             'course': forms.Select(attrs={'class': 'form-select'}),
             'shift': forms.Select(attrs={'class': 'form-select'}),
+            'vacation_weeks': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Например: 8,9')}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
@@ -126,7 +127,7 @@ class SemesterForm(forms.ModelForm):
                 faculty = self.user.dean_profile.faculty
                 self.fields['faculty'].initial = faculty
                 self.fields['faculty'].widget.attrs['readonly'] = True
-                self.fields['faculty'].disabled = True # Чтобы не менял
+                self.fields['faculty'].disabled = True
                 self.fields['institute'].widget = forms.HiddenInput()
             elif self.user.is_superuser or hasattr(self.user, 'director_profile') or hasattr(self.user, 'prorector_profile'):
                 pass

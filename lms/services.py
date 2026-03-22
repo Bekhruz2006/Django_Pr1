@@ -147,6 +147,8 @@ class LMSManager:
                 section_type = 'RATING1' if '1' in column.name else 'RATING2'
             elif column.col_type == 'EXAM':
                 section_type = 'EXAM'
+            elif column.col_type == 'WEEK':
+                section_type = column.week_type if hasattr(column, 'week_type') and column.week_type in ['RED', 'BLUE'] else 'REGULAR'
                 
             section = CourseSection.objects.create(
                 course=course,
@@ -170,7 +172,7 @@ class LMSManager:
                 Quiz.objects.create(
                     module=quiz_mod, 
                     description=f"Автоматический тест для колонки '{column.name}'.",
-                    passing_score=(column.max_score / 2) # Проходной балл 50%
+                    passing_score=(column.max_score / 2)
                 )
 
         return True, "Структура LMS успешно сгенерирована на основе Сводной ведомости факультета!"

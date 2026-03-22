@@ -6,10 +6,12 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from datetime import datetime, time
 from .models import ScheduleSlot, Subject, Classroom, TimeSlot, PlanDiscipline, SubjectTemplate, AcademicPlan
+from .utils import safe_int, safe_float, safe_str        
 from accounts.models import Group, Teacher, User, Department
 import openpyxl
 
 logger = logging.getLogger(__name__)
+
 
 class ScheduleImporter:
     DAYS_MAP = {
@@ -36,7 +38,7 @@ class ScheduleImporter:
                 self._process_excel()
             else:
                 return []
-        except Exception as e:
+        except Exception:
             import traceback
             traceback.print_exc()
             return []
@@ -48,18 +50,21 @@ class ScheduleImporter:
         rows = []
         for row in sheet.iter_rows(values_only=True):
             clean = [str(c).strip() if c is not None else "" for c in row]
-            if any(clean): rows.append(clean)
+            if any(clean):
+                rows.append(clean)
         self._parse_grid_rows(rows, source="Excel")
 
     def _parse_grid_rows(self, rows, source=""):
-        if len(rows) < 2: return
+        if len(rows) < 2:
+            return
 
         header_map = {}
         start_row_idx = 0
 
         for row_idx, row in enumerate(rows[:20]):
             for col_idx, cell_val in enumerate(row):
-                if not cell_val: continue
+                if not cell_val:
+                    continue
                 group = self._match_group(cell_val)
                 if group:
                     header_map[col_idx] = group
@@ -84,23 +89,24 @@ class ScheduleImporter:
             is_military_row = 'ҳарбӣ' in row_text or 'военная' in row_text
 
             current_time_slot = None
-            time_str_raw = ""
             for c_val in row[:4]:
                 ts = self._extract_time_slot(c_val)
                 if ts:
                     current_time_slot = ts
-                    time_str_raw = c_val
                     break
 
             if not current_time_slot and not is_military_row:
                 continue
 
             for col_idx, group in header_map.items():
-                if col_idx >= len(row): continue
+                if col_idx >= len(row):
+                    continue
 
                 raw_val = row[col_idx]
-                if not raw_val and not is_military_row: continue
-                if raw_val and len(raw_val) < 2 and not is_military_row: continue
+                if not raw_val and not is_military_row:
+                    continue
+                if raw_val and len(raw_val) < 2 and not is_military_row:
+                    continue
 
                 room = ""
                 if col_idx + 1 < len(row):
@@ -147,7 +153,9 @@ class ScheduleImporter:
         stats = {'slots': 0, 'subjects': 0, 'teachers': 0}
 
         for item in clean_data:
-            if not item.get('subject'): continue
+            subj_name = safe_str(item.get('subject', '')).strip() 
+            if not subj_name:
+                continue
 
             try:
                 with transaction.atomic():
@@ -167,31 +175,33 @@ class ScheduleImporter:
                         ).first()
 
                     if not t_slot:
-                        t_slot = TimeSlot.objects.filter(start_time__startswith=start_str[:5]).first()
+                        t_slot = TimeSlot.objects.filter(
+                            start_time__startswith=start_str[:5]
+                        ).first()
 
                     if not t_slot:
                         continue
 
                     dept = group.specialty.department if group.specialty else self.default_dept
 
-                    is_mil = item.get('is_military') == 'on' or item.get('subject') == 'Кафедраи ҳарбӣ'
+                    is_mil = item.get('is_military') == 'on' or subj_name == 'Кафедраи ҳарбӣ'
 
-                    subj_name = item['subject'].strip()
                     subject, created = Subject.objects.get_or_create(
                         name__iexact=subj_name,
                         defaults={
                             'name': subj_name,
                             'code': f"IMP{hash(subj_name)}",
                             'department': dept,
-                            'type': item['type'],
+                            'type': item.get('type', 'LECTURE'),
                             'is_stream_subject': False
                         }
                     )
-                    if created: stats['subjects'] += 1
+                    if created:
+                        stats['subjects'] += 1
                     subject.groups.add(group)
 
                     teacher_obj = None
-                    t_name = item['teacher'].strip()
+                    t_name = safe_str(item.get('teacher', '')).strip()
                     if t_name and len(t_name) > 2 and not is_mil:
                         tsplit = t_name.split()
                         surname = tsplit[0]
@@ -204,26 +214,32 @@ class ScheduleImporter:
                         else:
                             try:
                                 base_u = f"imp_{datetime.now().microsecond}_{surname[:5]}"
-                                u = User.objects.create_user(username=base_u, password='password123', role='TEACHER', last_name=surname, first_name=t_name[:100])
+                                u = User.objects.create_user(
+                                    username=base_u,
+                                    password='password123',
+                                    role='TEACHER',
+                                    last_name=surname,
+                                    first_name=t_name[:100]
+                                )
                                 teacher_obj = Teacher.objects.create(user=u, department=dept)
                                 stats['teachers'] += 1
-                            except: pass
+                            except Exception:
+                                pass
 
                     if teacher_obj and not subject.teacher:
                         subject.teacher = teacher_obj
                         subject.save()
 
                     room_obj = None
-                    if item['room']:
-                        room_clean = item['room'].strip()
-                        if room_clean and institute:
-                            building = institute.buildings.first()
-                            if building:
-                                room_obj, _ = Classroom.objects.get_or_create(
-                                    building=building,
-                                    number=room_clean,
-                                    defaults={'floor': 1}
-                                )
+                    room_text = safe_str(item.get('room', '')).strip()
+                    if room_text and institute:
+                        building = institute.buildings.first()
+                        if building:
+                            room_obj, _ = Classroom.objects.get_or_create(
+                                building=building,
+                                number=room_text,
+                                defaults={'floor': 1}
+                            )
 
                     ScheduleSlot.objects.filter(
                         group=group, semester=semester,
@@ -238,8 +254,8 @@ class ScheduleImporter:
                         subject=subject,
                         teacher=teacher_obj if not is_mil else None,
                         classroom=room_obj,
-                        room=item['room'],
-                        lesson_type=item['type'],
+                        room=room_text,
+                        lesson_type=item.get('type', 'LECTURE'),
                         is_military=is_mil,
                         is_active=True,
                         start_time=t_slot.start_time,
@@ -248,7 +264,7 @@ class ScheduleImporter:
                     stats['slots'] += 1
 
             except Exception as e:
-                print(f"Ошибка при сохранении слота: {e}")
+                logger.warning(f"Ошибка при сохранении слота: {e}")
                 continue
 
         return stats
@@ -258,16 +274,21 @@ class ScheduleImporter:
         if len(clean) >= 4:
             try:
                 h, m = int(clean[:2]), int(clean[2:4])
-                return TimeSlot.objects.filter(start_time__hour=h, start_time__minute=m).first()
-            except: pass
+                return TimeSlot.objects.filter(
+                    start_time__hour=h, start_time__minute=m
+                ).first()
+            except Exception:
+                pass
         return None
 
     def _match_group(self, text):
         t = str(text).lower().replace(" ", "")
         for g in self.all_groups:
-            if g.name.lower().replace(" ", "") in t: return g
+            if g.name.lower().replace(" ", "") in t:
+                return g
             if re.search(r'\d-\d{5,}', t):
-                if t.startswith(g.name.lower()[:5]): return g
+                if t.startswith(g.name.lower()[:5]):
+                    return g
         return None
 
     def _parse_cell_text(self, text):
@@ -275,8 +296,10 @@ class ScheduleImporter:
 
         l_type = 'LECTURE'
         low = text.lower()
-        if any(x in low for x in ['(а)', '(амалӣ)', 'pr']): l_type = 'PRACTICE'
-        elif any(x in low for x in ['(к)', '(кмро)', 'srsp']): l_type = 'SRSP'
+        if any(x in low for x in ['(а)', '(амалӣ)', 'pr']):
+            l_type = 'PRACTICE'
+        elif any(x in low for x in ['(к)', '(кмро)', 'srsp']):
+            l_type = 'SRSP'
 
         subj = text
         teach = ""
@@ -298,79 +321,75 @@ class ScheduleImporter:
                 teach = parts[1]
 
         subj = re.sub(r'\(.*?\)', '', subj).strip()
-        if not subj: subj = "Нераспознанный предмет"
+        if not subj:
+            subj = "Нераспознанный предмет"
 
         teach = re.sub(r'[^\w\s\.]', '', teach).strip()
 
         return {'subject': subj, 'teacher': teach, 'type': l_type}
 
+
 class RupImporter:
     @staticmethod
     def parse_for_preview(file):
-        import openpyxl
-        import re
         wb = openpyxl.load_workbook(file, data_only=True)
         sheet = wb.active
 
-        stats = {'created': 0, 'updated': 0, 'errors':[]}
-        preview_data =[]
-
-        def to_int(val):
-            if val is None:
-                return 0
-            val_str = str(val).strip()
-            match = re.search(r'\d+', val_str)
-            if match:
-                return int(match.group())
-            return 0
-
+        preview_data = []
         current_disc_type = 'REQUIRED'
 
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
-            subj_name = str(row[0] or '').strip()
+        _REQUIRED_MARKERS = {'ҳатмӣ', 'обязательн'}
+        _ELECTIVE_MARKERS  = {'интихобӣ', 'ихтиёрӣ', 'выбор'}
+        _SKIP_MARKERS      = {'номгӯйи', 'наименование', 'семестр', 'итого', 'барча', 'всего'}
 
-            if not subj_name or subj_name.lower() == 'none':
+        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
+            raw_name = row[0] if row else None
+            subj_name = safe_str(raw_name).strip()
+
+            if not subj_name:
                 continue
 
             lower_name = subj_name.lower()
-            if 'ҳатмӣ' in lower_name or 'обязательн' in lower_name:
+
+            if any(m in lower_name for m in _REQUIRED_MARKERS):
                 current_disc_type = 'REQUIRED'
                 continue
-            if 'интихобӣ' in lower_name or 'ихтиёрӣ' in lower_name or 'выбор' in lower_name:
+            if any(m in lower_name for m in _ELECTIVE_MARKERS):
                 current_disc_type = 'ELECTIVE'
                 continue
-            if 'номгӯйи' in lower_name or 'наименование' in lower_name or 'семестр' in lower_name:
+            if any(m in lower_name for m in _SKIP_MARKERS):
                 continue
 
-            credits = to_int(row[1]) if len(row) > 1 else 0
-            lec = to_int(row[4]) if len(row) > 4 else 0
-            prac = to_int(row[5]) if len(row) > 5 else 0
-            srsp = to_int(row[6]) if len(row) > 6 else 0
-            srs = to_int(row[7]) if len(row) > 7 else 0
+            credits = safe_int(row[1]) if len(row) > 1 else 0
+            lec     = safe_int(row[4]) if len(row) > 4 else 0
+            prac    = safe_int(row[5]) if len(row) > 5 else 0
+            srsp    = safe_int(row[6]) if len(row) > 6 else 0
+            srs     = safe_int(row[7]) if len(row) > 7 else 0
 
             if lec == 0 and prac == 0 and srsp == 0 and srs == 0:
-                total_h = to_int(row[3]) if len(row) > 3 else 0
+                total_h = safe_int(row[3]) if len(row) > 3 else 0
                 if total_h > 0:
                     srs = total_h
 
             preview_data.append({
-                'id': row_idx,
-                'name': subj_name,
-                'type': current_disc_type,
+                'id':      row_idx,
+                'name':    subj_name,
+                'type':    current_disc_type,
                 'credits': credits,
-                'lec': lec,
-                'prac': prac,
-                'srsp': srsp,
-                'srs': srs,
+                'lec':     lec,
+                'prac':    prac,
+                'srsp':    srsp,
+                'srs':     srs,
             })
 
         return preview_data
 
+
 class AlgorithmicAssignmentService:
     @staticmethod
     def generate_assignment(teachers_qs, subjects_data):
-        assignments =[]
-        
+        assignments = []
+
         teacher_loads = {}
         for t in teachers_qs:
             load = t.subject_set.aggregate(
@@ -382,16 +401,16 @@ class AlgorithmicAssignmentService:
             key = subj['key']
             subj_name_lower = subj['name'].lower()
             subj_words = set(re.findall(r'\b\w{4,}\b', subj_name_lower))
-            
+
             try:
                 disc_id = int(key.split('_')[1])
                 disc = PlanDiscipline.objects.get(id=disc_id)
                 target_dept = disc.plan.specialty.department if disc.plan.specialty else None
                 disc_hours = disc.lecture_hours + disc.practice_hours + disc.control_hours
-            except:
+            except Exception:
                 disc = None
                 target_dept = None
-                disc_hours = 30 
+                disc_hours = 30
 
             best_teacher = None
             best_score = -9999
@@ -399,16 +418,19 @@ class AlgorithmicAssignmentService:
 
             for t in teachers_qs:
                 score = 0
-                match_reasons =[]
+                match_reasons = []
 
-                if target_dept and (t.department == target_dept or target_dept in t.additional_departments.all()):
+                if target_dept and (
+                    t.department == target_dept or
+                    target_dept in t.additional_departments.all()
+                ):
                     score += 50
                     match_reasons.append("Своя кафедра")
 
                 for comp in t.competencies.all():
                     comp_name_lower = comp.name.lower()
                     comp_words = set(re.findall(r'\b\w{4,}\b', comp_name_lower))
-                    
+
                     if comp_name_lower in subj_name_lower or subj_name_lower in comp_name_lower:
                         score += 40
                         match_reasons.append(f"Компетенция '{comp.name}'")
@@ -422,7 +444,10 @@ class AlgorithmicAssignmentService:
                 if score > best_score:
                     best_score = score
                     best_teacher = t
-                    reason_text = f"Алгоритм: {', '.join(match_reasons)}. Нагрузка: {current_load}ч."
+                    reason_text = (
+                        f"Алгоритм: {', '.join(match_reasons)}. "
+                        f"Нагрузка: {current_load}ч."
+                    )
 
             if best_teacher and best_score > -100:
                 assignments.append({
@@ -439,6 +464,7 @@ class AlgorithmicAssignmentService:
                 })
 
         return {"assignments": assignments}
+
 
 class AIAssignmentService:
     OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -505,11 +531,10 @@ class AIAssignmentService:
 
     @staticmethod
     def extract_json(raw: str) -> dict:
-        import re
         match = re.search(r'\{[\s\S]*\}', raw)
         if match:
             try:
                 return json.loads(match.group(0))
             except json.JSONDecodeError:
                 pass
-        return {"assignments":[]}
+        return {"assignments": []}

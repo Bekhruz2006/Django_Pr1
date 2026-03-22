@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User, Group, Teacher, Department, Faculty
 from datetime import timedelta, date
+from django.utils import timezone
 import uuid
 import math
 from django.utils.translation import gettext_lazy as _
@@ -235,8 +236,22 @@ class Subject(models.Model):
         import math
         return math.ceil(hours_count / 2)
 
+    def get_actual_semester_weeks(self):
+        from journal.models import MatrixStructure
+        faculty = self.department.faculty
+        matrix = MatrixStructure.objects.filter(institute=faculty.institute, faculty__isnull=True, is_active=True).first()
+        if not matrix:
+            matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
+        
+        if matrix:
+            week_count = matrix.columns.filter(col_type='WEEK').count()
+            if week_count > 0:
+                return week_count
+        return self.semester_weeks
+
     def get_weekly_slots_needed(self):
-            if self.semester_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'LAB': 0, 'SRSP': 0}
+            actual_weeks = self.get_actual_semester_weeks()
+            if actual_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'LAB': 0, 'SRSP': 0}
 
             lec_h = self.lecture_hours
             prac_h = self.practice_hours
@@ -255,10 +270,10 @@ class Subject(models.Model):
             total_srsp_pairs = self.get_hours_in_pairs(srsp_h)
 
             return {
-                'LECTURE': math.ceil(total_lec_pairs / self.semester_weeks),
-                'PRACTICE': math.ceil(total_prac_pairs / self.semester_weeks),
-                'LAB': math.ceil(total_lab_pairs / self.semester_weeks),
-                'SRSP': math.ceil(total_srsp_pairs / self.semester_weeks),
+                'LECTURE': math.ceil(total_lec_pairs / actual_weeks),
+                'PRACTICE': math.ceil(total_prac_pairs / actual_weeks),
+                'LAB': math.ceil(total_lab_pairs / actual_weeks),
+                'SRSP': math.ceil(total_srsp_pairs / actual_weeks),
             }
     
 
@@ -308,6 +323,27 @@ class Semester(models.Model):
 
         return 'RED' if week_number % 2 != 0 else 'BLUE'
 
+    def get_week_start_date(self, academic_week_num):
+        if not self.start_date:
+            return timezone.now().date()
+        
+        vacations = []
+        if self.vacation_weeks:
+            vacations = sorted([int(w.strip()) for w in self.vacation_weeks.split(',') if w.strip().isdigit()])
+        
+        chrono_week = 1
+        academic_week = 1
+        
+        while academic_week < academic_week_num:
+            chrono_week += 1
+            if chrono_week not in vacations:
+                academic_week += 1
+                
+        while chrono_week in vacations:
+            chrono_week += 1
+            
+        return self.start_date + timedelta(weeks=chrono_week - 1)
+
     def get_current_week_number(self):
         if not self.start_date:
             return 1
@@ -315,7 +351,21 @@ class Semester(models.Model):
         if today < self.start_date:
             return 1
         delta = today - self.start_date
-        return (delta.days // 7) + 1
+        chrono_week = (delta.days // 7) + 1
+        
+        vacations = []
+        if self.vacation_weeks:
+            vacations = [int(w.strip()) for w in self.vacation_weeks.split(',') if w.strip().isdigit()]
+            
+        if chrono_week in vacations:
+            return -1
+            
+        academic_week = chrono_week
+        for v in vacations:
+            if v < chrono_week:
+                academic_week -= 1
+                
+        return academic_week
 
     NUMBER_CHOICES = [
         (1, _('Первый')),
@@ -350,6 +400,12 @@ class Semester(models.Model):
 
     start_date = models.DateField(verbose_name=_("Дата начала"))
     end_date = models.DateField(verbose_name=_("Дата окончания"))
+    vacation_weeks = models.CharField(
+        max_length=50, 
+        blank=True, 
+        verbose_name=_("Каникулярные недели"), 
+        help_text=_("Номера хронологических недель от начала семестра через запятую (напр. 8,9)")
+    )
     is_active = models.BooleanField(default=False, verbose_name=_("Активный"))
 
     class Meta:
