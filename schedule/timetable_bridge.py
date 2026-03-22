@@ -1,0 +1,451 @@
+from __future__ import annotations
+
+import json
+import math
+import subprocess
+import sys
+import uuid
+from pathlib import Path
+from typing import List, Optional
+import os
+from django.db import transaction
+from django.db.models import Count, Prefetch
+from pathlib import Path
+from .models import (
+    ScheduleSlot, Subject, Classroom, TimeSlot,
+    TeacherUnavailableSlot, Semester,
+)
+from accounts.models import Group, Teacher
+
+_bin_dir = Path(__file__).parent / "bin"
+BINARY_PATH = _bin_dir / ("timetable_engine.exe" if os.name == "nt" else "timetable_engine")
+
+if not BINARY_PATH.exists():
+    if (_bin_dir / "timetable_engine.exe").exists():
+        BINARY_PATH = _bin_dir / "timetable_engine.exe"
+    elif (_bin_dir / "timetable_engine").exists():
+        BINARY_PATH = _bin_dir / "timetable_engine"
+
+class TimetableError(Exception):
+    pass
+
+def _weekly_slots(subj: Subject) -> dict[str, float]:
+    actual_weeks = subj.get_actual_semester_weeks() or 16
+
+    lec_h = subj.lecture_hours
+    prac_h = subj.practice_hours
+    lab_h = subj.lab_hours
+    srsp_h = subj.control_hours
+
+    if lec_h == 0 and prac_h == 0 and lab_h == 0 and srsp_h == 0 and subj.credits > 0:
+        total_auditory = (subj.credits * 24) * 2 // 3
+        lec_h = total_auditory // 3
+        prac_h = total_auditory // 3
+        srsp_h = total_auditory - lec_h - prac_h
+
+    def pairs(h: int) -> float:
+        return math.ceil(h / 2) if h and h > 0 else 0.0
+
+    return {
+        "LECTURE":  round(pairs(lec_h)  / actual_weeks, 4),
+        "PRACTICE": round(pairs(prac_h) / actual_weeks, 4),
+        "LAB":      round(pairs(lab_h)  / actual_weeks, 4),
+        "SRSP":     round(pairs(srsp_h) / actual_weeks, 4),
+    }
+
+class TimetableBridge:
+
+    def __init__(self, binary: Path = BINARY_PATH):
+        self.binary = binary
+
+    def build_payload(
+        self,
+        semester:          Semester,
+        target_groups,                            
+        target_teachers:   Optional[List[int]] = None,
+        target_rooms:      Optional[List[int]] = None,
+        avoid_gaps:        bool = True,
+        overflow_mode:     int  = 1,
+        strict_room_types: bool = False,
+        sa_restarts:       int  = 6,
+        sa_steps:          int  = 400000,
+        max_seconds:       int  = 90,
+        institute         = None,
+    ) -> dict:
+
+        ts_qs = TimeSlot.objects.filter(shift=semester.shift)
+        if institute:
+            inst_ts = ts_qs.filter(institute=institute)
+            ts_qs   = inst_ts if inst_ts.exists() else ts_qs.filter(institute__isnull=True)
+        else:
+            ts_qs = ts_qs.filter(institute__isnull=True)
+        time_slots = list(ts_qs.order_by("start_time"))
+
+        slots_json = [
+            {
+                "id":         ts.id,
+                "index":      i,
+                "number":     i + 1,
+                "start_time": ts.start_time.strftime("%H:%M"),
+                "end_time":   ts.end_time.strftime("%H:%M"),
+            }
+            for i, ts in enumerate(time_slots)
+        ]
+
+        room_qs = Classroom.objects.filter(is_active=True)
+        if target_rooms:
+            room_qs = room_qs.filter(id__in=target_rooms)
+
+        rooms_json = [
+            {
+                "id":        r.id,
+                "number":    r.number,
+                "capacity":  r.capacity,
+                "room_type": r.room_type,
+            }
+            for r in room_qs
+        ]
+
+        target_groups_qs = (
+            target_groups
+            if hasattr(target_groups, "annotate")
+            else Group.objects.filter(id__in=[g.id for g in target_groups])
+        )
+        target_groups_qs = target_groups_qs.annotate(
+            student_count=Count("students", distinct=True)
+        )
+
+        groups_list = list(target_groups_qs)
+        group_ids_set = {g.id for g in groups_list}
+
+        groups_json = [
+            {
+                "id":            g.id,
+                "name":          g.name,
+                "student_count": g.student_count,
+            }
+            for g in groups_list
+        ]
+
+        subjects_qs = (
+            Subject.objects
+            .filter(groups__in=group_ids_set)
+            .prefetch_related(
+                Prefetch(
+                    "groups",
+                    queryset=Group.objects.annotate(student_count=Count("students", distinct=True)),
+                    to_attr="all_groups",
+                )
+            )
+            .select_related("teacher")
+            .distinct()
+        )
+        if target_teachers:
+            subjects_qs = subjects_qs.filter(teacher_id__in=target_teachers)
+
+        subjects_list = list(subjects_qs)            
+
+        teacher_ids = {
+            subj.teacher_id
+            for subj in subjects_list
+            if subj.teacher_id
+        }
+        if target_teachers:
+            teacher_ids.update(target_teachers)
+
+        unavail_map: dict[int, list] = {}
+        for u in TeacherUnavailableSlot.objects.filter(teacher_id__in=teacher_ids):
+            unavail_map.setdefault(u.teacher_id,[]).append(
+                {
+                    "teacher_id":   u.teacher_id,
+                    "day_of_week":  u.day_of_week,
+                    "time_slot_id": u.time_slot_id,
+                }
+            )
+
+        teachers_json =[]
+        for t in Teacher.objects.filter(id__in=teacher_ids).select_related("user"):
+            teachers_json.append(
+                {
+                    "id":   t.id,
+                    "name": t.user.get_full_name(),
+                }
+            )
+
+        teacher_unavail_json =[
+            entry
+            for entries in unavail_map.values()
+            for entry in entries
+        ]
+
+        def _students(grp) -> int:
+            return getattr(grp, "student_count", 0) or 0
+
+        tasks_json =[]
+        for subj in subjects_list:
+            all_groups_for_subj = getattr(subj, "all_groups",[])
+            if not all_groups_for_subj:
+                continue
+
+            if not any(g.id in group_ids_set for g in all_groups_for_subj):
+                continue
+
+            slot_map = _weekly_slots(subj)
+
+            if subj.is_stream_subject and len(all_groups_for_subj) > 1:
+                # ПОТОК: отправляем в ИИ сразу ВСЕ группы потока вместе
+                total_students = sum(_students(g) for g in all_groups_for_subj)
+                for lt, weekly in slot_map.items():
+                    if weekly <= 0:
+                        continue
+                    tasks_json.append(
+                        {
+                            "subject_id":          subj.id,
+                            "subject_name":        subj.name,
+                            "teacher_id":          subj.teacher_id or -1,
+                            "group_ids":[g.id for g in all_groups_for_subj],
+                            "lesson_type":         lt,
+                            "is_stream":           True,
+                            "stream_tag":          subj.id,
+                            "students":            total_students,
+                            "preferred_room_type": subj.preferred_room_type or "",
+                            "weekly_slots":        weekly,
+                        }
+                    )
+            else:
+                for grp in all_groups_for_subj:
+                    if grp.id not in group_ids_set:
+                        continue
+                    total_students = _students(grp)
+                    for lt, weekly in slot_map.items():
+                        if weekly <= 0:
+                            continue
+                        tasks_json.append(
+                            {
+                                "subject_id":          subj.id,
+                                "subject_name":        subj.name,
+                                "teacher_id":          subj.teacher_id or -1,
+                                "group_ids":           [grp.id],
+                                "lesson_type":         lt,
+                                "is_stream":           False,
+                                "stream_tag":          -1,
+                                "students":            total_students,
+                                "preferred_room_type": subj.preferred_room_type or "",
+                                "weekly_slots":        weekly,
+                            }
+                        )
+
+        return {
+            "time_slots":          slots_json,
+            "rooms":               rooms_json,
+            "groups":              groups_json,
+            "tasks":               tasks_json,
+            "teacher_unavailable": teacher_unavail_json,
+            "sa_t0":               1200.0,
+            "sa_cooling":          0.99985,
+            "sa_reheat":           1.5,
+            "sa_restarts":         sa_restarts,
+            "sa_steps":            sa_steps,
+            "max_seconds":         max_seconds,
+            "overflow_mode":       overflow_mode,
+            "strict_room_types":   strict_room_types,
+            "avoid_gaps":          avoid_gaps,
+        }
+
+    def run(self, payload: dict) -> dict:
+        if not self.binary.exists():
+            raise TimetableError(
+                f"Engine binary not found: {self.binary}\n"
+                "Compile with:\n"
+                "  g++ -O3 -std=c++17 -pthread "
+                "-o schedule/bin/timetable_engine schedule/timetable_engine.cpp"
+            )
+
+        proc = subprocess.run(
+            [str(self.binary)],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        if proc.stderr:
+            print(proc.stderr, file=sys.stderr, end="")
+
+        if proc.returncode != 0:
+            raise TimetableError(
+                f"Engine exited with code {proc.returncode}.\n"
+                f"stderr: {proc.stderr[:2000]}"
+            )
+
+        try:
+            result = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            raise TimetableError(
+                f"Engine output is not valid JSON: {exc}\n"
+                f"{proc.stdout[:500]}"
+            ) from exc
+
+        if not result.get("success", False):
+            raise TimetableError(result.get("error", "Unknown engine error"))
+
+        return result
+
+    @transaction.atomic
+    def save_result(self, result: dict, semester: Semester) -> dict:
+
+        slots_data = result.get("schedule", [])
+        if not slots_data:
+            return self._summary(result, created=0)
+
+        ts_ids  = set()
+        grp_ids = set()
+        sub_ids = set()
+        tch_ids = set()
+        cls_ids = set()
+
+        for item in slots_data:
+            ts_ids.add(item["time_slot_id"])
+            grp_ids.add(item["group_id"])
+            sub_ids.add(item["subject_id"])
+            tid = item.get("teacher_id")
+            if tid and tid != -1:
+                tch_ids.add(tid)
+            cid = item.get("classroom_id")
+            if cid:
+                cls_ids.add(cid)
+
+        ts_map  = TimeSlot.objects.in_bulk(ts_ids)
+        grp_map = Group.objects.in_bulk(grp_ids)
+        sub_map = Subject.objects.in_bulk(sub_ids)
+        tch_map = Teacher.objects.in_bulk(tch_ids)
+        cls_map = Classroom.objects.in_bulk(cls_ids)
+
+        created_slots: list[ScheduleSlot] = []
+        stream_key_to_uuid: dict[str, uuid.UUID] = {}
+        skipped = 0
+
+        for item in slots_data:
+            ts_id      = item["time_slot_id"]
+            group_id   = item["group_id"]
+            subject_id = item["subject_id"]
+            teacher_id = item.get("teacher_id")
+            cls_id     = item.get("classroom_id")
+            day        = item["day_of_week"]
+            lt         = item["lesson_type"]
+            wt         = item["week_type"]
+            is_stream  = item.get("is_stream", False)
+            room_num   = item.get("room_number", "")
+
+            ts  = ts_map.get(ts_id)
+            grp = grp_map.get(group_id)
+            sub = sub_map.get(subject_id)
+
+            if not (ts and grp and sub):
+                skipped += 1
+                continue
+
+            teacher   = tch_map.get(teacher_id) if teacher_id and teacher_id != -1 else None
+            classroom = cls_map.get(cls_id)     if cls_id                           else None
+
+            stream_id = None
+            if is_stream:
+                key = f"{subject_id}_{day}_{ts_id}_{wt}"
+                if key not in stream_key_to_uuid:
+                    stream_key_to_uuid[key] = uuid.uuid4()
+                stream_id = stream_key_to_uuid[key]
+
+            created_slots.append(
+                ScheduleSlot(
+                    group       = grp,
+                    subject     = sub,
+                    teacher     = teacher,
+                    semester    = semester,
+                    day_of_week = day,
+                    time_slot   = ts,
+                    start_time  = ts.start_time,
+                    end_time    = ts.end_time,
+                    classroom   = classroom,
+                    room        = room_num,
+                    lesson_type = lt,
+                    week_type   = wt,
+                    stream_id   = stream_id,
+                    is_active   = True,
+                )
+            )
+
+        if skipped:
+            print(
+                f"[timetable_bridge] WARNING: skipped {skipped} slot(s) "
+                "due to missing FK references",
+                file=sys.stderr,
+            )
+
+        ScheduleSlot.objects.bulk_create(created_slots)
+
+        return self._summary(result, created=len(created_slots))
+
+    def generate(self, semester, target_groups, **kwargs) -> dict:
+        payload = self.build_payload(semester, target_groups, **kwargs)
+        result  = self.run(payload)
+        return self.save_result(result, semester)
+
+    @staticmethod
+    def _summary(result: dict, created: int) -> dict:
+        return {
+            "success":        True,
+            "created":        created,
+            "unplaced_count": result.get("unplaced_count", 0),
+            "score":          result.get("score", 0),
+            "elapsed_ms":     result.get("elapsed_ms", 0),
+            "unassigned":     result.get("unassigned_details", []),
+        }
+
+class AutoScheduleEngineCpp:
+
+    def __init__(
+        self,
+        semester,
+        target_groups    = None,
+        target_teachers  = None,
+        target_rooms     = None,
+        avoid_gaps       = True,
+        overflow_mode    = 1,
+        strict_room_types= False,
+        iterations       = 6,
+        institute        = None,
+    ):
+        self.semester           = semester
+        self.target_groups      = target_groups
+        self.target_teachers    = list(target_teachers) if target_teachers else None
+        self.target_rooms       = list(target_rooms)    if target_rooms    else None
+        self.avoid_gaps         = avoid_gaps
+        self.overflow_mode      = overflow_mode
+        self.strict_room_types  = strict_room_types
+        self.sa_restarts        = max(2, min(iterations, 12))
+        self.institute          = institute
+        self._bridge            = TimetableBridge()
+
+    def generate(self) -> dict:
+        payload = self._bridge.build_payload(
+            semester           = self.semester,
+            target_groups      = self.target_groups,
+            target_teachers    = self.target_teachers,
+            target_rooms       = self.target_rooms,
+            avoid_gaps         = self.avoid_gaps,
+            overflow_mode      = self.overflow_mode,
+            strict_room_types  = self.strict_room_types,
+            sa_restarts        = self.sa_restarts,
+            sa_steps           = 400000,
+            max_seconds        = 90,
+            institute          = self.institute,
+        )
+        result = self._bridge.run(payload)
+        saved  = self._bridge.save_result(result, self.semester)
+
+        return {
+            "success":            saved["success"],
+            "created":            saved["created"],
+            "unassigned_count":   saved["unplaced_count"],
+            "unassigned_details": saved["unassigned"],
+        }

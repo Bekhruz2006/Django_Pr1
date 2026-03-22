@@ -31,8 +31,7 @@ import math
 from django.utils.translation import gettext as _
 from schedule.models import ROOM_TYPES
 from .services import AIAssignmentService, AlgorithmicAssignmentService 
-from .ai_timetabling import AutoScheduleEngine
-
+from .timetable_bridge import AutoScheduleEngineCpp as AutoScheduleEngine
 
 def is_dean(user):
     return user.is_authenticated and hasattr(user, 'dean_profile')
@@ -236,10 +235,7 @@ def schedule_constructor(request):
                 institute = Institute.objects.first()
 
             shift = active_semester.shift
-            time_slots = TimeSlot.objects.filter(
-                institute=institute,
-                shift=shift
-            ).order_by('start_time')
+            time_slots = get_time_slots_for_shift(shift, institute)
         except AttributeError:
             time_slots = TimeSlot.objects.none()
     else:
