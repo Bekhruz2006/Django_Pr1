@@ -715,7 +715,10 @@ def schedule_view(request):
     time_slots = TimeSlot.objects.none()
     
     if group and active_semester:
-        time_slots = get_time_slots_for_shift(active_semester.shift)
+        institute = None
+        if group.specialty and group.specialty.department.faculty:
+            institute = group.specialty.department.faculty.institute
+        time_slots = get_time_slots_for_shift(active_semester.shift, institute)
         valid_slot_ids = list(time_slots.values_list('id', flat=True))
 
         slots = ScheduleSlot.objects.filter(
@@ -734,7 +737,10 @@ def schedule_view(request):
         if used_slot_ids:
             time_slots = TimeSlot.objects.filter(id__in=used_slot_ids).order_by('start_time')
         else:
-            time_slots = get_time_slots_for_shift(active_semester.shift)
+            institute = None
+            if teacher.department and teacher.department.faculty:
+                institute = teacher.department.faculty.institute
+            time_slots = get_time_slots_for_shift(active_semester.shift, institute)
 
         slots = ScheduleSlot.objects.filter(
             teacher=teacher,
@@ -1920,7 +1926,13 @@ def classroom_occupancy(request):
 
     classrooms = classrooms.order_by('building', 'floor', 'number')
     
-    time_slots = get_time_slots_for_shift(active_semester.shift)
+    institute_for_ts = None
+    if selected_institute_id:
+        institute_for_ts = Institute.objects.filter(id=selected_institute_id).first()
+    elif hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
+        institute_for_ts = request.user.dean_profile.faculty.institute
+        
+    time_slots = get_time_slots_for_shift(active_semester.shift, institute_for_ts)
     
     days = [
         (0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')),
@@ -2970,6 +2982,11 @@ def auto_schedule_config(request):
         semester = get_object_or_404(Semester, id=semester_id)
         target_groups = Group.objects.filter(id__in=group_ids)
         
+        if not institute and target_groups.exists():
+            first_group = target_groups.first()
+            if first_group.specialty and first_group.specialty.department.faculty:
+                institute = first_group.specialty.department.faculty.institute
+        
         try:
             with transaction.atomic():
                 if clear_existing:
@@ -2994,6 +3011,10 @@ def auto_schedule_config(request):
                 error_list = "<br>".join(result['unassigned_details'][:10])
                 messages.warning(request, f"Сгенерировано {result['created']} занятий. Не удалось разместить {result['unassigned_count']} занятий (не хватило аудиторий или времени у преподавателей).<br><small>{error_list}</small>")
             
+            if target_groups.exists():
+                request.session['last_constructor_group'] = str(target_groups.first().id)
+                request.session['last_constructor_semester'] = str(semester.id)
+                return redirect(f"/schedule/constructor/?group={target_groups.first().id}&semester={semester.id}")
             return redirect('schedule:constructor')
             
         except Exception as e:

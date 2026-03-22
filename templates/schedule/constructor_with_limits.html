@@ -86,6 +86,16 @@
         <div class="card shadow-sm sticky-top" style="top: 20px; max-height: 85vh;">
             <div class="card-header bg-white py-2">
                 <h6 class="mb-0 fw-bold text-muted text-uppercase small">Нераспределенные часы</h6>
+                <div class="btn-group btn-group-sm w-100 mt-2" role="group">
+                    <input type="radio" class="btn-check" name="drag_week_type" id="dwt_every" value="EVERY" checked>
+                    <label class="btn btn-outline-secondary" for="dwt_every" title="Каждую неделю">Каждую</label>
+                    
+                    <input type="radio" class="btn-check" name="drag_week_type" id="dwt_red" value="RED">
+                    <label class="btn btn-outline-danger" for="dwt_red" title="Красная неделя (Числитель)">Красн</label>
+                    
+                    <input type="radio" class="btn-check" name="drag_week_type" id="dwt_blue" value="BLUE">
+                    <label class="btn btn-outline-primary" for="dwt_blue" title="Синяя неделя (Знаменатель)">Син</label>
+                </div>
             </div>
             <div class="card-body p-0 overflow-auto">
                 <div class="list-group list-group-flush">
@@ -724,11 +734,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const val = this.value;
             document.querySelectorAll('.lesson-card').forEach(card => {
                 if (val === 'ALL') {
-                    card.style.display = 'block';
+                    card.style.display = '';
                 } else {
                     const wt = card.dataset.weekType;
                     if (wt === 'EVERY' || wt === val) {
-                        card.style.display = 'block';
+                        card.style.display = '';
                     } else {
                         card.style.display = 'none';
                     }
