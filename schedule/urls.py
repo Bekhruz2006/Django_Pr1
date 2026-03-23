@@ -19,6 +19,7 @@ urlpatterns = [
     path('constructor/update-room/<int:slot_id>/', views.update_schedule_room, name='update_room'),
     path('constructor/delete/<int:slot_id>/', views.delete_schedule_slot, name='delete_slot'),
     path('constructor/clear/', views.clear_schedule, name='clear_schedule'),
+    path('constructor/clear-military/', views.clear_military_day, name='clear_military_day'),
 
     path('subjects/', views.manage_subjects, name='manage_subjects'),
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),

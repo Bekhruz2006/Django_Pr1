@@ -2,12 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db import models
 from django.http import HttpResponseForbidden, HttpRequest, JsonResponse
 from django.utils.translation import gettext as _
 from .services import StudentImportService
-from schedule.models import Semester, Subject, AcademicPlan
+from schedule.models import Semester, Subject, AcademicPlan, ScheduleSlot
 from django.db.models import Prefetch
 from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncMonth 
@@ -32,6 +32,8 @@ from .forms import InstituteManagementForm, InstituteForm, FacultyFullForm
 from django.http import HttpResponse
 from typing import List, Optional
 from django.core.exceptions import ValidationError
+import logging
+logger = logging.getLogger(__name__)
 
 def is_hr_or_admin(user):
     return user.is_authenticated and (user.is_superuser or hasattr(user, 'hr_profile') or user.role == 'HR')
@@ -379,7 +381,8 @@ def import_students(request):
             if results['errors']:
                 messages.warning(request, _(f"Ошибки ({len(results['errors'])}): {'; '.join(results['errors'][:3])}..."))
         except Exception as e:
-            messages.error(request, _(f"Критическая ошибка импорта: {str(e)}"))
+            logger.exception("import_students")
+            messages.error(request, _("Критическая ошибка импорта. См. журнал сервера."))
             
         return redirect('accounts:user_management') 
     
@@ -413,11 +416,17 @@ def add_user(request):
 
                 try:
                     if role == 'STUDENT':
-                        student = user.student_profile 
-                        student.student_id = generate_student_id()
+                        student = user.student_profile
                         student.course = 1
                         student.admission_year = 2025
-                        student.save()
+                        for attempt in range(3):
+                            try:
+                                student.student_id = generate_student_id()
+                                student.save()
+                                break
+                            except IntegrityError:
+                                if attempt == 2:
+                                    raise
                         
                     elif role == 'TEACHER':
                         teacher = user.teacher_profile
@@ -438,8 +447,8 @@ def add_user(request):
                     return redirect('accounts:user_management')
                     
                 except Exception as e:
-                    messages.error(request, _(f'Ошибка при настройке профиля: {str(e)}'))
-                    print(e)
+                    logger.exception("add_user profile setup")
+                    messages.error(request, _('Ошибка при настройке профиля. См. журнал сервера.'))
     else:
         user_form = UserCreateForm(creator=request.user, initial=initial_data)
     
@@ -850,7 +859,8 @@ def add_group(request):
                     return redirect('accounts:manage_structure')
                 return redirect('accounts:group_management')
             except Exception as e:
-                messages.error(request, _(f"Ошибка сохранения: {str(e)}"))
+                logger.exception("add_group")
+                messages.error(request, _("Ошибка сохранения. См. журнал сервера."))
     else:
         form = GroupForm(initial=initial_data)
         configure_form(form)
@@ -959,15 +969,24 @@ def manage_structure(request):
             departments = Department.objects.filter(faculty=user_faculty).prefetch_related(
                 'specialties__groups',
                 'specialties__academicplan_set',
-                'head__user'
+                'head__user',
+                Prefetch(
+                    'subjects',
+                    queryset=Subject.objects.prefetch_related(
+                        Prefetch(
+                            'scheduleslot_set',
+                            queryset=ScheduleSlot.objects.filter(semester__is_active=True).select_related('semester'),
+                        ),
+                    ),
+                ),
             )
             
             dept_data = []
             for dept in departments:
-                current_subjects = Subject.objects.filter(department=dept)
-                current_subjects = current_subjects.filter(
-                    scheduleslot__semester__is_active=True
-                ).distinct()
+                current_subjects = [
+                    s for s in dept.subjects.all()
+                    if s.scheduleslot_set.all()
+                ]
 
                 total_hours = sum(s.total_auditory_hours for s in current_subjects)
                 budget = dept.total_hours_budget or 1 
@@ -986,7 +1005,7 @@ def manage_structure(request):
                     'obj': dept,
                     'total_hours': total_hours,
                     'load_percent': load_percent,
-                    'subjects_count': current_subjects.count(),
+                    'subjects_count': len(current_subjects),
                     'teachers_count': dept.teachers.count(),
                     'specialties_data': specs_data
                 })
@@ -1482,7 +1501,8 @@ def approve_order(request, order_id):
                 order.apply_effect(request.user)
                 messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студентов обновлен."))
             except Exception as e:
-                messages.error(request, _(f"Ошибка при обработке приказа: {str(e)}"))
+                logger.exception("approve_order")
+                messages.error(request, _("Ошибка при обработке приказа. См. журнал сервера."))
         else:
             messages.warning(request, _("Приказ уже обработан."))
             
@@ -1570,7 +1590,8 @@ def download_generated_document(request, template_id, object_id):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
     except Exception as e:
-        messages.error(request, f"Ошибка генерации документа: {str(e)}")
+        logger.exception("download_generated_document")
+        messages.error(request, _("Ошибка генерации документа. См. журнал сервера."))
         return redirect(request.META.get('HTTP_REFERER', 'core:dashboard'))
 
 @login_required
@@ -1724,7 +1745,8 @@ def mass_order_create(request: HttpRequest) -> HttpResponse:
                 return redirect('accounts:all_orders')
                 
             except Exception as e:
-                messages.error(request, _(f"Ошибка при создании приказа: {str(e)}"))
+                logger.exception("mass_order_create")
+                messages.error(request, _("Ошибка при создании приказа. См. журнал сервера."))
 
     context = {
         'groups': groups_qs,

@@ -61,7 +61,7 @@ class TimetableBridge:
     def build_payload(
         self,
         semester:          Semester,
-        target_groups,                            
+        target_groups,
         target_teachers:   Optional[List[int]] = None,
         target_rooms:      Optional[List[int]] = None,
         avoid_gaps:        bool = True,
@@ -80,6 +80,9 @@ class TimetableBridge:
         else:
             ts_qs = ts_qs.filter(institute__isnull=True)
         time_slots = list(ts_qs.order_by("start_time"))
+
+        # Build ts_id → index map (needed for group_unavailable below)
+        ts_id_to_idx = {ts.id: i for i, ts in enumerate(time_slots)}
 
         slots_json = [
             {
@@ -143,7 +146,7 @@ class TimetableBridge:
         if target_teachers:
             subjects_qs = subjects_qs.filter(teacher_id__in=target_teachers)
 
-        subjects_list = list(subjects_qs)            
+        subjects_list = list(subjects_qs)
 
         teacher_ids = {
             subj.teacher_id
@@ -178,6 +181,36 @@ class TimetableBridge:
             for entry in entries
         ]
 
+        # ★ NEW: Загружаем существующие слоты групп (военные + любые уже стоящие)
+        # как "занято для группы" — движок не будет ставить на них новые пары.
+        # Это гарантирует, что военная кафедра и ручные пары сохраняются.
+        group_unavailable_json = []
+        if group_ids_set and time_slots:
+            valid_ts_ids = set(ts_id_to_idx.keys())
+            existing_slots_qs = ScheduleSlot.objects.filter(
+                semester=semester,
+                group_id__in=group_ids_set,
+                is_active=True,
+                time_slot_id__in=valid_ts_ids,
+            ).values("group_id", "day_of_week", "time_slot_id", "week_type", "is_military")
+
+            seen = set()
+            for slot in existing_slots_qs:
+                # Добавляем как недоступный для группы слот
+                # week_type='EVERY' → блокируем оба варианта (RED и BLUE)
+                wt = slot["week_type"]
+                week_types_to_block = ["RED", "BLUE"] if wt == "EVERY" else [wt]
+                for block_wt in week_types_to_block:
+                    key = (slot["group_id"], slot["day_of_week"], slot["time_slot_id"], block_wt)
+                    if key not in seen:
+                        seen.add(key)
+                        group_unavailable_json.append({
+                            "group_id":     slot["group_id"],
+                            "day_of_week":  slot["day_of_week"],
+                            "time_slot_id": slot["time_slot_id"],
+                            "week_type":    block_wt,
+                        })
+
         def _students(grp) -> int:
             return getattr(grp, "student_count", 0) or 0
 
@@ -193,7 +226,6 @@ class TimetableBridge:
             slot_map = _weekly_slots(subj)
 
             if subj.is_stream_subject and len(all_groups_for_subj) > 1:
-                # ПОТОК: отправляем в ИИ сразу ВСЕ группы потока вместе
                 total_students = sum(_students(g) for g in all_groups_for_subj)
                 for lt, weekly in slot_map.items():
                     if weekly <= 0:
@@ -240,7 +272,9 @@ class TimetableBridge:
             "rooms":               rooms_json,
             "groups":              groups_json,
             "tasks":               tasks_json,
+            "teachers":            teachers_json,
             "teacher_unavailable": teacher_unavail_json,
+            "group_unavailable":   group_unavailable_json,  # ★ NEW
             "sa_t0":               1200.0,
             "sa_cooling":          0.99985,
             "sa_reheat":           1.5,

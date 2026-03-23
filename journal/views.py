@@ -10,6 +10,8 @@ from django.views.decorators.http import require_POST
 from django.utils.translation import gettext as _
 from django.utils import timezone
 from django.http import JsonResponse
+import logging
+logger = logging.getLogger(__name__)
 from .models import JournalEntry, JournalChangeLog, StudentStatistics, MatrixStructure, MatrixColumn, StudentMatrixScore
 from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLogFilterForm
 from accounts.models import Student, Teacher, Group
@@ -166,21 +168,51 @@ def journal_view(request):
 
     days_with_lessons.sort(key=lambda x: (x['date'], x['time']))
 
-    journal_data =[]
+    dates_for_entries = list({d['date'] for d in days_with_lessons})
+    existing_entries = JournalEntry.objects.filter(
+        student__in=students,
+        subject=subject,
+        lesson_date__in=dates_for_entries,
+    ).select_related('student')
+    entries_dict = {
+        (e.student_id, e.lesson_date, e.lesson_time): e
+        for e in existing_entries
+    }
+    new_entries = []
     for student in students:
-        student_row = {'student': student, 'entries':[]}
         for day_info in days_with_lessons:
-            entry, created = JournalEntry.objects.get_or_create(
-                student=student,
-                subject=subject,
-                lesson_date=day_info['date'],
-                lesson_time=day_info['time'],
-                defaults={
-                    'lesson_type': subject.type,
-                    'created_by': teacher,
-                    'modified_by': teacher
-                }
-            )
+            key = (student.id, day_info['date'], day_info['time'])
+            if key not in entries_dict:
+                lesson_dt = timezone.make_aware(
+                    datetime.combine(day_info['date'], day_info['time'])
+                )
+                new_entries.append(JournalEntry(
+                    student=student,
+                    subject=subject,
+                    lesson_date=day_info['date'],
+                    lesson_time=day_info['time'],
+                    lesson_type=subject.type,
+                    created_by=teacher,
+                    modified_by=teacher,
+                    locked_at=lesson_dt + timedelta(hours=24),
+                ))
+    if new_entries:
+        JournalEntry.objects.bulk_create(new_entries, ignore_conflicts=True)
+        existing_entries = JournalEntry.objects.filter(
+            student__in=students,
+            subject=subject,
+            lesson_date__in=dates_for_entries,
+        ).select_related('student')
+        entries_dict = {
+            (e.student_id, e.lesson_date, e.lesson_time): e
+            for e in existing_entries
+        }
+    journal_data = []
+    for student in students:
+        student_row = {'student': student, 'entries': []}
+        for day_info in days_with_lessons:
+            key = (student.id, day_info['date'], day_info['time'])
+            entry = entries_dict[key]
             student_row['entries'].append({
                 'entry': entry,
                 'is_locked': entry.is_locked(),
@@ -757,7 +789,8 @@ def update_journal_cell(request):
         return JsonResponse(response_data)
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        logger.exception("update_journal_cell")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
     
 
 
@@ -895,7 +928,8 @@ def update_matrix_cell(request):
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Введите корректное число'})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.exception("update_matrix_cell")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 
 @login_required
@@ -950,7 +984,8 @@ def update_weekly_score(request):
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Введите корректное число'})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.exception("update_weekly_score")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 
 

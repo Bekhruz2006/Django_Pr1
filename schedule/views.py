@@ -33,6 +33,9 @@ from schedule.models import ROOM_TYPES
 from .services import AIAssignmentService, AlgorithmicAssignmentService 
 from .timetable_bridge import AutoScheduleEngineCpp as AutoScheduleEngine
 
+import logging
+logger = logging.getLogger(__name__)
+
 def is_dean(user):
     return user.is_authenticated and hasattr(user, 'dean_profile')
 
@@ -193,28 +196,19 @@ def schedule_constructor(request):
         assigned_subjects = Subject.objects.filter(groups=selected_group).select_related('teacher__user').distinct()
 
         for subject in assigned_subjects:
+            needed = subject.get_weekly_slots_needed()
+            
             for l_type, label, color in [('LECTURE', _('Лекция'), 'primary'), ('PRACTICE', _('Практика'), 'success'), ('LAB', _('Лабораторная'), 'info'), ('SRSP', _('СРСП'), 'warning')]:
-                if l_type == 'LECTURE':
-                    hours = subject.lecture_hours
-                elif l_type == 'PRACTICE':
-                    hours = subject.practice_hours
-                elif l_type == 'LAB':
-                    hours = subject.lab_hours
-                else:
-                    hours = subject.control_hours
-
-                total_pairs = math.ceil(hours / 2)
-                if total_pairs > 0:
+                needed_weekly = needed.get(l_type, 0)
+                
+                if needed_weekly > 0:
                     type_slots = [s for s in slots if s.subject_id == subject.id and s.lesson_type == l_type]
-                    scheduled_pairs = 0
-                    weeks = subject.semester_weeks if subject.semester_weeks > 0 else 16
+                    scheduled_weekly = 0
+                    
                     for s in type_slots:
-                        if s.week_type == 'EVERY':
-                            scheduled_pairs += weeks
-                        else:
-                            scheduled_pairs += weeks / 2
+                        scheduled_weekly += 1 if s.week_type == 'EVERY' else 0.5
 
-                    remaining_pairs = max(0, total_pairs - scheduled_pairs)
+                    remaining_pairs = max(0, needed_weekly - scheduled_weekly)
                     if remaining_pairs > 0:
                         subjects_to_schedule.append({
                             'obj': subject,
@@ -283,6 +277,16 @@ def schedule_constructor(request):
                         'week_type': wt
                     })
 
+    military_days = set()
+    if selected_group and active_semester:
+        mil_day_qs = ScheduleSlot.objects.filter(
+            group=selected_group,
+            semester=active_semester,
+            is_military=True,
+            is_active=True,
+        ).values_list('day_of_week', flat=True).distinct()
+        military_days = set(mil_day_qs)
+ 
     return render(request, 'schedule/constructor_with_limits.html', {
         'groups': groups,
         'group': selected_group,
@@ -295,9 +299,8 @@ def schedule_constructor(request):
         'classrooms': classrooms,
         'occupied_rooms': occupied_rooms,
         'active_plan': active_plan,
+        'military_days': military_days,  
     })
-
-
 
 
 @login_required
@@ -316,7 +319,16 @@ def create_schedule_slot(request):
                 group = get_object_or_404(Group, id=group_id)
                 semester = get_object_or_404(Semester, id=semester_id)
 
-                time_slots = get_time_slots_for_shift(semester.shift)
+                institute = None
+                try:
+                    if group.specialty and group.specialty.department.faculty:
+                        institute = group.specialty.department.faculty.institute
+                except AttributeError:
+                    pass
+
+                time_slots = get_time_slots_for_shift(semester.shift, institute)
+                if not time_slots.exists():
+                    time_slots = get_time_slots_for_shift(semester.shift)
                 if not time_slots.exists():
                     return JsonResponse({'success': False, 'error': 'Сначала создайте сетку звонков (Временные слоты) для этой смены в настройках.'}, status=400)
 
@@ -363,7 +375,8 @@ def create_schedule_slot(request):
 
                 return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
             except Exception as e:
-                return JsonResponse({'success': False, 'error': f'Ошибка сервера: {str(e)}'}, status=500)
+                logger.exception("create_schedule_slot military")
+                return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
         force = data.get('force', False)
         group_id = data.get('group')
@@ -406,9 +419,9 @@ def create_schedule_slot(request):
         week_type = data.get('week_type', 'EVERY')
 
         overlapping_slots = ScheduleSlot.objects.filter(
+            semester=active_semester,
             day_of_week=day_of_week,
             is_active=True,
-            semester__is_active=True,
             start_time__lt=time_slot.end_time,
             end_time__gt=time_slot.start_time
         )
@@ -464,7 +477,8 @@ def create_schedule_slot(request):
         return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': _("Ошибка сервера: %(error)s") % {'error': str(e)}}, status=500)
+        logger.exception("create_schedule_slot")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
 
 @login_required
@@ -477,27 +491,49 @@ def update_schedule_room(request, slot_id):
         force = data.get('force', False)
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
 
+        if not room_text and not room_id:
+            with transaction.atomic():
+                if slot.stream_id:
+                    ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(
+                        room="",
+                        classroom=None
+                    )
+                else:
+                    slot.room = ""
+                    slot.classroom = None
+                    slot.save()
+            return JsonResponse({'success': True, 'room': ''})
+
         classroom = None
         if room_id and str(room_id).isdigit():
             classroom = Classroom.objects.filter(id=room_id, is_active=True).first()
         elif room_text:
-            candidates = Classroom.objects.filter(number=room_text, is_active=True)
+            candidates = Classroom.objects.filter(number__iexact=room_text, is_active=True)
             if candidates.count() == 1:
                 classroom = candidates.first()
             elif candidates.count() > 1:
                 try:
                     group_institute = slot.group.specialty.department.faculty.institute
                     classroom = candidates.filter(building__institute=group_institute).first()
-                except:
+                except Exception:
                     pass
                 if not classroom:
                     classroom = candidates.first()
 
+        if room_text and not classroom:
+            return JsonResponse(
+                {
+                    'success': False,
+                    'error': _('Аудитория "%(room)s" не найдена в базе данных. Выберите из списка.') % {'room': room_text}
+                },
+                status=400
+            )
+
         room_number = classroom.number if classroom else room_text
 
         occupants = ScheduleSlot.objects.filter(
+            semester=slot.semester,
             day_of_week=slot.day_of_week,
-            semester__is_active=True,
             is_active=True,
             start_time__lt=slot.end_time,
             end_time__gt=slot.start_time
@@ -573,11 +609,12 @@ def update_schedule_room(request, slot_id):
                 slot.classroom = classroom
                 slot.save()
 
-        display_name = str(classroom) if classroom else room_number
+        display_name = room_number
         return JsonResponse({'success': True, 'room': display_name})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        logger.exception("update_schedule_room")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
 @login_required
 @require_POST
@@ -601,7 +638,8 @@ def clear_schedule(request):
         ScheduleSlot.objects.filter(group=group, semester=semester).delete()
         return JsonResponse({'success': True})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        logger.exception("clear_schedule")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
 @login_required
 @require_POST
@@ -628,7 +666,8 @@ def delete_schedule_slot(request, slot_id):
         return JsonResponse({'success': True, 'message': msg})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': _('Ошибка: %(error)s') % {'error': str(e)}}, status=500)
+        logger.exception("delete_schedule_slot")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
 @login_required
 def schedule_view(request):
@@ -796,7 +835,8 @@ def today_classes(request):
                 active_semester = get_active_semester_for_group(student.group)
             else:
                 active_semester = None
-        except:
+        except Exception:
+            logger.exception("today_classes active_semester")
             active_semester = None
     else:
         active_semester = Semester.objects.filter(is_active=True).first()
@@ -1461,7 +1501,7 @@ def export_schedule(request):
         hdr_cells[0].text = t['week']
         hdr_cells[1].text = t['time']
 
-        hdr_cells[2].text = f"{specialty_code} – «{specialty_name}» ({group.students.count()} {t['students']})"
+        hdr_cells[2].text = f"Группа {group.name} | {specialty_code} – «{specialty_name}» ({group.students.count()} {t['students']})"
         hdr_cells[3].text = t['aud']
 
         for cell in hdr_cells:
@@ -1497,23 +1537,35 @@ def export_schedule(request):
                 row.cells[1].paragraphs[0].runs[0].font.bold = True
 
                 if not is_military_day:
-                    slot = ScheduleSlot.objects.filter(
+                    cell_slots = ScheduleSlot.objects.filter(
                         group=group, semester=active_semester, day_of_week=day_num, time_slot=ts, is_active=True
-                    ).first()
+                    )
 
-                    if slot:
+                    if cell_slots.exists():
                         cell = row.cells[2]
                         p = cell.paragraphs[0]
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         
-                        lesson_type_display = slot.get_lesson_type_display()
-                        
-                        p.add_run(f"{slot.subject.name} ({lesson_type_display})\n")
-                        if slot.teacher:
-                            p.add_run(f"{slot.teacher.user.get_full_name()}")
+                        rooms =[]
+                        for idx, slot in enumerate(cell_slots):
+                            lesson_type_display = slot.get_lesson_type_display()
+                            week_mark = ""
+                            if slot.week_type == 'RED': week_mark = " (Красн.)"
+                            elif slot.week_type == 'BLUE': week_mark = " (Син.)"
+                            
+                            if idx > 0:
+                                p.add_run("\n-------------------\n")
+
+                            run = p.add_run(f"{slot.subject.name} ({lesson_type_display}){week_mark}\n")
+                            run.bold = True
+                            if slot.teacher:
+                                p.add_run(f"{slot.teacher.user.get_full_name()}")
+
+                            if slot.room:
+                                rooms.append(slot.room)
 
                         cell_aud = row.cells[3]
-                        cell_aud.text = slot.room if slot.room else ""
+                        cell_aud.text = "\n".join(set(rooms)) if rooms else ""
                         cell_aud.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
                         cell_aud.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
@@ -1576,7 +1628,6 @@ def export_schedule(request):
         return response
     finally:
         translation.deactivate()
-
 
 
 
@@ -1829,7 +1880,8 @@ def generate_subjects_from_rup(request):
                             subject.groups.set(group_list)
                             created_count += 1
                         except Exception as e:
-                            errors.append(f"Ошибка БД при создании потока: {str(e)}")
+                            logger.exception("generate_subjects_from_plan stream")
+                            errors.append(_("Ошибка БД при создании потока. См. журнал сервера."))
                     else:
                         for grp in group_list:
                             short_uuid = uuid.uuid4().hex[:6]
@@ -1859,10 +1911,12 @@ def generate_subjects_from_rup(request):
                                 subject.groups.add(grp)
                                 created_count += 1
                             except Exception as e:
-                                errors.append(f"Ошибка БД при создании предмета для группы {grp.name}: {str(e)}")
+                                logger.exception("generate_subjects_from_plan group %s", grp.name)
+                                errors.append(_("Ошибка БД при создании предмета для группы %(name)s. См. журнал сервера.") % {'name': grp.name})
 
         except Exception as e:
-            errors.append(f"Критическая ошибка: {str(e)}")
+            logger.exception("generate_subjects_from_plan")
+            errors.append(_("Критическая ошибка. См. журнал сервера."))
 
         if errors:
             for err in errors:
@@ -2028,7 +2082,8 @@ def import_schedule_view(request):
                 return render(request, 'schedule/import_preview_edit.html', context)
 
             except Exception as e:
-                messages.error(request, _("Ошибка обработки файла: %(error)s") % {'error': str(e)})
+                logger.exception("import_schedule parse")
+                messages.error(request, _("Ошибка обработки файла. Попробуйте ещё раз или обратитесь к администратору."))
 
     else:
         form = ScheduleImportForm()
@@ -2058,7 +2113,8 @@ def api_create_subject_template(request):
             'name': template.name
         })
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.exception("api_create_subject_template")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 
 @login_required
@@ -2488,8 +2544,8 @@ def check_schedule_conflicts(request):
                 grp = Group.objects.get(id=group_id)
                 inst = grp.specialty.department.faculty.institute
                 classroom_qs = classroom_qs.filter(building__institute=inst)
-            except:
-                pass
+            except Exception:
+                logger.exception("check_conflicts classroom filter")
         
         target_classroom = classroom_qs.first()
         
@@ -2858,7 +2914,8 @@ def api_ai_assign_teachers(request):
             return JsonResponse({'success': False, 'error': 'Система не смогла сформировать корректный ответ.'})
             
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.exception("api_assign_teachers")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 
 
@@ -2900,7 +2957,8 @@ def global_semester_setup(request):
                 
                 messages.success(request, f"🚀 Успешно! Старые данные отправлены в архив. Создано {created_count} новых семестров. Система готова к работе с {start_date}!")
         except Exception as e:
-            messages.error(request, f"Ошибка при генерации: {str(e)}")
+            logger.exception("global_semester_setup")
+            messages.error(request, _("Ошибка при генерации семестров. См. журнал сервера."))
             
         return redirect('schedule:manage_semesters')
         
@@ -2990,7 +3048,11 @@ def auto_schedule_config(request):
         try:
             with transaction.atomic():
                 if clear_existing:
-                    ScheduleSlot.objects.filter(semester=semester, group__in=target_groups).delete()
+                    ScheduleSlot.objects.filter(
+                        semester=semester,
+                        group__in=target_groups,
+                        is_military=False
+                    ).delete()
 
                 engine = AutoScheduleEngine(
                     semester=semester,
@@ -3018,7 +3080,8 @@ def auto_schedule_config(request):
             return redirect('schedule:constructor')
             
         except Exception as e:
-            messages.error(request, f"Критическая ошибка алгоритма: {str(e)}")
+            logger.exception("auto_schedule_generate")
+            messages.error(request, _("Критическая ошибка алгоритма. См. журнал сервера."))
             return redirect('schedule:auto_schedule_config')
 
     return render(request, 'schedule/auto_schedule.html', {
@@ -3129,7 +3192,8 @@ def api_create_credit_type(request):
         ct = CreditType.objects.create(name=name, hours_per_credit=hours, faculty=faculty)
         return JsonResponse({'success': True, 'id': ct.id, 'name': ct.name, 'hours': ct.hours_per_credit})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.exception("api_create_credit_type")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 @login_required
 @require_POST
@@ -3237,7 +3301,8 @@ def split_subject_load(request, subject_id):
             
         messages.success(request, _("Нагрузка успешно разделена. Создана новая карточка предмета."))
     except Exception as e:
-        messages.error(request, _("Ошибка при разделении нагрузки: ") + str(e))
+        logger.exception("split_subject_load")
+        messages.error(request, _("Ошибка при разделении нагрузки. См. журнал сервера."))
         
     return redirect('schedule:manage_subjects')
 
@@ -3430,3 +3495,33 @@ def import_department_load(request):
 
     return render(request, 'schedule/import_dept_load.html')
 
+@login_required
+@require_POST
+def clear_military_day(request):
+    if not is_dean_or_admin(request.user):
+        return JsonResponse({'success': False, 'error': 'Нет прав'}, status=403)
+    try:
+        data = json.loads(request.body)
+        group_id   = data.get('group_id')
+        semester_id = data.get('semester_id')
+        day_of_week = data.get('day_of_week')
+ 
+        group    = get_object_or_404(Group, id=group_id)
+        semester = get_object_or_404(Semester, id=semester_id)
+ 
+        if hasattr(request.user, 'dean_profile'):
+            faculty = request.user.dean_profile.faculty
+            if group.specialty and group.specialty.department.faculty != faculty:
+                return JsonResponse({'success': False, 'error': 'Нет доступа к этой группе'}, status=403)
+ 
+        deleted, _ = ScheduleSlot.objects.filter(
+            group=group,
+            semester=semester,
+            day_of_week=day_of_week,
+            is_military=True,
+        ).delete()
+ 
+        return JsonResponse({'success': True, 'deleted': deleted})
+    except Exception as e:
+        logger.exception("clear_military_day")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)

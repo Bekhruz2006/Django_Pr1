@@ -35,7 +35,6 @@ from .permissions import (
 
 
 def course_access_required(manage=False):
-    """Decorator factory for course access."""
     def decorator(view_func):
         @login_required
         def wrapped(request, course_id, *args, **kwargs):

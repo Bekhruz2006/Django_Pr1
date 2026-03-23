@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User, Group, Teacher, Department, Faculty
 from datetime import timedelta, date
@@ -237,17 +238,25 @@ class Subject(models.Model):
         return math.ceil(hours_count / 2)
 
     def get_actual_semester_weeks(self):
-        from journal.models import MatrixStructure
-        faculty = self.department.faculty
-        matrix = MatrixStructure.objects.filter(institute=faculty.institute, faculty__isnull=True, is_active=True).first()
-        if not matrix:
-            matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
-        
-        if matrix:
-            week_count = matrix.columns.filter(col_type='WEEK').count()
-            if week_count > 0:
-                return week_count
-        return self.semester_weeks
+            from schedule.models import Semester
+            import math
+            
+            faculty = self.department.faculty
+            active_sem = Semester.objects.filter(faculty=faculty, is_active=True).first()
+            if not active_sem:
+                active_sem = Semester.objects.filter(is_active=True).first()
+                
+            if active_sem and active_sem.start_date and active_sem.end_date:
+                delta = active_sem.end_date - active_sem.start_date
+                weeks = delta.days / 7.0
+                
+                if active_sem.vacation_weeks:
+                    vacs = len([w for w in active_sem.vacation_weeks.split(',') if w.strip().isdigit()])
+                    weeks -= vacs
+                    
+                return max(1, int(math.ceil(weeks)))
+                
+            return self.semester_weeks
 
     def get_weekly_slots_needed(self):
             actual_weeks = self.get_actual_semester_weeks()
@@ -519,6 +528,13 @@ class ScheduleSlot(models.Model):
         verbose_name = _("Занятие")
         verbose_name_plural = _("Занятия")
         ordering = ['day_of_week', 'start_time']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['classroom', 'day_of_week', 'time_slot', 'semester', 'week_type'],
+                condition=Q(classroom__isnull=False, is_active=True, stream_id__isnull=True),
+                name='scheduleslot_unique_room_slot_active',
+            ),
+        ]
 
     def get_color_class(self):
         if self.is_military:

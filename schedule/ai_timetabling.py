@@ -44,7 +44,6 @@ class AutoScheduleEngine:
         self._load_teacher_unavailability()
 
     def _load_teacher_unavailability(self):
-        """Загружаем дни и часы, когда преподаватели не могут вести занятия"""
         unavailables_qs = TeacherUnavailableSlot.objects.all()
         if self.target_teachers:
             unavailables_qs = unavailables_qs.filter(teacher_id__in=self.target_teachers)

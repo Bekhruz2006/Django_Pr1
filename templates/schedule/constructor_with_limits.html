@@ -81,6 +81,31 @@
                 </div>
             </div>
         </div>
+
+        {% if military_days %}
+        <div class="card mb-3 border-danger shadow-sm">
+            <div class="card-header bg-danger text-white py-2 d-flex align-items-center gap-2">
+                <i class="bi bi-shield-fill-exclamation"></i>
+                <small class="fw-bold">Военные дни</small>
+            </div>
+            <div class="card-body p-2">
+                {% for day_num, day_name in days %}
+                    {% if day_num in military_days %}
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge bg-dark text-white w-100 py-2">
+                            <i class="bi bi-shield-shaded me-1"></i> {{ day_name }}
+                        </span>
+                        <button class="btn btn-sm btn-outline-danger ms-1 flex-shrink-0"
+                                onclick="clearMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
+                                title="Снять военную кафедру с этого дня">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
 
         <div class="card shadow-sm sticky-top" style="top: 20px; max-height: 85vh;">
@@ -120,7 +145,7 @@
                                 <i class="bi bi-person"></i> {{ item.obj.teacher.user.get_full_name|default:'-' }}
                             </small>
                             <span class="fw-bold text-{{ item.color }}">
-                                {{ item.remaining|floatformat:0 }} пар.
+                                {{ item.remaining|floatformat:1 }} пар.
                             </span>
                         </div>
 
@@ -155,15 +180,15 @@
                     {% endif %}
                     <div class="d-flex align-items-center gap-2 bg-light p-1 rounded border">
                         <span class="small text-muted fw-bold ms-2">Вид:</span>
-                        <div class="btn-group btn-group-sm" role="group">
+                        <div class="btn-group btn-group-sm shadow-sm" role="group">
                             <input type="radio" class="btn-check" name="view_week" id="vw_all" value="ALL" checked>
-                            <label class="btn btn-outline-secondary" for="vw_all">Все</label>
+                            <label class="btn btn-outline-secondary week-toggle-btn" for="vw_all">Все</label>
                             
                             <input type="radio" class="btn-check" name="view_week" id="vw_red" value="RED">
-                            <label class="btn btn-outline-danger" for="vw_red">🔴 Красн</label>
+                            <label class="btn btn-outline-danger week-toggle-btn" for="vw_red">Красная</label>
                             
                             <input type="radio" class="btn-check" name="view_week" id="vw_blue" value="BLUE">
-                            <label class="btn btn-outline-primary" for="vw_blue">🔵 Син</label>
+                            <label class="btn btn-outline-primary week-toggle-btn" for="vw_blue">Синяя</label>
                         </div>
                     </div>
 
@@ -184,31 +209,77 @@
                         <i class="bi bi-trash"></i> Очистить всё
                     </button>
                 </div>
-
-
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-bordered mb-0 schedule-table">
-                        <thead class="bg-light">
-                            <tr>
-                                <th style="width: 100px;" class="text-center align-middle">Время</th>
-                                <th>Предмет / Преподаватель / Кабинет</th>
-                            </tr>
-                        </thead>
+                            <thead class="bg-light">
+                                <tr>
+                                    <th style="width: 1%; white-space: nowrap; padding: 10px 5px;" class="text-center align-middle">Время</th>
+                                    <th>Предмет / Преподаватель / Кабинет</th>
+                                </tr>
+                            </thead>
                         <tbody>
                             {% for day_num, day_name in days %}
+
+                            {% if day_num in military_days %}
                             <tr class="table-secondary border-bottom-0">
-                                <td colspan="3" class="fw-bold ps-3 text-uppercase text-secondary" style="letter-spacing: 1px;">
-                                    {{ day_name }}
+                                <td colspan="2" class="p-0">
+                                    <div class="fw-bold ps-3 py-2 text-uppercase text-secondary d-flex justify-content-between align-items-center" style="letter-spacing: 1px;">
+                                        <div>
+                                            <span>{{ day_name }}</span>
+                                            <span class="badge bg-dark ms-2"><i class="bi bi-shield-shaded"></i> Военная кафедра</span>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger me-2"
+                                                onclick="clearMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
+                                                title="Снять военную кафедру">
+                                            <i class="bi bi-x-circle"></i> Снять
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% for time_slot in time_slots %}
+                            <tr class="military-row-{{ day_num }}">
+                                <td class="text-center align-middle time-cell text-muted">
+                                    {{ time_slot.start_time|time:"H:i" }}<br>
+                                    <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
+                                </td>
+                                <td class="p-0 align-middle" style="background: repeating-linear-gradient(135deg, #1a1a2e 0px, #1a1a2e 20px, #16213e 20px, #16213e 40px);">
+                                    <div class="d-flex align-items-center justify-content-center h-100 py-3">
+                                        <span class="text-white fw-bold opacity-75" style="font-size: 1rem; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                                            <i class="bi bi-shield-fill me-2"></i>КАФЕДРАИ ҲАРБӢ
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                            {% else %}
+                       
+                            <tr class="table-secondary border-bottom-0">
+                                <td colspan="2" class="p-0">
+                                    <div class="fw-bold ps-3 py-2 text-uppercase text-secondary d-flex justify-content-between align-items-center"
+                                        style="letter-spacing: 1px;"
+                                        id="day-header-{{ day_num }}"
+                                        data-day="{{ day_num }}">
+                                        <span>{{ day_name }}</span>
+                                        {% if group.has_military_training %}
+                                        <button class="btn btn-xs btn-outline-dark me-2"
+                                                style="font-size: 0.7rem; padding: 1px 6px;"
+                                                onclick="setMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
+                                                title="Назначить этот день военной кафедрой">
+                                            <i class="bi bi-shield-plus"></i> Военная кафедра
+                                        </button>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
 
                             {% for time_slot in time_slots %}
                             <tr>
-                                <td class="text-center align-middle time-cell text-muted">
-                                    {{ time_slot.start_time|time:"H:i" }}<br>
-                                    <span style="font-size: 0.8em;">{{ time_slot.end_time|time:"H:i" }}</span>
+                                <td class="text-center align-middle time-cell text-muted" style="width: 1%; white-space: nowrap; padding: 5px;">
+                                    <strong class="text-dark">{{ time_slot.start_time|time:"H:i" }}</strong><br>
+                                    <small style="font-size: 0.75em;">{{ time_slot.end_time|time:"H:i" }}</small>
                                 </td>
 
                                 {% with slot_list=schedule_data|get_slot:day_num|get_slot:time_slot.id %}
@@ -260,7 +331,7 @@
                                                         <div class="input-group input-group-sm shadow-sm">
                                                             <span class="input-group-text bg-light px-1 border-end-0"><i class="bi bi-door-open text-primary"></i></span>
                                                             <input type="text" list="roomOptions" class="form-control aud-input px-1 text-center fw-bold border-start-0" 
-                                                                value="{{ slot.room|default:'' }}" placeholder="Ауд."
+                                                                value="{{ slot.room|default:'' }}" data-old-value="{{ slot.room|default:'' }}" placeholder="Ауд."
                                                                 onchange="saveAud(this, {{ slot.id }})">
                                                         </div>
                                                     </div>
@@ -277,6 +348,8 @@
                                 {% endwith %}
                             </tr>
                             {% endfor %}
+                            {% endif %}
+
                             {% endfor %}
                         </tbody>
                     </table>
@@ -416,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 subjectType: this.dataset.subjectType,
                 teacherName: this.dataset.teacherName || '',
                 isStream: isStream,
-                remaining: parseInt(this.dataset.remaining || '0')
+                remaining: parseFloat((this.dataset.remaining || '0').replace(',', '.')) 
             };
 
             try {
@@ -489,6 +562,8 @@ window.saveAud = function(input, slotId, isForce = false) {
     .then(res => res.json())
     .then(data => {
         if(data.success) {
+            input.value = data.room;
+            input.dataset.oldValue = data.room;
             input.classList.add('bg-success', 'text-white');
             setTimeout(() => input.classList.remove('bg-success', 'text-white'), 1000);
         } else {
@@ -496,10 +571,11 @@ window.saveAud = function(input, slotId, isForce = false) {
                 if (confirm(data.error + "\n\nНажмите ОК, чтобы назначить принудительно.")) {
                     saveAud(input, slotId, true);
                 } else {
-                    input.value = ""; 
+                    input.value = input.dataset.oldValue || "";
                 }
             } else {
                 alert('Ошибка: ' + data.error);
+                input.value = input.dataset.oldValue || "";
                 input.focus();
             }
         }
@@ -544,7 +620,34 @@ window.clearSchedule = function(groupId, semesterId) {
     .catch(err => alert('Ошибка сети'));
 };
 
+    window.setMilitaryDay = function(groupId, semesterId, dayNum) {
+        if (!confirm('Назначить военную кафедру на ВЕСЬ этот день? Все текущие пары этого дня будут удалены.')) return;
+        fetch('{% url "schedule:create_slot" %}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({
+                is_military_day: true,
+                group: groupId,
+                day_of_week: dayNum,
+                semester_id: semesterId
+            })
+        }).then(r => r.json()).then(resp => {
+            if(resp.success) location.reload();
+            else alert(resp.error);
+        });
+    };
 
+    window.clearMilitaryDay = function(groupId, semesterId, dayNum) {
+        if (!confirm('Снять военную кафедру с этого дня?')) return;
+        fetch('{% url "schedule:clear_military_day" %}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({ group_id: groupId, semester_id: semesterId, day_of_week: dayNum })
+        }).then(r => r.json()).then(resp => {
+            if(resp.success) location.reload();
+            else alert(resp.error || 'Ошибка');
+        });
+    };
 
     let autoScrollState = {
         active: false,
@@ -645,7 +748,7 @@ window.clearSchedule = function(groupId, semesterId) {
                 try {
                     const txt = e.dataTransfer.getData('text/plain');
                     if (txt) draggedData = JSON.parse(txt);
-                } catch (ex) { /* ignore */ }
+                } catch (ex) {  }
 
                 if (!draggedData) return alert('Не удалось определить перетаскиваемый предмет.');
 
@@ -672,9 +775,10 @@ window.clearSchedule = function(groupId, semesterId) {
                     return;
                 }
 
-                if (parseInt(draggedData.remaining || 0) <= 0) {
+                if (parseFloat(draggedData.remaining || 0) <= 0) {
                     return alert('Достигнут лимит часов для этого предмета!');
                 }
+
 
                 const groupId = this.dataset.groupId;
                 const day = this.dataset.day;
@@ -729,23 +833,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const select = document.getElementById('groupSelect');
     if (!select) return;
     const allOptions = Array.from(select.querySelectorAll('option'));
-    document.querySelectorAll('input[name="view_week"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const val = this.value;
-            document.querySelectorAll('.lesson-card').forEach(card => {
-                if (val === 'ALL') {
-                    card.style.display = '';
-                } else {
-                    const wt = card.dataset.weekType;
-                    if (wt === 'EVERY' || wt === val) {
-                        card.style.display = '';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                }
-            });
-        });
-    });
     filters.forEach(radio => {
         radio.addEventListener('change', function() {
             const course = this.value;
@@ -843,7 +930,112 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #e9ecef;
     cursor: pointer;
 }
+.schedule-table th.time-col {
+    width: 65px !important;
+    font-size: 0.75rem;
+    padding: 4px;
+    white-space: nowrap;
+}
+.time-cell {
+    padding: 4px !important;
+    font-size: 0.8rem;
+}
+.week-toggle-btn {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    border-width: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.week-mode-red th { border-bottom: 4px solid #dc3545 !important; }
+.week-mode-blue th { border-bottom: 4px solid #0d6efd !important; }
+.week-mode-all th { border-bottom: 4px solid #6c757d !important; }
 </style>
+
+<style>
+    .current-live-lesson {
+        box-shadow: 0 0 0 3px #10b981 !important;
+        animation: pulse-live 2s infinite;
+        z-index: 10;
+    }
+    .current-live-day {
+        background-color: #d1e7dd !important;
+        color: #0f5132 !important;
+    }
+    @keyframes pulse-live {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const weekRadios = document.querySelectorAll('input[name="view_week"]');
+    weekRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const selectedWeek = this.value;
+            
+            document.querySelectorAll('.lesson-card').forEach(card => {
+                const cardWeek = card.getAttribute('data-week-type');
+                
+                if (selectedWeek === 'ALL' || cardWeek === 'EVERY' || cardWeek === selectedWeek) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    function updateLiveTime() {
+        const now = new Date();
+        const currentDay = now.getDay() - 1;
+        const actualDay = currentDay === -1 ? 6 : currentDay; 
+        
+        const currentHour = now.getHours();
+        const currentMin = now.getMinutes();
+        const currentTimeVal = currentHour * 60 + currentMin;
+
+        document.querySelectorAll('[id^="day-header-"]').forEach(el => {
+            el.classList.remove('current-live-day');
+            if (parseInt(el.dataset.day) === actualDay) {
+                el.classList.add('current-live-day');
+            }
+        });
+
+        document.querySelectorAll('.schedule-drop-zone').forEach(zone => {
+            const zoneDay = parseInt(zone.dataset.day);
+            if (zoneDay !== actualDay) return;
+
+            const timeCell = zone.parentElement.querySelector('.time-cell');
+            if (!timeCell) return;
+            
+            const timeText = timeCell.innerText.trim();
+            const matches = timeText.match(/(\d{2}):(\d{2}).*?(\d{2}):(\d{2})/);
+            
+            if (matches) {
+                const startVal = parseInt(matches[1]) * 60 + parseInt(matches[2]);
+                const endVal = parseInt(matches[3]) * 60 + parseInt(matches[4]);
+
+                if (currentTimeVal >= startVal && currentTimeVal <= endVal) {
+                    zone.querySelectorAll('.lesson-card').forEach(card => {
+                        card.classList.add('current-live-lesson');
+                    });
+                } else {
+                    zone.querySelectorAll('.lesson-card').forEach(card => {
+                        card.classList.remove('current-live-lesson');
+                    });
+                }
+            }
+        });
+    }
+
+    updateLiveTime();
+    setInterval(updateLiveTime, 60000);
+});
+</script>
 
 <datalist id="roomOptions">
     {% regroup classrooms by building as building_list %}

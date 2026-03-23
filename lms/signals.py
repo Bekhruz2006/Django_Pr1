@@ -4,8 +4,7 @@ from accounts.models import Student
 from schedule.models import Subject
 from .models import Course, CourseCategory, CourseEnrolment
 from lms.models import AssignmentSubmission
-from journal.models import JournalEntry
-from schedule.models import Subject
+from journal.models import MatrixStructure, MatrixColumn, StudentMatrixScore
 from .services import LMSManager
 
 @receiver(post_save, sender=Subject)
@@ -73,30 +72,53 @@ def sync_lms_grade_to_journal(sender, instance, **kwargs):
     if instance.status == 'GRADED' and instance.score is not None:
         course = instance.assignment.module.section.course
         student = instance.student.student_profile
-        
+        section = instance.assignment.module.section
+
         subjects = Subject.objects.filter(groups=student.group)
         target_subject = None
         for sub in subjects:
             if LMSManager.get_shared_course_id(sub) == course.id_number:
                 target_subject = sub
                 break
-                
-        if not target_subject:
+
+        if not target_subject or not target_subject.department:
             return
-            
-        entry, created = JournalEntry.objects.get_or_create(
-            student=student,
-            subject=target_subject,
-            lesson_date=instance.updated_at.date(),
+
+        faculty = target_subject.department.faculty
+        institute = faculty.institute
+
+        structure, _ = MatrixStructure.objects.get_or_create(
+            institute=institute,
+            faculty=None,
+            defaults={'name': f"Матрица {institute.abbreviation if institute else 'Глобальная'}"}
+        )
+
+        col_type = 'WEEK'
+        max_score = 12.5
+        if section.section_type in ['RATING1', 'RATING2']:
+            col_type = 'RATING'
+            max_score = 100.0
+
+        column, _ = MatrixColumn.objects.get_or_create(
+            structure=structure,
+            name=section.name[:100],
             defaults={
-                'lesson_time': '08:00', 
-                'lesson_type': 'PRACTICE',
-                'attendance_status': 'PRESENT'
+                'col_type': col_type,
+                'week_number': section.sequence if col_type == 'WEEK' else None,
+                'max_score': max_score,
+                'order': section.sequence
             }
         )
-        
-        entry.grade = float(instance.score)
-        entry.attendance_status = 'PRESENT'
-        entry.save()
+
+        val = float(instance.score)
+        if val > column.max_score:
+            val = column.max_score
+
+        StudentMatrixScore.objects.update_or_create(
+            student=student,
+            subject=target_subject,
+            column=column,
+            defaults={'score': val, 'updated_by': instance.graded_by}
+        )
 
 

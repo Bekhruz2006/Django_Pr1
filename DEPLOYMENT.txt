@@ -1,0 +1,5 @@
+Gunicorn: use --timeout 150 (or higher) so long-running timetable generation does not exceed the worker timeout. Example:
+
+gunicorn department_platform.wsgi:application --timeout 150 --workers 4
+
+Procfile in this repository uses the same settings for platforms that read Procfile.

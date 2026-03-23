@@ -1,5 +1,7 @@
 from django.db import transaction
+import logging
 from .models import Course, CourseCategory, CourseEnrolment, CourseSection
+logger = logging.getLogger(__name__)
 from accounts.models import Student
 from schedule.models import Subject, Semester, ScheduleSlot
 from lms.models import CourseModule, FolderResource, Assignment
@@ -29,8 +31,8 @@ class LMSManager:
                 for sub in subjects:
                     if LMSManager.get_shared_course_id(sub) == shared_id:
                         return sub
-            except:
-                pass
+            except Exception:
+                logger.exception("get_subject_from_shared_id CRS")
 
         if shared_id.startswith("DISC_"):
             try:
@@ -41,8 +43,8 @@ class LMSManager:
                 qs = Subject.objects.filter(plan_discipline_id=disc_id, type=type_part)
                 sub = qs.first()
                 if sub: return sub
-            except:
-                pass
+            except Exception:
+                logger.exception("get_subject_from_shared_id DISC")
                 
         if shared_id.startswith("SUBJ_"):
             try:
@@ -50,8 +52,8 @@ class LMSManager:
                 subj_id = int(parts[1])
                 sub = Subject.objects.filter(id=subj_id).first()
                 if sub: return sub
-            except:
-                pass
+            except Exception:
+                logger.exception("get_subject_from_shared_id SUBJ")
         
         sub = Subject.objects.filter(code=shared_id).first()
         if sub: return sub

@@ -1,4 +1,7 @@
+import os
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from accounts.models import User, Faculty, Department, Institute, Group
@@ -402,3 +405,15 @@ class CourseAccessLog(models.Model):
 
     class Meta:
         ordering = ['-accessed_at']
+
+
+@receiver(post_delete, sender=AssignmentSubmission)
+def auto_delete_assignment_submission_file(sender, instance, **kwargs):
+    if instance.file and os.path.isfile(instance.file.path):
+        os.remove(instance.file.path)
+
+
+@receiver(post_delete, sender=FileResource)
+def auto_delete_file_resource_file(sender, instance, **kwargs):
+    if instance.file and os.path.isfile(instance.file.path):
+        os.remove(instance.file.path)

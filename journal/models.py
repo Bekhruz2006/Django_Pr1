@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Avg, Count, Q
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -250,21 +251,36 @@ class StudentStatistics(models.Model):
         self.total_absent = self.absent_illness + self.absent_valid + self.absent_invalid
         
         from schedule.models import Subject
+        agg_map = {
+            r['subject_id']: r
+            for r in entries.values('subject_id').annotate(
+                average_grade=Avg('grade', filter=Q(grade__gt=0)),
+                total_lessons=Count('id'),
+                attended=Count('id', filter=Q(attendance_status='PRESENT')),
+                absent=Count('id', filter=~Q(attendance_status='PRESENT')),
+            )
+        }
         subjects_stats = {}
         for subject in Subject.objects.filter(journal_entries__student=self.student).distinct():
-            subject_entries = entries.filter(subject=subject)
-            subject_grades = subject_entries.filter(grade__isnull=False, grade__gt=0).values_list('grade', flat=True)
-            
-            subject_absent = subject_entries.exclude(attendance_status='PRESENT').count()
-            
-            subjects_stats[subject.id] = {
-                'name': subject.name,
-                'average_grade': sum(subject_grades) / len(subject_grades) if subject_grades else 0.0,
-                'total_lessons': subject_entries.count(),
-                'attended': subject_entries.filter(attendance_status='PRESENT').count(),
-                'absent': subject_absent,
-            }
-        
+            r = agg_map.get(subject.id)
+            if r:
+                avg = r['average_grade'] or 0.0
+                subjects_stats[subject.id] = {
+                    'name': subject.name,
+                    'average_grade': float(avg),
+                    'total_lessons': r['total_lessons'],
+                    'attended': r['attended'],
+                    'absent': r['absent'],
+                }
+            else:
+                subjects_stats[subject.id] = {
+                    'name': subject.name,
+                    'average_grade': 0.0,
+                    'total_lessons': 0,
+                    'attended': 0,
+                    'absent': 0,
+                }
+
         self.subjects_data = subjects_stats
         
         if self.student.group:
@@ -296,11 +312,7 @@ class StudentStatistics(models.Model):
 
 @receiver(post_save, sender=JournalEntry)
 def trigger_stats_recalculate(sender, instance, **kwargs):
-    try:
-        stats, created = StudentStatistics.objects.get_or_create(student=instance.student)
-        stats.recalculate()
-    except Exception:
-        pass
+    pass
 
 
 class SubjectRating(models.Model):

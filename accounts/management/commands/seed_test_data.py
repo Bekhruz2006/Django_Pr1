@@ -11,6 +11,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING('=== Запуск масштабной генерации данных (V2) ==='))
         try:
             with transaction.atomic():
+                self._clean_db()
                 self._create_structure()
                 self._create_infrastructure()
                 self._create_users_and_groups()
@@ -26,6 +27,37 @@ class Command(BaseCommand):
             raise
         self.stdout.write(self.style.SUCCESS('✅ Тестовые данные успешно сгенерированы!'))
         self._print_credentials()
+
+    def _clean_db(self):
+        self.stdout.write('  → Очистка старой базы данных...')
+        from schedule.models import AcademicPlan, SubjectTemplate, Subject, Semester, TimeSlot, Building, Classroom, ScheduleSlot, CreditType, CreditTemplate
+        from accounts.models import Institute, Faculty, Department, Specialty, User, Group, Student, Teacher, Order, DocumentTemplate
+        from journal.models import JournalEntry, MatrixStructure
+        from lms.models import CourseCategory, Course
+        from news.models import News
+        from chat.models import ChatRoom
+
+        Order.objects.all().delete()
+        JournalEntry.objects.all().delete()
+        ScheduleSlot.objects.all().delete()
+        Course.objects.all().delete()
+        CourseCategory.objects.all().delete()
+        Subject.objects.all().delete()
+        AcademicPlan.objects.all().delete()
+        SubjectTemplate.objects.all().delete()
+        Group.objects.all().delete()
+        Student.objects.all().delete()
+        Teacher.objects.all().delete()
+        Department.objects.all().delete()
+        Faculty.objects.all().delete()
+        Institute.objects.all().delete()
+        Building.objects.all().delete()
+        TimeSlot.objects.all().delete()
+        Semester.objects.all().delete()
+        MatrixStructure.objects.all().delete()
+        News.objects.all().delete()
+        ChatRoom.objects.all().delete()
+        User.objects.exclude(is_superuser=True).delete()
 
     def _create_structure(self):
         from accounts.models import Institute, Faculty, Department, Specialty, Specialization

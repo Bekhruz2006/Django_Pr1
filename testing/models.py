@@ -49,7 +49,6 @@ class QuizAttempt(models.Model):
     is_passed = models.BooleanField(default=False)
 
 class AttemptResponse(models.Model):
-    """Ответ студента на конкретный вопрос в рамках попытки"""
     attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='responses')
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_options = models.ManyToManyField(AnswerOption, blank=True)

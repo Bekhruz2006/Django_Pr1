@@ -1,4 +1,7 @@
 from django.http import JsonResponse
+import logging
+from django.utils.translation import gettext as _
+logger = logging.getLogger(__name__)
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -43,4 +46,5 @@ def add_course_module(request):
                 
         return JsonResponse({'success': True, 'module_id': module.id})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.exception("add_course_module")
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})

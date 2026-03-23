@@ -4,17 +4,61 @@ from pathlib import Path
 from django.utils.translation import gettext_lazy as _
 
 load_dotenv()
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False, 
+    'formatters': {
+        'verbose': {
+            'format': '--- [{asctime}] {levelname} ---\nМодуль: {module}\n{message}\n',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'error.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,             
+            'formatter': 'verbose',
+            'encoding': 'utf-8',          
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers':['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        '': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
 
 LANGUAGES = [
     ('ru', _('Русский')),
     ('tg', _('Тоҷикӣ')),
     ('en', _('English')),
 ]
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-development-only')
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 

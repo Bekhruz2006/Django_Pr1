@@ -5,10 +5,13 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from datetime import datetime, date
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone
 from datetime import datetime, date
 from django.core.validators import FileExtensionValidator
+
+def default_admission_year():
+    return timezone.now().year
 
 class Institute(models.Model):
     name = models.CharField(max_length=200, verbose_name=_("Название института"))
@@ -372,7 +375,7 @@ class Student(models.Model):
     student_id = models.CharField(max_length=20, unique=True, verbose_name=_("Номер зачетки"), db_index=True)
 
     course = models.IntegerField(default=1)
-    admission_year = models.IntegerField(default=2025)
+    admission_year = models.IntegerField(default=default_admission_year)
 
     financing_type = models.CharField(max_length=20, choices=FINANCING_CHOICES, default='BUDGET')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
@@ -587,20 +590,30 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.number:
-            with transaction.atomic():
-                year = timezone.now().year
-                last_order = Order.objects.select_for_update().filter(
-                    date__year=year
-                ).order_by('id').last()
-                if last_order and last_order.number:
-                    try:
-                        last_num = int(last_order.number.split('-')[-1])
-                        new_num = last_num + 1
-                    except (ValueError, IndexError):
-                        new_num = 1
-                else:
-                    new_num = 1
-                self.number = f"{year}-{new_num:04d}"
+            year = timezone.now().year
+            prefix = f"{year}-"
+            for attempt in range(3):
+                try:
+                    with transaction.atomic():
+                        last_order = Order.objects.select_for_update().filter(
+                            number__startswith=prefix
+                        ).order_by('-number').first()
+                        if last_order and last_order.number:
+                            try:
+                                last_num = int(last_order.number.split('-')[-1])
+                                new_num = last_num + 1
+                            except (ValueError, IndexError):
+                                new_num = 1
+                        else:
+                            new_num = 1
+                        self.number = f"{year}-{new_num:04d}"
+                        super().save(*args, **kwargs)
+                    break
+                except IntegrityError:
+                    if attempt == 2:
+                        raise
+                    continue
+            return
         super().save(*args, **kwargs)
 
     def apply_effect(self, approver_user):
@@ -617,11 +630,27 @@ class Order(models.Model):
                         groups_to_recalc.add(old_group)
 
                     if self.order_type == 'EXPEL':
+                        if old_group:
+                            GroupTransferHistory.objects.create(
+                                student=student,
+                                from_group=old_group,
+                                to_group=None,
+                                reason=f'Отчисление по приказу №{self.number} от {self.date.strftime("%d.%m.%Y")}',
+                                transferred_by=approver_user
+                            )
                         student.status = 'EXPELLED'
                         student.group = None
                     elif self.order_type == 'ACADEMIC_LEAVE':
                         student.status = 'ACADEMIC_LEAVE'
                     elif self.order_type == 'GRADUATE':
+                        if old_group:
+                            GroupTransferHistory.objects.create(
+                                student=student,
+                                from_group=old_group,
+                                to_group=None,
+                                reason=f'Выпуск по приказу №{self.number} от {self.date.strftime("%d.%m.%Y")}',
+                                transferred_by=approver_user
+                            )
                         student.status = 'GRADUATED'
                         student.group = None
                     elif self.order_type == 'ENROLL':

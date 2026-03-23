@@ -102,9 +102,9 @@ struct Task {
     int            id;
     int            subject_id;
     string         subject_name;
-    int            teacher_id;      
-    vector<int>    groups;          
-    vector<int>    group_ids;       
+    int            teacher_id;
+    vector<int>    groups;
+    vector<int>    group_ids;
     int            students;
     LessonType     ltype;
     bool           is_stream;
@@ -137,6 +137,10 @@ struct Problem {
     unordered_map<int,int> room_idx_map;
 
     vector<vector<bool>> teacher_unavail;
+    // ★ NEW: недоступные слоты для групп (военная кафедра + уже стоящие пары)
+    // Размер: [n_groups][n_days * n_slots * 2] — индексируется как [day*n_slots*2 + ts_idx*2 + wt_bit]
+    // wt_bit=0 → RED/EVERY, wt_bit=1 → BLUE/EVERY
+    vector<vector<bool>> group_unavail;   // [group_local][day * n_slots + ts_idx]
 
     double sa_t0        = 1200.0;
     double sa_cooling   = 0.99985;
@@ -196,6 +200,7 @@ struct BusyMap {
         if (wt == WeekType::EVERY || wt == WeekType::BLUE) v[off+1] += (int16_t)d;
     }
 
+    // ★ ИЗМЕНЕНО: проверяем group_unavail (военная кафедра / существующие слоты)
     bool hasConflict(const Problem& pb, const Task& task,
                      int day, int tsi, int ri, WeekType wt) const
     {
@@ -209,6 +214,13 @@ struct BusyMap {
                 int off = tl * stride_te + day * stride_td + tsi * 2;
                 if (isBusy(teacher_busy.data(), off, wt)) return true;
             }
+        }
+        // ★ NEW: Проверяем group_unavail (включает военные дни и уже существующие пары)
+        for (int gl : task.groups) {
+            int ui = day * n_slots + tsi;
+            if (gl < (int)pb.group_unavail.size() &&
+                ui < (int)pb.group_unavail[gl].size() &&
+                pb.group_unavail[gl][ui]) return true;
         }
         for (int gl : task.groups) {
             int off = gl * stride_ge + day * stride_gd + tsi * 2;
@@ -393,7 +405,7 @@ static Problem parseInput(const json& j) {
 
     pb.sa_t0        = jget<double>(j, "sa_t0",        pb.sa_t0);
     pb.sa_cooling   = jget<double>(j, "sa_cooling",   pb.sa_cooling);
-    pb.sa_reheat    = jget<double>(j, "sa_reheat",    pb.sa_reheat);
+    pb.sa_reheat    = jget<double>(j, "sa_reheat",     pb.sa_reheat);
     pb.sa_restarts  = jget<int>   (j, "sa_restarts",  pb.sa_restarts);
     pb.sa_steps     = jget<int>   (j, "sa_steps",     pb.sa_steps);
     pb.max_seconds  = jget<int>   (j, "max_seconds",  pb.max_seconds);
@@ -436,13 +448,15 @@ static Problem parseInput(const json& j) {
             pb.teacher_idx[tid] = pb.n_teachers++;
     }
 
+    // Общая карта slot_id → local_index (используется для teacher_unavail и group_unavail)
+    unordered_map<int,int> slot_local;
+    for (int i = 0; i < (int)pb.slots.size(); i++)
+        slot_local[pb.slots[i].id] = i;
+
+    // Teacher unavailability
     pb.teacher_unavail.assign(pb.n_teachers,
         vector<bool>(pb.nDays() * (int)pb.slots.size(), false));
     {
-        unordered_map<int,int> slot_local;
-        for (int i = 0; i < (int)pb.slots.size(); i++)
-            slot_local[pb.slots[i].id] = i;
-
         const json* tunavail = j.find_ptr("teacher_unavailable");
         if (tunavail && !tunavail->is_null()) { const json& it = *tunavail;
             for (const auto& u : it) {
@@ -456,6 +470,27 @@ static Problem parseInput(const json& j) {
                 int idx = day * (int)pb.slots.size() + sit->second;
                 if (idx < (int)pb.teacher_unavail[tit->second].size())
                     pb.teacher_unavail[tit->second][idx] = true;
+            }
+        }
+    }
+
+    // ★ NEW: Group unavailability (военная кафедра + уже стоящие пары)
+    pb.group_unavail.assign(pb.n_groups,
+        vector<bool>(pb.nDays() * (int)pb.slots.size(), false));
+    {
+        const json* gunavail = j.find_ptr("group_unavailable");
+        if (gunavail && !gunavail->is_null()) {
+            for (const auto& u : *gunavail) {
+                int gid   = jget<int>(u, "group_id",     -1);
+                int day   = jget<int>(u, "day_of_week",  -1);
+                int ts_id = jget<int>(u, "time_slot_id", -1);
+                if (gid<0 || day<0 || ts_id<0) continue;
+                auto git = pb.group_idx.find(gid);
+                auto sit = slot_local.find(ts_id);
+                if (git==pb.group_idx.end() || sit==slot_local.end()) continue;
+                int idx = day * (int)pb.slots.size() + sit->second;
+                if (idx < (int)pb.group_unavail[git->second].size())
+                    pb.group_unavail[git->second][idx] = true;
             }
         }
     }
@@ -483,7 +518,6 @@ static Problem parseInput(const json& j) {
                     grp_local.push_back(git->second);
             }
 
-            // Разворачивание
             if (weekly_f < 0.0) weekly_f = 0.0;
             int    every_count = (int)floor(weekly_f);
             double frac        = weekly_f - every_count;
@@ -514,7 +548,7 @@ static Problem parseInput(const json& j) {
                 makeTask(WeekType::EVERY, false);
 
             if (need_biweek)
-                makeTask(WeekType::RED, true);  
+                makeTask(WeekType::RED, true);
         }
     }
 
@@ -931,7 +965,7 @@ static Result solveProblem(const Problem& pb) {
 
     mutex pop_mutex;
     constexpr int POP_SIZE = 5;
-    vector<pair<double,vector<Placement>>> population; // (score, sol)
+    vector<pair<double,vector<Placement>>> population;
 
     int total_restarts = pb.sa_restarts;
     int batch_size = (total_restarts + n_threads - 1) / n_threads;
@@ -1129,6 +1163,13 @@ int main(int argc, char* argv[]) {
          << "  overflow_mode="    << pb.overflow_mode
          << "  strict="           << pb.strict_room_types
          << "  avoid_gaps="       << pb.avoid_gaps << "\n";
+
+    // ★ NEW: report group_unavail count
+    int total_g_unavail = 0;
+    for (const auto& gv : pb.group_unavail)
+        for (bool b : gv) if (b) total_g_unavail++;
+    cerr << "[engine] group_unavail_slots=" << total_g_unavail
+         << "  (военная кафедра + существующие пары)\n";
 
     int cnt_ev=0, cnt_rd=0, cnt_bl=0, cnt_fl=0;
     for (const auto& t : pb.tasks) {

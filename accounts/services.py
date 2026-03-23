@@ -3,6 +3,8 @@ from django.db import transaction
 from .models import User, Student
 from datetime import datetime
 import uuid
+import logging
+logger = logging.getLogger(__name__)
 
 class StudentImportService:
     @staticmethod
@@ -50,6 +52,7 @@ class StudentImportService:
                     results['created'] += 1
 
             except Exception as e:
-                results['errors'].append(f"Строка {row_idx}: {str(e)}")
+                logger.exception("StudentImportService row %s", row_idx)
+                results['errors'].append(f"Строка {row_idx}: ошибка импорта")
 
         return results
