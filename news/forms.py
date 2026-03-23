@@ -27,7 +27,7 @@ class NewsForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'video_url': forms.URLInput(attrs={
                 'class': 'form-control',
-                'placeholder': _('https://youtube.com/...')
+                'placeholder': ('https://youtube.com/...')
             }),
             'video_file': forms.FileInput(attrs={'class': 'form-control'}),
             'is_pinned': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

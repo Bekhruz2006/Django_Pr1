@@ -286,7 +286,7 @@ class UserCreateForm(forms.ModelForm):
         for attempt in range(3):
             try:
                 with transaction.atomic():
-                    last_user = User.objects.filter(username__startswith=base_username).order_by('-username').first()
+                    last_user = User.objects.select_for_update().filter(username__startswith=base_username).order_by('-username').first()
                     if last_user:
                         try:
                             last_number = int(last_user.username[len(base_username):])

@@ -31,6 +31,9 @@ class DepartmentAdmin(admin.ModelAdmin):
     list_display = ['name', 'faculty', 'total_wage_rate', 'hours_stats']
     list_filter = ['faculty__institute', 'faculty']
     search_fields = ['name']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('subjects')
     
     def hours_stats(self, obj):
         occupied = obj.get_occupied_hours()
@@ -73,6 +76,7 @@ class StudentAdmin(admin.ModelAdmin):
     list_filter = ['course', 'status', 'financing_type', 'education_type']
     search_fields = ['user__first_name', 'user__last_name', 'student_id']
     raw_id_fields = ['user', 'group']
+    list_select_related = ['user', 'group']
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):

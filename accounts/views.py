@@ -377,7 +377,10 @@ def import_students(request):
 
         try:
             results = StudentImportService.import_from_excel(excel_file, specialty_id)
-            messages.success(request, _(f"Импортировано: {results['created']} студентов."))
+            messages.success(
+                request,
+                _("Импортировано: %(created)s студентов.") % {'created': results['created']}
+            )
             if results['errors']:
                 messages.warning(request, _(f"Ошибки ({len(results['errors'])}): {'; '.join(results['errors'][:3])}..."))
         except Exception as e:
@@ -439,7 +442,13 @@ def add_user(request):
                                 teacher.save()
                                 
                     
-                    messages.success(request, _(f'Пользователь {user.username} ({user.get_role_display()}) успешно создан.'))
+                    messages.success(
+                        request,
+                        _('Пользователь %(username)s (%(role)s) успешно создан.') % {
+                            'username': user.username,
+                            'role': user.get_role_display()
+                        }
+                    )
                     
                     if department_id:
                         return redirect('accounts:manage_structure')
@@ -567,7 +576,10 @@ def reset_password(request, user_id):
             new_password = form.cleaned_data['new_password']
             user_obj.set_password(new_password)
             user_obj.save()
-            messages.success(request, _(f'Пароль для {user_obj.username} успешно сброшен'))
+            messages.success(
+                request,
+                _('Пароль для %(username)s успешно сброшен') % {'username': user_obj.username}
+            )
             return redirect('accounts:user_management')
     else:
         form = PasswordResetByDeanForm()
@@ -607,7 +619,10 @@ def toggle_user_active(request, user_id):
     user_obj.save()
 
     status = _("активирован") if user_obj.is_active else _("заблокирован")
-    messages.success(request, _(f'Пользователь {user_obj.username} {status}'))
+    messages.success(
+        request,
+        _('Пользователь %(username)s %(status)s') % {'username': user_obj.username, 'status': status}
+    )
     return redirect('accounts:user_management')
 
 @user_passes_test(is_management)
@@ -645,7 +660,13 @@ def transfer_student(request, student_id):
                 student.group = new_group
                 student.save()
                 
-                messages.success(request, _(f'Студент переведен из {old_group} в {new_group}'))
+                messages.success(
+                    request,
+                    _('Студент переведен из %(from_group)s в %(to_group)s') % {
+                        'from_group': old_group,
+                        'to_group': new_group,
+                    }
+                )
                 return redirect('accounts:user_management')
     else:
         form = GroupTransferForm()
@@ -852,7 +873,10 @@ def add_group(request):
                 if group.specialty:
                     request.session['last_specialty_id'] = group.specialty.id
 
-                messages.success(request, _(f'Группа {group.name} успешно создана!'))
+                messages.success(
+                    request,
+                    _('Группа %(name)s успешно создана!') % {'name': group.name}
+                )
 
                 if request.GET.get('specialty'):
                     return redirect('accounts:manage_structure')
@@ -878,7 +902,10 @@ def edit_group(request, group_id):
         form = GroupForm(request.POST, instance=group)
         if form.is_valid():
             form.save()
-            messages.success(request, _(f'Группа {group.name} успешно обновлена'))
+            messages.success(
+                request,
+                _('Группа %(name)s успешно обновлена') % {'name': group.name}
+            )
             return redirect('accounts:group_management')
         else:
             print(_("Ошибки формы:"), form.errors) 
@@ -897,10 +924,19 @@ def delete_group(request, group_id):
     students_count = Student.objects.filter(group=group).count()
     if request.method == 'POST':
         if students_count > 0:
-            messages.error(request, _(f'Невозможно удалить группу {group.name}. В ней есть {students_count} студентов.'))
+            messages.error(
+                request,
+                _('Невозможно удалить группу %(name)s. В ней есть %(count)s студентов.') % {
+                    'name': group.name,
+                    'count': students_count,
+                }
+            )
         else:
             group.delete()
-            messages.success(request, _(f'Группа {group.name} успешно удалена'))
+            messages.success(
+                request,
+                _('Группа %(name)s успешно удалена') % {'name': group.name}
+            )
         return redirect('accounts:group_management')
     return render(request, 'accounts/delete_group.html', {'group': group, 'students_count': students_count})
 
@@ -1135,7 +1171,10 @@ def add_faculty(request):
                     vice_profile.title = "Муовини декан оид ба таълим" 
                     vice_profile.save()
 
-            messages.success(request, _(f"Факультет {faculty.name} успешно создан!"))
+            messages.success(
+                request,
+                _("Факультет %(name)s успешно создан!") % {'name': faculty.name}
+            )
             return redirect('accounts:manage_structure')
     else:
         form = FacultyFullForm(initial=initial_data)
@@ -1252,7 +1291,10 @@ def add_department(request):
                         defaults={'department': dept}
                     )
 
-            messages.success(request, _(f"Кафедра {dept.name} создана"))
+            messages.success(
+                request,
+                _("Кафедра %(name)s создана") % {'name': dept.name}
+            )
             return redirect('accounts:manage_structure')
     else:
         form = DepartmentForm(initial=initial, faculty_context=faculty_context)
@@ -1418,7 +1460,10 @@ def student_orders(request, student_id):
                 student=student,
                 reason=form.cleaned_data.get('reason', '')
             )
-            messages.success(request, _(f'Проект приказа №{order.number} создан.'))
+            messages.success(
+                request,
+                _('Проект приказа №%(number)s создан.') % {'number': order.number}
+            )
             return redirect('accounts:student_orders', student_id=student.id)
     else:
         form = OrderForm(initial={'date': timezone.now().date()})
@@ -1498,7 +1543,10 @@ def approve_order(request, order_id):
         if order.status == 'DRAFT':
             try:
                 order.apply_effect(request.user)
-                messages.success(request, _(f"Приказ №{order.number} утвержден! Статус студентов обновлен."))
+                messages.success(
+                    request,
+                    _("Приказ №%(number)s утвержден! Статус студентов обновлен.") % {'number': order.number}
+                )
             except Exception as e:
                 logger.exception("approve_order")
                 messages.error(request, _("Ошибка при обработке приказа. См. журнал сервера."))
@@ -1563,7 +1611,13 @@ def unassigned_students(request):
             from journal.models import StudentStatistics
             StudentStatistics.recalculate_group(target_group)
             
-            messages.success(request, _(f"Успешно распределено {updated_count} студентов в группу {target_group.name}."))
+            messages.success(
+                request,
+                _("Успешно распределено %(count)s студентов в группу %(group)s.") % {
+                    'count': updated_count,
+                    'group': target_group.name,
+                }
+            )
         else:
             messages.warning(request, _(" Выберите студентов и укажите группу для распределения."))
         
@@ -1740,7 +1794,13 @@ def mass_order_create(request: HttpRequest) -> HttpResponse:
                     
                     OrderItem.objects.bulk_create(order_items)
 
-                messages.success(request, _(f"Проект приказа №{new_order.number} успешно сформирован на {len(order_items)} студентов! Отправлен на подпись."))
+                messages.success(
+                    request,
+                    _("Проект приказа №%(number)s успешно сформирован на %(students)s студентов! Отправлен на подпись.") % {
+                        'number': new_order.number,
+                        'students': len(order_items),
+                    }
+                )
                 return redirect('accounts:all_orders')
                 
             except Exception as e:
