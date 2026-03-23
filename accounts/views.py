@@ -788,7 +788,6 @@ def view_user_profile(request, user_id):
     return render(request, template, context)
 
 @user_passes_test(is_management)
-@user_passes_test(is_management)
 def group_management(request):
     groups = Group.objects.all().order_by('course', 'name')
     
