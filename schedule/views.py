@@ -12,6 +12,7 @@ import uuid
 import re
 from io import BytesIO 
 from django.db.models import Q, Sum
+from django.urls import reverse
 try:
     from docx import Document
     from docx.shared import Pt, Cm
@@ -2447,9 +2448,10 @@ def add_building(request):
     else:
         form = BuildingForm(user=request.user)
     
-    return render(request, 'schedule/building_form.html', {
+    return render(request, 'core/form_generic.html', {
         'form': form, 
-        'title': _('Добавить учебный корпус')
+        'title': _('Добавить учебный корпус'),
+        'cancel_url': reverse('schedule:manage_buildings')
     })
 
 @user_passes_test(is_dean_or_admin)
@@ -2471,9 +2473,10 @@ def edit_building(request, building_id):
     else:
         form = BuildingForm(instance=building, user=request.user)
     
-    return render(request, 'schedule/building_form.html', {
+    return render(request, 'core/form_generic.html', {
         'form': form, 
-        'title': _('Редактировать корпус')
+        'title': _('Редактировать корпус'),
+        'cancel_url': reverse('schedule:manage_buildings')
     })
 
 @user_passes_test(is_dean_or_admin)
@@ -3230,7 +3233,10 @@ def add_credit_template(request):
             return redirect('schedule:manage_credit_templates')
     else:
         form = CreditTemplateForm()
-    return render(request, 'schedule/credit_template_form.html', {'form': form, 'title': _('Добавить шаблон')})
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Добавить шаблон'),
+        'cancel_url': reverse('schedule:manage_credit_templates')
+    })
 
 
 @user_passes_test(is_dean_or_admin)
@@ -3244,7 +3250,10 @@ def edit_credit_template(request, template_id):
             return redirect('schedule:manage_credit_templates')
     else:
         form = CreditTemplateForm(instance=template)
-    return render(request, 'schedule/credit_template_form.html', {'form': form, 'title': _('Редактировать шаблон')})
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Редактировать шаблон'),
+        'cancel_url': reverse('schedule:manage_credit_templates')
+    })
 
 
 @user_passes_test(is_dean_or_admin)

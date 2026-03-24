@@ -12,7 +12,7 @@ from accounts.models import Student, User
 from lms.services import LMSManager
 from journal.models import MatrixStructure, MatrixColumn, StudentMatrixScore
 from schedule.models import Subject, Semester
-
+from django.urls import reverse
 from .models import (
     Course, CourseCategory, CourseSection, CourseModule,
     CourseEnrolment, ModuleCompletion, PageContent, FileResource,
@@ -901,5 +901,210 @@ def section_grading(request, section_id):
         'is_auto_rating': is_auto_rating  
     })
 
+@login_required
+def course_delete(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    if not (can_manage_course(request.user, course) and is_lms_admin(request.user)):
+        return HttpResponseForbidden()
+    if request.method == 'POST':
+        course.delete()
+        messages.success(request, _("Курс удалён"))
+        return redirect('lms:course_list')
+    return render(request, 'core/confirm_delete.html', {
+        'obj': course, 'obj_name': course.full_name,
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:course_list')
+    })
+
+@login_required
+def section_create(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    if not can_manage_course(request.user, course):
+        return HttpResponseForbidden()
+    form = CourseSectionForm(request.POST or None)
+    if form.is_valid():
+        section = form.save(commit=False)
+        section.course = course
+        last = course.sections.order_by('-sequence').first()
+        section.sequence = (last.sequence + 1) if last else 0
+        section.save()
+        messages.success(request, _("Секция добавлена"))
+        return redirect('lms:course_detail', course_id=course.pk)
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Новая секция'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:course_detail', args=[course.pk])
+    })
+
+@login_required
+def section_edit(request, section_id):
+    section = get_object_or_404(CourseSection, pk=section_id)
+    if not can_manage_course(request.user, section.course):
+        return HttpResponseForbidden()
+    form = CourseSectionForm(request.POST or None, instance=section)
+    if form.is_valid():
+        form.save()
+        messages.success(request, _("Секция обновлена"))
+        return redirect('lms:course_detail', course_id=section.course.pk)
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Редактировать секцию'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:course_detail', args=[section.course.pk])
+    })
+
+@login_required
+def module_create(request, section_id):
+    section = get_object_or_404(CourseSection, pk=section_id)
+    if not can_manage_course(request.user, section.course):
+        return HttpResponseForbidden()
+    module_type = request.GET.get('type', 'PAGE')
+    form = CourseModuleForm(request.POST or None, initial={'module_type': module_type})
+    if form.is_valid():
+        module = form.save(commit=False)
+        module.section = section
+        last = section.modules.order_by('-sequence').first()
+        module.sequence = (last.sequence + 1) if last else 0
+        module.save()
+        _create_module_content(module)
+        messages.success(request, _("Модуль добавлен"))
+        return redirect('lms:module_edit', module_id=module.pk)
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Новый модуль'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:course_detail', args=[section.course.pk])
+    })
+
+@login_required
+def folder_file_add(request, module_id):
+    module = get_object_or_404(CourseModule, pk=module_id, module_type='FOLDER')
+    if not can_manage_course(request.user, module.section.course):
+        return HttpResponseForbidden()
+    folder, created_folder = FolderResource.objects.get_or_create(module=module)
+    form = FolderFileForm(request.POST or None, request.FILES or None)
+    if form.is_valid():
+        f = form.save(commit=False)
+        f.folder = folder
+        f.save()
+        messages.success(request, _("Файл добавлен"))
+        return redirect('lms:module_detail', module_id=module_id)
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Добавить файл в папку'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:module_detail', args=[module.pk])
+    })
+
+@login_required
+def forum_thread_create(request, module_id):
+    module = get_object_or_404(CourseModule, pk=module_id, module_type='FORUM')
+    course = module.section.course
+    if not can_view_course(request.user, course):
+        return HttpResponseForbidden()
+
+    forum = module.forum
+    form  = ForumThreadForm(request.POST or None)
+    if form.is_valid():
+        thread = form.save(commit=False)
+        thread.forum  = forum
+        thread.author = request.user
+        thread.save()
+        body = form.cleaned_data.get('body', '').strip()
+        if body:
+            ForumPost.objects.create(thread=thread, author=request.user, body=body)
+        return redirect('lms:forum_thread', thread_id=thread.pk)
+
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Новая тема'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:module_detail', args=[module.pk])
+    })
+
+@login_required
+def glossary_entry_add(request, module_id):
+    module = get_object_or_404(CourseModule, pk=module_id, module_type='GLOSSARY')
+    course = module.section.course
+    if not can_view_course(request.user, course):
+        return HttpResponseForbidden()
+    glossary, created_glossary = Glossary.objects.get_or_create(module=module)
+    form = GlossaryEntryForm(request.POST or None)
+    if form.is_valid():
+        entry = form.save(commit=False)
+        entry.glossary = glossary
+        entry.author   = request.user
+        entry.save()
+        return redirect('lms:module_detail', module_id=module_id)
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Добавить термин'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:module_detail', args=[module.pk])
+    })
+
+@login_required
+def grade_item_manage(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    if not can_manage_course(request.user, course):
+        return HttpResponseForbidden()
+    form = GradeItemForm(request.POST or None)
+    if form.is_valid():
+        gi = form.save(commit=False)
+        gi.course = course
+        gi.save()
+        messages.success(request, _("Элемент оценки добавлен"))
+        return redirect('lms:gradebook', course_id=course_id)
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Добавить элемент оценки'),
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:gradebook', args=[course.pk])
+    })
+
+@login_required
+def category_create(request):
+    if not is_lms_specialist(request.user):
+        return HttpResponseForbidden()
+    form = CourseCategoryForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        messages.success(request, _("Категория создана"))
+        return redirect('lms:category_list')
+    description = (
+        '<div class="fw-bold mb-1"><i class="bi bi-lightbulb me-1"></i>Что такое категория?</div>'
+        'Категории организуют курсы по структуре университета. Рекомендуемая иерархия:'
+        '<div class="mt-2 ps-2 border-start border-info border-3">'
+        '<div>🏛 Институт → <i class="text-muted">например: «Институт IT и телекоммуникаций»</i></div>'
+        '<div class="ps-3">📂 Факультет → <i class="text-muted">например: «Факультет программирования»</i></div>'
+        '<div class="ps-5">📁 Кафедра / Дисциплина → <i class="text-muted">например: «Базы данных»</i></div>'
+        '</div>'
+    )
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Новая категория курсов'),
+        'form_description': description,
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:category_list')
+    })
+
+@login_required
+def category_edit(request, category_id):
+    cat = get_object_or_404(CourseCategory, pk=category_id)
+    if not is_lms_specialist(request.user):
+        return HttpResponseForbidden()
+    form = CourseCategoryForm(request.POST or None, instance=cat)
+    if form.is_valid():
+        form.save()
+        messages.success(request, _("Категория обновлена"))
+        return redirect('lms:category_list')
+    description = (
+        '<div class="fw-bold mb-1"><i class="bi bi-lightbulb me-1"></i>Что такое категория?</div>'
+        'Категории организуют курсы по структуре университета. Рекомендуемая иерархия:'
+        '<div class="mt-2 ps-2 border-start border-info border-3">'
+        '<div>🏛 Институт → <i class="text-muted">например: «Институт IT и телекоммуникаций»</i></div>'
+        '<div class="ps-3">📂 Факультет → <i class="text-muted">например: «Факультет программирования»</i></div>'
+        '<div class="ps-5">📁 Кафедра / Дисциплина → <i class="text-muted">например: «Базы данных»</i></div>'
+        '</div>'
+    )
+    return render(request, 'core/form_generic.html', {
+        'form': form, 'title': _('Редактировать категорию'),
+        'form_description': description,
+        'base_template': 'lms/base_lms.html',
+        'cancel_url': reverse('lms:category_list')
+    })
 
 

@@ -1,0 +1,17 @@
+{% extends base_template|default:"base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="javascript:history.back()">{% trans "Назад" %}</a></li>
+    <li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block content %}
+    {% include "core/_form_generic_inner.html" %}
+{% endblock %}
+
+{% block lms_content %}
+    {% include "core/_form_generic_inner.html" %}
+{% endblock %}

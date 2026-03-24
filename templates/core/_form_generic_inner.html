@@ -1,0 +1,56 @@
+{% load i18n %}
+<div class="row mt-4">
+    <div class="col-lg-{% if form_width %}{{ form_width }}{% else %}6{% endif %} mx-auto">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white py-3 d-flex align-items-center">
+                <i class="bi {% if icon %}{{ icon }}{% else %}bi-pencil-square{% endif %} fs-5 me-2"></i>
+                <h5 class="mb-0 fw-bold">{{ title }}</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if form_description %}
+                    <div class="alert alert-info small mb-4 border-0 bg-info bg-opacity-10 text-info-dark">
+                        {{ form_description|safe }}
+                    </div>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger">
+                        <ul class="mb-0 ps-3">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark small text-uppercase" for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text text-muted mt-1"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1 fw-medium"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <hr class="my-4 border-light">
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ cancel_url|default:'javascript:history.back()' }}" class="btn btn-light border px-4 fw-medium">{% trans "Отмена" %}</a>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm fw-medium">
+                            <i class="bi bi-check-lg me-2"></i>{{ submit_btn_text|default:"Сохранить" }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

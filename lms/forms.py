@@ -9,7 +9,6 @@ from .models import (
 from accounts.models import Group, User
 from schedule.models import Subject
 
-
 class CourseCategoryForm(forms.ModelForm):
     class Meta:
         model  = CourseCategory
@@ -187,9 +186,13 @@ class GradeSubmissionForm(forms.Form):
 
 
 class ForumThreadForm(forms.ModelForm):
+    body = forms.CharField(
+        label=_("Первое сообщение"),
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 6})
+    )
     class Meta:
         model  = ForumThread
-        fields = ['title']
+        fields =['title']
         widgets = {'title': forms.TextInput(attrs={'class': 'form-control'})}
 
 

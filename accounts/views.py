@@ -1133,7 +1133,7 @@ def delete_institute(request, pk):
         institute.delete()
         messages.success(request, _("Институт удален"))
         return redirect('accounts:manage_structure')
-    return render(request, 'accounts/confirm_delete.html', {'obj': institute, 'title': 'Удалить Институт'})
+    return render(request, 'core/confirm_delete.html', {'obj': institute, 'title': 'Удалить Институт'})
 
 @user_passes_test(is_admin_or_rector)
 def add_faculty(request):
@@ -1179,7 +1179,8 @@ def add_faculty(request):
     else:
         form = FacultyFullForm(initial=initial_data)
     
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить Факультет (Расширенный)'})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Добавить Факультет (Расширенный)'})
+
 
 @user_passes_test(is_admin_or_rector)
 def edit_faculty(request, pk):
@@ -1249,7 +1250,7 @@ def delete_faculty(request, pk):
         faculty.delete()
         messages.success(request, _("Факультет удален"))
         return redirect('accounts:manage_structure')
-    return render(request, 'accounts/confirm_delete.html', {'obj': faculty, 'title': 'Удалить Факультет'})
+    return render(request, 'core/confirm_delete.html', {'obj': faculty, 'title': 'Удалить Факультет'})
 
 @login_required
 def add_department(request):
@@ -1302,7 +1303,8 @@ def add_department(request):
             faculty = request.user.dean_profile.faculty
             form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
 
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить кафедру'})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Добавить кафедру'})
+
 
 @login_required
 def edit_department(request, pk):
@@ -1346,7 +1348,8 @@ def edit_department(request, pk):
             faculty = request.user.dean_profile.faculty
             form.fields['faculty'].queryset = Faculty.objects.filter(id=faculty.id)
 
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Редактировать кафедру'})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Редактировать кафедру'})
+
 
 
 
@@ -1362,7 +1365,8 @@ def delete_department(request, pk):
         dept.delete()
         messages.success(request, _("Кафедра удалена"))
         return redirect('accounts:manage_structure')
-    return render(request, 'accounts/confirm_delete.html', {'obj': dept, 'title': 'Удалить кафедру'})
+    return render(request, 'core/confirm_delete.html', {'obj': dept, 'title': 'Удалить кафедру'})
+
 
 @login_required
 def add_specialty(request):
@@ -1391,7 +1395,7 @@ def add_specialty(request):
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
         
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить специальность'})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Добавить специальность'})
 
 @login_required
 def edit_specialty(request, pk):
@@ -1414,7 +1418,8 @@ def edit_specialty(request, pk):
             faculty = request.user.dean_profile.faculty
             form.fields['department'].queryset = Department.objects.filter(faculty=faculty)
 
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Редактировать специальность'})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Редактировать специальность'})
+
 
 @login_required
 def delete_specialty(request, pk):
@@ -1428,7 +1433,8 @@ def delete_specialty(request, pk):
         spec.delete()
         messages.success(request, _("Специальность удалена"))
         return redirect('accounts:manage_structure')
-    return render(request, 'accounts/confirm_delete.html', {'obj': spec, 'title': 'Удалить специальность'})
+    return render(request, 'core/confirm_delete.html', {'obj': spec, 'title': 'Удалить специальность'})
+
 
 
 @user_passes_test(is_admin_or_rector)
@@ -1441,7 +1447,7 @@ def add_institute(request):
             return redirect('accounts:manage_structure')
     else:
         form = InstituteForm()
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': 'Добавить Институт'})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Добавить Институт'})
 
 
 @user_passes_test(is_management)
@@ -1829,7 +1835,7 @@ def add_specialization(request):
             return redirect('accounts:manage_structure')
     else:
         form = SpecializationForm(initial=initial, faculty=faculty)
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': _('Добавить специализацию (Тахассус)')})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': _('Добавить специализацию (Тахассус)')})
 
 @login_required
 @user_passes_test(is_management)
@@ -1846,7 +1852,7 @@ def edit_specialization(request, pk):
     else:
         form = SpecializationForm(instance=spec, faculty=faculty)
 
-    return render(request, 'accounts/form_generic.html', {'form': form, 'title': _('Редактировать специализацию')})
+    return render(request, 'core/form_generic.html', {'form': form, 'title': _('Редактировать специализацию')})
 
 @login_required
 @user_passes_test(is_management)
@@ -1856,7 +1862,7 @@ def delete_specialization(request, pk):
         spec.delete()
         messages.success(request, _("Специализация удалена!"))
         return redirect('accounts:manage_structure')
-    return render(request, 'accounts/confirm_delete.html', {'obj': spec, 'title': _('Удалить специализацию')})
+    return render(request, 'core/confirm_delete.html', {'obj': spec, 'title': _('Удалить специализацию')})
 
 
 @login_required
