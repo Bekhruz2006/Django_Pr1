@@ -32,10 +32,20 @@
 
                                 <td>{{ forloop.counter }}</td>
                                 <td>
-                                    <a href="{% url 'accounts:profile' %}?user_id={{ student.user.id }}">
-                                        {{ student.user.get_full_name }}
-                                    </a>
+                                    <div class="d-flex align-items-center">
+                                        {% if student.user.photo %}
+                                            <img src="{{ student.user.photo.url }}" class="avatar-sm-list me-2 shadow-sm">
+                                        {% else %}
+                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary me-2 fw-bold shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                                {{ student.user.first_name|first|upper }}{{ student.user.last_name|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <a href="{% url 'accounts:profile' %}?user_id={{ student.user.id }}" class="text-decoration-none text-dark">
+                                            {{ student.user.get_full_name }}
+                                        </a>
+                                    </div>
                                 </td>
+
                                 <td>{{ student.birth_date|date:"d.m.Y" }}</td>
                                 <td>
                                     {% if student.user.last_login %}

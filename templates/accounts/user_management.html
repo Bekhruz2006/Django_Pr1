@@ -59,7 +59,18 @@
                                         <span class="badge bg-danger ms-1" title="{% trans 'Суперпользователь' %}">SUPER</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ user_obj.get_full_name }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if user_obj.photo %}
+                                            <img src="{{ user_obj.photo.url }}" class="avatar-sm-list me-2 shadow-sm">
+                                        {% else %}
+                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary me-2 fw-bold shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                                {{ user_obj.first_name|first|upper }}{{ user_obj.last_name|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                        {{ user_obj.get_full_name }}
+                                    </div>
+                                </td>
                                 <td>
                                     <span class="badge
                                         {% if user_obj.role == 'STUDENT' %}bg-primary

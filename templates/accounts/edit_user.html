@@ -16,36 +16,56 @@
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    
+
                     <h5 class="mb-3">{% trans "Основная информация" %}</h5>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">{% trans "Имя" %}</label>
                             {{ user_form.first_name }}
                         </div>
-                        
+
                         <div class="col-md-6 mb-3">
                             <label class="form-label">{% trans "Фамилия" %}</label>
                             {{ user_form.last_name }}
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">{% trans "Телефон" %}</label>
                             {{ user_form.phone }}
                         </div>
-                        
+
                         <div class="col-md-6 mb-3">
                             <label class="form-label">{% trans "Фото" %}</label>
-                            {{ user_form.photo }}
-                            {% if user_obj.photo %}
-                                <br><small>{% trans "Текущее" %}: <a href="{{ user_obj.photo.url }}" target="_blank">{% trans "Посмотреть" %}</a></small>
-                            {% endif %}
+                            <div class="d-flex align-items-center gap-3 p-3 border rounded bg-light">
+                                {% if user_obj.photo %}
+                                    <div class="position-relative flex-shrink-0">
+                                        <img src="{{ user_obj.photo.url }}" class="rounded-circle object-fit-cover shadow-sm border" style="width: 60px; height: 60px;">
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <input type="file" name="photo" class="form-control form-control-sm mb-2" accept="image/*" id="id_photo">
+                                        <div class="form-check mb-0">
+                                            <input type="checkbox" name="photo-clear" id="photo-clear_id" class="form-check-input">
+                                            <label class="form-check-label text-danger small fw-bold" for="photo-clear_id">
+                                                <i class="bi bi-trash"></i> Удалить фото
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center text-secondary flex-shrink-0" style="width: 60px; height: 60px;">
+                                        <i class="bi bi-camera fs-4"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <input type="file" name="photo" class="form-control form-control-sm" accept="image/*" id="id_photo">
+                                    </div>
+                                {% endif %}
+                            </div>
                         </div>
+
                     </div>
-                    
+
                     <hr class="my-4">
                     <h5 class="mb-3 text-primary"><i class="bi bi-briefcase"></i> {% trans "Совместительство (Дополнительные роли)" %}</h5>
                     <div class="alert alert-light border small">
@@ -127,7 +147,7 @@
                         {% endfor %}
                     </div>
                     {% endif %}
-                    
+
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-circle"></i> {% trans "Сохранить изменения" %}
@@ -166,12 +186,12 @@
             allowClear: true,
             width: '100%'
         });
-        
+
         $('.select2-tags').select2({
             placeholder: "Начните вводить название предмета...",
             allowClear: true,
             width: '100%',
-            tags: true 
+            tags: true
         });
     });
 </script>

@@ -6,6 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}University Platform{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/bundle.css' %}">
@@ -490,11 +493,14 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <div class="bg-dots"></div>
+
+    
     <div class="animated-bg" aria-hidden="true">
         <img src="/static/img/Example.jpg" alt="">
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-3 gap-2">
             <button id="sidebarToggle" type="button" aria-label="Toggle sidebar">
                 <i class="bi bi-list fs-5"></i>
@@ -578,8 +584,12 @@
                 </div>
                 <div class="dropdown">
                     <a class="navbar-user-btn dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <span class="navbar-user-avatar">
-                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        <span class="navbar-user-avatar" style="overflow: hidden;">
+                            {% if user.photo %}
+                                <img src="{{ user.photo.url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                            {% endif %}
                         </span>
                         <span class="d-none d-md-inline">{{ user.first_name }}</span>
                     </a>

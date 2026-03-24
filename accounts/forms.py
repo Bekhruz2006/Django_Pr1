@@ -393,11 +393,11 @@ class DeanForm(forms.ModelForm):
             field.required = False
 
 class UserEditForm(forms.ModelForm):
-    photo = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
+    photo = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
     
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone', 'employee_category', 'birth_date', 'address', 'passport_number', 'photo']
+        fields =['first_name', 'last_name', 'phone', 'employee_category', 'birth_date', 'address', 'passport_number', 'photo']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-{% load i18n %}
+{% load i18n static %}
 
 <html lang="ru">
 <head>
@@ -11,6 +11,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+
+        .login-logo-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .login-logo-wrap img {
+            animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .login-logo-wrap img:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
         *, *::before, *::after { box-sizing: border-box; }
 
         :root {
@@ -263,8 +277,9 @@
     <div class="login-card">
 
         <div class="login-header">
-            <div class="login-icon">🎓</div>
-            <h2>{% trans "AcademiX" %}</h2>
+            <div class="login-logo-wrap">
+                <img src="{% static 'img/logo-mark.png' %}" alt="Logo Mark" style="height: 165px;">
+            </div>
             <p class="text-muted">{% trans "Войдите в систему" %}</p>
         </div>
 

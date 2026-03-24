@@ -9,7 +9,7 @@
         <div class="card">
             <div class="card-body text-center">
                 {% if user.photo %}
-                    <img src="{{ user.photo.url }}" alt="{% trans 'Фото' %}" class="profile-img mb-3">
+                    <img src="{{ user.photo.url }}" alt="Фото" class="profile-img mb-3">
                 {% else %}
                     <div class="profile-img mb-3 bg-light d-flex align-items-center justify-content-center">
                         <i class="bi bi-person-circle" style="font-size: 5rem; color: #cbd5e1;"></i>
