@@ -8,6 +8,9 @@ from accounts.models import Student, Teacher, User
 from schedule.models import Subject, ScheduleSlot
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from accounts.models import Institute
 
 class JournalEntry(models.Model):
     ATTENDANCE_CHOICES = [
@@ -490,3 +493,32 @@ class StudentPerformancePrediction(models.Model):
 
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.get_risk_level_display()}"
+    
+
+
+
+
+@receiver(post_save, sender='accounts.Institute')
+def auto_create_bologna_matrix(sender, instance, created, **kwargs):
+    from journal.models import MatrixStructure, MatrixColumn
+    if created:
+        structure = MatrixStructure.objects.create(
+            institute=instance,
+            name=f"Стандартная Болонская матрица ({instance.abbreviation})",
+            is_active=True
+        )
+        
+        for i in range(1, 17):
+            MatrixColumn.objects.create(
+                structure=structure,
+                name=f"Неделя {i}",
+                col_type='WEEK',
+                week_number=i,
+                week_type='RED' if i % 2 != 0 else 'BLUE',
+                max_score=12.5,
+                order=i
+            )
+            
+        MatrixColumn.objects.create(structure=structure, name="Рейтинг 1 (Р1)", col_type='RATING', max_score=100.0, order=17)
+        MatrixColumn.objects.create(structure=structure, name="Рейтинг 2 (Р2)", col_type='RATING', max_score=100.0, order=18)
+        MatrixColumn.objects.create(structure=structure, name="Экзамен", col_type='EXAM', max_score=100.0, order=19)

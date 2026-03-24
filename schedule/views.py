@@ -13,6 +13,11 @@ import re
 from io import BytesIO 
 from django.db.models import Q, Sum
 from django.urls import reverse
+import logging
+logger = logging.getLogger(__name__)
+from .models import UnusedHourPool
+
+
 try:
     from docx import Document
     from docx.shared import Pt, Cm
@@ -23,6 +28,9 @@ try:
     DOCX_AVAILABLE = True
 except ImportError:
     DOCX_AVAILABLE = False
+from schedule.models import ROOM_TYPES
+from lms.models import Assignment
+
 from django import forms
 from .models import Subject, CreditType, CreditTemplate, ScheduleSlot, Semester, Classroom, TimeSlot, TeacherUnavailableSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
 from .forms import SubjectForm, RupImportForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm, CreditTemplateForm
@@ -33,6 +41,9 @@ from django.utils.translation import gettext as _
 from schedule.models import ROOM_TYPES
 from .services import AIAssignmentService, AlgorithmicAssignmentService 
 from .timetable_bridge import AutoScheduleEngineCpp as AutoScheduleEngine
+from schedule.models import ScheduleException as SchedExc
+from datetime import date as date_cls, datetime as dt_cls
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,6 +70,12 @@ def is_dean_or_admin(user):
     return user.is_authenticated and (
         user.is_superuser or 
         user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR', 'DEAN', 'VICE_DEAN', 'HEAD_OF_DEPT']
+    )
+
+def is_facility_admin(user):
+    return user.is_authenticated and (
+        user.is_superuser or
+        user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR', 'DEAN', 'VICE_DEAN']
     )
 
 def is_dept_head_or_above(user):
@@ -571,7 +588,7 @@ def update_schedule_room(request, slot_id):
             }, status=400)
 
         if not force and classroom:
-            from schedule.models import ROOM_TYPES
+            
             room_types_dict = dict(ROOM_TYPES)
 
             if slot.subject.preferred_room_type and classroom.room_type != slot.subject.preferred_room_type:
@@ -1210,10 +1227,11 @@ def manage_classrooms(request):
         'classrooms': classrooms,
         'institutes': institutes,
         'selected_institute_id': int(selected_institute_id) if selected_institute_id else None,
-        'is_admin': request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile')
+        'is_admin': request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'),
+        'is_facility_admin': is_facility_admin(request.user),   
     })
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def add_classroom(request):
     if request.method == 'POST':
         form = ClassroomForm(request.POST, user=request.user)
@@ -1225,7 +1243,7 @@ def add_classroom(request):
         form = ClassroomForm(user=request.user)
     return render(request, 'schedule/classroom_form.html', {'form': form, 'title': _('Добавить кабинет')})
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def bulk_add_classrooms(request):
     if request.method == 'POST':
         form = BulkClassroomForm(request.POST, user=request.user)
@@ -1259,7 +1277,7 @@ def bulk_add_classrooms(request):
         form = BulkClassroomForm(user=request.user)
     return render(request, 'schedule/bulk_classroom_form.html', {'form': form})
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def delete_classroom(request, classroom_id):
     classroom = get_object_or_404(Classroom, id=classroom_id)
     classroom.delete()
@@ -1937,7 +1955,7 @@ def generate_subjects_from_rup(request):
 
 
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def edit_classroom(request, classroom_id):
     classroom = get_object_or_404(Classroom, id=classroom_id)
     if request.method == 'POST':
@@ -1954,69 +1972,76 @@ def edit_classroom(request, classroom_id):
     })
 
 @login_required
+@login_required
 def classroom_occupancy(request):
-    day = int(request.GET.get('day', 0)) 
-    
-    active_semester = Semester.objects.filter(is_active=True).first()
-    if not active_semester:
-        active_semester = Semester.objects.order_by('-start_date').first()
-        if not active_semester:
-            messages.error(request, _("Нет активного семестра"))
-            return redirect('schedule:manage_classrooms')
-
-    classrooms = Classroom.objects.filter(is_active=True).select_related('building')
-    
+    day = int(request.GET.get('day', 0))
+    shift_filter = request.GET.get('shift', '')  
+ 
+    active_semesters = Semester.objects.filter(is_active=True)
+    if not active_semesters.exists():
+        active_semesters = Semester.objects.order_by('-start_date')[:1]
+ 
+    classrooms = Classroom.objects.select_related('building').filter(is_active=True)
     institutes = []
     selected_institute_id = request.GET.get('institute')
-    
+ 
     if request.user.is_superuser or hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
-        institutes = Institute.objects.all() 
+        institutes = Institute.objects.all()
         if selected_institute_id:
             classrooms = classrooms.filter(building__institute_id=selected_institute_id)
-            
     elif hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         if faculty and faculty.institute:
             classrooms = classrooms.filter(building__institute=faculty.institute)
-
+            institutes = []
+ 
     classrooms = classrooms.order_by('building', 'floor', 'number')
-    
+ 
     institute_for_ts = None
     if selected_institute_id:
         institute_for_ts = Institute.objects.filter(id=selected_institute_id).first()
     elif hasattr(request.user, 'dean_profile') and request.user.dean_profile.faculty:
         institute_for_ts = request.user.dean_profile.faculty.institute
-        
-    time_slots = get_time_slots_for_shift(active_semester.shift, institute_for_ts)
-    
+ 
+    if institute_for_ts:
+        inst_ts = TimeSlot.objects.filter(institute=institute_for_ts).order_by('start_time')
+        time_slots = inst_ts if inst_ts.exists() else TimeSlot.objects.filter(institute__isnull=True).order_by('start_time')
+    else:
+        time_slots = TimeSlot.objects.filter(institute__isnull=True).order_by('start_time')
+ 
+    if shift_filter in ('MORNING', 'DAY', 'EVENING'):
+        time_slots = time_slots.filter(shift=shift_filter)
+ 
     days = [
         (0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')),
         (3, _('Четверг')), (4, _('Пятница')), (5, _('Суббота'))
     ]
-
+ 
     slots = ScheduleSlot.objects.filter(
-        semester=active_semester,
+        semester__in=active_semesters,
         day_of_week=day,
         is_active=True,
         classroom__in=classrooms
     ).select_related('classroom', 'group', 'subject', 'time_slot', 'teacher__user')
-
+ 
     occupancy = {}
     for slot in slots:
         c_id = slot.classroom.id
         t_id = slot.time_slot.id
         if c_id not in occupancy:
             occupancy[c_id] = {}
-        occupancy[c_id][t_id] = slot
-
+        if t_id not in occupancy[c_id]:
+            occupancy[c_id][t_id] = slot
+ 
     return render(request, 'schedule/classroom_occupancy.html', {
         'classrooms': classrooms,
         'time_slots': time_slots,
         'occupancy': occupancy,
         'selected_day': day,
         'days': days,
-        'institutes': institutes, 
-        'selected_institute_id': int(selected_institute_id) if selected_institute_id else None
+        'institutes': institutes,
+        'selected_institute_id': int(selected_institute_id) if selected_institute_id else None,
+        'shift_filter': shift_filter,
     })
 
 
@@ -2426,7 +2451,7 @@ def manage_time_slots(request):
 
 
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def manage_buildings(request):
     buildings = Building.objects.select_related('institute').all()
     
@@ -2437,7 +2462,7 @@ def manage_buildings(request):
 
     return render(request, 'schedule/manage_buildings.html', {'buildings': buildings})
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def add_building(request):
     if request.method == 'POST':
         form = BuildingForm(request.POST, user=request.user)
@@ -2454,7 +2479,7 @@ def add_building(request):
         'cancel_url': reverse('schedule:manage_buildings')
     })
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def edit_building(request, building_id):
     building = get_object_or_404(Building, id=building_id)
     
@@ -2479,7 +2504,7 @@ def edit_building(request, building_id):
         'cancel_url': reverse('schedule:manage_buildings')
     })
 
-@user_passes_test(is_dean_or_admin)
+@user_passes_test(is_facility_admin)
 def delete_building(request, building_id):
     building = get_object_or_404(Building, id=building_id)
     
@@ -3534,3 +3559,299 @@ def clear_military_day(request):
     except Exception as e:
         logger.exception("clear_military_day")
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
+
+
+
+@login_required
+def schedule_calendar(request):
+    user = request.user
+
+    if user.is_superuser:
+        groups = list(Group.objects.all().order_by('course', 'name'))
+        selected_group = None
+        
+    elif user.role == 'STUDENT' and hasattr(user, 'student_profile'):
+        group = user.student_profile.group if user.student_profile else None
+        groups = [group] if group else []
+        selected_group = group
+        
+    elif user.role == 'TEACHER' and hasattr(user, 'teacher_profile'):
+        group_ids = ScheduleSlot.objects.filter(
+            teacher=user.teacher_profile, is_active=True
+        ).values_list('group_id', flat=True).distinct()
+        groups = list(Group.objects.filter(id__in=group_ids).order_by('course', 'name'))
+        selected_group = groups[0] if groups else None
+        
+    elif is_dean_or_admin(user):
+        if hasattr(user, 'dean_profile') and getattr(user.dean_profile, 'faculty', None):
+            groups = list(Group.objects.filter(
+                specialty__department__faculty=user.dean_profile.faculty
+            ).order_by('course', 'name'))
+        elif hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'):
+            profile = getattr(user, 'director_profile', None) or getattr(user, 'prorector_profile', None)
+            institute = getattr(profile, 'institute', None)
+            if institute:
+                groups = list(Group.objects.filter(
+                    specialty__department__faculty__institute=institute
+                ).order_by('course', 'name'))
+            else:
+                groups = list(Group.objects.all().order_by('course', 'name'))
+        else:
+            groups = list(Group.objects.all().order_by('course', 'name'))
+        selected_group = None
+        
+    else:
+        groups = []
+        selected_group = None
+
+    group_id = request.GET.get('group')
+    if group_id:
+        selected_group = Group.objects.filter(id=group_id).first()
+
+    active_semester = None
+    if selected_group:
+        active_semester = get_active_semester_for_group(selected_group)
+    if not active_semester:
+        active_semester = Semester.objects.filter(is_active=True).first()
+
+    can_edit = is_dean_or_admin(user)
+
+    weekly_slots_count = 0
+    unused_hours = []
+    if selected_group and active_semester:
+        weekly_slots_count = ScheduleSlot.objects.filter(
+            group=selected_group, semester=active_semester, is_active=True
+        ).count()
+
+        unused_hours = UnusedHourPool.objects.filter(
+            group=selected_group,
+            semester=active_semester,
+            is_recovered=False
+        ).select_related('subject', 'teacher__user')
+
+    return render(request, 'schedule/schedule_calendar.html', {
+        'groups': groups,
+        'selected_group': selected_group,
+        'active_semester': active_semester,
+        'can_edit': can_edit,
+        'is_teacher_view': hasattr(user, 'teacher_profile') and not request.GET.get('group'),
+        'weekly_slots_count': weekly_slots_count,
+        'unused_hours': unused_hours,
+    })
+
+
+
+ 
+ 
+@login_required
+def schedule_calendar_events(request):
+    group_id = request.GET.get('group')
+    start_str = request.GET.get('start', '')[:10]
+    end_str   = request.GET.get('end',   '')[:10]
+ 
+    try:
+        start_date = date_cls.fromisoformat(start_str)
+        end_date   = date_cls.fromisoformat(end_str)
+    except Exception:
+        start_date = date_cls.today()
+        end_date   = start_date + timedelta(days=35)
+ 
+    user = request.user
+ 
+    if group_id:
+        slots_qs = ScheduleSlot.objects.filter(group_id=group_id, is_active=True)
+    elif hasattr(user, 'student_profile') and getattr(user.student_profile, 'group', None):
+        slots_qs = ScheduleSlot.objects.filter(group=user.student_profile.group, is_active=True)
+    elif hasattr(user, 'teacher_profile'):
+        slots_qs = ScheduleSlot.objects.filter(teacher=user.teacher_profile, is_active=True)
+    else:
+        slots_qs = ScheduleSlot.objects.none()
+ 
+    slots_qs = slots_qs.select_related('subject', 'teacher__user', 'group', 'time_slot', 'semester', 'classroom')
+ 
+    slot_ids = list(slots_qs.values_list('id', flat=True))
+    exceptions_qs = SchedExc.objects.filter(
+        schedule_slot_id__in=slot_ids,
+        exception_date__gte=start_date,
+        exception_date__lte=end_date + timedelta(days=7),
+    )
+    exc_map = {(e.schedule_slot_id, e.exception_date): e for e in exceptions_qs}
+ 
+    COLORS = {'LECTURE': '#2563eb', 'PRACTICE': '#16a34a', 'LAB': '#0891b2', 'SRSP': '#d97706'}
+    events =[]
+ 
+    for slot in slots_qs:
+        sem = slot.semester
+        if not sem or not sem.start_date or not sem.end_date: continue
+ 
+        vac_weeks =[int(w.strip()) for w in sem.vacation_weeks.split(',') if w.strip().isdigit()] if sem.vacation_weeks else[]
+        loop_start = max(sem.start_date, start_date)
+        days_ahead  = (slot.day_of_week - loop_start.weekday()) % 7
+        current     = loop_start + timedelta(days=days_ahead)
+ 
+        while current <= min(sem.end_date, end_date):
+            week_num = ((current - sem.start_date).days // 7) + 1
+ 
+            if week_num in vac_weeks:
+                current += timedelta(weeks=1)
+                continue
+ 
+            is_red = (week_num % 2 == 1)
+            show = (slot.week_type == 'EVERY' or (slot.week_type == 'RED' and is_red) or (slot.week_type == 'BLUE' and not is_red))
+            
+            if not show:
+                current += timedelta(weeks=1)
+                continue
+ 
+            exc = exc_map.get((slot.id, current))
+ 
+            if exc and exc.exception_type == 'CANCEL':
+                events.append({
+                    'id': f'exc_cancel_{exc.id}',
+                    'title': f'❌ {slot.subject.name}',
+                    'start': f'{current}T{slot.time_slot.start_time.strftime("%H:%M:%S")}',
+                    'end': f'{current}T{slot.time_slot.end_time.strftime("%H:%M:%S")}',
+                    'color': '#9ca3af',
+                    'classNames':['fc-cancelled'],
+                    'extendedProps': {
+                        'cancelled': True, 'reason': exc.reason, 'exception_id': exc.id,
+                        'type_display': slot.get_lesson_type_display(),
+                        'group': slot.group.name,
+                        'teacher': slot.teacher.user.get_full_name() if slot.teacher else '—',
+                        'room': slot.room or '—', 'slot_id': slot.id,
+                    }
+                })
+                current += timedelta(weeks=1)
+                continue
+ 
+            if exc and exc.exception_type == 'RESCHEDULE' and exc.new_date:
+                new_st = exc.new_start_time or slot.time_slot.start_time
+                new_et = exc.new_end_time or slot.time_slot.end_time
+                if start_date <= exc.new_date <= end_date:
+                    events.append({
+                        'id': f'exc_moved_{exc.id}',
+                        'title': f'🔄 {slot.subject.name}',
+                        'start': f'{exc.new_date}T{new_st.strftime("%H:%M:%S")}',
+                        'end': f'{exc.new_date}T{new_et.strftime("%H:%M:%S")}',
+                        'color': COLORS.get(slot.lesson_type, '#6b7280'),
+                        'editable': True,
+                        'extendedProps': {
+                            'rescheduled': True, 'reason': exc.reason, 'exception_id': exc.id,
+                            'original_date': str(current),
+                            'type_display': slot.get_lesson_type_display(),
+                            'group': slot.group.name,
+                            'teacher': slot.teacher.user.get_full_name() if slot.teacher else '—',
+                            'room': slot.room or '—', 'slot_id': slot.id,
+                        }
+                    })
+                current += timedelta(weeks=1)
+                continue
+ 
+            events.append({
+                'id': f'slot_{slot.id}_{current}',
+                'title': ('🪖 Воен. каф' if slot.is_military else slot.subject.name),
+                'start': f'{current}T{slot.time_slot.start_time.strftime("%H:%M:%S")}',
+                'end': f'{current}T{slot.time_slot.end_time.strftime("%H:%M:%S")}',
+                'color': '#1f2937' if slot.is_military else COLORS.get(slot.lesson_type, '#6b7280'),
+                'editable': True,
+                'extendedProps': {
+                    'slot_id': slot.id, 'original_date': str(current),
+                    'type_display': slot.get_lesson_type_display(),
+                    'group': slot.group.name, 'teacher': slot.teacher.user.get_full_name() if slot.teacher else '—',
+                    'room': slot.room or (slot.classroom.number if slot.classroom else '—'),
+                    'is_stream': bool(slot.stream_id), 'military': slot.is_military,
+                }
+            })
+            current += timedelta(weeks=1)
+
+    if hasattr(user, 'student_profile') or hasattr(user, 'teacher_profile'):
+        assignments = Assignment.objects.filter(
+            due_date__gte=start_date, due_date__lte=end_date,
+            module__section__course__enrolments__user=user
+        ).select_related('module__section__course')
+        
+        for ass in assignments:
+            events.append({
+                'id': f'lms_{ass.id}',
+                'title': f'📚 LMS Дедлайн: {ass.module.title} ({ass.module.section.course.short_name})',
+                'start': ass.due_date.isoformat(),
+                'color': '#8b5cf6', 
+                'extendedProps': {
+                    'is_lms': True, 'url': f'/lms/modules/{ass.module.id}/'
+                }
+            })
+
+    return JsonResponse(events, safe=False)
+ 
+ 
+@login_required
+@require_POST
+def calendar_move_slot(request):
+    if not is_dean_or_admin(request.user):
+        return JsonResponse({'success': False, 'error': 'Нет прав'}, status=403)
+ 
+    import json
+    data = json.loads(request.body)
+    move_type = data.get('move_type', 'once')
+    
+    if move_type == 'revert':
+        try:
+            exc_id = data.get('exception_id')
+            SchedExc.objects.filter(id=exc_id).delete()
+            return JsonResponse({'success': True, 'type': 'reverted'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    slot = get_object_or_404(ScheduleSlot, id=data['slot_id'])
+    original_date = date_cls.fromisoformat(data['original_date'])
+    reason = data.get('reason', 'Изменение в живом календаре')
+
+    if move_type == 'cancel':
+        SchedExc.objects.update_or_create(
+            schedule_slot=slot, exception_date=original_date,
+            defaults={'exception_type': 'CANCEL', 'reason': reason}
+        )
+        return JsonResponse({'success': True, 'type': 'cancelled'})
+
+    new_date = date_cls.fromisoformat(data['new_date'])
+    new_start = dt_cls.strptime(data['new_start_time'], '%H:%M').time()
+    
+    target_ts = TimeSlot.objects.filter(
+        institute=slot.group.specialty.department.faculty.institute if slot.group.specialty else None,
+        start_time__lte=new_start, end_time__gt=new_start
+    ).first()
+    
+    if not target_ts:
+        target_ts = TimeSlot.objects.filter(start_time__lte=new_start, end_time__gt=new_start).first()
+        if not target_ts:
+            return JsonResponse({'success': False, 'error': 'В это время нет официальной пары (сетка звонков).'})
+
+    conflict_qs = ScheduleSlot.objects.filter(
+        day_of_week=new_date.weekday(), time_slot=target_ts, semester=slot.semester, is_active=True
+    ).exclude(id=slot.id)
+    
+    if slot.teacher and conflict_qs.filter(teacher=slot.teacher).exists():
+        return JsonResponse({'success': False, 'error': 'Преподаватель уже занят в это время!'})
+    if slot.classroom and conflict_qs.filter(classroom=slot.classroom).exists():
+        return JsonResponse({'success': False, 'error': f'Аудитория {slot.classroom.number} занята!'})
+
+    if move_type == 'once':
+        SchedExc.objects.update_or_create(
+            schedule_slot=slot, exception_date=original_date,
+            defaults={
+                'exception_type': 'RESCHEDULE', 'reason': reason,
+                'new_date': new_date, 'new_start_time': target_ts.start_time,
+                'new_end_time': target_ts.end_time, 'new_classroom': slot.classroom
+            }
+        )
+        return JsonResponse({'success': True, 'type': 'exception_created'})
+ 
+    elif move_type == 'all':
+        update_fields = dict(day_of_week=new_date.weekday(), time_slot=target_ts,
+                             start_time=target_ts.start_time, end_time=target_ts.end_time)
+        ScheduleSlot.objects.filter(id=slot.id).update(**update_fields)
+        if slot.stream_id:
+            ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(**update_fields)
+        return JsonResponse({'success': True, 'type': 'slot_updated'})
+
+

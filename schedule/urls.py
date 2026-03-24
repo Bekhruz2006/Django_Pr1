@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_api
 
 app_name = 'schedule'
 
@@ -8,7 +9,12 @@ urlpatterns = [
     path('today/', views.today_classes, name='today'),
     path('export/', views.export_schedule, name='export'),
     path('api/check-conflicts/', views.check_schedule_conflicts, name='check_conflicts'),
-    
+
+    # ▸ НОВЫЙ: живой календарь
+    path('calendar/', views.schedule_calendar, name='calendar'),
+    path('api/calendar-events/', views.schedule_calendar_events, name='calendar_events_api'),
+    path('api/calendar-move/', views.calendar_move_slot, name='calendar_move'),
+
     path('buildings/', views.manage_buildings, name='manage_buildings'),
     path('buildings/add/', views.add_building, name='add_building'),
     path('buildings/<int:building_id>/edit/', views.edit_building, name='edit_building'),
@@ -28,13 +34,12 @@ urlpatterns = [
     path('subjects/<int:subject_id>/split-load/', views.split_subject_load, name='split_subject_load'),
     path('subjects/<int:subject_id>/toggle-active/', views.toggle_subject_active, name='toggle_subject_active'),
     path('import-department-load/', views.import_department_load, name='import_department_load'),
-    
+
     path('semesters/', views.manage_semesters, name='manage_semesters'),
     path('semesters/add/', views.add_semester, name='add_semester'),
     path('semesters/<int:semester_id>/edit/', views.edit_semester, name='edit_semester'),
     path('semesters/<int:semester_id>/toggle/', views.toggle_semester_active, name='toggle_semester'),
 
-    
     path('classrooms/', views.manage_classrooms, name='manage_classrooms'),
     path('classrooms/add/', views.add_classroom, name='add_classroom'),
     path('classrooms/bulk-add/', views.bulk_add_classrooms, name='bulk_add_classrooms'),

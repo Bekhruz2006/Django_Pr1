@@ -17,7 +17,7 @@ from .forms import JournalEntryForm, BulkGradeForm, JournalFilterForm, ChangeLog
 from accounts.models import Student, Teacher, Group
 from schedule.models import Subject, ScheduleSlot, Semester
 from .models import SubjectRating
-
+from schedule.models import ScheduleException
 
 def get_active_semester_for_group(group):
     from schedule.models import Semester
@@ -63,9 +63,8 @@ from django.contrib import messages
 from django.utils.translation import gettext as _
 from datetime import datetime, timedelta
 from django.db.models import Avg
+from .models import JournalEntry, JournalChangeLog, StudentStatistics, MatrixStructure, StudentMatrixScore
 
-@login_required
-@user_passes_test(is_teacher_or_management)
 def journal_view(request):
     user_is_admin = is_dean_or_admin(request.user)
     teacher = getattr(request.user, 'teacher_profile', None)
@@ -105,7 +104,7 @@ def journal_view(request):
         subject = Subject.objects.filter(id=subject_id).first()
     else:
         subject = Subject.objects.filter(id=subject_id, teacher=teacher).first()
-        
+
     if not group or not subject:
         request.session.pop('last_journal_group', None)
         request.session.pop('last_journal_subject', None)
@@ -152,17 +151,48 @@ def journal_view(request):
     schedule_slots = schedule_slots.filter(semester=active_semester)
 
     students = Student.objects.filter(group=group).select_related('user').order_by('user__last_name')
-    days_with_lessons =[]
+    week_end = week_start + timedelta(days=6)
 
+    exceptions = ScheduleException.objects.filter(
+        schedule_slot__in=schedule_slots,
+        exception_date__gte=week_start,
+        exception_date__lte=week_end
+    )
+
+    exc_cancel_dates = set()
+    exc_reschedules = {}
+
+    for ex in exceptions:
+        if ex.exception_type == 'CANCEL':
+            exc_cancel_dates.add((ex.schedule_slot_id, ex.exception_date))
+        elif ex.exception_type == 'RESCHEDULE':
+            exc_cancel_dates.add((ex.schedule_slot_id, ex.exception_date))
+            if ex.new_date and week_start <= ex.new_date <= week_end:
+                exc_reschedules[ex.schedule_slot_id] = ex
+
+    days_with_lessons = []
     current_week_type = 'RED' if week_num % 2 != 0 else 'BLUE'
 
     for slot in schedule_slots:
         if slot.week_type == 'EVERY' or slot.week_type == current_week_type:
             lesson_date = week_start + timedelta(days=slot.day_of_week)
+
+            if (slot.id, lesson_date) in exc_cancel_dates:
+                pass
+            else:
+                days_with_lessons.append({
+                    'date': lesson_date,
+                    'time': slot.start_time,
+                    'day_name': slot.get_day_of_week_display(),
+                    'slot': slot
+                })
+
+        if slot.id in exc_reschedules:
+            ex = exc_reschedules[slot.id]
             days_with_lessons.append({
-                'date': lesson_date,
-                'time': slot.start_time,
-                'day_name': slot.get_day_of_week_display(),
+                'date': ex.new_date,
+                'time': ex.new_start_time or slot.start_time,
+                'day_name': "Перенос",
                 'slot': slot
             })
 
@@ -220,7 +250,7 @@ def journal_view(request):
             })
         journal_data.append(student_row)
 
-    day_stats =[]
+    day_stats = []
     for day_info in days_with_lessons:
         day_entries = JournalEntry.objects.filter(
             subject=subject,
@@ -242,21 +272,21 @@ def journal_view(request):
 
     faculty = group.specialty.department.faculty if group.specialty else None
     institute = faculty.institute if faculty else None
-    
+
     matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
     if not matrix_structure:
         matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
 
-    columns =[]
+    columns = []
     if matrix_structure:
         columns = matrix_structure.columns.all()
 
     scores = StudentMatrixScore.objects.filter(subject=subject, student__in=students)
     scores_dict = {(s.student_id, s.column_id): s.score for s in scores}
-    
+
     students_matrix_data = []
     for s in students:
-        student_scores =[]
+        student_scores = []
         total_score = 0
         for col in columns:
             val = scores_dict.get((s.id, col.id))
@@ -265,8 +295,8 @@ def journal_view(request):
                 'value': val
             })
             if val and col.col_type in ['RATING', 'WEEK', 'EXAM']:
-                total_score += val 
-                
+                total_score += val
+
         students_matrix_data.append({
             'obj': s,
             'scores': student_scores,
@@ -289,7 +319,6 @@ def journal_view(request):
         'columns': columns,
         'students_matrix_data': students_matrix_data,
     })
-
 
 
 

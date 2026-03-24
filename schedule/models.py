@@ -14,6 +14,8 @@ from django.dispatch import receiver
 import os
 from django.db import models
 import math
+
+
 ROOM_TYPES =[
     ('LECTURE', _('Лекционная (Поточная)')),
     ('PRACTICE', _('Практическая (Обычная)')),
@@ -33,6 +35,22 @@ class CreditType(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.hours_per_credit} ч.)"
+
+class UnusedHourPool(models.Model):
+    group = models.ForeignKey('accounts.Group', on_delete=models.CASCADE, verbose_name="Группа")
+    subject = models.ForeignKey('schedule.Subject', on_delete=models.CASCADE, verbose_name="Дисциплина")
+    teacher = models.ForeignKey('accounts.Teacher', on_delete=models.SET_NULL, null=True, verbose_name="Преподаватель")
+    semester = models.ForeignKey('schedule.Semester', on_delete=models.CASCADE)
+    
+    date_cancelled = models.DateField(auto_now_add=True, verbose_name="Дата отмены")
+    original_date = models.DateField(verbose_name="Изначальная дата пары", null=True, blank=True)
+    reason = models.CharField(max_length=255, verbose_name="Причина", blank=True)
+    
+    is_recovered = models.BooleanField(default=False, verbose_name="Отработано (Восстановлено)")
+
+    class Meta:
+        verbose_name = "Неиспользованный час (Банк часов)"
+        verbose_name_plural = "Банк отмененных часов"
 
 
 class CreditTemplate(models.Model):
@@ -235,7 +253,14 @@ class Subject(models.Model):
 
     def get_hours_in_pairs(self, hours_count):
         import math
-        return math.ceil(hours_count / 2)
+        try:
+            inst = self.department.faculty.institute
+            acad_min = inst.academic_hour_duration or 50
+            pair_min = inst.pair_duration or 50
+            
+            return math.ceil((hours_count * acad_min) / pair_min)
+        except AttributeError:
+            return math.ceil(hours_count / 2)
 
     def get_actual_semester_weeks(self):
             from schedule.models import Semester
@@ -259,31 +284,37 @@ class Subject(models.Model):
             return self.semester_weeks
 
     def get_weekly_slots_needed(self):
-            actual_weeks = self.get_actual_semester_weeks()
-            if actual_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'LAB': 0, 'SRSP': 0}
+        actual_weeks = self.get_actual_semester_weeks()
+        if actual_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'LAB': 0, 'SRSP': 0}
 
-            lec_h = self.lecture_hours
-            prac_h = self.practice_hours
-            lab_h = self.lab_hours
-            srsp_h = self.control_hours
+        lec_h = self.lecture_hours
+        prac_h = self.practice_hours
+        lab_h = self.lab_hours
+        srsp_h = self.control_hours
 
-            if lec_h == 0 and prac_h == 0 and lab_h == 0 and srsp_h == 0 and self.credits > 0:
-                total_auditory = (self.credits * 24) * 2 // 3
-                lec_h = total_auditory // 3
-                prac_h = total_auditory // 3
-                srsp_h = total_auditory - lec_h - prac_h
+        if lec_h == 0 and prac_h == 0 and lab_h == 0 and srsp_h == 0 and self.credits > 0:
+            try:
+                hours_per_credit = self.credit_type.hours_per_credit if self.credit_type else 24
+            except AttributeError:
+                hours_per_credit = 24
+                
+            total_auditory = (self.credits * hours_per_credit) * 2 // 3
+            lec_h = total_auditory // 3
+            prac_h = total_auditory // 3
+            srsp_h = total_auditory - lec_h - prac_h
 
-            total_lec_pairs = self.get_hours_in_pairs(lec_h)
-            total_prac_pairs = self.get_hours_in_pairs(prac_h)
-            total_lab_pairs = self.get_hours_in_pairs(lab_h)
-            total_srsp_pairs = self.get_hours_in_pairs(srsp_h)
+        total_lec_pairs = self.get_hours_in_pairs(lec_h)
+        total_prac_pairs = self.get_hours_in_pairs(prac_h)
+        total_lab_pairs = self.get_hours_in_pairs(lab_h)
+        total_srsp_pairs = self.get_hours_in_pairs(srsp_h)
 
-            return {
-                'LECTURE': math.ceil(total_lec_pairs / actual_weeks),
-                'PRACTICE': math.ceil(total_prac_pairs / actual_weeks),
-                'LAB': math.ceil(total_lab_pairs / actual_weeks),
-                'SRSP': math.ceil(total_srsp_pairs / actual_weeks),
-            }
+        import math
+        return {
+            'LECTURE': math.ceil(total_lec_pairs / actual_weeks),
+            'PRACTICE': math.ceil(total_prac_pairs / actual_weeks),
+            'LAB': math.ceil(total_lab_pairs / actual_weeks),
+            'SRSP': math.ceil(total_srsp_pairs / actual_weeks),
+        }
     
 
 

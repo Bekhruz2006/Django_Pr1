@@ -13,6 +13,8 @@ import json
 from datetime import datetime
 from schedule.models import Semester, SubjectMaterial, AcademicPlan, Classroom, Subject
 from lms.models import Course
+import logging
+logger = logging.getLogger(__name__)
 
 def get_ai_report_status():
     active_sems = Semester.objects.filter(is_active=True)
@@ -288,40 +290,50 @@ def dashboard(request):
         today = datetime.now()
         day_of_week = today.weekday()
         current_time = today.time()
-        classes = []
+        classes =[]
 
-        if hasattr(user, 'student_profile'):
-            try:
-                student = user.student_profile
-                if student.group:
-                    classes = ScheduleSlot.objects.filter(
-                        group=student.group,
-                        day_of_week=day_of_week,
-                        is_active=True
-                    ).select_related('subject', 'teacher').order_by('start_time')
-            except Exception:
-                pass
+        active_semester = Semester.objects.filter(is_active=True).first()
 
-        elif hasattr(user, 'teacher_profile') or hasattr(user, 'head_of_dept_profile'):
-            try:
-                if hasattr(user, 'teacher_profile'):
-                    teacher = user.teacher_profile
-                    classes = ScheduleSlot.objects.filter(
-                        teacher=teacher,
-                        day_of_week=day_of_week,
-                        is_active=True
-                    ).select_related('subject', 'group').order_by('start_time')
-            except Exception:
-                pass
+        if active_semester:
+            base_slots = ScheduleSlot.objects.filter(
+                semester=active_semester, is_active=True
+            ).select_related('subject', 'teacher__user', 'classroom')
+
+            if hasattr(user, 'student_profile') and user.student_profile.group:
+                base_slots = base_slots.filter(group=user.student_profile.group)
+            elif hasattr(user, 'teacher_profile'):
+                base_slots = base_slots.filter(teacher=user.teacher_profile)
+            else:
+                base_slots = base_slots.none()
+
+            from schedule.models import ScheduleException
+            exceptions_today = ScheduleException.objects.filter(
+                schedule_slot__in=base_slots, exception_date=today.date()
+            ).values_list('schedule_slot_id', flat=True)
+
+            rescheduled_to_today = ScheduleException.objects.filter(
+                schedule_slot__in=base_slots, new_date=today.date()
+            ).select_related('schedule_slot__subject', 'schedule_slot__teacher__user', 'schedule_slot__group')
+
+            regular_classes = list(base_slots.filter(day_of_week=day_of_week).exclude(id__in=exceptions_today))
+            
+            for exc in rescheduled_to_today:
+                exc.schedule_slot.start_time = exc.new_start_time or exc.schedule_slot.start_time
+                exc.schedule_slot.end_time = exc.new_end_time or exc.schedule_slot.end_time
+                if exc.new_classroom:
+                    exc.schedule_slot.classroom = exc.new_classroom
+                    exc.schedule_slot.room = exc.new_classroom.number
+                regular_classes.append(exc.schedule_slot)
+
+            classes = sorted(regular_classes, key=lambda x: x.start_time)
 
         context['classes'] = classes
         context['current_time'] = current_time
         context['today'] = today
 
-    except Exception:
-        context['classes'] = []
-        context['current_time'] = datetime.now().time()
-        context['today'] = datetime.now()
+    except Exception as e:
+            logger.exception("Dashboard classes error")
+            context['classes'] =[]
 
     return render(request, 'core/dashboard_student.html', context)
 
