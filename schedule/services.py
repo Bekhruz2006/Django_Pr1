@@ -33,18 +33,31 @@ class ScheduleImporter:
         filename = self.file.name.lower()
         self.default_group = default_group
 
+        logger.info(
+            "ScheduleImporter.parse_for_preview: file=%s default_group=%s",
+            filename, default_group
+        )
+
         try:
             if filename.endswith('.xlsx') or filename.endswith('.xls'):
                 self._process_excel()
             else:
+                logger.warning(
+                    "ScheduleImporter.parse_for_preview: unsupported file format=%s", filename
+                )
                 return []
         except Exception:
-            import traceback
-            traceback.print_exc()
+            logger.exception("ScheduleImporter.parse_for_preview: failed to parse file=%s", filename)
             return []
+
+        logger.info(
+            "ScheduleImporter.parse_for_preview: parsed %s entries from %s",
+            len(self.preview_data), filename
+        )
         return self.preview_data
 
     def _process_excel(self):
+        logger.debug("ScheduleImporter._process_excel: loading workbook")
         wb = openpyxl.load_workbook(self.file, data_only=True)
         sheet = wb.active
         rows = []
@@ -52,10 +65,12 @@ class ScheduleImporter:
             clean = [str(c).strip() if c is not None else "" for c in row]
             if any(clean):
                 rows.append(clean)
+        logger.debug("ScheduleImporter._process_excel: loaded %s non-empty rows", len(rows))
         self._parse_grid_rows(rows, source="Excel")
 
     def _parse_grid_rows(self, rows, source=""):
         if len(rows) < 2:
+            logger.warning("ScheduleImporter._parse_grid_rows: too few rows (%s) in source=%s", len(rows), source)
             return
 
         header_map = {}
@@ -73,8 +88,22 @@ class ScheduleImporter:
                 break
 
         if not header_map and self.default_group:
+            logger.debug(
+                "ScheduleImporter._parse_grid_rows: no header groups found, using default_group=%s",
+                self.default_group
+            )
             header_map[2] = self.default_group
             start_row_idx = 0
+
+        if not header_map:
+            logger.warning(
+                "ScheduleImporter._parse_grid_rows: no group headers found and no default_group set"
+            )
+
+        logger.debug(
+            "ScheduleImporter._parse_grid_rows: found %s group columns, start_row=%s",
+            len(header_map), start_row_idx
+        )
 
         current_day = 0
 
@@ -152,9 +181,15 @@ class ScheduleImporter:
     def save_data_from_preview(self, clean_data, semester):
         stats = {'slots': 0, 'subjects': 0, 'teachers': 0}
 
+        logger.info(
+            "ScheduleImporter.save_data_from_preview: saving %s items for semester=%s",
+            len(clean_data), semester
+        )
+
         for item in clean_data:
-            subj_name = safe_str(item.get('subject', '')).strip() 
+            subj_name = safe_str(item.get('subject', '')).strip()
             if not subj_name:
+                logger.debug("ScheduleImporter.save_data_from_preview: empty subject_name, skip item=%s", item)
                 continue
 
             try:
@@ -180,6 +215,11 @@ class ScheduleImporter:
                         ).first()
 
                     if not t_slot:
+                        logger.warning(
+                            "ScheduleImporter.save_data_from_preview: no TimeSlot for start_time=%s "
+                            "group=%s subject=%s — skipped",
+                            start_str, group.name, subj_name
+                        )
                         continue
 
                     dept = group.specialty.department if group.specialty else self.default_dept
@@ -198,6 +238,10 @@ class ScheduleImporter:
                     )
                     if created:
                         stats['subjects'] += 1
+                        logger.info(
+                            "ScheduleImporter: created new Subject=%s dept=%s",
+                            subj_name, dept
+                        )
                     subject.groups.add(group)
 
                     teacher_obj = None
@@ -211,6 +255,10 @@ class ScheduleImporter:
                         )
                         if teacher_qs.exists():
                             teacher_obj = teacher_qs.first()
+                            logger.debug(
+                                "ScheduleImporter: matched teacher=%s for name=%s",
+                                teacher_obj.user.get_full_name(), t_name
+                            )
                         else:
                             try:
                                 base_u = f"imp_{datetime.now().microsecond}_{surname[:5]}"
@@ -223,8 +271,15 @@ class ScheduleImporter:
                                 )
                                 teacher_obj = Teacher.objects.create(user=u, department=dept)
                                 stats['teachers'] += 1
-                            except Exception:
-                                pass
+                                logger.info(
+                                    "ScheduleImporter: created new Teacher=%s username=%s",
+                                    t_name, base_u
+                                )
+                            except Exception as te:
+                                logger.warning(
+                                    "ScheduleImporter: failed to create teacher name=%s: %s",
+                                    t_name, te
+                                )
 
                     if teacher_obj and not subject.teacher:
                         subject.teacher = teacher_obj
@@ -263,10 +318,24 @@ class ScheduleImporter:
                     )
                     stats['slots'] += 1
 
+            except Group.DoesNotExist:
+                logger.error(
+                    "ScheduleImporter.save_data_from_preview: Group id=%s not found",
+                    item.get('group_id')
+                )
             except Exception as e:
-                logger.warning(f"Ошибка при сохранении слота: {e}")
+                logger.warning(
+                    "ScheduleImporter.save_data_from_preview: failed to save slot "
+                    "group_id=%s subject=%s day=%s time=%s: %s",
+                    item.get('group_id'), subj_name,
+                    item.get('day'), item.get('start_time'), e
+                )
                 continue
 
+        logger.info(
+            "ScheduleImporter.save_data_from_preview finished: slots=%s subjects=%s teachers=%s",
+            stats['slots'], stats['subjects'], stats['teachers']
+        )
         return stats
 
     def _extract_time_slot(self, val):
@@ -332,6 +401,7 @@ class ScheduleImporter:
 class RupImporter:
     @staticmethod
     def parse_for_preview(file):
+        logger.info("RupImporter.parse_for_preview: starting parse")
         wb = openpyxl.load_workbook(file, data_only=True)
         sheet = wb.active
 
@@ -353,11 +423,14 @@ class RupImporter:
 
             if any(m in lower_name for m in _REQUIRED_MARKERS):
                 current_disc_type = 'REQUIRED'
+                logger.debug("RupImporter: row=%s — switching to REQUIRED block", row_idx)
                 continue
             if any(m in lower_name for m in _ELECTIVE_MARKERS):
                 current_disc_type = 'ELECTIVE'
+                logger.debug("RupImporter: row=%s — switching to ELECTIVE block", row_idx)
                 continue
             if any(m in lower_name for m in _SKIP_MARKERS):
+                logger.debug("RupImporter: row=%s — skip marker found: %s", row_idx, subj_name)
                 continue
 
             credits = safe_int(row[1]) if len(row) > 1 else 0
@@ -370,6 +443,10 @@ class RupImporter:
                 total_h = safe_int(row[3]) if len(row) > 3 else 0
                 if total_h > 0:
                     srs = total_h
+                    logger.debug(
+                        "RupImporter: row=%s name=%s — no hour breakdown, using total=%s as SRS",
+                        row_idx, subj_name, total_h
+                    )
 
             preview_data.append({
                 'id':      row_idx,
@@ -382,12 +459,19 @@ class RupImporter:
                 'srs':     srs,
             })
 
+        logger.info(
+            "RupImporter.parse_for_preview: found %s disciplines", len(preview_data)
+        )
         return preview_data
 
 
 class AlgorithmicAssignmentService:
     @staticmethod
     def generate_assignment(teachers_qs, subjects_data):
+        logger.info(
+            "AlgorithmicAssignmentService.generate_assignment: teachers=%s subjects=%s",
+            teachers_qs.count(), len(subjects_data)
+        )
         assignments = []
 
         teacher_loads = {}
@@ -407,7 +491,11 @@ class AlgorithmicAssignmentService:
                 disc = PlanDiscipline.objects.get(id=disc_id)
                 target_dept = disc.plan.specialty.department if disc.plan.specialty else None
                 disc_hours = disc.lecture_hours + disc.practice_hours + disc.control_hours
-            except Exception:
+            except Exception as e:
+                logger.warning(
+                    "AlgorithmicAssignmentService: failed to resolve discipline key=%s: %s",
+                    key, e
+                )
                 disc = None
                 target_dept = None
                 disc_hours = 30
@@ -456,15 +544,27 @@ class AlgorithmicAssignmentService:
                     "reason": reason_text
                 })
                 teacher_loads[best_teacher.id] += disc_hours
+                logger.debug(
+                    "AlgorithmicAssignmentService: assigned subject=%s to teacher=%s score=%.1f reason=%s",
+                    subj['name'], best_teacher.user.get_full_name(), best_score, reason_text
+                )
             else:
                 assignments.append({
                     "key": key,
                     "teacher_id": None,
                     "reason": "Алгоритм: Подходящий преподаватель не найден"
                 })
+                logger.warning(
+                    "AlgorithmicAssignmentService: no suitable teacher for subject=%s best_score=%.1f",
+                    subj['name'], best_score
+                )
 
+        logger.info(
+            "AlgorithmicAssignmentService.generate_assignment finished: assigned=%s unassigned=%s",
+            sum(1 for a in assignments if a['teacher_id']),
+            sum(1 for a in assignments if not a['teacher_id'])
+        )
         return {"assignments": assignments}
-
 
 class AIAssignmentService:
     OLLAMA_URL = "http://localhost:11434/api/generate"

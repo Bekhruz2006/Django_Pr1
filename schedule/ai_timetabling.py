@@ -5,6 +5,9 @@ import copy
 from collections import defaultdict
 from django.db import transaction
 from .models import ScheduleSlot, Subject, Classroom, TimeSlot, TeacherUnavailableSlot
+import logging
+logger = logging.getLogger(__name__)
+
 
 class AutoScheduleEngine:
     def __init__(self, semester, target_groups=None, target_teachers=None, target_rooms=None, 
@@ -117,20 +120,32 @@ class AutoScheduleEngine:
                     score -= 30 
         return score
 
-    def generate(self):
+def generate(self):
+        logger.info(
+            "AutoScheduleEngine.generate started: semester=%s groups=%s iterations=%s",
+            self.semester, [g.id for g in (self.target_groups or [])], self.iterations
+        )
+
         rooms_qs = Classroom.objects.filter(is_active=True)
-        if self.target_rooms: rooms_qs = rooms_qs.filter(id__in=self.target_rooms)
+        if self.target_rooms:
+            rooms_qs = rooms_qs.filter(id__in=self.target_rooms)
         available_rooms = list(rooms_qs)
 
+        if not available_rooms:
+            logger.warning("AutoScheduleEngine.generate: no active classrooms found")
+
         subjects_qs = Subject.objects.filter(groups__in=self.target_groups).distinct()
-        if self.target_teachers: subjects_qs = subjects_qs.filter(teacher_id__in=self.target_teachers)
-            
-        base_tasks =[]
+        if self.target_teachers:
+            subjects_qs = subjects_qs.filter(teacher_id__in=self.target_teachers)
+
+        base_tasks = []
         for subject in subjects_qs:
             needed_slots = subject.get_weekly_slots_needed()
             groups = list(subject.groups.filter(id__in=[g.id for g in self.target_groups]))
-            if not groups: continue
-            
+            if not groups:
+                logger.debug("AutoScheduleEngine: subject=%s has no matching groups, skip", subject.name)
+                continue
+
             if subject.is_stream_subject and subject.groups.count() > 1:
                 total_students = sum([g.students.count() for g in groups])
                 for l_type, count in needed_slots.items():
@@ -144,7 +159,9 @@ class AutoScheduleEngine:
                 for group in groups:
                     total_students = group.students.count()
                     for l_type, count in needed_slots.items():
-                        existing = ScheduleSlot.objects.filter(subject=subject, group=group, lesson_type=l_type, semester=self.semester).count()
+                        existing = ScheduleSlot.objects.filter(
+                            subject=subject, group=group, lesson_type=l_type, semester=self.semester
+                        ).count()
                         for _ in range(max(0, count - existing)):
                             base_tasks.append({
                                 'subject': subject, 'groups': [group], 'type': l_type,
@@ -152,8 +169,13 @@ class AutoScheduleEngine:
                                 'total_students': total_students, 'pref_room': subject.preferred_room_type
                             })
 
-        best_schedule =[]
-        best_unassigned =[]
+        logger.info(
+            "AutoScheduleEngine: built %s tasks from %s subjects, %s rooms available",
+            len(base_tasks), subjects_qs.count(), len(available_rooms)
+        )
+
+        best_schedule = []
+        best_unassigned = []
         best_score = -float('inf')
 
         for iteration in range(self.iterations):
@@ -162,19 +184,19 @@ class AutoScheduleEngine:
                 copy.deepcopy(self.base_group_busy),
                 copy.deepcopy(self.base_room_busy)
             )
-            
+
             tasks = copy.copy(base_tasks)
             tasks.sort(key=lambda x: (not x['is_stream'], -x['total_students'], random.random()))
 
             current_schedule = []
-            current_unassigned =[]
+            current_unassigned = []
             iteration_score = 0
 
             for task in tasks:
                 assigned = False
                 t_id = task['teacher'].id if task['teacher'] else None
                 g_ids = [g.id for g in task['groups']]
-                
+
                 best_slot_choice = None
                 best_slot_score = -float('inf')
 
@@ -183,17 +205,23 @@ class AutoScheduleEngine:
                         for ts_index, ts in enumerate(self.time_slots):
                             for room in available_rooms:
                                 cap_ratio = task['total_students'] / max(1, room.capacity)
-                                if self.overflow_mode == 0 and cap_ratio > 1.0: continue
-                                if self.overflow_mode == 1 and cap_ratio > 1.25: continue
-                                if self.overflow_mode == 2 and cap_ratio > 1.50: continue
-                                
+                                if self.overflow_mode == 0 and cap_ratio > 1.0:
+                                    continue
+                                if self.overflow_mode == 1 and cap_ratio > 1.25:
+                                    continue
+                                if self.overflow_mode == 2 and cap_ratio > 1.50:
+                                    continue
+
                                 type_penalty = 0
                                 if self.strict_room_types:
-                                    if task['type'] == 'LECTURE' and room.room_type not in ['LECTURE', 'SPORT']: continue
-                                    if task['type'] == 'LAB' and room.room_type != 'LAB': continue
-                                    if task['pref_room'] and room.room_type != task['pref_room']: continue
+                                    if task['type'] == 'LECTURE' and room.room_type not in ['LECTURE', 'SPORT']:
+                                        continue
+                                    if task['type'] == 'LAB' and room.room_type != 'LAB':
+                                        continue
+                                    if task['pref_room'] and room.room_type != task['pref_room']:
+                                        continue
                                 else:
-                                    if task['type'] == 'LECTURE' and room.room_type not in['LECTURE', 'SPORT']:
+                                    if task['type'] == 'LECTURE' and room.room_type not in ['LECTURE', 'SPORT']:
                                         type_penalty -= 50
                                     if task['type'] == 'LAB' and room.room_type != 'LAB':
                                         type_penalty -= 50
@@ -204,10 +232,12 @@ class AutoScheduleEngine:
                                 if cap_ratio > 1.0:
                                     cap_penalty -= (cap_ratio - 1.0) * 100
                                 elif cap_ratio < 0.3:
-                                    cap_penalty -= 20 
+                                    cap_penalty -= 20
 
                                 if self._is_free(current_state, t_id, g_ids, room.id, day, ts.id, week_type):
-                                    time_score = self._evaluate_slot_quality(current_state, t_id, g_ids, day, ts_index)
+                                    time_score = self._evaluate_slot_quality(
+                                        current_state, t_id, g_ids, day, ts_index
+                                    )
                                     total_score = time_score + type_penalty + cap_penalty - (ts_index * 2)
 
                                     if total_score > best_slot_score:
@@ -218,7 +248,7 @@ class AutoScheduleEngine:
                     room, day, ts, week_type = best_slot_choice
                     self._mark_busy(current_state, t_id, g_ids, room.id, day, ts.id, week_type)
                     iteration_score += best_slot_score
-                    
+
                     stream_id = uuid.uuid4() if task['is_stream'] else None
                     for group in task['groups']:
                         current_schedule.append(ScheduleSlot(
@@ -229,22 +259,46 @@ class AutoScheduleEngine:
                             week_type=week_type, stream_id=stream_id, is_active=True
                         ))
                     assigned = True
-                
+
                 if not assigned:
                     current_unassigned.append(task)
-                    iteration_score -= 2000 
+                    iteration_score -= 2000
 
             if iteration_score > best_score:
                 best_score = iteration_score
                 best_schedule = current_schedule
                 best_unassigned = current_unassigned
 
+            logger.debug(
+                "AutoScheduleEngine iteration %s/%s: placed=%s unassigned=%s score=%.1f",
+                iteration + 1, self.iterations,
+                len(current_schedule), len(current_unassigned), iteration_score
+            )
+
         with transaction.atomic():
             ScheduleSlot.objects.bulk_create(best_schedule)
 
-        return {
+        result = {
             'success': True,
             'created': len(best_schedule),
             'unassigned_count': len(best_unassigned),
-            'unassigned_details': [f"{t['subject'].name} ({t['type']}) - {', '.join([g.name for g in t['groups']])}" for t in best_unassigned]
+            'unassigned_details': [
+                f"{t['subject'].name} ({t['type']}) - {', '.join([g.name for g in t['groups']])}"
+                for t in best_unassigned
+            ]
         }
+
+        logger.info(
+            "AutoScheduleEngine.generate finished: created=%s unassigned=%s best_score=%.1f",
+            result['created'], result['unassigned_count'], best_score
+        )
+
+        if best_unassigned:
+            logger.warning(
+                "AutoScheduleEngine: %s tasks could not be placed: %s",
+                len(best_unassigned), result['unassigned_details'][:5]
+            )
+
+        return result
+
+

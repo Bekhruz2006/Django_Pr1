@@ -124,12 +124,27 @@ def get_active_semester_for_group(group):
         faculty = group.specialty.department.faculty
         semester = Semester.objects.filter(faculty=faculty, is_active=True, course=group.course).first()
         if semester:
+            logger.debug(
+                "get_active_semester_for_group: group=%s -> semester=%s (faculty match)",
+                group.name, semester
+            )
             return semester
     semester = Semester.objects.filter(course=group.course, is_active=True).first()
     if not semester:
         semester = Semester.objects.filter(is_active=True).first()
-        
+    if semester:
+        logger.debug(
+            "get_active_semester_for_group: group=%s -> semester=%s (fallback)",
+            group.name, semester
+        )
+    else:
+        logger.warning(
+            "get_active_semester_for_group: no active semester found for group=%s course=%s",
+            group.name if group else None,
+            group.course if group else None
+        )
     return semester
+
 
 @login_required
 def schedule_constructor(request):
@@ -344,6 +359,10 @@ def create_schedule_slot(request):
         logger.info(f"Входящие данные: {data}")
 
         if data.get('is_military_day'):
+            logger.info(
+                "create_schedule_slot: MILITARY DAY assignment user=%s group=%s day=%s semester=%s",
+                request.user.username, data.get('group'), data.get('day_of_week'), data.get('semester_id')
+            )
             try:
                 group_id = data.get('group')
                 day_of_week = int(data.get('day_of_week'))
@@ -408,7 +427,10 @@ def create_schedule_slot(request):
 
                 return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
             except Exception as e:
-                logger.exception(f"create_schedule_slot military: {str(e)}; data={data}")
+                logger.exception(
+                    "create_schedule_slot military: group=%s day=%s semester=%s error=%s",
+                    group_id, day_of_week, semester_id, e
+                )
                 return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
         force = data.get('force', False)
@@ -418,6 +440,12 @@ def create_schedule_slot(request):
         time_slot_id = data.get('time_slot')
         lesson_type = data.get('lesson_type', 'LECTURE')
         semester_id = data.get('semester_id')
+
+        logger.info(
+            "create_schedule_slot: user=%s group=%s subject=%s day=%s ts=%s semester=%s week_type=%s force=%s",
+            request.user.username, group_id, subject_id, day_of_week, time_slot_id,
+            semester_id, data.get('week_type', 'EVERY'), data.get('force', False)
+        )
 
         main_group = get_object_or_404(Group, id=group_id)
         subject = get_object_or_404(Subject, id=subject_id)
@@ -475,6 +503,10 @@ def create_schedule_slot(request):
                     conflicts.append(f"❌ Преподаватель <b>{subject.teacher.user.get_full_name()}</b> занят ({busy_teacher.start_time.strftime('%H:%M')}-{busy_teacher.end_time.strftime('%H:%M')})")
 
         if conflicts:
+            logger.warning(
+                "create_schedule_slot: conflicts detected user=%s group=%s subject=%s day=%s ts=%s: %s",
+                request.user.username, group_id, subject_id, day_of_week, time_slot_id, conflicts
+            )
             return JsonResponse({
                 'success': False,
                 'is_conflict': True,
@@ -507,12 +539,17 @@ def create_schedule_slot(request):
                 )
                 created_slots.append(new_slot)
 
+        logger.info(
+            "create_schedule_slot: created %s slots stream=%s user=%s group=%s subject=%s",
+            len(created_slots), is_stream, request.user.username, group_id, subject_id
+        )
         return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
-
     except Exception as e:
-        logger.exception(f"ОШИБКА в create_schedule_slot: {str(e)}")
-        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
-
+        logger.exception(
+            "create_schedule_slot: unexpected error user=%s data=%s",
+            request.user.username, {k: v for k, v in data.items() if k != 'csrfmiddlewaretoken'}
+        )
+        return JsonResponse({'success': False, 'error': ('Внутренняя ошибка сервера')}, status=500)
 
 @login_required
 @require_POST
@@ -523,6 +560,11 @@ def update_schedule_room(request, slot_id):
         room_text = data.get('room', '').strip()
         force = data.get('force', False)
         slot = get_object_or_404(ScheduleSlot, id=slot_id)
+
+        logger.debug(
+            "update_schedule_room: slot_id=%s room_id=%s room_text=%s force=%s user=%s",
+            slot_id, room_id, room_text, force, request.user.username
+        )
 
         if not room_text and not room_id:
             with transaction.atomic():
@@ -603,7 +645,6 @@ def update_schedule_room(request, slot_id):
             }, status=400)
 
         if not force and classroom:
-            
             room_types_dict = dict(ROOM_TYPES)
 
             if slot.subject.preferred_room_type and classroom.room_type != slot.subject.preferred_room_type:
@@ -642,39 +683,57 @@ def update_schedule_room(request, slot_id):
                 slot.classroom = classroom
                 slot.save()
 
+        logger.info(
+            "update_schedule_room: updated slot_id=%s room=%s stream=%s user=%s",
+            slot_id, room_number, bool(slot.stream_id), request.user.username
+        )
         display_name = room_number
         return JsonResponse({'success': True, 'room': display_name})
 
     except Exception as e:
-        logger.exception("update_schedule_room")
+        logger.exception(
+            "update_schedule_room: slot_id=%s user=%s error=%s",
+            slot_id, request.user.username, e
+        )
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
+
+
+
 
 @login_required
 @require_POST
 def clear_schedule(request):
     if not is_dean_or_admin(request.user):
         return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
-        
+
     try:
         data = json.loads(request.body)
         group_id = data.get('group_id')
         semester_id = data.get('semester_id')
-        
+
         group = get_object_or_404(Group, id=group_id)
         semester = get_object_or_404(Semester, id=semester_id)
-        
+
         if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
             if group.specialty and group.specialty.department.faculty != faculty:
                 return JsonResponse({'success': False, 'error': _('Нет доступа к этой группе')}, status=403)
-                
+
         slots = ScheduleSlot.objects.filter(group=group, semester=semester)
         slots.update(is_active=False)
         slots.delete()
+        logger.info(
+            "clear_schedule: cleared all slots group=%s semester=%s user=%s",
+            group.name, semester, request.user.username
+        )
         return JsonResponse({'success': True})
     except Exception as e:
         logger.exception("clear_schedule")
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
+
+
+
+
 
 @login_required
 @require_POST
@@ -698,11 +757,22 @@ def delete_schedule_slot(request, slot_id):
                 schedule_slot.delete()
                 msg = _('Занятие удалено')
 
+        logger.info(
+            "delete_schedule_slot: deleted slot_id=%s stream=%s user=%s group=%s subject=%s",
+            slot_id, bool(schedule_slot.stream_id),
+            request.user.username,
+            schedule_slot.group.name,
+            schedule_slot.subject.name
+        )
         return JsonResponse({'success': True, 'message': msg})
 
     except Exception as e:
         logger.exception("delete_schedule_slot")
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
+
+
+
+
 
 @login_required
 def schedule_view(request):
@@ -1356,26 +1426,31 @@ def export_schedule(request):
         return HttpResponse(_("Library python-docx not installed"), status=500)
 
     group_id = request.GET.get('group')
-    
+
     current_site_lang = translation.get_language()
     if current_site_lang:
         current_site_lang = current_site_lang[:2]
     else:
         current_site_lang = 'ru'
-        
+
     lang = request.GET.get('lang', current_site_lang)
-    
+
     if lang not in ['ru', 'tg', 'en']:
         lang = 'ru'
-        
+
     translation.activate(lang)
-    
+
     try:
         group = get_object_or_404(Group, id=group_id)
         active_semester = get_active_semester_for_group(group)
 
         if not active_semester:
             return HttpResponse(_("Нет активного семестра"), status=400)
+
+        logger.info(
+            "export_schedule: group=%s lang=%s semester=%s user=%s",
+            group.name, lang, active_semester, request.user.username
+        )
 
         try:
             if group.specialty:
@@ -1478,7 +1553,7 @@ def export_schedule(request):
                 'students': "students"
             }
         }
-        
+
         t = trans[lang]
 
         doc = Document()
@@ -1600,14 +1675,14 @@ def export_schedule(request):
                         cell = row.cells[2]
                         p = cell.paragraphs[0]
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        
+
                         rooms =[]
                         for idx, slot in enumerate(cell_slots):
                             lesson_type_display = slot.get_lesson_type_display()
                             week_mark = ""
                             if slot.week_type == 'RED': week_mark = " (Красн.)"
                             elif slot.week_type == 'BLUE': week_mark = " (Син.)"
-                            
+
                             if idx > 0:
                                 p.add_run("\n-------------------\n")
 
@@ -1681,9 +1756,14 @@ def export_schedule(request):
         response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+    except Exception as e:
+        logger.exception(
+            "export_schedule: group_id=%s lang=%s user=%s error=%s",
+            group_id, lang, request.user.username, e
+        )
+        return HttpResponse(_("Ошибка генерации документа"), status=500)
     finally:
         translation.deactivate()
-
 
 
 @user_passes_test(is_dean_or_admin)
@@ -1812,13 +1892,13 @@ def plan_detail(request, plan_id):
 
 @user_passes_test(is_dean_or_admin)
 def generate_subjects_from_rup(request):
-    teachers = Teacher.objects.select_related('user').all() 
+    teachers = Teacher.objects.select_related('user').all()
     groups = Group.objects.all()
     if hasattr(request.user, 'dean_profile'):
         faculty = request.user.dean_profile.faculty
         groups = groups.filter(specialty__department__faculty=faculty)
         teachers = teachers.filter(
-            Q(department__faculty=faculty) | 
+            Q(department__faculty=faculty) |
             Q(additional_departments__faculty=faculty) |
             Q(subject__department__faculty=faculty) |
             Q(subject__groups__specialty__department__faculty=faculty) |
@@ -1935,6 +2015,13 @@ def generate_subjects_from_rup(request):
                             )
                             subject.groups.set(group_list)
                             created_count += 1
+                            logger.info(
+                                "generate_subjects_from_rup: created subject=%s group=%s stream=%s teacher=%s",
+                                disc.subject_template.name,
+                                [g.name for g in group_list],
+                                is_stream,
+                                teacher_obj.user.get_full_name() if teacher_obj else None
+                            )
                         except Exception as e:
                             logger.exception("generate_subjects_from_plan stream")
                             errors.append(_("Ошибка БД при создании потока. См. журнал сервера."))
@@ -1966,12 +2053,21 @@ def generate_subjects_from_rup(request):
                                 )
                                 subject.groups.add(grp)
                                 created_count += 1
+                                logger.info(
+                                    "generate_subjects_from_rup: created subject=%s group=%s stream=%s teacher=%s",
+                                    disc.subject_template.name,
+                                    grp.name,
+                                    is_stream,
+                                    teacher_obj.user.get_full_name() if teacher_obj else None
+                                )
                             except Exception as e:
                                 logger.exception("generate_subjects_from_plan group %s", grp.name)
                                 errors.append(_("Ошибка БД при создании предмета для группы %(name)s. См. журнал сервера.") % {'name': grp.name})
 
         except Exception as e:
-            logger.exception("generate_subjects_from_plan")
+            logger.exception(
+                "generate_subjects_from_rup: critical error key=%s: %s", key, e
+            )
             errors.append(_("Критическая ошибка. См. журнал сервера."))
 
         if errors:
@@ -1989,7 +2085,6 @@ def generate_subjects_from_rup(request):
         'diagnostics': diagnostics,
         'teachers': teachers,
     })
-
 
 
 @user_passes_test(is_facility_admin)
@@ -2438,23 +2533,23 @@ def manage_time_slots(request):
         form = TimeSlotGeneratorForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
-            inst = data['institute'] 
+            inst = data['institute']
             shift = data['shift']
-            
+
             if data['delete_existing']:
                 TimeSlot.objects.filter(institute=inst, shift=shift).delete()
-            
+
             current_time = datetime.combine(date.today(), data['start_time'])
             created_count = 0
-            
+
             big_break_after = data.get('big_break_after') or 0
             big_break_dur = data.get('big_break_duration') or data['break_duration']
-            
+
             for i in range(1, data['pairs_count'] + 1):
                 start = current_time.time()
                 end_dt = current_time + timedelta(minutes=data['lesson_duration'])
                 end = end_dt.time()
-                
+
                 TimeSlot.objects.create(
                     institute=inst,
                     number=i,
@@ -2464,12 +2559,16 @@ def manage_time_slots(request):
                     duration=data['lesson_duration']
                 )
                 created_count += 1
-                
+
                 is_big_break = (i == big_break_after)
                 break_min = big_break_dur if is_big_break else data['break_duration']
-                
+
                 current_time = end_dt + timedelta(minutes=break_min)
-            
+
+            logger.info(
+                "manage_time_slots: generated %s time slots shift=%s institute=%s user=%s",
+                created_count, shift, inst, request.user.username
+            )
             target = inst.name if inst else "Всего Университета (Глобально)"
             messages.success(request, _(f"Сетка звонков создана для: {target}. Сгенерировано {created_count} пар."))
             return redirect('schedule:manage_time_slots')
@@ -2478,13 +2577,12 @@ def manage_time_slots(request):
 
     global_slots = TimeSlot.objects.filter(institute__isnull=True).order_by('shift', 'start_time')
     institute_slots = TimeSlot.objects.filter(institute__isnull=False).select_related('institute').order_by('institute', 'shift', 'start_time')
-    
+
     return render(request, 'schedule/manage_time_slots.html', {
         'form': form,
         'global_slots': global_slots,
         'institute_slots': institute_slots
     })
-
 
 
 
@@ -2637,49 +2735,46 @@ def check_schedule_conflicts(request):
 @user_passes_test(lambda u: u.is_superuser or u.role in [
     'DEAN', 'VICE_DEAN', 'HEAD_OF_DEPT', 'DIRECTOR', 'PRO_RECTOR'
 ])
-@user_passes_test(lambda u: u.is_superuser or u.role in [
-    'DEAN', 'VICE_DEAN', 'HEAD_OF_DEPT', 'DIRECTOR', 'PRO_RECTOR'
-])
 def import_rup_excel(request, plan_id, semester_num):
     from .services import RupImporter
- 
+
     plan = get_object_or_404(AcademicPlan, id=plan_id)
     plan_url = f"/schedule/plans/{plan.id}/?semester={semester_num}"
- 
+
     if plan.group:
         plan_groups = Group.objects.filter(id=plan.group.id)
     elif plan.specialty:
         plan_groups = Group.objects.filter(specialty=plan.specialty).order_by('course', 'name')
     else:
         plan_groups = Group.objects.none()
- 
+
     teachers = _get_teachers(request.user, plan)
- 
+
     if request.method == 'POST' and 'confirm_import' in request.POST:
         preview_data = request.session.get('rup_import_preview', [])
         if not preview_data:
             messages.error(request, "Сессия истекла. Загрузите файл заново.")
             return redirect(plan_url)
- 
+
         stats = {'disciplines': 0, 'subjects': 0, 'errors': []}
- 
+
         try:
             with transaction.atomic():
                 for item in preview_data:
                     idx = str(item['id'])
- 
+
                     if not request.POST.get(f"import_{idx}"):
                         continue
- 
+
                     name = request.POST.get(f"name_{idx}", item.get('name', '')).strip()
                     if not name:
                         continue
- 
+
                     group_ids = request.POST.getlist(f"groups_{idx}")
                     if not group_ids:
                         stats['errors'].append(f"«{name}» — не выбрана группа, пропущено.")
                         continue
- 
+
                     disc_type = request.POST.get(f"type_{idx}", item.get('type', 'REQUIRED'))
                     credits   = safe_int(request.POST.get(f"credits_{idx}", item.get('credits', 0)))
                     lec       = safe_int(request.POST.get(f"lec_{idx}",     item.get('lec', 0)))
@@ -2687,14 +2782,14 @@ def import_rup_excel(request, plan_id, semester_num):
                     srsp      = safe_int(request.POST.get(f"srsp_{idx}",    item.get('srsp', 0)))
                     srs       = safe_int(request.POST.get(f"srs_{idx}",     item.get('srs', 0)))
                     sem_num   = safe_int(request.POST.get(f"semester_{idx}", semester_num)) or semester_num
- 
+
                     teacher1_id = request.POST.get(f"teacher1_{idx}", "")
                     teacher1 = Teacher.objects.filter(id=teacher1_id).first() if teacher1_id else None
- 
+
                     do_split = bool(request.POST.get(f"split_{idx}"))
                     teacher2 = None
                     split_lec = split_prac = split_srsp = split_srs = split_credits = 0
- 
+
                     if do_split:
                         teacher2_id = request.POST.get(f"teacher2_{idx}", "")
                         teacher2 = Teacher.objects.filter(id=teacher2_id).first() if teacher2_id else None
@@ -2703,14 +2798,14 @@ def import_rup_excel(request, plan_id, semester_num):
                         split_srsp    = safe_int(request.POST.get(f"split_srsp_{idx}",    0))
                         split_srs     = safe_int(request.POST.get(f"split_srs_{idx}",     0))
                         split_credits = safe_int(request.POST.get(f"split_credits_{idx}", 0))
- 
+
                         if not teacher2:
                             stats['errors'].append(
                                 f"«{name}» — разделение включено, но второй преподаватель не выбран. "
                                 f"Дисциплина создана без разделения."
                             )
                             do_split = False
- 
+
                         over_lec  = split_lec  > lec
                         over_prac = split_prac > prac
                         over_srsp = split_srsp > srsp
@@ -2721,7 +2816,14 @@ def import_rup_excel(request, plan_id, semester_num):
                                 f"Разделение отменено, дисциплина создана без разделения."
                             )
                             do_split = False
- 
+
+                    logger.info(
+                        "import_rup_excel: processing row idx=%s name=%s type=%s credits=%s "
+                        "groups=%s split=%s",
+                        idx, name, disc_type, credits, group_ids,
+                        bool(request.POST.get(f"split_{idx}"))
+                    )
+
                     try:
                         template, _ = SubjectTemplate.objects.get_or_create(name=name)
                         discipline, _ = PlanDiscipline.objects.update_or_create(
@@ -2741,7 +2843,7 @@ def import_rup_excel(request, plan_id, semester_num):
                             }
                         )
                         stats['disciplines'] += 1
- 
+
                         selected_groups = Group.objects.filter(id__in=group_ids)
 
                         for grp in selected_groups:
@@ -2750,7 +2852,7 @@ def import_rup_excel(request, plan_id, semester_num):
                             ).exists()
                             if already:
                                 continue
- 
+
                             dept = _resolve_dept(grp, plan)
                             if not dept:
                                 stats['errors'].append(
@@ -2761,14 +2863,14 @@ def import_rup_excel(request, plan_id, semester_num):
                             from journal.models import MatrixStructure
                             matrix = MatrixStructure.get_or_create_default(institute=dept.faculty.institute, faculty=None)
                             actual_weeks = matrix.columns.filter(col_type='WEEK').count() if matrix else 16
- 
+
                             if do_split:
                                 main_lec  = lec  - split_lec
                                 main_prac = prac - split_prac
                                 main_srsp = srsp - split_srsp
                                 main_srs  = srs  - split_srs
                                 main_cred = max(0, credits - split_credits)
- 
+
                                 subj1 = Subject.objects.create(
                                     name=name,
                                     code=f"RUP{discipline.id}-{grp.id}-{uuid.uuid4().hex[:4]}",
@@ -2787,7 +2889,7 @@ def import_rup_excel(request, plan_id, semester_num):
                                     semester_weeks=actual_weeks,
                                 )
                                 subj1.groups.add(grp)
- 
+
                                 subj2 = Subject.objects.create(
                                     name=f"{name} (ч.2)",
                                     code=f"RUP{discipline.id}-{grp.id}-{uuid.uuid4().hex[:4]}-2",
@@ -2827,16 +2929,26 @@ def import_rup_excel(request, plan_id, semester_num):
                                 )
                                 subj.groups.add(grp)
                                 stats['subjects'] += 1
- 
+
                     except Exception as e:
                         stats['errors'].append(f"«{name}»: {e}")
- 
+                        logger.exception(
+                            "import_rup_excel: failed to process discipline name=%s plan=%s sem=%s: %s",
+                            name, plan_id, semester_num, e
+                        )
+
         except Exception as e:
             messages.error(request, f"Критическая ошибка: {e}")
             return redirect(plan_url)
         finally:
             request.session.pop('rup_import_preview', None)
- 
+
+        logger.info(
+            "import_rup_excel: import finished plan=%s sem=%s disciplines=%s subjects=%s errors=%s user=%s",
+            plan_id, semester_num, stats['disciplines'], stats['subjects'],
+            len(stats['errors']), request.user.username
+        )
+
         messages.success(
             request,
             f"Готово! Дисциплин в план: {stats['disciplines']}, "
@@ -2850,21 +2962,21 @@ def import_rup_excel(request, plan_id, semester_num):
                 + ("..." if len(stats['errors']) > 5 else "")
             )
         return redirect(plan_url)
- 
+
     if request.method == 'POST' and 'file' in request.FILES:
         try:
             preview_data = RupImporter.parse_for_preview(request.FILES['file'])
         except Exception as e:
             messages.error(request, f"Ошибка обработки файла: {e}")
             return redirect(plan_url)
- 
+
         if not preview_data:
             messages.warning(request, "Файл не содержит распознанных дисциплин.")
             return redirect(plan_url)
- 
+
         request.session['rup_import_preview'] = preview_data
         request.session.modified = True
- 
+
         return render(request, 'schedule/plans/import_rup_preview.html', {
             'plan':         plan,
             'semester_num': semester_num,
@@ -2872,9 +2984,15 @@ def import_rup_excel(request, plan_id, semester_num):
             'plan_groups':  plan_groups,
             'teachers':     teachers,
         })
- 
+
     messages.error(request, "Неверный запрос.")
     return redirect(plan_url)
+
+
+
+
+
+
 
 def _resolve_dept(grp, plan):
     if grp.specialty and grp.specialty.department:
@@ -2916,7 +3034,6 @@ def _get_teachers(user, plan):
     return qs
 
 @login_required
-@user_passes_test(is_dean_or_admin)
 @require_POST
 def api_ai_assign_teachers(request):
     try:
@@ -2925,19 +3042,24 @@ def api_ai_assign_teachers(request):
         teacher_ids = data.get('teacher_ids',[])
         model_name = data.get('model_name', 'gemma3:4b')
         assign_method = data.get('method', 'algo')
-        
+
+        logger.info(
+            "api_ai_assign_teachers: user=%s method=%s subjects=%s teacher_ids=%s",
+            request.user.username, assign_method, len(subjects), len(teacher_ids)
+        )
+
         if not subjects:
             return JsonResponse({'success': False, 'error': 'Нет предметов для распределения'})
 
         teachers_qs = Teacher.objects.select_related('user', 'department').prefetch_related('competencies', 'additional_departments').all()
-        
+
         if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
             profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
             faculty = profile.faculty
             institute = faculty.institute if faculty else None
             if institute:
                 teachers_qs = teachers_qs.filter(
-                    Q(department__faculty__institute=institute) | 
+                    Q(department__faculty__institute=institute) |
                     Q(additional_departments__faculty__institute=institute) |
                     Q(subject__department__faculty__institute=institute) |
                     Q(subject__groups__specialty__department__faculty__institute=institute) |
@@ -2945,7 +3067,7 @@ def api_ai_assign_teachers(request):
                 ).distinct()
             else:
                 teachers_qs = teachers_qs.filter(
-                    Q(department__faculty=faculty) | 
+                    Q(department__faculty=faculty) |
                     Q(additional_departments__faculty=faculty) |
                     Q(subject__department__faculty=faculty) |
                     Q(subject__groups__specialty__department__faculty=faculty) |
@@ -2956,30 +3078,32 @@ def api_ai_assign_teachers(request):
             institute = profile.institute
             if institute:
                 teachers_qs = teachers_qs.filter(
-                    Q(department__faculty__institute=institute) | 
+                    Q(department__faculty__institute=institute) |
                     Q(additional_departments__faculty__institute=institute) |
                     Q(subject__department__faculty__institute=institute) |
                     Q(subject__groups__specialty__department__faculty__institute=institute) |
                     Q(scheduleslot__group__specialty__department__faculty__institute=institute)
                 ).distinct()
-            
+
         if teacher_ids:
             teachers_qs = teachers_qs.filter(id__in=teacher_ids)
-            
+
         if assign_method == 'algo':
             result = AlgorithmicAssignmentService.generate_assignment(teachers_qs, subjects)
         else:
             result = AIAssignmentService.generate_assignment(teachers_qs, subjects, model_name)
-        
+
         if result and "assignments" in result:
             return JsonResponse({'success': True, 'assignments': result["assignments"]})
         else:
             return JsonResponse({'success': False, 'error': 'Система не смогла сформировать корректный ответ.'})
-            
-    except Exception as e:
-        logger.exception("api_assign_teachers")
-        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
+    except Exception as e:
+        logger.exception(
+            "api_ai_assign_teachers: user=%s method=%s subjects_count=%s: %s",
+            request.user.username, assign_method, len(subjects), e
+        )
+        return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 
 @user_passes_test(lambda u: u.is_superuser or hasattr(u, 'director_profile'))
@@ -3033,18 +3157,18 @@ def global_semester_setup(request):
 def auto_schedule_config(request):
     semesters = Semester.objects.filter(is_active=True)
     institute = None
-    
+
     if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
         profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
         faculty = profile.faculty
         institute = faculty.institute if faculty else None
-        
+
         semesters = semesters.filter(Q(faculty=faculty) | Q(faculty__isnull=True))
         groups = Group.objects.filter(specialty__department__faculty=faculty)
-        
+
         if institute:
             teachers = Teacher.objects.filter(
-                Q(department__faculty__institute=institute) | 
+                Q(department__faculty__institute=institute) |
                 Q(additional_departments__faculty__institute=institute) |
                 Q(subject__department__faculty__institute=institute) |
                 Q(subject__groups__specialty__department__faculty__institute=institute) |
@@ -3053,14 +3177,14 @@ def auto_schedule_config(request):
             rooms = Classroom.objects.filter(building__institute=institute, is_active=True)
         else:
             teachers = Teacher.objects.filter(
-                Q(department__faculty=faculty) | 
+                Q(department__faculty=faculty) |
                 Q(additional_departments__faculty=faculty) |
                 Q(subject__department__faculty=faculty) |
                 Q(subject__groups__specialty__department__faculty=faculty) |
                 Q(scheduleslot__group__specialty__department__faculty=faculty)
             ).distinct()
             rooms = Classroom.objects.none()
-            
+
     elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
         profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
         institute = profile.institute
@@ -3068,7 +3192,7 @@ def auto_schedule_config(request):
             semesters = semesters.filter(Q(faculty__institute=institute) | Q(faculty__isnull=True))
             groups = Group.objects.filter(specialty__department__faculty__institute=institute)
             teachers = Teacher.objects.filter(
-                Q(department__faculty__institute=institute) | 
+                Q(department__faculty__institute=institute) |
                 Q(additional_departments__faculty__institute=institute) |
                 Q(subject__department__faculty__institute=institute) |
                 Q(subject__groups__specialty__department__faculty__institute=institute) |
@@ -3089,7 +3213,7 @@ def auto_schedule_config(request):
         group_ids = request.POST.getlist('groups')
         teacher_ids = request.POST.getlist('teachers')
         room_ids = request.POST.getlist('rooms')
-        
+
         clear_existing = request.POST.get('clear_existing') == 'on'
         avoid_gaps = request.POST.get('avoid_gaps') == 'on'
         strict_room_types = request.POST.get('strict_room_types') == 'on'
@@ -3102,12 +3226,19 @@ def auto_schedule_config(request):
 
         semester = get_object_or_404(Semester, id=semester_id)
         target_groups = Group.objects.filter(id__in=group_ids)
-        
+
+        logger.info(
+            "auto_schedule_config: starting generation user=%s semester=%s groups=%s "
+            "clear=%s avoid_gaps=%s strict_rooms=%s overflow=%s iterations=%s",
+            request.user.username, semester_id, group_ids,
+            clear_existing, avoid_gaps, strict_room_types, overflow_mode, iterations
+        )
+
         if not institute and target_groups.exists():
             first_group = target_groups.first()
             if first_group.specialty and first_group.specialty.department.faculty:
                 institute = first_group.specialty.department.faculty.institute
-        
+
         try:
             with transaction.atomic():
                 if clear_existing:
@@ -3131,19 +3262,32 @@ def auto_schedule_config(request):
                 result = engine.generate()
 
             if result['unassigned_count'] == 0:
+                logger.info(
+                    "auto_schedule_config: generation complete created=%s user=%s semester=%s",
+                    result['created'], request.user.username, semester_id
+                )
                 messages.success(request, f"✨ Успех! Сгенерировано {result['created']} занятий. Проанализировано {iterations} вариантов.")
             else:
+                logger.warning(
+                    "auto_schedule_config: generation partial created=%s unassigned=%s user=%s semester=%s details=%s",
+                    result['created'], result['unassigned_count'],
+                    request.user.username, semester_id,
+                    result['unassigned_details'][:5]
+                )
                 error_list = "<br>".join(result['unassigned_details'][:10])
                 messages.warning(request, f"Сгенерировано {result['created']} занятий. Не удалось разместить {result['unassigned_count']} занятий (не хватило аудиторий или времени у преподавателей).<br><small>{error_list}</small>")
-            
+
             if target_groups.exists():
                 request.session['last_constructor_group'] = str(target_groups.first().id)
                 request.session['last_constructor_semester'] = str(semester.id)
                 return redirect(f"/schedule/constructor/?group={target_groups.first().id}&semester={semester.id}")
             return redirect('schedule:constructor')
-            
+
         except Exception as e:
-            logger.exception("auto_schedule_generate")
+            logger.exception(
+                "auto_schedule_config: generation failed user=%s semester=%s groups=%s error=%s",
+                request.user.username, semester_id, group_ids, e
+            )
             messages.error(request, _("Критическая ошибка алгоритма. См. журнал сервера."))
             return redirect('schedule:auto_schedule_config')
 
@@ -3153,7 +3297,6 @@ def auto_schedule_config(request):
         'teachers': teachers,
         'rooms': rooms
     })
-
 
 
 @login_required
@@ -3473,9 +3616,18 @@ def import_department_load(request):
                     )
                     subject.groups.add(group_obj)
                     created_count += 1
+                    logger.info(
+                        "import_department_load: creating subject=%s group_id=%s credits=%s teacher=%s",
+                        subj_name, group_id, credits,
+                        teacher_obj.user.get_full_name() if teacher_obj else None
+                    )
 
         except Exception as e:
             messages.error(request, f"Критическая ошибка при сохранении: {e}")
+            logger.exception(
+                "import_department_load: confirm_import critical error user=%s: %s",
+                request.user.username, e
+            )
             return redirect('schedule:import_department_load')
         finally:
             request.session.pop('dept_load_preview', None)
@@ -3563,6 +3715,9 @@ def import_department_load(request):
         })
 
     return render(request, 'schedule/import_dept_load.html')
+
+
+
 
 @login_required
 @require_POST
@@ -3734,16 +3889,21 @@ def schedule_calendar_events(request):
     group_id = request.GET.get('group')
     start_str = request.GET.get('start', '')[:10]
     end_str   = request.GET.get('end',   '')[:10]
- 
+
+    logger.debug(
+        "schedule_calendar_events: user=%s group_id=%s start=%s end=%s",
+        request.user.username, group_id, start_str, end_str
+    )
+
     try:
         start_date = date_cls.fromisoformat(start_str)
         end_date   = date_cls.fromisoformat(end_str)
     except Exception:
         start_date = date_cls.today()
         end_date   = start_date + timedelta(days=35)
- 
+
     user = request.user
- 
+
     if group_id:
         slots_qs = ScheduleSlot.objects.filter(group_id=group_id, is_active=True)
     elif hasattr(user, 'student_profile') and getattr(user.student_profile, 'group', None):
@@ -3752,9 +3912,9 @@ def schedule_calendar_events(request):
         slots_qs = ScheduleSlot.objects.filter(teacher=user.teacher_profile, is_active=True)
     else:
         slots_qs = ScheduleSlot.objects.none()
- 
+
     slots_qs = slots_qs.select_related('subject', 'teacher__user', 'group', 'time_slot', 'semester', 'classroom')
- 
+
     slot_ids = list(slots_qs.values_list('id', flat=True))
     exceptions_qs = SchedExc.objects.filter(
         schedule_slot_id__in=slot_ids,
@@ -3762,35 +3922,35 @@ def schedule_calendar_events(request):
         exception_date__lte=end_date + timedelta(days=7),
     )
     exc_map = {(e.schedule_slot_id, e.exception_date): e for e in exceptions_qs}
- 
+
     COLORS = {'LECTURE': '#2563eb', 'PRACTICE': '#16a34a', 'LAB': '#0891b2', 'SRSP': '#d97706'}
     events =[]
- 
+
     for slot in slots_qs:
         sem = slot.semester
         if not sem or not sem.start_date or not sem.end_date: continue
- 
+
         vac_weeks =[int(w.strip()) for w in sem.vacation_weeks.split(',') if w.strip().isdigit()] if sem.vacation_weeks else[]
         loop_start = max(sem.start_date, start_date)
         days_ahead  = (slot.day_of_week - loop_start.weekday()) % 7
         current     = loop_start + timedelta(days=days_ahead)
- 
+
         while current <= min(sem.end_date, end_date):
             week_num = ((current - sem.start_date).days // 7) + 1
- 
+
             if week_num in vac_weeks:
                 current += timedelta(weeks=1)
                 continue
- 
+
             is_red = (week_num % 2 == 1)
             show = (slot.week_type == 'EVERY' or (slot.week_type == 'RED' and is_red) or (slot.week_type == 'BLUE' and not is_red))
-            
+
             if not show:
                 current += timedelta(weeks=1)
                 continue
- 
+
             exc = exc_map.get((slot.id, current))
- 
+
             if exc and exc.exception_type == 'CANCEL':
                 events.append({
                     'id': f'exc_cancel_{exc.id}',
@@ -3810,7 +3970,7 @@ def schedule_calendar_events(request):
                 })
                 current += timedelta(weeks=1)
                 continue
- 
+
             if exc and exc.exception_type == 'RESCHEDULE' and exc.new_date:
                 new_st = exc.new_start_time or slot.time_slot.start_time
                 new_et = exc.new_end_time or slot.time_slot.end_time
@@ -3834,7 +3994,7 @@ def schedule_calendar_events(request):
                     })
                 current += timedelta(weeks=1)
                 continue
- 
+
             events.append({
                 'id': f'slot_{slot.id}_{current}',
                 'title': ('🪖 Воен. каф' if slot.is_military else slot.subject.name),
@@ -3861,30 +4021,43 @@ def schedule_calendar_events(request):
             due_date__gte=start_date, due_date__lte=end_date,
             module__section__course__enrolments__user=user
         ).select_related('module__section__course')
-        
+
         for ass in assignments:
             events.append({
                 'id': f'lms_{ass.id}',
                 'title': f'📚 LMS Дедлайн: {ass.module.title} ({ass.module.section.course.short_name})',
                 'start': ass.due_date.isoformat(),
-                'color': '#8b5cf6', 
+                'color': '#8b5cf6',
                 'extendedProps': {
                     'is_lms': True, 'url': f'/lms/modules/{ass.module.id}/'
                 }
             })
 
+    logger.debug(
+        "schedule_calendar_events: returning %s events for group=%s period=%s to %s",
+        len(events), group_id, start_date, end_date
+    )
     return JsonResponse(events, safe=False)
- 
+
+
+
+
  
 @login_required
 @require_POST
 def calendar_move_slot(request):
     import json
     logger.info(f"--- ПЕРЕНОС/ОТМЕНА СЛОТА: Пользователь {request.user.username} ---")
-    
+
     try:
         data = json.loads(request.body)
-        logger.info(f"Данные запроса: {data}")
+        logger.info(
+            "calendar_move_slot: user=%s move_type=%s slot_id=%s original_date=%s",
+            request.user.username,
+            data.get('move_type'),
+            data.get('slot_id'),
+            data.get('original_date')
+        )
         move_type = data.get('move_type', 'once')
 
         if move_type == 'recover':
@@ -3952,7 +4125,7 @@ def calendar_move_slot(request):
             return JsonResponse({'success': False, 'error': 'Некорректный ID занятия. Дождитесь загрузки календаря.'})
         user = request.user
 
-        safe_date_str = str(data['original_date'])[:10] 
+        safe_date_str = str(data['original_date'])[:10]
         original_date = date_cls.fromisoformat(safe_date_str)
         reason = data.get('reason', 'Изменение в живом календаре')
 
@@ -3974,7 +4147,7 @@ def calendar_move_slot(request):
         new_date = date_cls.fromisoformat(str(data['new_date'])[:10])
         new_start = dt_cls.strptime(data['new_start_time'][:5], '%H:%M').time()
         new_end = dt_cls.strptime(data['new_end_time'][:5], '%H:%M').time()
-        
+
         logger.info(f"Перенос на {new_date} с {new_start} до {new_end}")
 
         target_ts = TimeSlot.objects.filter(start_time__lte=new_start).order_by('-start_time').first()
@@ -3991,7 +4164,7 @@ def calendar_move_slot(request):
                 }
             )
             return JsonResponse({'success': True, 'type': 'exception_created'})
-     
+
         elif move_type == 'all':
             update_fields = dict(day_of_week=new_date.weekday(), time_slot=target_ts,
                                  start_time=new_start, end_time=new_end)
@@ -3999,11 +4172,13 @@ def calendar_move_slot(request):
             if slot.stream_id:
                 ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(**update_fields)
             return JsonResponse({'success': True, 'type': 'slot_updated'})
-            
-    except Exception as e:
-        logger.exception(f"ОШИБКА ПРИ ПЕРЕНОСЕ/ОТМЕНЕ: {str(e)}")
-        return JsonResponse({'success': False, 'error': str(e)})
 
+    except Exception as e:
+        logger.exception(
+            "calendar_move_slot: failed user=%s data=%s: %s",
+            request.user.username, {k: v for k, v in data.items() if 'token' not in k}, e
+        )
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 
