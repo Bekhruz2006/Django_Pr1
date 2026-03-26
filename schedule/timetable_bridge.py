@@ -44,7 +44,9 @@ def _weekly_slots(subj: Subject) -> dict[str, float]:
         srsp_h = total_auditory - lec_h - prac_h
 
     def pairs(h: int) -> float:
-        return math.ceil(h / 2) if h and h > 0 else 0.0
+        if not h or h <= 0:
+            return 0.0
+        return float(subj.get_hours_in_pairs(h))
 
     return {
         "LECTURE":  round(pairs(lec_h)  / actual_weeks, 4),

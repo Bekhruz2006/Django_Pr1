@@ -111,6 +111,12 @@
           {% endif %}
         </div>
         {% endif %}
+
+        {% if can_move_calendar %}
+        <button class="btn btn-sm btn-outline-danger w-100 mt-2 fw-bold" data-bs-toggle="modal" data-bs-target="#massCancelModal">
+            <i class="bi bi-calendar-x"></i> Массовая отмена пар (за 1 день)
+        </button>
+        {% endif %}
       </div>
     </div>
 
@@ -206,8 +212,8 @@
       </div>
       <div class="card-body p-3 small">
         <p class="text-muted mb-2">Перетащите занятие для переноса. Нажмите, чтобы посмотреть детали или отменить.</p>
-        <a href="{% url 'schedule:constructor' %}" class="btn btn-sm btn-outline-primary w-100">
-          <i class="bi bi-grid-3x3 me-1"></i> Открыть конструктор
+        <a href="{% url 'schedule:constructor' %}{% if selected_group %}?group={{ selected_group.id }}&semester={{ active_semester.id }}{% endif %}" class="btn btn-sm btn-outline-primary w-100 fw-bold">
+          <i class="bi bi-grid-3x3 me-1"></i> Открыть конструктор группы
         </a>
       </div>
     </div>
@@ -217,6 +223,34 @@
   <div class="col-lg-9">
     <div id="calendar-wrapper">
       <div id="calendar"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="massCancelModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-2 border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-exclamation-octagon me-2"></i>Массовая отмена пар</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning small">
+            <strong>Внимание!</strong> Все пары вашего факультета/кафедры в выбранный день будут отменены и отправлены в "Банк часов" для дальнейшей отработки.
+        </div>
+        <div class="mb-3">
+            <label class="fw-bold">Выберите дату:</label>
+            <input type="date" id="massCancelDate" class="form-control border-danger">
+        </div>
+        <div class="mb-3">
+            <label class="fw-bold">Причина отмены:</label>
+            <input type="text" id="massCancelReason" class="form-control" placeholder="Например: Праздничный день / Собрание">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button type="button" class="btn btn-danger fw-bold" onclick="executeMassCancel()">Отменить все пары</button>
+      </div>
     </div>
   </div>
 </div>
@@ -240,7 +274,7 @@
         <div id="eventModalBody">
         </div>
       </div>
-      {% if can_edit %}
+      {% if can_move_calendar %}
       <div class="modal-footer border-0 pt-0 gap-2" id="eventModalActions">
         <button class="btn btn-sm btn-outline-danger" id="cancelLessonBtn">
           <i class="bi bi-x-circle me-1"></i>Отменить занятие
@@ -256,7 +290,7 @@
   </div>
 </div>
 
-{% if can_edit %}
+{% if can_move_calendar %}
 <div class="modal fade" id="moveModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
     <div class="modal-content border-0 shadow">
@@ -287,6 +321,16 @@
           <label class="form-label small fw-bold">Причина (необязательно):</label>
           <input type="text" id="moveReason" class="form-control form-control-sm" placeholder="Например: замена преподавателя">
         </div>
+        <div class="row g-2 mt-2">
+          <div class="col-6">
+            <label class="form-label small fw-bold">Начало:</label>
+            <input type="time" id="moveStartTime" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold">Конец:</label>
+            <input type="time" id="moveEndTime" class="form-control form-control-sm">
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary btn-sm" id="moveCancelBtn2">Отмена (вернуть на место)</button>
@@ -303,15 +347,17 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js'></script>
 <script>
+const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
+
 (function() {
   'use strict';
 
   const CAN_EDIT   = {{ can_edit|yesno:'true,false' }};
+  const CAN_MOVE   = {{ can_move_calendar|yesno:'true,false' }};
+  const MY_ID      = {{ calendar_user_id }};
   const GROUP_ID   = '{{ selected_group.id|default:"" }}';
   const IS_TEACHER = {{ is_teacher_view|yesno:'true,false' }};
-  const CSRF       = '{{ csrf_token }}';
-
-  function getCsrf() { return CSRF; }
+  const HAS_TEACHER_PROFILE = {{ calendar_is_teacher|yesno:'true,false' }};
 
   const TYPE_ICONS = {
     LECTURE:  'bi-person-video3',
@@ -332,6 +378,66 @@
   }
 
   let pendingDrop = null;
+
+  function updateSidebar() {
+    const groupSel = document.getElementById('groupSelect');
+    const groupId = groupSel ? groupSel.value : GROUP_ID;
+    if (!groupId) return;
+
+    fetch(`/schedule/api/calendar-sidebar/?group=${groupId}`)
+      .then(r => r.json())
+      .then(data => {
+        const slotsEl = document.querySelector('.fs-5.text-primary');
+        if (slotsEl && data.weekly_slots !== undefined) {
+          slotsEl.textContent = data.weekly_slots;
+        }
+
+        const bankEl = document.getElementById('external-events');
+        if (bankEl) {
+          if (data.unused_hours && data.unused_hours.length > 0) {
+            let html = '<p class="small text-muted mb-2">Перетащите занятие на сетку для отработки:</p>';
+            data.unused_hours.forEach(uh => {
+              html += `
+                <div class="fc-event p-2 mb-2 rounded bg-white border border-danger text-dark"
+                     style="cursor: grab; border-left-width: 4px !important;"
+                     data-pool-id="${uh.id}"
+                     data-subject="${uh.subject}"
+                     data-teacher="${uh.teacher}">
+                  <div class="fw-bold" style="font-size: 0.8rem;">${uh.subject}</div>
+                  <div class="small text-muted"><i class="bi bi-person"></i> ${uh.teacher}</div>
+                  <div class="small text-danger mt-1"><i class="bi bi-calendar-x"></i> Отмена: ${uh.date}</div>
+                </div>`;
+            });
+            bankEl.innerHTML = html;
+          } else {
+            bankEl.innerHTML = '<div class="text-center text-muted small py-3">Нет отмененных занятий</div>';
+          }
+
+          if (CAN_EDIT && typeof FullCalendar.Draggable !== 'undefined') {
+              new FullCalendar.Draggable(bankEl, {
+                  itemSelector: '.fc-event',
+                  eventData: function(eventEl) {
+                      return {
+                          title: 'Отработка: ' + eventEl.dataset.subject,
+                          backgroundColor: '#ef4444',
+                          borderColor: '#b91c1c',
+                          textColor: '#ffffff',
+                          duration: '00:50',
+                          create: false,
+                          extendedProps: {
+                              is_makeup: true,
+                              pool_id: eventEl.dataset.poolId,
+                              teacher: eventEl.dataset.teacher
+                          }
+                      };
+                  }
+              });
+          }
+        }
+      }).catch(err => console.error("Ошибка при обновлении боковой панели:", err));
+  }
+
+  window.updateSidebar = updateSidebar;
 
   const calendarEl = document.getElementById('calendar');
   const calendar   = new FullCalendar.Calendar(calendarEl, {
@@ -359,11 +465,20 @@
     height:            'auto',
     expandRows:        true,
     stickyHeaderDates: true,
-    editable:          CAN_EDIT,
-    eventStartEditable:CAN_EDIT,
+    editable:          CAN_EDIT || IS_TEACHER,
+    eventStartEditable:CAN_EDIT || IS_TEACHER,
     eventResizableFromStart: false,
     eventDurationEditable: false,
     droppable:          CAN_EDIT,
+
+    eventAllow: function(_dropInfo, draggedEvent) {
+      if (CAN_EDIT) return true;
+      if (HAS_TEACHER_PROFILE) {
+        const tid = draggedEvent.extendedProps.teacher_id;
+        return tid != null && tid === MY_ID;
+      }
+      return false;
+    },
 
     events: {
       url: eventsUrl(),
@@ -379,18 +494,20 @@
     },
 
     eventDrop: function(info) {
-      if (!CAN_EDIT) { info.revert(); return; }
+      if (!CAN_MOVE) { info.revert(); return; }
       const ep = info.event.extendedProps;
       if (ep.cancelled || ep.rescheduled || ep.military) { info.revert(); return; }
 
       pendingDrop = info;
-      const orig   = ep.original_date.slice(0, 10); 
+      const orig   = ep.original_date.slice(0, 10);
       const newDt  = info.event.start;
       const newD   = newDt.toISOString().slice(0, 10);
       const newSt  = newDt.toTimeString().slice(0,5);
       const newEnd = info.event.end ? info.event.end.toTimeString().slice(0,5) : newSt;
 
       pendingDrop._resolved = { new_date: newD, new_start_time: newSt, new_end_time: newEnd };
+      document.getElementById('moveStartTime').value = newSt;
+      document.getElementById('moveEndTime').value = newEnd;
 
       const summary = document.getElementById('moveSummary');
       summary.innerHTML =
@@ -418,9 +535,29 @@
       const newTime = info.date.toTimeString().slice(0, 5);
       const poolId = info.draggedEl.dataset.poolId;
 
-      alert('Элемент успешно перенесен на ' + newDate + ' в ' + newTime + '\nВ будущем здесь будет сохранение в БД!');
-
-      info.draggedEl.remove();
+      fetch('/schedule/api/calendar-move/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': GLOBAL_CSRF_TOKEN },
+        body: JSON.stringify({
+          move_type: 'recover',
+          pool_id: poolId,
+          new_date: newDate,
+          new_start_time: newTime
+        })
+      }).then(r => r.json()).then(d => {
+        if (d.success) {
+          info.draggedEl.remove();
+          calendar.refetchEvents();
+          updateSidebar();
+        } else {
+          alert('Ошибка: ' + d.error);
+          info.revert();
+        }
+      }).catch(err => {
+        console.error(err);
+        alert('Сетевая ошибка сервера');
+        info.revert();
+      });
     },
 
     eventContent: function(arg) {
@@ -465,8 +602,8 @@
             backgroundColor: '#ef4444',
             borderColor: '#b91c1c',
             textColor: '#ffffff',
-            duration: '00:50', 
-            create: true,
+            duration: '00:50',
+            create: false,
             extendedProps: {
               is_makeup: true,
               pool_id: eventEl.dataset.poolId,
@@ -479,6 +616,7 @@
   }
 
   calendar.render();
+  window.calendar = calendar;
 
   const groupSel = document.getElementById('groupSelect');
   if (groupSel) {
@@ -510,6 +648,10 @@
         return;
     }
 
+    if (ep.is_makeup || !ep.slot_id) {
+        return;
+    }
+
     const title = ep.subject_name || event.title;
     const color = TYPE_COLORS[ep.lesson_type] || (event.backgroundColor || '#6b7280');
 
@@ -523,12 +665,13 @@
     let bodyHtml = '';
     let footerHtml = '';
 
+    const canActSlot = CAN_EDIT || (HAS_TEACHER_PROFILE && ep.teacher_id === MY_ID);
     if (ep.cancelled || ep.rescheduled) {
       bodyHtml += `<div class="alert alert-warning py-2 small mb-3">Это измененное занятие.</div>`;
-      if (CAN_EDIT) {
+      if (canActSlot) {
           footerHtml += `<button class="btn btn-sm btn-success w-100" onclick="revertException(${ep.exception_id})"><i class="bi bi-arrow-counterclockwise"></i> Откатить изменения (Вернуть как было)</button>`;
       }
-    } else if (CAN_EDIT && !ep.military) {
+    } else if (canActSlot && !ep.military) {
       footerHtml += `<button class="btn btn-sm btn-outline-danger" onclick="cancelLesson('${ep.slot_id}', '${ep.original_date}')"><i class="bi bi-x-circle me-1"></i>Отменить занятие (на эту дату)</button>`;
     }
 
@@ -554,21 +697,28 @@
       if(!confirm('Вернуть занятие в исходное состояние?')) return;
       fetch('/schedule/api/calendar-move/', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': GLOBAL_CSRF_TOKEN },
           body: JSON.stringify({ move_type: 'revert', exception_id: exceptionId })
       }).then(r => r.json()).then(d => {
           if(d.success) {
               bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
               calendar.refetchEvents();
+              updateSidebar();
+          } else {
+              alert('Ошибка: ' + d.error);
           }
-      });
+      }).catch(err => alert('Ошибка сети: ' + err));
   };
 
   window.cancelLesson = function(slot_id, original_date) {
+    if (!slot_id || slot_id === 'undefined') {
+        alert('Подождите, занятие еще загружается.');
+        return;
+    }
     const reason = prompt('Причина отмены (необязательно):') || 'Отменено';
     fetch('/schedule/api/calendar-move/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': GLOBAL_CSRF_TOKEN },
       body: JSON.stringify({
         slot_id: slot_id, original_date: original_date, move_type: 'cancel', reason: reason
       })
@@ -576,28 +726,32 @@
       if (d.success) {
         bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
         calendar.refetchEvents();
+        updateSidebar();
+      } else {
+        alert('Ошибка: ' + d.error);
       }
-    });
+    }).catch(err => alert('Ошибка сети: ' + err));
   };
 
-  {% if can_edit %}
+  {% if can_move_calendar %}
   document.getElementById('moveConfirmBtn').onclick = function() {
     if (!pendingDrop) return;
     const info     = pendingDrop;
-    const resolved = info._resolved;
     const ep       = info.event.extendedProps;
     const moveType = document.querySelector('input[name="moveType"]:checked').value;
     const reason   = document.getElementById('moveReason').value || 'Перенос через календарь';
+    const finalStart = document.getElementById('moveStartTime').value || info._resolved.new_start_time;
+    const finalEnd = document.getElementById('moveEndTime').value || info._resolved.new_end_time;
 
     fetch('/schedule/api/calendar-move/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': GLOBAL_CSRF_TOKEN },
       body: JSON.stringify({
         slot_id:        ep.slot_id,
         original_date:  ep.original_date,
-        new_date:       resolved.new_date,
-        new_start_time: resolved.new_start_time,
-        new_end_time:   resolved.new_end_time,
+        new_date:       info._resolved.new_date,
+        new_start_time: finalStart,
+        new_end_time:   finalEnd,
         move_type:      moveType,
         reason:         reason,
       })
@@ -608,6 +762,7 @@
       pendingDrop = null;
       if (d.success) {
         calendar.refetchEvents();
+        updateSidebar();
       } else {
         alert('Ошибка: ' + d.error);
         info.revert();
@@ -622,5 +777,50 @@
   {% endif %}
 
 })();
+
+function executeMassCancel() {
+    const dateVal = document.getElementById('massCancelDate').value;
+    const reasonVal = document.getElementById('massCancelReason').value || 'Массовая отмена';
+    
+    if (!dateVal) { alert('Пожалуйста, выберите дату!'); return; }
+    if (!confirm(`Вы точно хотите отменить ВСЕ пары за ${dateVal}?`)) return;
+
+    const btn = document.querySelector('#massCancelModal .btn-danger');
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отмена...';
+    btn.disabled = true;
+
+    fetch('/schedule/api/calendar-mass-cancel/', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRFToken': GLOBAL_CSRF_TOKEN
+        },
+        body: JSON.stringify({ date: dateVal, reason: reasonVal })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert(`Успешно отменено пар: ${d.count}. Они добавлены в Банк часов.`);
+            const modalEl = document.getElementById('massCancelModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            if (window.calendar) window.calendar.refetchEvents();
+            if (typeof window.updateSidebar === 'function') window.updateSidebar();
+
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        } else {
+            alert('Ошибка: ' + d.error);
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    }).catch(err => {
+        alert('Ошибка сети или сервера: ' + err);
+        btn.innerHTML = oldText;
+        btn.disabled = false;
+    });
+}
 </script>
 {% endblock %}

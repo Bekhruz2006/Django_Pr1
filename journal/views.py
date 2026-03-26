@@ -273,9 +273,7 @@ def journal_view(request):
     faculty = group.specialty.department.faculty if group.specialty else None
     institute = faculty.institute if faculty else None
 
-    matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
-    if not matrix_structure:
-        matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
+    matrix_structure = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
 
     columns = []
     if matrix_structure:
@@ -864,9 +862,7 @@ def performance_journal_view(request):
     faculty = group.specialty.department.faculty if group.specialty else None
     institute = faculty.institute if faculty else None
     
-    matrix_structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
-    if not matrix_structure:
-        matrix_structure = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
+    matrix_structure = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
     
     columns =[]
     if matrix_structure:
@@ -1044,16 +1040,9 @@ def matrix_constructor(request):
         institute = faculty.institute if faculty else None
         
     if institute:
-        structure = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True).first()
-        if not structure:
-            structure = MatrixStructure.objects.create(
-                institute=institute,
-                name=f"Матрица {institute.abbreviation}"
-            )
+        structure = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
     else:
-        structure = MatrixStructure.objects.filter(faculty__isnull=True, institute__isnull=True).first()
-        if not structure:
-            structure = MatrixStructure.objects.create(name="Глобальная матрица (По умолчанию)")
+        structure = MatrixStructure.get_or_create_default(institute=None, faculty=None)
     
     if request.method == 'POST':
         action = request.POST.get('action')

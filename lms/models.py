@@ -127,6 +127,7 @@ class CourseSection(models.Model):
     summary= models.TextField(blank=True)
     sequence   = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
+    matrix_column_id = models.IntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ['sequence']

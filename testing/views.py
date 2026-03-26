@@ -112,9 +112,7 @@ def quiz_submit(request, attempt_id):
                     faculty = subject.department.faculty
                     institute = faculty.institute
 
-                    matrix = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True).first()
-                    if not matrix:
-                        matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True).first()
+                    matrix = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
 
                     if matrix:
                         column = MatrixColumn.objects.filter(structure=matrix, name=section.name).first()

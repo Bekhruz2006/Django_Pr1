@@ -99,16 +99,35 @@ def sync_lms_grade_to_journal(sender, instance, **kwargs):
             col_type = 'RATING'
             max_score = 100.0
 
-        column, _ = MatrixColumn.objects.get_or_create(
-            structure=structure,
-            name=section.name[:100],
-            defaults={
-                'col_type': col_type,
-                'week_number': section.sequence if col_type == 'WEEK' else None,
-                'max_score': max_score,
-                'order': section.sequence
-            }
-        )
+        column = None
+        if section.matrix_column_id:
+            column = MatrixColumn.objects.filter(
+                structure=structure,
+                id=section.matrix_column_id
+            ).first()
+
+        if not column:
+            column = MatrixColumn.objects.filter(
+                structure=structure,
+                col_type=col_type,
+                order=section.sequence
+            ).first()
+
+        if not column:
+            column = MatrixColumn.objects.filter(
+                structure=structure,
+                col_type=col_type
+            ).order_by('order').first()
+
+        if not column:
+            column = MatrixColumn.objects.create(
+                structure=structure,
+                name=section.name[:100],
+                col_type=col_type,
+                week_number=section.sequence if col_type == 'WEEK' else None,
+                max_score=max_score,
+                order=section.sequence
+            )
 
         val = float(instance.score)
         if val > column.max_score:

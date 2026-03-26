@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --primary: #1a3a6b;
-    --primary-light: #2563eb;
-    --primary-dark: #0f2347;
+    --primary: #4a7ad9;
+    --primary-light: #739ced;
+    --primary-dark: #2c54a3;
     --gold: #c9a84c;
     --gold-light: #e2c97e;
     --accent-green: #10b981;
@@ -16,7 +16,34 @@
     --card-dark: #162035;
     --sidebar-light: #ffffff;
     --sidebar-dark: #111d32;
+    --border-light: #94b1ef;
+    --border-dark: #2c4a85;
     color-scheme: light dark;
+}
+
+.card {
+    border: 2px solid var(--border-light) !important;
+}
+
+#sidebar {
+    border-right: 2px solid var(--border-light) !important;
+}
+
+.navbar {
+    border-bottom: 2px solid var(--border-light) !important;
+}
+
+.table-bordered th,
+.table-bordered td {
+    border: 2px solid var(--border-light) !important;
+}
+
+body.dark-mode .card,
+body.dark-mode #sidebar,
+body.dark-mode .navbar,
+body.dark-mode .table-bordered th,
+body.dark-mode .table-bordered td {
+    border-color: var(--border-dark) !important;
 }
 
 body {
@@ -66,10 +93,9 @@ body.dark-mode .animated-bg {
     inset: 0;
     background-image: radial-gradient(circle, rgba(26, 58, 107, 0.12) 1px, transparent 1px);
     background-size: 40px 40px;
-    pointer-events: none; 
-    z-index: -1; 
+    pointer-events: none;
+    z-index: -1;
 }
-
 
 body.dark-mode .bg-dots {
     background-image: radial-gradient(circle, rgba(201, 168, 76, 0.08) 1px, transparent 1px);
@@ -165,11 +191,9 @@ h1, h2, h3, h4, h5, h6 {
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     contain: layout style paint;
     background: var(--card-light);
-    border: 1px solid var(--border-light);
     border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 4px 12px rgba(92, 138, 230, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    overflow: hidden;
 }
 
 body.dark-mode .card {
@@ -180,7 +204,8 @@ body.dark-mode .card {
 
 .card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(26, 58, 107, 0.15) !important;
+    box-shadow: 0 12px 32px rgba(92, 138, 230, 0.15) !important;
+    border-color: rgba(92, 138, 230, 0.4);
 }
 
 .card-header {
@@ -343,7 +368,6 @@ body.dark-mode .table tbody td {
 
 #sidebar {
     background-color: var(--sidebar-light);
-    border-right: 1px solid #e2e8f0;
     min-width: 280px;
     max-width: 280px;
     min-height: calc(100vh - 60px);
@@ -435,23 +459,16 @@ body.dark-mode .sidebar-link.active {
     background-color: rgba(37, 99, 235, 0.15);
 }
 
-/* =========================================================
-   ИСПРАВЛЕНИЕ НАВИГАЦИОННОЙ ПАНЕЛИ И ЛОГОТИПОВ
-   ========================================================= */
-
-/* 1. Возвращаем фирменный синий градиент верхней панели */
 .navbar {
     background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 60%, #1e4a8a 100%) !important;
-    border-bottom: none !important;
     box-shadow: 0 2px 16px rgba(10, 22, 40, 0.35) !important;
 }
 
 body.dark-mode .navbar {
     background: linear-gradient(90deg, #060d1a 0%, #0d1a2e 60%, #112040 100%) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-bottom: 2px solid var(--border-dark) !important;
 }
 
-/* Делаем иконки и текст в панели белыми, чтобы их было видно на синем фоне */
 #sidebarToggle {
     color: #ffffff !important;
     background: rgba(255, 255, 255, 0.08) !important;
@@ -468,7 +485,6 @@ body.dark-mode .navbar {
     background: rgba(255, 255, 255, 0.16) !important;
 }
 
-/* 2. Жестко фиксируем размеры и позиционирование логотипов (исправляем поломку) */
 .navbar .navbar-brand {
     display: flex !important;
     align-items: center !important;
@@ -513,7 +529,6 @@ body.dark-mode .navbar {
     z-index: 1 !important;
 }
 
-/* Принудительно сохраняем белый цвет логотипов в темной теме */
 body.dark-mode .academix-mark,
 body.dark-mode .academix-wordmark {
     filter: brightness(0) invert(1) !important;
@@ -771,7 +786,7 @@ body.dark-mode .table-hover tbody tr:hover th {
 
 body.dark-mode .border { border-color: #1e3052 !important; }
 body.dark-mode .border-bottom { border-bottom-color: #1e3052 !important; }
-body.dark-mode .border-top { border-top-color: !1e3052 !important; }
+body.dark-mode .border-top { border-top-color: #1e3052 !important; }
 body.dark-mode .border-start { border-left-color: #1e3052 !important; }
 body.dark-mode .border-end { border-right-color: #1e3052 !important; }
 
@@ -851,4 +866,35 @@ body.dark-mode .modal-footer {
     height: 36px;
     object-fit: cover;
     border-radius: 50%;
+}
+
+:root {
+    --border-heavy: #1e293b;
+    --border-width: 3px;
+}
+
+.card, 
+.table-bordered, 
+.table-bordered th, 
+.table-bordered td,
+#sidebar,
+.navbar,
+.alert {
+    border: var(--border-width) solid var(--border-heavy) !important;
+}
+
+.table th, .table td {
+    border-bottom: var(--border-width) solid var(--border-heavy) !important;
+}
+
+.card-header {
+    border-bottom: var(--border-width) solid var(--border-heavy) !important;
+}
+
+.form-control, .form-select {
+    border: var(--border-width) solid #475569 !important; 
+}
+
+body.dark-mode {
+    --border-heavy: #334155; 
 }

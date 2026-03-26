@@ -33,7 +33,7 @@ def auto_create_rup_for_group(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=ScheduleException)
 def track_cancelled_hours(sender, instance, created, **kwargs):
-    if instance.exception_type == 'CANCEL' and not instance.new_date:
+    if instance.exception_type == 'CANCEL':
         slot = instance.schedule_slot
         UnusedHourPool.objects.get_or_create(
             group=slot.group,

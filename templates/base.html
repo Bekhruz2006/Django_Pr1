@@ -19,9 +19,9 @@
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
 
         :root {
-            --primary: #1a3a6b;
-            --primary-light: #2563eb;
-            --primary-dark: #0f2347;
+            --primary: #5c8ae6;
+            --primary-light: #85a9ff;
+            --primary-dark: #3b66ba;
             --gold: #c9a84c;
             --gold-light: #e2c97e;
             --sidebar-width: 272px;
@@ -34,8 +34,8 @@
             --card-dark: #162035;
             --sidebar-bg-light: #ffffff;
             --sidebar-bg-dark: #111d32;
-            --border-light: #e4e9f2;
-            --border-dark: #1e3052;
+            --border-light: rgba(92, 138, 230, 0.2);
+            --border-dark: rgba(92, 138, 230, 0.1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -279,12 +279,12 @@
 
         .card {
             border: 1px solid var(--border-light);
-            box-shadow: 0 1px 4px rgba(26, 58, 107, 0.07);
+            box-shadow: 0 4px 12px rgba(92, 138, 230, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
             border-radius: 12px;
             background-color: var(--card-light);
             transition: all 0.3s ease;
         }
-        .card:hover { box-shadow: 0 6px 24px rgba(26, 58, 107, 0.12) !important; transform: translateY(-3px); }
+        .card:hover { box-shadow: 0 12px 32px rgba(92, 138, 230, 0.15) !important; border-color: rgba(92, 138, 230, 0.4); transform: translateY(-3px); }
         body.dark-mode .card { background-color: var(--card-dark); color: var(--text-dark); border-color: var(--border-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
 
         .card-header {

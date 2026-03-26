@@ -16,6 +16,9 @@ from django.urls import reverse
 import logging
 logger = logging.getLogger(__name__)
 from .models import UnusedHourPool
+from schedule.models import UnusedHourPool
+from django.utils import timezone
+logger = logging.getLogger('schedule')
 
 
 try:
@@ -71,6 +74,16 @@ def is_dean_or_admin(user):
         user.is_superuser or 
         user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR', 'DEAN', 'VICE_DEAN', 'HEAD_OF_DEPT']
     )
+
+def institute_pair_ratio(institute):
+    if not institute:
+        return 2.0
+    acad = getattr(institute, 'academic_hour_duration', None) or 50
+    pair = getattr(institute, 'pair_duration', None) or 50
+    try:
+        return float(pair) / float(acad)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return 2.0
 
 def is_facility_admin(user):
     return user.is_authenticated and (
@@ -325,8 +338,10 @@ def schedule_constructor(request):
 @user_passes_test(is_dean_or_admin)
 @require_POST
 def create_schedule_slot(request):
+    logger.info(f"--- СОЗДАНИЕ СЛОТА РАСПИСАНИЯ: Пользователь {request.user.username} ---")
     try:
         data = json.loads(request.body)
+        logger.info(f"Входящие данные: {data}")
 
         if data.get('is_military_day'):
             try:
@@ -393,7 +408,7 @@ def create_schedule_slot(request):
 
                 return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
             except Exception as e:
-                logger.exception("create_schedule_slot military")
+                logger.exception(f"create_schedule_slot military: {str(e)}; data={data}")
                 return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
         force = data.get('force', False)
@@ -495,7 +510,7 @@ def create_schedule_slot(request):
         return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
 
     except Exception as e:
-        logger.exception("create_schedule_slot")
+        logger.exception(f"ОШИБКА в create_schedule_slot: {str(e)}")
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
 
@@ -653,7 +668,9 @@ def clear_schedule(request):
             if group.specialty and group.specialty.department.faculty != faculty:
                 return JsonResponse({'success': False, 'error': _('Нет доступа к этой группе')}, status=403)
                 
-        ScheduleSlot.objects.filter(group=group, semester=semester).delete()
+        slots = ScheduleSlot.objects.filter(group=group, semester=semester)
+        slots.update(is_active=False)
+        slots.delete()
         return JsonResponse({'success': True})
     except Exception as e:
         logger.exception("clear_schedule")
@@ -1011,7 +1028,18 @@ def add_subject(request):
     faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
     credit_templates = CreditTemplate.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True)).order_by('credits')
 
-    return render(request, 'schedule/subject_form.html', {'form': form, 'title': _('Добавить предмет'), 'credit_templates': credit_templates})
+    inst = None
+    if target_department and getattr(target_department, 'faculty', None):
+        inst = target_department.faculty.institute
+    elif faculty:
+        inst = faculty.institute
+
+    return render(request, 'schedule/subject_form.html', {
+        'form': form,
+        'title': _('Добавить предмет'),
+        'credit_templates': credit_templates,
+        'institute_pair_ratio': institute_pair_ratio(inst),
+    })
 
 
 @login_required
@@ -1116,8 +1144,16 @@ def edit_subject(request, subject_id):
             
     faculty = request.user.dean_profile.faculty if hasattr(request.user, 'dean_profile') else None
     credit_templates = CreditTemplate.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True)).order_by('credits')
-    
-    return render(request, 'schedule/subject_form.html', {'form': form, 'subject': subject, 'title': _('Редактировать предмет'), 'credit_templates': credit_templates})
+
+    inst = subject.department.faculty.institute if subject.department and subject.department.faculty else None
+
+    return render(request, 'schedule/subject_form.html', {
+        'form': form,
+        'subject': subject,
+        'title': _('Редактировать предмет'),
+        'credit_templates': credit_templates,
+        'institute_pair_ratio': institute_pair_ratio(inst),
+    })
 
 @login_required
 @user_passes_test(is_dean_or_admin)
@@ -1754,6 +1790,8 @@ def plan_detail(request, plan_id):
 
     credit_templates = CreditTemplate.objects.filter(Q(faculty=user_faculty) | Q(faculty__isnull=True)).order_by('credits')
 
+    inst = plan_faculty.institute if plan_faculty else None
+
     return render(request, 'schedule/plans/plan_detail.html', {
         'plan': plan,
         'disciplines': disciplines,
@@ -1767,6 +1805,7 @@ def plan_detail(request, plan_id):
         'credit_templates': credit_templates,
         'total_semester_credits': total_semester_credits,
         'total_semester_hours': total_semester_hours,
+        'institute_pair_ratio': institute_pair_ratio(inst),
     })
 
 
@@ -1870,9 +1909,7 @@ def generate_subjects_from_rup(request):
                         target_dept = Department.objects.first()
 
                     from journal.models import MatrixStructure
-                    matrix = MatrixStructure.objects.filter(institute=target_dept.faculty.institute, faculty__isnull=True, is_active=True).first()
-                    if not matrix:
-                        matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
+                    matrix = MatrixStructure.get_or_create_default(institute=target_dept.faculty.institute, faculty=None)
                     actual_weeks = matrix.columns.filter(col_type='WEEK').count() if matrix else 16
 
                     import uuid
@@ -2722,9 +2759,7 @@ def import_rup_excel(request, plan_id, semester_num):
                                 continue
 
                             from journal.models import MatrixStructure
-                            matrix = MatrixStructure.objects.filter(institute=dept.faculty.institute, faculty__isnull=True, is_active=True).first()
-                            if not matrix:
-                                matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
+                            matrix = MatrixStructure.get_or_create_default(institute=dept.faculty.institute, faculty=None)
                             actual_weeks = matrix.columns.filter(col_type='WEEK').count() if matrix else 16
  
                             if do_split:
@@ -3615,25 +3650,33 @@ def schedule_calendar(request):
         active_semester = Semester.objects.filter(is_active=True).first()
 
     can_edit = is_dean_or_admin(user)
+    can_move_calendar = (
+        is_dean_or_admin(user)
+        or getattr(user, 'teacher_profile', None)
+        or getattr(user, 'head_of_dept_profile', None)
+    )
 
     weekly_slots_count = 0
     unused_hours = []
     if selected_group and active_semester:
-        weekly_slots_count = ScheduleSlot.objects.filter(
+        slots = ScheduleSlot.objects.filter(
             group=selected_group, semester=active_semester, is_active=True
-        ).count()
+        )
+        weekly_slots_count = sum([1 if s.week_type == 'EVERY' else 0.5 for s in slots])
 
         unused_hours = UnusedHourPool.objects.filter(
             group=selected_group,
-            semester=active_semester,
             is_recovered=False
-        ).select_related('subject', 'teacher__user')
+        ).select_related('subject', 'teacher__user').order_by('-original_date')
 
     return render(request, 'schedule/schedule_calendar.html', {
         'groups': groups,
         'selected_group': selected_group,
         'active_semester': active_semester,
         'can_edit': can_edit,
+        'can_move_calendar': can_move_calendar,
+        'calendar_user_id': user.id,
+        'calendar_is_teacher': hasattr(user, 'teacher_profile'),
         'is_teacher_view': hasattr(user, 'teacher_profile') and not request.GET.get('group'),
         'weekly_slots_count': weekly_slots_count,
         'unused_hours': unused_hours,
@@ -3643,6 +3686,49 @@ def schedule_calendar(request):
 
  
  
+@login_required
+def calendar_sidebar_api(request):
+    try:
+        group_id = request.GET.get('group')
+        logger.info(
+            f"--- ЗАПРОС ОБНОВЛЕНИЯ БОКОВОЙ ПАНЕЛИ: Пользователь {request.user.username}, группа {group_id} ---"
+        )
+
+        if not group_id:
+            return JsonResponse({'weekly_slots': 0, 'unused_hours': []})
+
+        group = Group.objects.filter(id=group_id).first()
+        if not group:
+            return JsonResponse({'weekly_slots': 0, 'unused_hours': []})
+
+        active_semester = get_active_semester_for_group(group)
+        if not active_semester:
+            return JsonResponse({'weekly_slots': 0, 'unused_hours': []})
+
+        slots = ScheduleSlot.objects.filter(group=group, semester=active_semester, is_active=True)
+        weekly_slots_count = sum([1 if s.week_type == 'EVERY' else 0.5 for s in slots])
+
+        unused = UnusedHourPool.objects.filter(
+            group=group,
+            is_recovered=False
+        ).select_related('subject', 'teacher__user').order_by('-original_date')
+
+        unused_data = [{
+            'id': u.id,
+            'subject': u.subject.name,
+            'teacher': u.teacher.user.get_full_name() if u.teacher and u.teacher.user else '-',
+            'date': u.original_date.strftime("%d.%m.%Y") if u.original_date else '-'
+        } for u in unused]
+
+        logger.info(
+            f"Боковая панель успешно собрана: недельных пар {weekly_slots_count}, банк отмен: {len(unused_data)}"
+        )
+        return JsonResponse({'weekly_slots': weekly_slots_count, 'unused_hours': unused_data})
+    except Exception as e:
+        logger.exception(f"КРИТИЧЕСКАЯ ОШИБКА В API БОКОВОЙ ПАНЕЛИ: {str(e)}")
+        return JsonResponse({'weekly_slots': 0, 'unused_hours': []}, status=500)
+
+
 @login_required
 def schedule_calendar_events(request):
     group_id = request.GET.get('group')
@@ -3718,6 +3804,7 @@ def schedule_calendar_events(request):
                         'type_display': slot.get_lesson_type_display(),
                         'group': slot.group.name,
                         'teacher': slot.teacher.user.get_full_name() if slot.teacher else '—',
+                        'teacher_id': slot.teacher.user_id if slot.teacher else None,
                         'room': slot.room or '—', 'slot_id': slot.id,
                     }
                 })
@@ -3741,6 +3828,7 @@ def schedule_calendar_events(request):
                             'type_display': slot.get_lesson_type_display(),
                             'group': slot.group.name,
                             'teacher': slot.teacher.user.get_full_name() if slot.teacher else '—',
+                            'teacher_id': slot.teacher.user_id if slot.teacher else None,
                             'room': slot.room or '—', 'slot_id': slot.id,
                         }
                     })
@@ -3752,14 +3840,18 @@ def schedule_calendar_events(request):
                 'title': ('🪖 Воен. каф' if slot.is_military else slot.subject.name),
                 'start': f'{current}T{slot.time_slot.start_time.strftime("%H:%M:%S")}',
                 'end': f'{current}T{slot.time_slot.end_time.strftime("%H:%M:%S")}',
-                'color': '#1f2937' if slot.is_military else COLORS.get(slot.lesson_type, '#6b7280'),
+                'backgroundColor': '#1f2937' if slot.is_military else COLORS.get(slot.lesson_type, '#6b7280'),
+                'borderColor': '#1f2937' if slot.is_military else COLORS.get(slot.lesson_type, '#6b7280'),
+                'textColor': '#ffffff',
                 'editable': True,
                 'extendedProps': {
                     'slot_id': slot.id, 'original_date': str(current),
                     'type_display': slot.get_lesson_type_display(),
                     'group': slot.group.name, 'teacher': slot.teacher.user.get_full_name() if slot.teacher else '—',
+                    'teacher_id': slot.teacher.user_id if slot.teacher else None,
                     'room': slot.room or (slot.classroom.number if slot.classroom else '—'),
                     'is_stream': bool(slot.stream_id), 'military': slot.is_military,
+                    'lesson_type': slot.lesson_type,
                 }
             })
             current += timedelta(weeks=1)
@@ -3787,71 +3879,202 @@ def schedule_calendar_events(request):
 @login_required
 @require_POST
 def calendar_move_slot(request):
-    if not is_dean_or_admin(request.user):
-        return JsonResponse({'success': False, 'error': 'Нет прав'}, status=403)
- 
     import json
-    data = json.loads(request.body)
-    move_type = data.get('move_type', 'once')
+    logger.info(f"--- ПЕРЕНОС/ОТМЕНА СЛОТА: Пользователь {request.user.username} ---")
     
-    if move_type == 'revert':
-        try:
+    try:
+        data = json.loads(request.body)
+        logger.info(f"Данные запроса: {data}")
+        move_type = data.get('move_type', 'once')
+
+        if move_type == 'recover':
+            pool_id = data.get('pool_id')
+            new_date = date_cls.fromisoformat(str(data['new_date'])[:10])
+            new_start = dt_cls.strptime(data['new_start_time'][:5], '%H:%M').time()
+
+            logger.info(
+                f"Попытка отработки занятия. Pool ID: {pool_id}, Новая дата: {new_date}, Время: {new_start}"
+            )
+
+            pool_item = get_object_or_404(UnusedHourPool, id=pool_id)
+
+            with transaction.atomic():
+                exc = SchedExc.objects.filter(
+                    schedule_slot__group=pool_item.group,
+                    schedule_slot__subject=pool_item.subject,
+                    exception_date=pool_item.original_date,
+                    exception_type='CANCEL'
+                ).first()
+
+                if exc:
+                    logger.info(f"Найдено исключение отмены ID: {exc.id}. Конвертируем в RESCHEDULE.")
+                    exc.exception_type = 'RESCHEDULE'
+                    exc.new_date = new_date
+                    exc.new_start_time = new_start
+
+                    target_ts = TimeSlot.objects.filter(start_time__lte=new_start).order_by('-start_time').first()
+                    if target_ts:
+                        exc.new_end_time = target_ts.end_time
+                    else:
+                        exc.new_end_time = (datetime.combine(date_cls.today(), new_start) + timedelta(minutes=50)).time()
+
+                    exc.save()
+                    pool_item.is_recovered = True
+                    pool_item.save()
+                    logger.info("Занятие успешно восстановлено из банка часов.")
+                    return JsonResponse({'success': True, 'type': 'recovered'})
+                else:
+                    logger.warning("Оригинальное исключение CANCEL не найдено. Базовый слот мог быть удален полностью.")
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Невозможно восстановить: исходное занятие было удалено из общей сетки расписания (а не просто отменено на 1 день).'
+                    })
+
+        if move_type == 'revert':
             exc_id = data.get('exception_id')
-            SchedExc.objects.filter(id=exc_id).delete()
+            logger.info(f"Откат исключения ID: {exc_id}")
+            exc = SchedExc.objects.filter(id=exc_id).first()
+            if exc:
+                with transaction.atomic():
+                    UnusedHourPool.objects.filter(
+                        group=exc.schedule_slot.group,
+                        subject=exc.schedule_slot.subject,
+                        original_date=exc.exception_date
+                    ).delete()
+                    exc.delete()
             return JsonResponse({'success': True, 'type': 'reverted'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
 
-    slot = get_object_or_404(ScheduleSlot, id=data['slot_id'])
-    original_date = date_cls.fromisoformat(data['original_date'])
-    reason = data.get('reason', 'Изменение в живом календаре')
+        try:
+            slot_id = int(data.get('slot_id'))
+            slot = get_object_or_404(ScheduleSlot, id=slot_id)
+        except (ValueError, TypeError):
+            logger.error(f"Некорректный slot_id: {data.get('slot_id')}")
+            return JsonResponse({'success': False, 'error': 'Некорректный ID занятия. Дождитесь загрузки календаря.'})
+        user = request.user
 
-    if move_type == 'cancel':
-        SchedExc.objects.update_or_create(
-            schedule_slot=slot, exception_date=original_date,
-            defaults={'exception_type': 'CANCEL', 'reason': reason}
-        )
-        return JsonResponse({'success': True, 'type': 'cancelled'})
+        safe_date_str = str(data['original_date'])[:10] 
+        original_date = date_cls.fromisoformat(safe_date_str)
+        reason = data.get('reason', 'Изменение в живом календаре')
 
-    new_date = date_cls.fromisoformat(data['new_date'])
-    new_start = dt_cls.strptime(data['new_start_time'], '%H:%M').time()
-    
-    target_ts = TimeSlot.objects.filter(
-        institute=slot.group.specialty.department.faculty.institute if slot.group.specialty else None,
-        start_time__lte=new_start, end_time__gt=new_start
-    ).first()
-    
-    if not target_ts:
-        target_ts = TimeSlot.objects.filter(start_time__lte=new_start, end_time__gt=new_start).first()
+        if move_type == 'cancel':
+            logger.info(f"Одиночная отмена слота ID: {slot.id} на дату {original_date}")
+            with transaction.atomic():
+                SchedExc.objects.update_or_create(
+                    schedule_slot=slot, exception_date=original_date,
+                    defaults={'exception_type': 'CANCEL', 'reason': reason}
+                )
+                UnusedHourPool.objects.get_or_create(
+                    group=slot.group, subject=slot.subject, teacher=slot.teacher,
+                    semester=slot.semester, original_date=original_date,
+                    defaults={'reason': reason}
+                )
+            logger.info("Отмена успешно сохранена в Банк Часов")
+            return JsonResponse({'success': True, 'type': 'cancelled'})
+
+        new_date = date_cls.fromisoformat(str(data['new_date'])[:10])
+        new_start = dt_cls.strptime(data['new_start_time'][:5], '%H:%M').time()
+        new_end = dt_cls.strptime(data['new_end_time'][:5], '%H:%M').time()
+        
+        logger.info(f"Перенос на {new_date} с {new_start} до {new_end}")
+
+        target_ts = TimeSlot.objects.filter(start_time__lte=new_start).order_by('-start_time').first()
         if not target_ts:
-            return JsonResponse({'success': False, 'error': 'В это время нет официальной пары (сетка звонков).'})
+            target_ts = TimeSlot.objects.first()
 
-    conflict_qs = ScheduleSlot.objects.filter(
-        day_of_week=new_date.weekday(), time_slot=target_ts, semester=slot.semester, is_active=True
-    ).exclude(id=slot.id)
+        if move_type == 'once':
+            SchedExc.objects.update_or_create(
+                schedule_slot=slot, exception_date=original_date,
+                defaults={
+                    'exception_type': 'RESCHEDULE', 'reason': reason,
+                    'new_date': new_date, 'new_start_time': new_start,
+                    'new_end_time': new_end, 'new_classroom': slot.classroom
+                }
+            )
+            return JsonResponse({'success': True, 'type': 'exception_created'})
+     
+        elif move_type == 'all':
+            update_fields = dict(day_of_week=new_date.weekday(), time_slot=target_ts,
+                                 start_time=new_start, end_time=new_end)
+            ScheduleSlot.objects.filter(id=slot.id).update(**update_fields)
+            if slot.stream_id:
+                ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(**update_fields)
+            return JsonResponse({'success': True, 'type': 'slot_updated'})
+            
+    except Exception as e:
+        logger.exception(f"ОШИБКА ПРИ ПЕРЕНОСЕ/ОТМЕНЕ: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
+
+@login_required
+@require_POST
+def mass_cancel_day(request):
+    import json
+    logger.info(f"=== МАССОВАЯ ОТМЕНА ЗАПУЩЕНА ПОЛЬЗОВАТЕЛЕМ: {request.user.username} +++")
     
-    if slot.teacher and conflict_qs.filter(teacher=slot.teacher).exists():
-        return JsonResponse({'success': False, 'error': 'Преподаватель уже занят в это время!'})
-    if slot.classroom and conflict_qs.filter(classroom=slot.classroom).exists():
-        return JsonResponse({'success': False, 'error': f'Аудитория {slot.classroom.number} занята!'})
+    try:
+        data = json.loads(request.body)
+        logger.info(f"Получены данные: {data}")
+        
+        cancel_date_str = data.get('date')
+        reason = data.get('reason', 'Массовая отмена занятий')
 
-    if move_type == 'once':
-        SchedExc.objects.update_or_create(
-            schedule_slot=slot, exception_date=original_date,
-            defaults={
-                'exception_type': 'RESCHEDULE', 'reason': reason,
-                'new_date': new_date, 'new_start_time': target_ts.start_time,
-                'new_end_time': target_ts.end_time, 'new_classroom': slot.classroom
-            }
-        )
-        return JsonResponse({'success': True, 'type': 'exception_created'})
- 
-    elif move_type == 'all':
-        update_fields = dict(day_of_week=new_date.weekday(), time_slot=target_ts,
-                             start_time=target_ts.start_time, end_time=target_ts.end_time)
-        ScheduleSlot.objects.filter(id=slot.id).update(**update_fields)
-        if slot.stream_id:
-            ScheduleSlot.objects.filter(stream_id=slot.stream_id).update(**update_fields)
-        return JsonResponse({'success': True, 'type': 'slot_updated'})
+        if not cancel_date_str:
+            logger.warning("Дата не указана в запросе")
+            return JsonResponse({'success': False, 'error': 'Дата не указана'})
 
+        cancel_date = dt_cls.fromisoformat(str(cancel_date_str)[:10]).date()
+        day_of_week = cancel_date.weekday()
+        user = request.user
+
+        logger.info(f"Дата отмены: {cancel_date}, День недели: {day_of_week}")
+
+        slots = ScheduleSlot.objects.filter(day_of_week=day_of_week, is_active=True)
+
+        if user.is_superuser or hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile'):
+            logger.info("Права: Глобальный админ")
+        elif hasattr(user, 'dean_profile') and user.dean_profile.faculty:
+            logger.info(f"Права: Декан факультета {user.dean_profile.faculty.name}")
+            slots = slots.filter(group__specialty__department__faculty=user.dean_profile.faculty)
+        elif hasattr(user, 'head_of_dept_profile') and user.head_of_dept_profile.department:
+            logger.info(f"Права: Зав. кафедрой {user.head_of_dept_profile.department.name}")
+            slots = slots.filter(subject__department=user.head_of_dept_profile.department)
+        else:
+            logger.warning("Отказ в доступе: Нет прав")
+            return JsonResponse({'success': False, 'error': 'Нет прав на массовую отмену'})
+
+        slots_count = slots.count()
+        logger.info(f"Найдено слотов для отмены: {slots_count}")
+
+        with transaction.atomic():
+            count = 0
+            for slot in slots:
+                sem = slot.semester
+                if not sem or not sem.start_date: continue
+                
+                week_num = ((cancel_date - sem.start_date).days // 7) + 1
+                is_red = (week_num % 2 == 1)
+                show = (slot.week_type == 'EVERY' or (slot.week_type == 'RED' and is_red) or (slot.week_type == 'BLUE' and not is_red))
+
+                if show:
+                    logger.info(f"Отменяем слот ID: {slot.id}, Предмет: {slot.subject.name}")
+                    SchedExc.objects.update_or_create(
+                        schedule_slot=slot, exception_date=cancel_date,
+                        defaults={'exception_type': 'CANCEL', 'reason': reason}
+                    )
+                    UnusedHourPool.objects.get_or_create(
+                        group=slot.group, subject=slot.subject, teacher=slot.teacher,
+                        semester=slot.semester, original_date=cancel_date,
+                        defaults={'reason': reason}
+                    )
+                    count += 1
+
+        logger.info(f"=== УСПЕШНО ОТМЕНЕНО: {count} ПАР ===")
+        return JsonResponse({'success': True, 'count': count})
+        
+    except Exception as e:
+        logger.exception(f"КРИТИЧЕСКАЯ ОШИБКА В MASS_CANCEL: {str(e)}")
+        return JsonResponse({'success': False, 'error': f"Внутренняя ошибка: {str(e)}"})
 

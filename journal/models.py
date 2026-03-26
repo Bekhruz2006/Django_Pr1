@@ -396,6 +396,33 @@ class MatrixStructure(models.Model):
             return f"{self.name} (Инст: {self.institute.abbreviation})"
         return f"{self.name} (Глобальная)"
 
+    @classmethod
+    def get_or_create_default(cls, institute=None, faculty=None):
+        matrix = cls.objects.filter(institute=institute, faculty=faculty, is_active=True).first()
+        if not matrix:
+            matrix = cls.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
+        if not matrix:
+            matrix = cls.objects.create(
+                name="Глобальная матрица (Автосоздание)",
+                institute=institute,
+                faculty=faculty,
+                is_active=True,
+            )
+            for i in range(1, 17):
+                MatrixColumn.objects.create(
+                    structure=matrix,
+                    name=f"Неделя {i}",
+                    col_type='WEEK',
+                    week_number=i,
+                    week_type='RED' if i % 2 != 0 else 'BLUE',
+                    max_score=12.5,
+                    order=i,
+                )
+            MatrixColumn.objects.create(structure=matrix, name="Рейтинг 1 (Р1)", col_type='RATING', max_score=100.0, order=17)
+            MatrixColumn.objects.create(structure=matrix, name="Рейтинг 2 (Р2)", col_type='RATING', max_score=100.0, order=18)
+            MatrixColumn.objects.create(structure=matrix, name="Экзамен", col_type='EXAM', max_score=100.0, order=19)
+        return matrix
+
 class MatrixColumn(models.Model):
     COL_TYPES =[
         ('WEEK', 'Учебная неделя'),

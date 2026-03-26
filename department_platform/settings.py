@@ -18,6 +18,10 @@ LOGGING = {
             'format': '--- [{asctime}] {levelname} ---\nМодуль: {module}\n{message}\n',
             'style': '{',
         },
+        'simple': {
+            'format': '[{asctime}] {levelname} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'error_file': {
@@ -29,26 +33,32 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',          
         },
+        'debug_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'debug.log',
+            'maxBytes': 1024 * 1024 * 15, # 15 MB
+            'backupCount': 3,
+            'formatter': 'simple',
+            'encoding': 'utf-8',
+        },
     },
     'loggers': {
         'django.request': {
-            'handlers':['error_file'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'django.security': {
             'handlers': ['error_file'],
             'level': 'ERROR',
             'propagate': False,
         },
-        '': {
-            'handlers': ['error_file'],
-            'level': 'ERROR',
+        'schedule': {
+            'handlers':['debug_file', 'error_file'],
+            'level': 'INFO',
             'propagate': False,
         },
+        'accounts': {'handlers':['debug_file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'journal': {'handlers':['debug_file', 'error_file'], 'level': 'INFO', 'propagate': False},
+        'lms': {'handlers': ['debug_file', 'error_file'], 'level': 'INFO', 'propagate': False},
     },
 }
-
 
 LANGUAGES = [
     ('ru', _('Русский')),

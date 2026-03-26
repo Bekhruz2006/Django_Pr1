@@ -513,6 +513,7 @@
 </div>
 
 <script>
+window.INSTITUTE_PAIR_RATIO = {{ institute_pair_ratio|default:2 }};
 document.getElementById('id_lecture_hours').readOnly = true;
 document.getElementById('id_practice_hours').readOnly = true;
 document.getElementById('id_lab_hours').readOnly = true;
@@ -547,6 +548,7 @@ function addCreditTypePrompt() {
 }
 
 function calculateHours(prefix) {
+    const PAIR_RATIO = window.INSTITUTE_PAIR_RATIO || 2;
     const weeks = parseInt(document.getElementById(prefix + 'ui_weeks').value) || 16;
     const creditsInput = document.getElementById(prefix === 'add_' ? 'id_credits' : 'edit_credits');
     const credits = parseFloat(creditsInput.value) || 0;
@@ -560,10 +562,10 @@ function calculateHours(prefix) {
     const labPairs = parseFloat(document.getElementById(prefix + 'ui_lab').value) || 0;
     const srspPairs = parseFloat(document.getElementById(prefix + 'ui_srsp').value) || 0;
 
-    const lecHours = Math.round(lecPairs * 2 * weeks);
-    const pracHours = Math.round(pracPairs * 2 * weeks);
-    const labHours = Math.round(labPairs * 2 * weeks);
-    const srspHours = Math.round(srspPairs * 2 * weeks);
+    const lecHours = Math.round(lecPairs * PAIR_RATIO * weeks);
+    const pracHours = Math.round(pracPairs * PAIR_RATIO * weeks);
+    const labHours = Math.round(labPairs * PAIR_RATIO * weeks);
+    const srspHours = Math.round(srspPairs * PAIR_RATIO * weeks);
 
     const totalAuditory = lecHours + pracHours + labHours + srspHours;
     const totalCreditHours = Math.round(credits * hoursPerCredit);
@@ -607,6 +609,7 @@ function openEditModal(id, cred, lec, prac, lab, srsp, srs, cType) {
     document.getElementById('edit_credit_type').value = cType;
     
     const weeks = parseInt(document.getElementById('edit_ui_weeks').value) || 16;
+    const PAIR_RATIO = window.INSTITUTE_PAIR_RATIO || 2;
     
     function setSelectSafe(selectId, pairs) {
         const select = document.getElementById(selectId);
@@ -620,10 +623,10 @@ function openEditModal(id, cred, lec, prac, lab, srsp, srs, cType) {
         select.value = pairs.toString();
     }
 
-    setSelectSafe('edit_ui_lec', lec / (2 * weeks));
-    setSelectSafe('edit_ui_prac', prac / (2 * weeks));
-    setSelectSafe('edit_ui_lab', lab / (2 * weeks));
-    setSelectSafe('edit_ui_srsp', srsp / (2 * weeks));
+    setSelectSafe('edit_ui_lec', lec / (PAIR_RATIO * weeks));
+    setSelectSafe('edit_ui_prac', prac / (PAIR_RATIO * weeks));
+    setSelectSafe('edit_ui_lab', lab / (PAIR_RATIO * weeks));
+    setSelectSafe('edit_ui_srsp', srsp / (PAIR_RATIO * weeks));
     
     document.getElementById('edit_lec_val').value = lec;
     document.getElementById('edit_prac_val').value = prac;
@@ -693,10 +696,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateWeekly() {
         const weeks = 16;
-        if(vLec) vLec.textContent = Math.ceil(((parseInt(lecInput.value)||0)/2)/weeks) + ' п/н';
-        if(vPrac) vPrac.textContent = Math.ceil(((parseInt(pracInput.value)||0)/2)/weeks) + ' п/н';
-        if(vLab) vLab.textContent = Math.ceil(((parseInt(labInput.value)||0)/2)/weeks) + ' п/н';
-        if(vSrsp) vSrsp.textContent = Math.ceil(((parseInt(srspInput.value)||0)/2)/weeks) + ' п/н';
+        const PR = window.INSTITUTE_PAIR_RATIO || 2;
+        if(vLec) vLec.textContent = Math.ceil(((parseInt(lecInput.value)||0)/PR)/weeks) + ' п/н';
+        if(vPrac) vPrac.textContent = Math.ceil(((parseInt(pracInput.value)||0)/PR)/weeks) + ' п/н';
+        if(vLab) vLab.textContent = Math.ceil(((parseInt(labInput.value)||0)/PR)/weeks) + ' п/н';
+        if(vSrsp) vSrsp.textContent = Math.ceil(((parseInt(srspInput.value)||0)/PR)/weeks) + ' п/н';
     }
 
     if (creditsInput) {

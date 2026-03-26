@@ -205,6 +205,7 @@
 </div>
 
 <script>
+window.INSTITUTE_PAIR_RATIO = {{ institute_pair_ratio|default:2 }};
 document.getElementById('id_lecture_hours').readOnly = true;
 document.getElementById('id_practice_hours').readOnly = true;
 document.getElementById('id_lab_hours').readOnly = true;
@@ -218,6 +219,7 @@ document.getElementById('id_control_hours').classList.add('bg-light');
 document.getElementById('id_independent_work_hours').classList.add('bg-light');
 
 function calculateSubjHours() {
+    const PAIR_RATIO = window.INSTITUTE_PAIR_RATIO || 2;
     const weeks = parseInt(document.getElementById('id_semester_weeks').value) || 16;
     const credits = parseFloat(document.getElementById('id_credits').value) || 0;
     
@@ -230,10 +232,10 @@ function calculateSubjHours() {
     const labPairs = parseFloat(document.getElementById('subj_ui_lab').value) || 0;
     const srspPairs = parseFloat(document.getElementById('subj_ui_srsp').value) || 0;
 
-    const lecHours = Math.round(lecPairs * 2 * weeks);
-    const pracHours = Math.round(pracPairs * 2 * weeks);
-    const labHours = Math.round(labPairs * 2 * weeks);
-    const srspHours = Math.round(srspPairs * 2 * weeks);
+    const lecHours = Math.round(lecPairs * PAIR_RATIO * weeks);
+    const pracHours = Math.round(pracPairs * PAIR_RATIO * weeks);
+    const labHours = Math.round(labPairs * PAIR_RATIO * weeks);
+    const srspHours = Math.round(srspPairs * PAIR_RATIO * weeks);
 
     const totalAuditory = lecHours + pracHours + labHours + srspHours;
     const totalCreditHours = Math.round(credits * hoursPerCredit);
@@ -275,10 +277,11 @@ window.addEventListener('DOMContentLoaded', () => {
         select.value = pairs.toString();
     }
 
-    setSelectSafe('subj_ui_lec', lec / (2 * weeks));
-    setSelectSafe('subj_ui_prac', prac / (2 * weeks));
-    setSelectSafe('subj_ui_lab', lab / (2 * weeks));
-    setSelectSafe('subj_ui_srsp', srsp / (2 * weeks));
+    const PR = window.INSTITUTE_PAIR_RATIO || 2;
+    setSelectSafe('subj_ui_lec', lec / (PR * weeks));
+    setSelectSafe('subj_ui_prac', prac / (PR * weeks));
+    setSelectSafe('subj_ui_lab', lab / (PR * weeks));
+    setSelectSafe('subj_ui_srsp', srsp / (PR * weeks));
 
     calculateSubjHours();
 });

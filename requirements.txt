@@ -12,3 +12,10 @@ mysqlclient==2.2.4
 docxtpl==0.16.7
 django-rosetta==0.10.0
 python-dotenv==1.0.0
+
+
+
+
+
+
+

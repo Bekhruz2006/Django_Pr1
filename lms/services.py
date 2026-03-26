@@ -12,6 +12,10 @@ import hashlib
 class LMSManager:
     @staticmethod
     def get_shared_course_id(subject):
+        return f"SUBJ_{subject.id}"
+
+    @staticmethod
+    def _legacy_crs_course_id(subject):
         clean_name = subject.name.strip().lower()
         name_hash = hashlib.md5(clean_name.encode('utf-8')).hexdigest()[:8]
         teacher_id = subject.teacher_id if subject.teacher_id else 0
@@ -22,14 +26,23 @@ class LMSManager:
         from schedule.models import Subject
         if not shared_id:
             return None
-            
+
+        if shared_id.startswith("SUBJ_"):
+            try:
+                subj_id = int(shared_id.replace("SUBJ_", "", 1))
+                return Subject.objects.filter(id=subj_id).first()
+            except ValueError:
+                pass
+            except Exception:
+                logger.exception("get_subject_from_shared_id SUBJ")
+
         if shared_id.startswith("CRS_"):
             try:
                 parts = shared_id.split('_')
                 teacher_id = int(parts[2][1:])
                 subjects = Subject.objects.filter(teacher_id=teacher_id if teacher_id > 0 else None)
                 for sub in subjects:
-                    if LMSManager.get_shared_course_id(sub) == shared_id:
+                    if LMSManager._legacy_crs_course_id(sub) == shared_id:
                         return sub
             except Exception:
                 logger.exception("get_subject_from_shared_id CRS")
@@ -39,34 +52,27 @@ class LMSManager:
                 parts = shared_id.split('_')
                 disc_id = int(parts[1])
                 type_part = parts[3]
-                
+
                 qs = Subject.objects.filter(plan_discipline_id=disc_id, type=type_part)
                 sub = qs.first()
-                if sub: return sub
+                if sub:
+                    return sub
             except Exception:
                 logger.exception("get_subject_from_shared_id DISC")
-                
-        if shared_id.startswith("SUBJ_"):
-            try:
-                parts = shared_id.split('_')
-                subj_id = int(parts[1])
-                sub = Subject.objects.filter(id=subj_id).first()
-                if sub: return sub
-            except Exception:
-                logger.exception("get_subject_from_shared_id SUBJ")
-        
+
         sub = Subject.objects.filter(code=shared_id).first()
-        if sub: return sub
-        
+        if sub:
+            return sub
+
         for sub in Subject.objects.all():
             base = f"DISC_{sub.plan_discipline_id}" if sub.plan_discipline_id else f"SUBJ_{sub.id}"
             if shared_id.startswith(base) and shared_id.endswith(sub.type):
                 return sub
-                
+
             old_base = f"NAME_{abs(hash(sub.name))}"
             if shared_id.startswith(old_base) and shared_id.endswith(sub.type):
                 return sub
-                
+
         return None
 
     @staticmethod
@@ -133,13 +139,8 @@ class LMSManager:
 
         faculty = subject.department.faculty
         institute = faculty.institute
-        
-        matrix = MatrixStructure.objects.filter(institute=institute, faculty__isnull=True, is_active=True).first()
-        if not matrix:
-            matrix = MatrixStructure.objects.filter(institute__isnull=True, faculty__isnull=True, is_active=True).first()
-            
-        if not matrix or not matrix.columns.exists():
-            return False, "Структура Сводной ведомости (Матрица) не настроена деканатом. Настройте её в Журнале."
+
+        matrix = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
 
         course.sections.all().delete()
 
@@ -156,7 +157,8 @@ class LMSManager:
                 course=course,
                 name=column.name,
                 sequence=column.order,
-                section_type=section_type
+                section_type=section_type,
+                matrix_column_id=column.id
             )
 
             if column.col_type == 'WEEK':

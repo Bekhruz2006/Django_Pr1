@@ -817,11 +817,7 @@ def section_grading(request, section_id):
     faculty = subject.department.faculty
     institute = faculty.institute
 
-    structure, created_structure = MatrixStructure.objects.get_or_create(
-        institute=institute,
-        faculty=None,
-        defaults={'name': f"Матрица {institute.abbreviation if institute else 'Глобальная'}"}
-    )
+    structure = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
 
     col_type = 'WEEK'
     max_score = 12.5

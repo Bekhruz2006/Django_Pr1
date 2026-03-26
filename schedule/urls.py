@@ -14,6 +14,7 @@ urlpatterns = [
     path('calendar/', views.schedule_calendar, name='calendar'),
     path('api/calendar-events/', views.schedule_calendar_events, name='calendar_events_api'),
     path('api/calendar-move/', views.calendar_move_slot, name='calendar_move'),
+    path('api/calendar-sidebar/', views.calendar_sidebar_api, name='calendar_sidebar_api'),
 
     path('buildings/', views.manage_buildings, name='manage_buildings'),
     path('buildings/add/', views.add_building, name='add_building'),
@@ -76,4 +77,5 @@ urlpatterns = [
     path('credit-templates/add/', views.add_credit_template, name='add_credit_template'),
     path('credit-templates/<int:template_id>/edit/', views.edit_credit_template, name='edit_credit_template'),
     path('credit-templates/<int:template_id>/delete/', views.delete_credit_template, name='delete_credit_template'),
+    path('api/calendar-mass-cancel/', views.mass_cancel_day, name='mass_cancel_day'),
 ]
