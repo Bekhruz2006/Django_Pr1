@@ -1,19 +1,20 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Выбор журнала{% endblock %}
+{% block title %}{% trans "Выбор журнала" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-6 mx-auto">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-journal-text"></i> Выбор журнала</h5>
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> {% trans "Выбор журнала" %}</h5>
             </div>
             <div class="card-body p-4">
                 <form method="get" action="{% url 'journal:journal_view' %}">
                     {% if not form.institute.is_hidden %}
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Институт</label>
+                        <label class="form-label fw-bold">{% trans "Институт" %}</label>
                         {{ form.institute }}
                     </div>
                     {% else %}
@@ -21,20 +22,20 @@
                     {% endif %}
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Группа *</label>
+                        <label class="form-label fw-bold">{% trans "Группа *" %}</label>
                         {{ form.group }}
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Предмет *</label>
+                        <label class="form-label fw-bold">{% trans "Предмет *" %}</label>
                         {{ form.subject }}
-                        <small class="form-text text-muted">Показаны только предметы выбранной группы</small>
+                        <small class="form-text text-muted">{% trans "Показаны только предметы выбранной группы" %}</small>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Учебная неделя (опционально)</label>
+                        <label class="form-label fw-bold">{% trans "Учебная неделя (опционально)" %}</label>
                         {{ form.week }}
-                        <small class="form-text text-muted">Используется только для еженедельного журнала</small>
+                        <small class="form-text text-muted">{% trans "Используется только для еженедельного журнала" %}</small>
                     </div>
                     
                     <hr class="mb-4">
@@ -42,11 +43,11 @@
                     <input type="hidden" name="tab" id="tabInput" value="weekly">
                     <div class="d-grid gap-3">
                         <button type="submit" class="btn btn-primary btn-lg" onclick="document.getElementById('tabInput').value='weekly'">
-                            <i class="bi bi-calendar-week me-2"></i> Открыть Еженедельный журнал
+                            <i class="bi bi-calendar-week me-2"></i> {% trans "Открыть Еженедельный журнал" %}
                         </button>
                         
                         <button type="submit" class="btn btn-success btn-lg" onclick="document.getElementById('tabInput').value='matrix'">
-                            <i class="bi bi-grid-3x3 me-2"></i> Открыть Сводную ведомость (Рейтинги и Экзамен)
+                            <i class="bi bi-grid-3x3 me-2"></i> {% trans "Открыть Сводную ведомость (Рейтинги и Экзамен)" %}
                         </button>
                     </div>
                 </form>

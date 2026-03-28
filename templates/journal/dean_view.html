@@ -1,34 +1,35 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Аналитика успеваемости{% endblock %}
+{% block title %}{% trans "Аналитика успеваемости" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-graph-up"></i> Аналитика успеваемости
+                <i class="bi bi-graph-up"></i> {% trans "Аналитика успеваемости" %}
             </div>
             <div class="card-body">
 
                 <form method="get" class="mb-4">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Группа</label>
+                            <label class="form-label">{% trans "Группа" %}</label>
                             <select name="group" class="form-select" onchange="this.form.submit()">
-                                <option value="">-- Выберите группу --</option>
+                                <option value="">{% trans "-- Выберите группу --" %}</option>
                                 {% for group in groups %}
                                     <option value="{{ group.id }}" {% if selected_group and selected_group.id == group.id %}selected{% endif %}>
-                                        {{ group.name }} ({{ group.course }} курс)
+                                        {{ group.name }} ({{ group.course }} {% trans "курс" %})
                                     </option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Режим просмотра</label>
+                            <label class="form-label">{% trans "Режим просмотра" %}</label>
                             <select name="view" class="form-select" onchange="this.form.submit()">
-                                <option value="summary" {% if view_type == 'summary' %}selected{% endif %}>Общая статистика</option>
-                                <option value="at_risk" {% if view_type == 'at_risk' %}selected{% endif %}>Студенты под угрозой</option>
+                                <option value="summary" {% if view_type == 'summary' %}selected{% endif %}>{% trans "Общая статистика" %}</option>
+                                <option value="at_risk" {% if view_type == 'at_risk' %}selected{% endif %}>{% trans "Студенты под угрозой" %}</option>
                             </select>
                         </div>
                     </div>
@@ -36,7 +37,7 @@
 
                 {% if not selected_group %}
                     <div class="alert alert-info text-center">
-                        <i class="bi bi-info-circle"></i> Выберите группу для просмотра аналитики
+                        <i class="bi bi-info-circle"></i> {% trans "Выберите группу для просмотра аналитики" %}
                     </div>
                 {% else %}
                     {% if view_type == 'summary' %}
@@ -45,7 +46,7 @@
                             <div class="col-md-4">
                                 <div class="card bg-primary bg-opacity-10">
                                     <div class="card-body text-center">
-                                        <h6 class="text-muted">Средний балл группы</h6>
+                                        <h6 class="text-muted">{% trans "Средний балл группы" %}</h6>
                                         <h2 class="text-primary">{{ group_stats.avg_gpa|floatformat:2 }}</h2>
                                     </div>
                                 </div>
@@ -53,7 +54,7 @@
                             <div class="col-md-4">
                                 <div class="card bg-success bg-opacity-10">
                                     <div class="card-body text-center">
-                                        <h6 class="text-muted">Средняя посещаемость</h6>
+                                        <h6 class="text-muted">{% trans "Средняя посещаемость" %}</h6>
                                         <h2 class="text-success">{{ group_stats.avg_attendance|floatformat:0 }}%</h2>
                                     </div>
                                 </div>
@@ -61,21 +62,21 @@
                             <div class="col-md-4">
                                 <div class="card bg-info bg-opacity-10">
                                     <div class="card-body text-center">
-                                        <h6 class="text-muted">Всего студентов</h6>
+                                        <h6 class="text-muted">{% trans "Всего студентов" %}</h6>
                                         <h2 class="text-info">{{ group_stats.total_students }}</h2>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <h5 class="mb-3">Статистика по предметам</h5>
+                        <h5 class="mb-3">{% trans "Статистика по предметам" %}</h5>
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
                                 <thead class="bg-light">
                                     <tr>
-                                        <th class="ps-3 border-0">Предмет / Преподаватель</th>
-                                        <th class="text-center border-0" style="width: 100px;">Показатели</th>
-                                        <th class="border-0 text-center" style="width: 180px;">График эффективности</th>
+                                        <th class="ps-3 border-0">{% trans "Предмет / Преподаватель" %}</th>
+                                        <th class="text-center border-0" style="width: 100px;">{% trans "Показатели" %}</th>
+                                        <th class="border-0 text-center" style="width: 180px;">{% trans "График эффективности" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -92,13 +93,13 @@
                                         <td class="text-center">
                                             <div class="d-flex flex-column gap-2">
                                                 <div class="d-flex justify-content-between align-items-center px-2 py-1 bg-light rounded border">
-                                                    <span class="text-muted small" style="font-size: 0.65rem;">GPA</span>
+                                                    <span class="text-muted small" style="font-size: 0.65rem;">{% trans "GPA" %}</span>
                                                     <span class="fw-bold {% if subject.avg_grade < 3 %}text-danger{% else %}text-primary{% endif %}">
                                                         {{ subject.avg_grade|floatformat:1 }}
                                                     </span>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center px-2 py-1 bg-light rounded border">
-                                                    <span class="text-muted small" style="font-size: 0.65rem;">ATT</span>
+                                                    <span class="text-muted small" style="font-size: 0.65rem;">{% trans "ATT" %}</span>
                                                     <span class="fw-bold {% if subject.attendance_pct < 60 %}text-danger{% else %}text-success{% endif %}">
                                                         {{ subject.attendance_pct|floatformat:0 }}%
                                                     </span>
@@ -107,7 +108,8 @@
                                         </td>
 
                                         <td class="pe-3">
-                                            <div class="mini-chart-container" title="Наведите для точных значений">
+                                            {% trans "Наведите для точных значений" as chart_title %}
+                                            <div class="mini-chart-container" title="{{ chart_title }}">
 
                                                 <div class="target-line"></div>
 
@@ -125,8 +127,8 @@
 
                                             </div>
                                             <div class="d-flex justify-content-around px-1">
-                                                <span class="chart-label">Балл</span>
-                                                <span class="chart-label">Посещ.</span>
+                                                <span class="chart-label">{% trans "Балл" %}</span>
+                                                <span class="chart-label">{% trans "Посещ." %}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -139,7 +141,7 @@
 
                         <h5 class="mb-3">
                             <i class="bi bi-exclamation-triangle text-danger"></i>
-                            Студенты под угрозой (балл < 4 или посещаемость < 60%)
+                            {% trans "Студенты под угрозой (балл < 4 или посещаемость < 60%)" %}
                         </h5>
 
                         {% if at_risk_students %}
@@ -147,11 +149,11 @@
                             <table class="table table-bordered table-hover">
                                 <thead class="table-danger">
                                     <tr>
-                                        <th>Студент</th>
-                                        <th>Средний балл</th>
-                                        <th>Посещаемость</th>
-                                        <th>Рейтинг в группе</th>
-                                        <th>Причины</th>
+                                        <th>{% trans "Студент" %}</th>
+                                        <th>{% trans "Средний балл" %}</th>
+                                        <th>{% trans "Посещаемость" %}</th>
+                                        <th>{% trans "Рейтинг в группе" %}</th>
+                                        <th>{% trans "Причины" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -186,7 +188,7 @@
                         {% else %}
                         <div class="alert alert-success text-center">
                             <i class="bi bi-check-circle"></i>
-                            <strong>Отлично!</strong> В группе нет студентов под угрозой
+                            <strong>{% trans "Отлично!" %}</strong> {% trans "В группе нет студентов под угрозой" %}
                         </div>
                         {% endif %}
                     {% endif %}

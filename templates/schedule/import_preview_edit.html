@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Проверка и редактирование импорта{% endblock %}
+{% block title %}{% trans "Проверка и редактирование импорта" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow">
             <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                <h5><i class="bi bi-pencil-square"></i> Проверка данных перед импортом</h5>
-                <span class="badge bg-dark">Найдено записей: {{ preview_data|length }}</span>
+                <h5><i class="bi bi-pencil-square"></i> {% trans "Проверка данных перед импортом" %}</h5>
+                <span class="badge bg-dark">{% trans "Найдено записей:" %} {{ preview_data|length }}</span>
             </div>
             <div class="card-body">
                 <form method="post" id="importForm">
@@ -17,21 +18,24 @@
                     <input type="hidden" name="semester_id" value="{{ semester.id }}">
                     
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Проверьте таблицу. Исправьте названия предметов (уберите None), имена преподавателей и номера кабинетов. <br>
-                        <strong>Удалите пустые или некорректные строки</strong> с помощью красной кнопки справа.
+                        <i class="bi bi-info-circle"></i>
+                        {% trans "Проверьте таблицу. Исправьте названия предметов (уберите None), имена преподавателей и номера кабинетов." %}
+                        <br>
+                        <strong>{% trans "Удалите пустые или некорректные строки" %}</strong>
+                        {% trans "с помощью красной кнопки справа." %}
                     </div>
 
                     <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
                         <table class="table table-sm table-bordered align-middle">
                             <thead class="table-dark sticky-top">
                                 <tr>
-                                    <th>Группа</th>
-                                    <th>День / Время</th>
-                                    <th>Предмет</th>
-                                    <th>Преподаватель</th>
-                                    <th width="80">Ауд.</th>
-                                    <th width="100">Тип</th>
-                                    <th width="50">Уд.</th>
+                                    <th>{% trans "Группа" %}</th>
+                                    <th>{% trans "День / Время" %}</th>
+                                    <th>{% trans "Предмет" %}</th>
+                                    <th>{% trans "Преподаватель" %}</th>
+                                    <th width="80">{% trans "Ауд." %}</th>
+                                    <th width="100">{% trans "Тип" %}</th>
+                                    <th width="50">{% trans "Уд." %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -48,7 +52,7 @@
                                     <td><strong>{{ item.group_name }}</strong></td>
                                     <td>
                                         <span class="badge bg-secondary">
-                                            {% if item.day == 0 %}ПН{% elif item.day == 1 %}ВТ{% elif item.day == 2 %}СР{% elif item.day == 3 %}ЧТ{% elif item.day == 4 %}ПТ{% elif item.day == 5 %}СБ{% endif %}
+                                            {% if item.day == 0 %}{% trans "ПН" %}{% elif item.day == 1 %}{% trans "ВТ" %}{% elif item.day == 2 %}{% trans "СР" %}{% elif item.day == 3 %}{% trans "ЧТ" %}{% elif item.day == 4 %}{% trans "ПТ" %}{% elif item.day == 5 %}{% trans "СБ" %}{% endif %}
                                         </span>
                                         <small>{{ item.start_time }}-{{ item.end_time }}</small>
                                     </td>
@@ -59,9 +63,10 @@
                                                value="{{ item.subject|default:'' }}" required>
                                     </td>
                                     <td>
+                                        {% trans "ФИО" as teacher_placeholder %}
                                         <input type="text" class="form-control form-control-sm" 
                                                name="item_{{ forloop.counter0 }}_teacher" 
-                                               value="{{ item.teacher|default:'' }}" placeholder="ФИО">
+                                               value="{{ item.teacher|default:'' }}" placeholder="{{ teacher_placeholder }}">
                                     </td>
                                     <td>
                                         <input type="text" class="form-control form-control-sm" 
@@ -70,9 +75,9 @@
                                     </td>
                                     <td>
                                         <select class="form-select form-select-sm" name="item_{{ forloop.counter0 }}_type">
-                                            <option value="LECTURE" {% if item.type == 'LECTURE' %}selected{% endif %}>Лекц.</option>
-                                            <option value="PRACTICE" {% if item.type == 'PRACTICE' %}selected{% endif %}>Практ.</option>
-                                            <option value="SRSP" {% if item.type == 'SRSP' %}selected{% endif %}>СРСП</option>
+                                            <option value="LECTURE" {% if item.type == 'LECTURE' %}selected{% endif %}>{% trans "Лекц." %}</option>
+                                            <option value="PRACTICE" {% if item.type == 'PRACTICE' %}selected{% endif %}>{% trans "Практ." %}</option>
+                                            <option value="SRSP" {% if item.type == 'SRSP' %}selected{% endif %}>{% trans "СРСП" %}</option>
                                         </select>
                                     </td>
                                     <td class="text-center">
@@ -87,9 +92,9 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-3 pb-3">
-                        <a href="{% url 'schedule:import_schedule' %}" class="btn btn-secondary">Отмена</a>
+                        <a href="{% url 'schedule:import_schedule' %}" class="btn btn-secondary">{% trans "Отмена" %}</a>
                         <button type="submit" class="btn btn-success btn-lg">
-                            <i class="bi bi-save"></i> Подтвердить и Сохранить
+                            <i class="bi bi-save"></i> {% trans "Подтвердить и Сохранить" %}
                         </button>
                     </div>
                 </form>

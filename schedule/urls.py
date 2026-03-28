@@ -10,7 +10,6 @@ urlpatterns = [
     path('export/', views.export_schedule, name='export'),
     path('api/check-conflicts/', views.check_schedule_conflicts, name='check_conflicts'),
 
-    # ▸ НОВЫЙ: живой календарь
     path('calendar/', views.schedule_calendar, name='calendar'),
     path('api/calendar-events/', views.schedule_calendar_events, name='calendar_events_api'),
     path('api/calendar-move/', views.calendar_move_slot, name='calendar_move'),

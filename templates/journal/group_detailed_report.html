@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Детальный отчет - {{ group.name }}{% endblock %}
+{% block title %}{% trans "Детальный отчет" %} - {{ group.name }}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
@@ -8,11 +9,11 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>
-                    <i class="bi bi-collection"></i> Детальный отчет - {{ group.name }}
-                    <span class="badge bg-primary ms-2">{{ group.course }} курс</span>
+                    <i class="bi bi-collection"></i> {% trans "Детальный отчет" %} - {{ group.name }}
+                    <span class="badge bg-primary ms-2">{{ group.course }} {% trans "курс" %}</span>
                 </span>
                 <a href="{% url 'journal:department_report' %}" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> К отчету по кафедре
+                    <i class="bi bi-arrow-left"></i> {% trans "К отчету по кафедре" %}
                 </a>
             </div>
             <div class="card-body">
@@ -20,19 +21,19 @@
                     <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th rowspan="2" class="align-middle">Студент</th>
-                                <th rowspan="2" class="align-middle text-center">GPA</th>
-                                <th rowspan="2" class="align-middle text-center">Посещ.</th>
-                                <th rowspan="2" class="align-middle text-center">НБ</th>
-                                <th rowspan="2" class="align-middle text-center">Рейтинг</th>
+                                <th rowspan="2" class="align-middle">{% trans "Студент" %}</th>
+                                <th rowspan="2" class="align-middle text-center">{% trans "GPA" %}</th>
+                                <th rowspan="2" class="align-middle text-center">{% trans "Посещ." %}</th>
+                                <th rowspan="2" class="align-middle text-center">{% trans "НБ" %}</th>
+                                <th rowspan="2" class="align-middle text-center">{% trans "Рейтинг" %}</th>
                                 {% for subject in subjects %}
                                     <th class="text-center">{{ subject.name }}</th>
                                 {% endfor %}
-                                <th rowspan="2" class="align-middle text-center">Статус</th>
+                                <th rowspan="2" class="align-middle text-center">{% trans "Статус" %}</th>
                             </tr>
                             <tr>
                                 {% for subject in subjects %}
-                                    <th class="text-center"><small>Балл / Посещ.</small></th>
+                                    <th class="text-center"><small>{% trans "Балл / Посещ." %}</small></th>
                                 {% endfor %}
                             </tr>
                         </thead>
@@ -43,7 +44,8 @@
                                         <a href="{% url 'accounts:view_user_profile' item.student.user.id %}">
                                             <strong>{{ item.student.user.get_full_name }}</strong>
                                         </a>
-                                        <button onclick="showStudentTrend({{ item.student.id }}, '{{ item.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-link text-primary p-0 ms-2" title="Алгоритмический прогноз">
+                                        {% trans "Алгоритмический прогноз" as tooltip_title %}
+                                        <button onclick="showStudentTrend({{ item.student.id }}, '{{ item.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-link text-primary p-0 ms-2" title="{{ tooltip_title }}">
                                             <i class="bi bi-graph-up-arrow fs-5"></i>
                                         </button>
                                         <br>
@@ -65,9 +67,9 @@
                                         </strong>
                                         <br>
                                         <small class="text-muted">
-                                            Б:{{ item.stats.absent_illness }} 
-                                            У:{{ item.stats.absent_valid }} 
-                                            Н:{{ item.stats.absent_invalid }}
+                                            {% trans "Б" %}:{{ item.stats.absent_illness }} 
+                                            {% trans "У" %}:{{ item.stats.absent_valid }} 
+                                            {% trans "Н" %}:{{ item.stats.absent_invalid }}
                                         </small>
                                     </td>
                                     <td class="text-center">
@@ -88,7 +90,7 @@
                                                     </small>
                                                     <br>
                                                     <small class="text-danger">
-                                                        НБ: {{ subj_perf.absent }}
+                                                        {% trans "НБ" %}: {{ subj_perf.absent }}
                                                     </small>
                                                 {% endif %}
                                             {% endfor %}
@@ -97,9 +99,9 @@
                                     
                                     <td class="text-center">
                                         {% if item.is_at_risk %}
-                                            <span class="badge bg-danger">Под угрозой</span>
+                                            <span class="badge bg-danger">{% trans "Под угрозой" %}</span>
                                         {% else %}
-                                            <span class="badge bg-success">Норма</span>
+                                            <span class="badge bg-success">{% trans "Норма" %}</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -109,12 +111,12 @@
                 </div>
                 
                 <div class="alert alert-info mt-3">
-                    <h6><i class="bi bi-info-circle"></i> Легенда:</h6>
+                    <h6><i class="bi bi-info-circle"></i> {% trans "Легенда:" %}</h6>
                     <ul class="mb-0">
-                        <li><strong>Зеленый</strong> — отличная успеваемость (балл ≥ 7, посещаемость ≥ 80%, НБ ≤ 5)</li>
-                        <li><strong>Желтый</strong> — удовлетворительная (балл 4-7, посещаемость 60-80%, НБ 5-10)</li>
-                        <li><strong>Красный</strong> — критическая (балл < 4, посещаемость < 60%, НБ > 10)</li>
-                        <li><strong>НБ</strong> — Неявка на занятие (Б-Болезнь, У-Уважительная, Н-Неуважительная)</li>
+                        <li><strong>{% trans "Зеленый" %}</strong> — {% trans "отличная успеваемость (балл ≥ 7, посещаемость ≥ 80%, НБ ≤ 5)" %}</li>
+                        <li><strong>{% trans "Желтый" %}</strong> — {% trans "удовлетворительная (балл 4-7, посещаемость 60-80%, НБ 5-10)" %}</li>
+                        <li><strong>{% trans "Красный" %}</strong> — {% trans "критическая (балл < 4, посещаемость < 60%, НБ > 10)" %}</li>
+                        <li><strong>{% trans "НБ" %}</strong> — {% trans "Неявка на занятие (Б-Болезнь, У-Уважительная, Н-Неуважительная)" %}</li>
                     </ul>
                 </div>
             </div>

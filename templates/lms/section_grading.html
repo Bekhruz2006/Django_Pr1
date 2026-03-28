@@ -1,29 +1,38 @@
 {% extends "lms/base_lms.html" %}
-{% block title %}Выставление баллов: {{ section.name }}{% endblock %}
+{% load i18n %}
+
+{% block title %}{% trans "Выставление баллов:" %} {{ section.name }}{% endblock %}
 
 {% block lms_content %}
 <div class="card shadow-sm" style="max-width: 800px; margin: 0 auto;">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-journal-check"></i> Оценка: {{ section.name }}</h5>
-        <a href="{% url 'lms:course_detail' course.id %}" class="btn btn-sm btn-light text-success">Назад к курсу</a>
+        <h5 class="mb-0"><i class="bi bi-journal-check"></i> {% trans "Оценка:" %} {{ section.name }}</h5>
+        <a href="{% url 'lms:course_detail' course.id %}" class="btn btn-sm btn-light text-success">{% trans "Назад к курсу" %}</a>
     </div>
     <div class="card-body">
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Баллы, выставленные здесь, автоматически попадут в <strong>Сводную ведомость (Матрицу)</strong>. Максимальный балл: <strong>{{ column.max_score }}</strong>.
+            <i class="bi bi-info-circle"></i>
+            {% blocktrans with max_score=column.max_score %}
+                Баллы, выставленные здесь, автоматически попадут в <strong>Сводную ведомость (Матрицу)</strong>. Максимальный балл: <strong>{{ max_score }}</strong>.
+            {% endblocktrans %}
         </div>
 
         {% if is_auto_rating %}
             <div class="alert alert-warning py-3 shadow-sm border-warning">
-                <h5 class="fw-bold text-dark"><i class="bi bi-robot text-warning"></i> Автоматический расчет</h5>
-                <p class="mb-0">Баллы за этот раздел (Рейтинг/Экзамен) <strong>нельзя ввести вручную</strong>. Они автоматически подтягиваются из результатов <b>Тестирования (Quiz)</b>, которое студенты проходят в LMS.</p>
+                <h5 class="fw-bold text-dark"><i class="bi bi-robot text-warning"></i> {% trans "Автоматический расчет" %}</h5>
+                <p class="mb-0">
+                    {% blocktrans %}
+                        Баллы за этот раздел (Рейтинг/Экзамен) <strong>нельзя ввести вручную</strong>. Они автоматически подтягиваются из результатов <b>Тестирования (Quiz)</b>, которое студенты проходят в LMS.
+                    {% endblocktrans %}
+                </p>
             </div>
         {% elif is_future and not is_admin %}
             <div class="alert alert-danger">
-                <i class="bi bi-lock-fill"></i> <strong>Эта неделя еще не наступила!</strong> Выставление баллов за будущие недели заблокировано.
+                <i class="bi bi-lock-fill"></i> <strong>{% trans "Эта неделя еще не наступила!" %}</strong> {% trans "Выставление баллов за будущие недели заблокировано." %}
             </div>
         {% elif is_admin %}
             <div class="alert alert-warning py-2">
-                <i class="bi bi-shield-lock-fill"></i> <strong>Режим Администратора:</strong> Ограничения по времени отключены.
+                <i class="bi bi-shield-lock-fill"></i> <strong>{% trans "Режим Администратора:" %}</strong> {% trans "Ограничения по времени отключены." %}
             </div>
         {% endif %}
 
@@ -32,9 +41,9 @@
             <table class="table table-hover table-bordered align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 50px;">№</th>
-                        <th>Студент</th>
-                        <th style="width: 150px;" class="text-center">Балл</th>
+                        <th style="width: 50px;">{% trans "№" %}</th>
+                        <th>{% trans "Студент" %}</th>
+                        <th style="width: 150px;" class="text-center">{% trans "Балл" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,14 +60,16 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="3" class="text-center text-muted py-4">На курс не записано ни одного студента</td></tr>
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">{% trans "На курс не записано ни одного студента" %}</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
 
             {% if can_edit and student_data %}
             <button type="submit" class="btn btn-success w-100 btn-lg mt-3">
-                <i class="bi bi-save"></i> Сохранить баллы в ведомость
+                <i class="bi bi-save"></i> {% trans "Сохранить баллы в ведомость" %}
             </button>
             {% endif %}
         </form>

@@ -1,4 +1,5 @@
 {% load i18n %}
+{% trans "Сохранить данные" as default_submit_btn %}
 <div class="row mt-4 justify-content-center">
     <div class="col-lg-{% if form_width %}{{ form_width }}{% else %}7{% endif %}">
         <div class="card border-0 shadow-sm">
@@ -20,7 +21,7 @@
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger p-3 rounded-3 mb-4">
                         <div class="d-flex align-items-center mb-2 fw-bold">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Ошибка сохранения
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> {% trans "Ошибка сохранения" %}
                         </div>
                         <ul class="mb-0 ps-3 small">
                             {% for error in form.non_field_errors %}
@@ -65,7 +66,7 @@
                             {% trans "Отмена" %}
                         </a>
                         <button type="submit" class="btn btn-primary px-4 py-2">
-                            {{ submit_btn_text|default:"Сохранить данные" }}
+                            {{ submit_btn_text|default:default_submit_btn }}
                             <i class="bi bi-arrow-right ms-1"></i>
                         </button>
                     </div>

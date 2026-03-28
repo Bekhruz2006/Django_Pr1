@@ -1,51 +1,52 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Мои оценки{% endblock %}
+{% block title %}{% trans "Мои оценки" %}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item active">Моя успеваемость</li>
+    <li class="breadcrumb-item active">{% trans "Моя успеваемость" %}</li>
 {% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card mb-3">
             <div class="card-header">
-                <i class="bi bi-person-badge"></i> Моя успеваемость
+                <i class="bi bi-person-badge"></i> {% trans "Моя успеваемость" %}
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">Общий GPA</h6>
+                            <h6 class="text-muted">{% trans "Общий GPA" %}</h6>
                             <h2 class="text-primary">{{ stats.overall_gpa|floatformat:2 }}</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">Рейтинг</h6>
+                            <h6 class="text-muted">{% trans "Рейтинг" %}</h6>
                             <h2 class="text-warning">{{ stats.group_rank }}</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">Посещаемость</h6>
+                            <h6 class="text-muted">{% trans "Посещаемость" %}</h6>
                             <h2 class="text-success">{{ stats.attendance_percentage|floatformat:0 }}%</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">НБ-Болезнь</h6>
+                            <h6 class="text-muted">{% trans "НБ-Болезнь" %}</h6>
                             <h3 class="text-info">{{ stats.absent_illness }}</h3>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">НБ-Уваж.</h6>
+                            <h6 class="text-muted">{% trans "НБ-Уваж." %}</h6>
                             <h3 class="text-success">{{ stats.absent_valid }}</h3>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center">
-                            <h6 class="text-muted">НБ-Неуваж.</h6>
+                            <h6 class="text-muted">{% trans "НБ-Неуваж." %}</h6>
                             <h3 class="text-danger">{{ stats.absent_invalid }}</h3>
                         </div>
                     </div>
@@ -54,8 +55,9 @@
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="alert {% if stats.total_absent > 10 %}alert-danger{% elif stats.total_absent > 5 %}alert-warning{% else %}alert-success{% endif %}">
-                            <strong>Всего прогулов:</strong> {{ stats.total_absent }} из {{ stats.total_lessons }} занятий
-                            ({{ stats.attendance_percentage|floatformat:1 }}% посещаемости)
+                            {% blocktrans with total_absent=stats.total_absent total_lessons=stats.total_lessons attendance_percentage=stats.attendance_percentage|floatformat:1 %}
+                                <strong>Всего прогулов:</strong> {{ total_absent }} из {{ total_lessons }} занятий ({{ attendance_percentage }}% посещаемости)
+                            {% endblocktrans %}
                         </div>
                     </div>
                 </div>
@@ -73,10 +75,10 @@
                 </span>
                 <div>
                     <span class="badge bg-primary me-2">
-                        Ср. балл: {{ subject_data.avg_grade|floatformat:1 }}
+                        {% trans "Ср. балл:" %} {{ subject_data.avg_grade|floatformat:1 }}
                     </span>
                     <span class="badge bg-success">
-                        Посещ: {{ subject_data.attendance_pct|floatformat:0 }}%
+                        {% trans "Посещ:" %} {{ subject_data.attendance_pct|floatformat:0 }}%
                     </span>
                 </div>
             </div>
@@ -84,13 +86,13 @@
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered">
                         <thead class="table-light">
-                            <tr>
-                                <th>Дата</th>
-                                <th>Время</th>
-                                <th>Тип</th>
-                                <th>Балл</th>
-                                <th>Посещение</th>
-                            </tr>
+                             <tr>
+                                <th>{% trans "Дата" %}</th>
+                                <th>{% trans "Время" %}</th>
+                                <th>{% trans "Тип" %}</th>
+                                <th>{% trans "Балл" %}</th>
+                                <th>{% trans "Посещение" %}</th>
+                             </tr>
                         </thead>
                         <tbody>
                             {% for entry in subject_data.entries %}
@@ -102,7 +104,7 @@
                                     {% if entry.grade %}
                                         <span class="badge bg-success">{{ entry.grade }}</span>
                                     {% else %}
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">{% trans "—" %}</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
@@ -117,7 +119,7 @@
                         </tbody>
                         <tfoot class="table-info">
                             <tr>
-                                <td colspan="3"><strong>Итого</strong></td>
+                                <td colspan="3"><strong>{% trans "Итого" %}</strong></td>
                                 <td class="text-center">
                                     <strong>{{ subject_data.avg_grade|floatformat:1 }}</strong>
                                 </td>
@@ -132,7 +134,7 @@
         </div>
         {% empty %}
         <div class="alert alert-info text-center">
-            <i class="bi bi-info-circle"></i> Записей в журнале пока нет
+            <i class="bi bi-info-circle"></i> {% trans "Записей в журнале пока нет" %}
         </div>
         {% endfor %}
     </div>

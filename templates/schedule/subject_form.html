@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}{{ title|default:"Добавить предмет" }}{% endblock %}
+{% block title %}
+    {% if title %}
+        {{ title }}
+    {% else %}
+        {% trans "Добавить предмет" %}
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
@@ -8,7 +15,7 @@
 
         {% if form.errors %}
             <div class="alert alert-danger">
-                <h4><i class="bi bi-exclamation-triangle"></i> Ошибка сохранения!</h4>
+                <h4><i class="bi bi-exclamation-triangle"></i> {% trans "Ошибка сохранения!" %}</h4>
                 <ul>
                     {% for field in form %}
                         {% for error in field.errors %}
@@ -26,7 +33,13 @@
             {% csrf_token %}
             <div class="card shadow border-0">
                 <div class="card-header bg-primary text-white py-3">
-                    <h5 class="mb-0"><i class="bi bi-book-half"></i> {{ title|default:"Добавить предмет" }}</h5>
+                    <h5 class="mb-0"><i class="bi bi-book-half"></i>
+                        {% if title %}
+                            {{ title }}
+                        {% else %}
+                            {% trans "Добавить предмет" %}
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body">
 
@@ -40,7 +53,7 @@
                         </div>
                         {% if form.initial.assign_to_all_groups %}
                             <div class="text-success mt-1">
-                                <i class="bi bi-check-circle-fill"></i> Опция включена автоматически (добавление через кафедру).
+                                <i class="bi bi-check-circle-fill"></i> {% trans "Опция включена автоматически (добавление через кафедру)." %}
                             </div>
                         {% endif %}
                     </div>
@@ -50,154 +63,155 @@
                             <div class="form-check">
                                 {{ form.is_stream_subject }}
                                 <label class="form-check-label fw-bold" for="{{ form.is_stream_subject.id_for_label }}">
-                                    Это потоковый предмет (Лекция для всех выбранных групп вместе)
+                                    {{ form.is_stream_subject.label }}
                                 </label>
                             </div>
                             <div class="form-text">
-                                Если галочка стоит, в расписании группы будут объединены в одну аудиторию.
+                                {% trans "Если галочка стоит, в расписании группы будут объединены в одну аудиторию." %}
                             </div>
                         </div>
                     </div>
 
                     <div class="row mb-4">
                         <div class="col-md-4">
-                            <label class="form-label">Название *</label>
+                            <label class="form-label">{% trans "Название" %} *</label>
                             {{ form.name }}
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Код *</label>
+                            <label class="form-label">{% trans "Код" %} *</label>
                             {{ form.code }}
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Основной тип *</label>
+                            <label class="form-label">{% trans "Основной тип" %} *</label>
                             {{ form.type }}
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Недель</label>
+                            <label class="form-label">{% trans "Недель" %}</label>
                             {{ form.semester_weeks }}
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">Кафедра *</label>
+                        <label class="form-label">{% trans "Кафедра" %} *</label>
                         {{ form.department }}
                     </div>
                     <div class="mb-4">
-                        <label class="form-label">Тип кабинета (Рекомендация)</label>
+                        <label class="form-label">{% trans "Тип кабинета (Рекомендация)" %}</label>
                         {{ form.preferred_room_type }}
                     </div>
 
-                    <!-- КОНСТРУКТОР НАГРУЗКИ (ЗАМЕНЯЕТ СТАРЫЙ АВТОРАСЧЕТ) -->
                     <div class="card border-primary shadow-sm mb-4">
                         <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-bold"><i class="bi bi-sliders"></i> Конструктор нагрузки (Пар в неделю)</h6>
-                            <span class="badge bg-light text-primary" id="subj_total_credits_badge">0 ч. всего</span>
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-sliders"></i> {% trans "Конструктор нагрузки (Пар в неделю)" %}</h6>
+                            <span class="badge bg-light text-primary" id="subj_total_credits_badge">0 {% trans "ч. всего" %}</span>
                         </div>
                         <div class="card-body bg-light">
                             <div class="mb-3 p-2 bg-white rounded border border-success">
-                                <label class="small fw-bold text-success mb-1"><i class="bi bi-magic"></i> Быстрый шаблон (Автозаполнение)</label>
+                                <label class="small fw-bold text-success mb-1"><i class="bi bi-magic"></i> {% trans "Быстрый шаблон (Автозаполнение)" %}</label>
                                 <select id="subj_template_selector" class="form-select form-select-sm border-success fw-bold text-dark">
-                                    <option value="">-- Выберите шаблон кредитов --</option>
+                                    <option value="">-- {% trans "Выберите шаблон кредитов" %} --</option>
                                     {% for t in credit_templates %}
                                         <option value="{{ t.credits }}" data-lec="{{ t.lecture_pairs|stringformat:'s' }}" data-prac="{{ t.practice_pairs|stringformat:'s' }}" data-lab="{{ t.lab_pairs|stringformat:'s' }}" data-srsp="{{ t.srsp_pairs|stringformat:'s' }}">
-                                            {{ t.credits }} кр. (Л:{{ t.lecture_pairs }}, П:{{ t.practice_pairs }}, Лаб:{{ t.lab_pairs }}, СРСП:{{ t.srsp_pairs }})
+                                            {% blocktrans with credits=t.credits lec=t.lecture_pairs prac=t.practice_pairs lab=t.lab_pairs srsp=t.srsp_pairs %}
+                                                {{ credits }} кр. (Л:{{ lec }}, П:{{ prac }}, Лаб:{{ lab }}, СРСП:{{ srsp }})
+                                            {% endblocktrans %}
                                         </option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Система кредитов</label>
+                                    <label class="form-label fw-bold">{% trans "Система кредитов" %}</label>
                                     {{ form.credit_type }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Кредиты</label>
+                                    <label class="form-label fw-bold">{% trans "Кредиты" %}</label>
                                     {{ form.credits }}
                                 </div>
                             </div>
                             
-                            <label class="fw-bold text-dark mb-2 d-block border-bottom pb-2">Укажите количество ПАР в неделю:</label>
+                            <label class="fw-bold text-dark mb-2 d-block border-bottom pb-2">{% trans "Укажите количество ПАР в неделю:" %}</label>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-3">
-                                    <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> Лекции</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> {% trans "Лекции" %}</label>
                                     <select id="subj_ui_lec" class="form-select border-primary subj-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">{% trans "0 пар" %}</option>
+                                        <option value="0.5">{% trans "0.5 (Раз в 2 нед.)" %}</option>
+                                        <option value="1">{% trans "1 пара (Каждую)" %}</option>
+                                        <option value="1.5">{% trans "1.5 пары" %}</option>
+                                        <option value="2">{% trans "2 пары" %}</option>
+                                        <option value="3">{% trans "3 пары" %}</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> Практика</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> {% trans "Практика" %}</label>
                                     <select id="subj_ui_prac" class="form-select border-success subj-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">{% trans "0 пар" %}</option>
+                                        <option value="0.5">{% trans "0.5 (Раз в 2 нед.)" %}</option>
+                                        <option value="1">{% trans "1 пара (Каждую)" %}</option>
+                                        <option value="1.5">{% trans "1.5 пары" %}</option>
+                                        <option value="2">{% trans "2 пары" %}</option>
+                                        <option value="3">{% trans "3 пары" %}</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> Лаб. работы</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> {% trans "Лаб. работы" %}</label>
                                     <select id="subj_ui_lab" class="form-select border-info subj-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">{% trans "0 пар" %}</option>
+                                        <option value="0.5">{% trans "0.5 (Раз в 2 нед.)" %}</option>
+                                        <option value="1">{% trans "1 пара (Каждую)" %}</option>
+                                        <option value="1.5">{% trans "1.5 пары" %}</option>
+                                        <option value="2">{% trans "2 пары" %}</option>
+                                        <option value="3">{% trans "3 пары" %}</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> СРСП</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> {% trans "СРСП" %}</label>
                                     <select id="subj_ui_srsp" class="form-select border-warning subj-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">{% trans "0 пар" %}</option>
+                                        <option value="0.5">{% trans "0.5 (Раз в 2 нед.)" %}</option>
+                                        <option value="1">{% trans "1 пара (Каждую)" %}</option>
+                                        <option value="1.5">{% trans "1.5 пары" %}</option>
+                                        <option value="2">{% trans "2 пары" %}</option>
+                                        <option value="3">{% trans "3 пары" %}</option>
                                     </select>
                                 </div>
                             </div>
                             
                             <div id="subj_hours_warning" class="alert alert-danger p-2 small mb-3" style="display: none;"></div>
 
-                            <label class="fw-bold text-dark mb-2 d-block border-bottom pb-2">Итого часов за семестр (Авторасчет):</label>
+                            <label class="fw-bold text-dark mb-2 d-block border-bottom pb-2">{% trans "Итого часов за семестр (Авторасчет):" %}</label>
                             <div class="row g-2 text-center bg-white p-2 rounded border">
-                                <div class="col"><small class="text-muted d-block">Лекц</small>{{ form.lecture_hours }}</div>
-                                <div class="col"><small class="text-muted d-block">Прак</small>{{ form.practice_hours }}</div>
-                                <div class="col"><small class="text-muted d-block">Лаб</small>{{ form.lab_hours }}</div>
-                                <div class="col"><small class="text-muted d-block">СРСП</small>{{ form.control_hours }}</div>
-                                <div class="col"><small class="text-muted d-block">СРС</small>{{ form.independent_work_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">{% trans "Лекц" %}</small>{{ form.lecture_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">{% trans "Прак" %}</small>{{ form.practice_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">{% trans "Лаб" %}</small>{{ form.lab_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">{% trans "СРСП" %}</small>{{ form.control_hours }}</div>
+                                <div class="col"><small class="text-muted d-block">{% trans "СРС" %}</small>{{ form.independent_work_hours }}</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="row mt-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-primary"><i class="bi bi-robot"></i> Требуемые компетенции (Для ИИ)</label>
+                            <label class="form-label fw-bold text-primary"><i class="bi bi-robot"></i> {% trans "Требуемые компетенции (Для ИИ)" %}</label>
                             {{ form.required_competencies }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Преподаватель (Вручную)</label>
+                            <label class="form-label">{% trans "Преподаватель (Вручную)" %}</label>
                             {{ form.teacher }}
                         </div>
                     </div>
 
                     <div class="row mt-4">
                         <div class="col-md-12">
-                            <label class="form-label">Группы (ручной выбор)</label>
+                            <label class="form-label">{% trans "Группы (ручной выбор)" %}</label>
                             {{ form.groups }}
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-white py-3">
-                    <button type="submit" class="btn btn-success px-5"><i class="bi bi-check-lg"></i> Сохранить предмет</button>
-                    <a href="javascript:history.back()" class="btn btn-light">Отмена</a>
+                    <button type="submit" class="btn btn-success px-5"><i class="bi bi-check-lg"></i> {% trans "Сохранить предмет" %}</button>
+                    <a href="javascript:history.back()" class="btn btn-light">{% trans "Отмена" %}</a>
                 </div>
             </div>
         </form>
@@ -249,12 +263,12 @@ function calculateSubjHours() {
     document.getElementById('id_control_hours').value = srspHours;
     document.getElementById('id_independent_work_hours').value = srsHours;
     
-    document.getElementById('subj_total_credits_badge').innerText = `${totalCreditHours} ч. всего`;
+    document.getElementById('subj_total_credits_badge').innerText = totalCreditHours + ' {% trans "ч. всего" %}';
     
     const warningEl = document.getElementById('subj_hours_warning');
     if (totalAuditory > totalCreditHours && credits > 0) {
         warningEl.style.display = 'block';
-        warningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Внимание: Аудиторных часов (${totalAuditory}) больше, чем выделено кредитами (${totalCreditHours})!`;
+        warningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> {% trans "Внимание: Аудиторных часов (${totalAuditory}) больше, чем выделено кредитами (${totalCreditHours})!" %}`;
     } else {
         warningEl.style.display = 'none';
     }
@@ -273,7 +287,7 @@ window.addEventListener('DOMContentLoaded', () => {
         for(let i=0; i<select.options.length; i++) {
             if(parseFloat(select.options[i].value) === pairs) { exists = true; break; }
         }
-        if(!exists && pairs > 0) { select.add(new Option(pairs + " пар", pairs)); }
+        if(!exists && pairs > 0) { select.add(new Option(pairs + " {% trans "пар" %}", pairs)); }
         select.value = pairs.toString();
     }
 
@@ -310,7 +324,7 @@ function applyTemplateSubj(selectorId) {
             for(let i=0; i<select.options.length; i++) {
                 if(parseFloat(select.options[i].value) === parseFloat(pairs)) { exists = true; break; }
             }
-            if(!exists && pairs > 0) { select.add(new Option(pairs + " пар", pairs)); }
+            if(!exists && pairs > 0) { select.add(new Option(pairs + " {% trans "пар" %}", pairs)); }
             select.value = parseFloat(pairs).toString();
         }
 

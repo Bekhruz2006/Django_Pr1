@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 {% load schedule_filters %}
-{% load i18n %}
-{% block title %}Конструктор расписания{% endblock %}
+
+{% block title %}{% trans "Конструктор расписания" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
@@ -11,7 +12,7 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-calendar-week"></i> {% trans "Конструктор расписания" %}</span>
                 <a href="{% url 'schedule:auto_schedule_config' %}" class="btn btn-warning btn-sm text-dark fw-bold shadow-sm">
-                    <i class="bi bi-robot"></i> Авто-генерация (ИИ)
+                    <i class="bi bi-robot"></i> {% trans "Авто-генерация (ИИ)" %}
                 </a>
             </div>
             <div class="card-body bg-light">
@@ -39,7 +40,7 @@
                             <option value="" data-course="all">-- {% trans "Выберите группу из списка" %} --</option>
                             {% for g in groups %}
                                 <option value="{{ g.id }}" data-course="{{ g.course }}" {% if group and group.id == g.id %}selected{% endif %}>
-                                    {{ g.name }} ({{ g.course }} курс)
+                                    {{ g.name }} ({{ g.course }} {% trans "курс" %})
                                 </option>
                             {% endfor %}
                         </select>
@@ -76,8 +77,8 @@
         <div class="card mb-3 border-dark shadow-sm">
             <div class="card-body p-2 text-center bg-dark text-white rounded">
                 <div draggable="true" id="militaryDragItem" style="cursor: move;">
-                    <i class="bi bi-shield-shaded mb-1"></i> ВОЕННАЯ КАФЕДРА
-                    <br><small style="font-size: 0.9rem;">Перетащите на день</small>
+                    <i class="bi bi-shield-shaded mb-1"></i> {% trans "ВОЕННАЯ КАФЕДРА" %}
+                    <br><small style="font-size: 0.9rem;">{% trans "Перетащите на день" %}</small>
                 </div>
             </div>
         </div>
@@ -86,7 +87,7 @@
         <div class="card mb-3 border-danger shadow-sm">
             <div class="card-header bg-danger text-white py-2 d-flex align-items-center gap-2">
                 <i class="bi bi-shield-fill-exclamation"></i>
-                <small class="fw-bold">Военные дни</small>
+                <small class="fw-bold">{% trans "Военные дни" %}</small>
             </div>
             <div class="card-body p-2">
                 {% for day_num, day_name in days %}
@@ -97,7 +98,7 @@
                         </span>
                         <button class="btn btn-sm btn-outline-danger ms-1 flex-shrink-0"
                                 onclick="clearMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
-                                title="Снять военную кафедру с этого дня">
+                                title="{% trans 'Снять военную кафедру с этого дня' %}">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
@@ -110,16 +111,16 @@
 
         <div class="card shadow-sm sticky-top" style="top: 20px; max-height: 85vh;">
             <div class="card-header bg-white py-2">
-                <h6 class="mb-0 fw-bold text-muted text-uppercase small">Нераспределенные часы</h6>
+                <h6 class="mb-0 fw-bold text-muted text-uppercase small">{% trans "Нераспределенные часы" %}</h6>
                 <div class="btn-group btn-group-sm w-100 mt-2" role="group">
                     <input type="radio" class="btn-check" name="drag_week_type" id="dwt_every" value="EVERY" checked>
-                    <label class="btn btn-outline-secondary" for="dwt_every" title="Каждую неделю">Каждую</label>
+                    <label class="btn btn-outline-secondary" for="dwt_every" title="{% trans 'Каждую неделю' %}">{% trans "Каждую" %}</label>
                     
                     <input type="radio" class="btn-check" name="drag_week_type" id="dwt_red" value="RED">
-                    <label class="btn btn-outline-danger" for="dwt_red" title="Красная неделя (Числитель)">Красн</label>
+                    <label class="btn btn-outline-danger" for="dwt_red" title="{% trans 'Красная неделя (Числитель)' %}">{% trans "Красн" %}</label>
                     
                     <input type="radio" class="btn-check" name="drag_week_type" id="dwt_blue" value="BLUE">
-                    <label class="btn btn-outline-primary" for="dwt_blue" title="Синяя неделя (Знаменатель)">Син</label>
+                    <label class="btn btn-outline-primary" for="dwt_blue" title="{% trans 'Синяя неделя (Знаменатель)' %}">{% trans "Син" %}</label>
                 </div>
             </div>
             <div class="card-body p-0 overflow-auto">
@@ -130,7 +131,7 @@
                         data-subject-id="{{ item.obj.id }}"
                         data-subject-name="{{ item.obj.name }}"
                         data-subject-type="{{ item.type }}"
-                        data-teacher-name="{{ item.obj.teacher.user.get_full_name|default:'Не назначен' }}"
+                        data-teacher-name="{{ item.obj.teacher.user.get_full_name|default:'-' }}"
                         data-remaining="{{ item.remaining }}"
                         data-subject-is-stream="{{ item.obj.is_stream_subject|yesno:'true,false' }}"
                         style="cursor: move;">
@@ -145,14 +146,14 @@
                                 <i class="bi bi-person"></i> {{ item.obj.teacher.user.get_full_name|default:'-' }}
                             </small>
                             <span class="fw-bold text-{{ item.color }}">
-                                {{ item.remaining|floatformat:1 }} пар.
+                                {{ item.remaining|floatformat:1 }} {% trans "пар." %}
                             </span>
                         </div>
 
                         {% if item.obj.is_stream_subject %}
                         <div class="mt-1">
                             <span class="badge bg-indigo w-100" style="font-size: 0.65rem;">
-                                <i class="bi bi-diagram-3"></i> ПОТОК ({{ item.obj.groups.count }} групп)
+                                <i class="bi bi-diagram-3"></i> {% trans "ПОТОК" %} ({{ item.obj.groups.count }} {% trans "групп" %})
                             </span>
                         </div>
                         {% endif %}
@@ -160,7 +161,7 @@
                     {% empty %}
                     <div class="p-4 text-center text-muted">
                         <i class="bi bi-check-circle fs-1 text-success opacity-50"></i>
-                        <p class="mt-2 small mb-0">Все часы распределены!</p>
+                        <p class="mt-2 small mb-0">{% trans "Все часы распределены!" %}</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -171,42 +172,42 @@
     <div class="col-lg-9">
         <div class="card shadow">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="bi bi-calendar-week"></i> Расписание: {{ group.name }}</h5>
+                <h5 class="bi bi-calendar-week"></i> {% trans "Расписание:" %} {{ group.name }}</h5>
                 <div class="d-flex align-items-center gap-3">
                     {% if active_plan %}
-                    <a href="{% url 'schedule:plan_detail' active_plan.id %}" class="btn btn-outline-info btn-sm" target="_blank" title="Перейти к РУП">
-                        <i class="bi bi-journal-text"></i> РУП Группы
+                    <a href="{% url 'schedule:plan_detail' active_plan.id %}" class="btn btn-outline-info btn-sm" target="_blank" title="{% trans 'Перейти к РУП' %}">
+                        <i class="bi bi-journal-text"></i> {% trans "РУП Группы" %}
                     </a>
                     {% endif %}
                     <div class="d-flex align-items-center gap-2 bg-light p-1 rounded border">
-                        <span class="small text-muted fw-bold ms-2">Вид:</span>
+                        <span class="small text-muted fw-bold ms-2">{% trans "Вид:" %}</span>
                         <div class="btn-group btn-group-sm shadow-sm" role="group">
                             <input type="radio" class="btn-check" name="view_week" id="vw_all" value="ALL" checked>
-                            <label class="btn btn-outline-secondary week-toggle-btn" for="vw_all">Все</label>
+                            <label class="btn btn-outline-secondary week-toggle-btn" for="vw_all">{% trans "Все" %}</label>
                             
                             <input type="radio" class="btn-check" name="view_week" id="vw_red" value="RED">
-                            <label class="btn btn-outline-danger week-toggle-btn" for="vw_red">Красная</label>
+                            <label class="btn btn-outline-danger week-toggle-btn" for="vw_red">{% trans "Красная" %}</label>
                             
                             <input type="radio" class="btn-check" name="view_week" id="vw_blue" value="BLUE">
-                            <label class="btn btn-outline-primary week-toggle-btn" for="vw_blue">Синяя</label>
+                            <label class="btn btn-outline-primary week-toggle-btn" for="vw_blue">{% trans "Синяя" %}</label>
                         </div>
                     </div>
 
                     <div class="btn-group">
-                        <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-outline-success btn-sm" title="Скачать на текущем языке сайта">
-                            <i class="bi bi-file-word"></i> Скачать DOCX
+                        <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-outline-success btn-sm" title="{% trans 'Скачать на текущем языке сайта' %}">
+                            <i class="bi bi-file-word"></i> {% trans "Скачать DOCX" %}
                         </a>
                         <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="visually-hidden">Выбор языка</span>
+                            <span class="visually-hidden">{% trans "Выбор языка" %}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=ru">На русском</a></li>
-                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=tg">Бо тоҷикӣ</a></li>
-                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=en">In English</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=ru">{% trans "На русском" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=tg">{% trans "Бо тоҷикӣ" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=en">{% trans "In English" %}</a></li>
                         </ul>
                     </div>
                     <button class="btn btn-outline-danger btn-sm" onclick="window.clearSchedule({{ group.id }}, {{ semester.id }})">
-                        <i class="bi bi-trash"></i> Очистить всё
+                        <i class="bi bi-trash"></i> {% trans "Очистить всё" %}
                     </button>
                 </div>
             </div>
@@ -215,8 +216,8 @@
                     <table class="table table-bordered mb-0 schedule-table">
                             <thead class="bg-light">
                                 <tr>
-                                    <th style="width: 1%; white-space: nowrap; padding: 10px 5px;" class="text-center align-middle">Время</th>
-                                    <th>Предмет / Преподаватель / Кабинет</th>
+                                    <th style="width: 1%; white-space: nowrap; padding: 10px 5px;" class="text-center align-middle">{% trans "Время" %}</th>
+                                    <th>{% trans "Предмет / Преподаватель / Кабинет" %}</th>
                                 </tr>
                             </thead>
                         <tbody>
@@ -228,12 +229,12 @@
                                     <div class="fw-bold ps-3 py-2 text-uppercase text-secondary d-flex justify-content-between align-items-center" style="letter-spacing: 1px;">
                                         <div>
                                             <span>{{ day_name }}</span>
-                                            <span class="badge bg-dark ms-2"><i class="bi bi-shield-shaded"></i> Военная кафедра</span>
+                                            <span class="badge bg-dark ms-2"><i class="bi bi-shield-shaded"></i> {% trans "Военная кафедра" %}</span>
                                         </div>
                                         <button class="btn btn-sm btn-outline-danger me-2"
                                                 onclick="clearMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
-                                                title="Снять военную кафедру">
-                                            <i class="bi bi-x-circle"></i> Снять
+                                                title="{% trans 'Снять военную кафедру' %}">
+                                            <i class="bi bi-x-circle"></i> {% trans "Снять" %}
                                         </button>
                                     </div>
                                 </td>
@@ -247,7 +248,7 @@
                                 <td class="p-0 align-middle" style="background: repeating-linear-gradient(135deg, #1a1a2e 0px, #1a1a2e 20px, #16213e 20px, #16213e 40px);">
                                     <div class="d-flex align-items-center justify-content-center h-100 py-3">
                                         <span class="text-white fw-bold opacity-75" style="font-size: 1rem; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                                            <i class="bi bi-shield-fill me-2"></i>КАФЕДРАИ ҲАРБӢ
+                                            <i class="bi bi-shield-fill me-2"></i>{% trans "КАФЕДРАИ ҲАРБӢ" %}
                                         </span>
                                     </div>
                                 </td>
@@ -267,8 +268,8 @@
                                         <button class="btn btn-xs btn-outline-dark me-2"
                                                 style="font-size: 0.7rem; padding: 1px 6px;"
                                                 onclick="setMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
-                                                title="Назначить этот день военной кафедрой">
-                                            <i class="bi bi-shield-plus"></i> Военная кафедра
+                                                title="{% trans 'Назначить этот день военной кафедрой' %}">
+                                            <i class="bi bi-shield-plus"></i> {% trans "Военная кафедра" %}
                                         </button>
                                         {% endif %}
                                     </div>
@@ -303,7 +304,7 @@
                                                     <div class="fw-bold text-dark lh-sm pe-2" style="font-size: 0.9rem;">
                                                         {{ slot.subject.name }}
                                                     </div>
-                                                    <button class="btn btn-link text-danger p-0 delete-slot flex-shrink-0" data-slot-id="{{ slot.id }}" title="Удалить">
+                                                    <button class="btn btn-link text-danger p-0 delete-slot flex-shrink-0" data-slot-id="{{ slot.id }}" title="{% trans 'Удалить' %}">
                                                         <i class="bi bi-x-circle-fill"></i>
                                                     </button>
                                                 </div>
@@ -313,17 +314,17 @@
                                                         <div class="mb-1">
                                                             <span class="badge bg-{{ slot.get_color_class }}">
                                                                 {{ slot.get_lesson_type_display }}
-                                                                {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="Поток"></i>{% endif %}
+                                                                {% if slot.stream_id %}<i class="bi bi-diagram-3-fill ms-1" title="{% trans 'Поток' %}"></i>{% endif %}
                                                             </span>
                                                             {% if slot.week_type == 'RED' %}<span class="badge bg-danger ms-1">🔴</span>{% endif %}
                                                             {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary ms-1">🔵</span>{% endif %}
                                                         </div>
-                                                        <div class="small text-muted" title="{{ slot.teacher.user.get_full_name|default:'Не назначен' }}">
+                                                        <div class="small text-muted" title="{% if slot.teacher %}{{ slot.teacher.user.get_full_name|default:'Не назначен' }}{% else %}{% trans 'Не назначен' %}{% endif %}">
                                                             <i class="bi bi-person-fill text-secondary"></i> 
                                                             {% if slot.teacher %}
                                                                 {{ slot.teacher.user.last_name }} {{ slot.teacher.user.first_name|slice:":1" }}.
                                                             {% else %}
-                                                                Не назначен
+                                                                {% trans "Не назначен" %}
                                                             {% endif %}
                                                         </div>
                                                     </div>
@@ -331,7 +332,7 @@
                                                         <div class="input-group input-group-sm shadow-sm">
                                                             <span class="input-group-text bg-light px-1 border-end-0"><i class="bi bi-door-open text-primary"></i></span>
                                                             <input type="text" list="roomOptions" class="form-control aud-input px-1 text-center fw-bold border-start-0" 
-                                                                value="{{ slot.room|default:'' }}" data-old-value="{{ slot.room|default:'' }}" placeholder="Ауд."
+                                                                value="{{ slot.room|default:'' }}" data-old-value="{{ slot.room|default:'' }}" placeholder="{% trans 'Ауд.' %}"
                                                                 onchange="saveAud(this, {{ slot.id }})">
                                                         </div>
                                                     </div>
@@ -341,7 +342,7 @@
                                         </div>
                                     {% else %}
                                         <div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;">
-                                            <small class="opacity-50">Свободно</small>
+                                            <small class="opacity-50">{% trans "Свободно" %}</small>
                                         </div>
                                     {% endif %}
                                 </td>
@@ -361,8 +362,8 @@
     <div class="col-12 mt-5">
         <div class="text-center py-5">
             <i class="bi bi-arrow-up-circle text-primary" style="font-size: 3rem;"></i>
-            <h4 class="mt-3">Выберите группу и семестр</h4>
-            <p class="text-muted">Для начала работы с расписанием используйте форму выше.</p>
+            <h4 class="mt-3">{% trans "Выберите группу и семестр" %}</h4>
+            <p class="text-muted">{% trans "Для начала работы с расписанием используйте форму выше." %}</p>
         </div>
     </div>
     {% endif %}
@@ -372,18 +373,18 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Внимание: Конфликт</h5>
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> {% trans "Внимание: Конфликт" %}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p id="conflictMessage"></p>
                 <div class="alert alert-warning">
-                    Вы можете проигнорировать это предупреждение и добавить занятие как исключение.
+                    {% trans "Вы можете проигнорировать это предупреждение и добавить занятие как исключение." %}
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-danger" id="forceSaveBtn">Все равно сохранить</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                <button type="button" class="btn btn-danger" id="forceSaveBtn">{% trans "Все равно сохранить" %}</button>
             </div>
         </div>
     </div>
@@ -433,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 if (data.is_conflict) {
                     document.getElementById('conflictMessage').innerHTML = `
-                        <div class="text-danger fw-bold mb-2">Обнаружены конфликты:</div>
+                        <div class="text-danger fw-bold mb-2">{% trans "Обнаружены конфликты:" %}</div>
                         ${data.error}
                     `;
                     lastAttemptData = {
@@ -448,11 +449,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
                     modal.show();
                 } else {
-                    alert('Ошибка: ' + data.error);
+                    alert('{% trans "Ошибка:" %} ' + data.error);
                 }
             }
         })
-        .catch(err => alert('Ошибка сети: ' + err));
+        .catch(err => alert('{% trans "Ошибка сети:" %} ' + err));
     }
 
     const forceBtn = document.getElementById('forceSaveBtn');
@@ -530,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const btn = e.target.closest('.delete-slot');
         if (!btn) return;
         e.stopPropagation();
-        if (!confirm('Удалить занятие? Если это поток, удалится у всех групп.')) return;
+        if (!confirm('{% trans "Удалить занятие? Если это поток, удалится у всех групп." %}')) return;
         const slotId = btn.dataset.slotId;
         if (!slotId) return;
         fetch('/schedule/constructor/delete/' + slotId + '/', {
@@ -541,9 +542,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 location.reload();
-            } else alert(data.error || 'Ошибка удаления');
+            } else alert(data.error || '{% trans "Ошибка удаления" %}');
         })
-        .catch(err => { alert('Ошибка соединения: ' + (err.message || err)); });
+        .catch(err => { alert('{% trans "Ошибка соединения:" %} ' + (err.message || err)); });
     });
     window.isConfirmingRoom = false;
 
@@ -568,20 +569,20 @@ window.saveAud = function(input, slotId, isForce = false) {
             setTimeout(() => input.classList.remove('bg-success', 'text-white'), 1000);
         } else {
             if (data.is_capacity_warning || data.is_conflict || data.is_type_warning) {
-                if (confirm(data.error + "\n\nНажмите ОК, чтобы назначить принудительно.")) {
+                if (confirm(data.error + "\n\n{% trans "Нажмите ОК, чтобы назначить принудительно." %}")) {
                     saveAud(input, slotId, true);
                 } else {
                     input.value = input.dataset.oldValue || "";
                 }
             } else {
-                alert('Ошибка: ' + data.error);
+                alert('{% trans "Ошибка:" %} ' + data.error);
                 input.value = input.dataset.oldValue || "";
                 input.focus();
             }
         }
     })
     .catch(err => {
-        alert('Ошибка сети');
+        alert('{% trans "Ошибка сети" %}');
         console.error(err);
     })
     .finally(() => {
@@ -590,7 +591,7 @@ window.saveAud = function(input, slotId, isForce = false) {
 };
 
 window.clearSchedule = function(groupId, semesterId) {
-    if (!confirm('Вы уверены, что хотите удалить ВСЕ занятия для этой группы в текущем семестре? Это действие необратимо.')) return;
+    if (!confirm('{% trans "Вы уверены, что хотите удалить ВСЕ занятия для этой группы в текущем семестре? Это действие необратимо." %}')) return;
     
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -617,11 +618,11 @@ window.clearSchedule = function(groupId, semesterId) {
         if(data.success) location.reload();
         else alert(data.error);
     })
-    .catch(err => alert('Ошибка сети'));
+    .catch(err => alert('{% trans "Ошибка сети" %}'));
 };
 
     window.setMilitaryDay = function(groupId, semesterId, dayNum) {
-        if (!confirm('Назначить военную кафедру на ВЕСЬ этот день? Все текущие пары этого дня будут удалены.')) return;
+        if (!confirm('{% trans "Назначить военную кафедру на ВЕСЬ этот день? Все текущие пары этого дня будут удалены." %}')) return;
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
@@ -638,14 +639,14 @@ window.clearSchedule = function(groupId, semesterId) {
     };
 
     window.clearMilitaryDay = function(groupId, semesterId, dayNum) {
-        if (!confirm('Снять военную кафедру с этого дня?')) return;
+        if (!confirm('{% trans "Снять военную кафедру с этого дня?" %}')) return;
         fetch('{% url "schedule:clear_military_day" %}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
             body: JSON.stringify({ group_id: groupId, semester_id: semesterId, day_of_week: dayNum })
         }).then(r => r.json()).then(resp => {
             if(resp.success) location.reload();
-            else alert(resp.error || 'Ошибка');
+            else alert(resp.error || '{% trans "Ошибка" %}');
         });
     };
 
@@ -750,10 +751,10 @@ window.clearSchedule = function(groupId, semesterId) {
                     if (txt) draggedData = JSON.parse(txt);
                 } catch (ex) {  }
 
-                if (!draggedData) return alert('Не удалось определить перетаскиваемый предмет.');
+                if (!draggedData) return alert('{% trans "Не удалось определить перетаскиваемый предмет." %}');
 
                 if (draggedData.isMilitary) {
-                    if(!confirm('Установить Военную кафедру на ВЕСЬ этот день? Все текущие пары в этот день будут удалены.')) return;
+                    if(!confirm('{% trans "Установить Военную кафедру на ВЕСЬ этот день? Все текущие пары в этот день будут удалены." %}')) return;
 
                     const groupId = this.dataset.groupId;
                     const day = this.dataset.day;
@@ -776,7 +777,7 @@ window.clearSchedule = function(groupId, semesterId) {
                 }
 
                 if (parseFloat(draggedData.remaining || 0) <= 0) {
-                    return alert('Достигнут лимит часов для этого предмета!');
+                    return alert('{% trans "Достигнут лимит часов для этого предмета!" %}');
                 }
 
 

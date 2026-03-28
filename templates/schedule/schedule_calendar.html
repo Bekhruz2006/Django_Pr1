@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}📅 Живой календарь{% endblock %}
+{% block title %}{% trans "📅 Живой календарь" %}{% endblock %}
 
 {% block extra_css %}
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
@@ -79,8 +79,8 @@
 {% endblock %}
 
 {% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{% url 'schedule:view' %}">Расписание</a></li>
-<li class="breadcrumb-item active">Живой календарь</li>
+<li class="breadcrumb-item"><a href="{% url 'schedule:view' %}">{% trans "Расписание" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Живой календарь" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -93,10 +93,10 @@
       <div class="card-body p-3">
         {% if groups %}
         <select id="groupSelect" class="form-select form-select-sm border-primary fw-bold">
-          <option value="">{% if is_teacher_view %}— Мои занятия (все группы) —{% else %}— Выберите группу —{% endif %}</option>
+          <option value="">{% if is_teacher_view %}{% trans "— Мои занятия (все группы) —" %}{% else %}{% trans "— Выберите группу —" %}{% endif %}</option>
           {% for g in groups %}
           <option value="{{ g.id }}" {% if selected_group and selected_group.id == g.id %}selected{% endif %}>
-            {{ g.name }} ({{ g.course }} курс)
+            {{ g.name }} ({{ g.course }} {% trans "курс" %})
           </option>
           {% endfor %}
         </select>
@@ -104,7 +104,7 @@
 
         {% if active_semester %}
         <div class="mt-3 p-2 bg-light rounded small">
-          <div class="fw-bold text-dark mb-1"><i class="bi bi-calendar-check text-success me-1"></i>Активный семестр</div>
+          <div class="fw-bold text-dark mb-1"><i class="bi bi-calendar-check text-success me-1"></i>{% trans "Активный семестр" %}</div>
           <div>{{ active_semester.name }}, {{ active_semester.academic_year }}</div>
           {% if active_semester.start_date %}
           <div class="text-muted">{{ active_semester.start_date|date:"d.m" }} — {{ active_semester.end_date|date:"d.m.Y" }}</div>
@@ -114,7 +114,7 @@
 
         {% if can_move_calendar %}
         <button class="btn btn-sm btn-outline-danger w-100 mt-2 fw-bold" data-bs-toggle="modal" data-bs-target="#massCancelModal">
-            <i class="bi bi-calendar-x"></i> Массовая отмена пар (за 1 день)
+            <i class="bi bi-calendar-x"></i> {% trans "Массовая отмена пар (за 1 день)" %}
         </button>
         {% endif %}
       </div>
@@ -122,45 +122,45 @@
 
     <div class="card shadow-sm border-0 mb-3">
       <div class="card-header py-2">
-        <h6 class="mb-0 fw-bold text-muted text-uppercase" style="font-size:.72rem;letter-spacing:1px;">Обозначения</h6>
+        <h6 class="mb-0 fw-bold text-muted text-uppercase" style="font-size:.72rem;letter-spacing:1px;">{% trans "Обозначения" %}</h6>
       </div>
       <div class="card-body p-3">
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot" style="background:#2563eb"></div>
-          <span class="small">Лекция</span>
+          <span class="small">{% trans "Лекция" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot" style="background:#16a34a"></div>
-          <span class="small">Практика</span>
+          <span class="small">{% trans "Практика" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot" style="background:#0891b2"></div>
-          <span class="small">Лабораторная</span>
+          <span class="small">{% trans "Лабораторная" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot" style="background:#d97706"></div>
-          <span class="small">СРСП (КМРО)</span>
+          <span class="small">{% trans "СРСП (КМРО)" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot" style="background:#1f2937"></div>
-          <span class="small">Военная кафедра</span>
+          <span class="small">{% trans "Военная кафедра" %}</span>
         </div>
         <hr class="my-2">
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot border border-2 border-danger" style="background:transparent"></div>
-          <span class="small">🔴 Красная неделя</span>
+          <span class="small">{% trans "🔴 Красная неделя" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot border border-2 border-primary" style="background:transparent"></div>
-          <span class="small">🔵 Синяя неделя</span>
+          <span class="small">{% trans "🔵 Синяя неделя" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2 mb-2">
           <div class="legend-dot" style="background:#9ca3af"></div>
-          <span class="small">❌ Отменено</span>
+          <span class="small">{% trans "❌ Отменено" %}</span>
         </div>
         <div class="d-flex align-items-center gap-2">
           <div class="legend-dot" style="background:rgba(37,99,235,0.5)"></div>
-          <span class="small">🔄 Перенесено</span>
+          <span class="small">{% trans "🔄 Перенесено" %}</span>
         </div>
       </div>
     </div>
@@ -168,11 +168,11 @@
     {% if selected_group %}
     <div class="card shadow-sm border-0 mb-3">
       <div class="card-header py-2 bg-white">
-        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-speedometer2 text-primary me-1"></i>Нагрузка группы</h6>
+        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-speedometer2 text-primary me-1"></i>{% trans "Нагрузка группы" %}</h6>
       </div>
       <div class="card-body p-3">
         <div class="d-flex justify-content-between align-items-center">
-            <span class="small text-muted fw-bold">Пар в неделю:</span>
+            <span class="small text-muted fw-bold">{% trans "Пар в неделю:" %}</span>
             <span class="fw-bold fs-5 text-primary">{{ weekly_slots_count }}</span>
         </div>
       </div>
@@ -182,11 +182,11 @@
     {% if can_edit and selected_group %}
     <div class="card shadow-sm border-danger mb-3">
       <div class="card-header bg-danger text-white py-2">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-bank me-1"></i>Банк часов (отработки)</h6>
+        <h6 class="mb-0 fw-bold"><i class="bi bi-bank me-1"></i>{% trans "Банк часов (отработки)" %}</h6>
       </div>
       <div class="card-body p-2" id="external-events">
         {% if unused_hours %}
-            <p class="small text-muted mb-2">Перетащите занятие на сетку для отработки:</p>
+            <p class="small text-muted mb-2">{% trans "Перетащите занятие на сетку для отработки:" %}</p>
             {% for uh in unused_hours %}
             <div class="fc-event p-2 mb-2 rounded bg-white border border-danger text-dark"
                  style="cursor: grab; border-left-width: 4px !important;"
@@ -195,11 +195,11 @@
                  data-teacher="{{ uh.teacher.user.get_full_name|default:'' }}">
                 <div class="fw-bold" style="font-size: 0.8rem;">{{ uh.subject.name }}</div>
                 <div class="small text-muted"><i class="bi bi-person"></i> {{ uh.teacher.user.last_name|default:"-" }}</div>
-                <div class="small text-danger mt-1"><i class="bi bi-calendar-x"></i> Отмена: {{ uh.original_date|date:"d.m.Y" }}</div>
+                <div class="small text-danger mt-1"><i class="bi bi-calendar-x"></i> {% trans "Отмена:" %} {{ uh.original_date|date:"d.m.Y" }}</div>
             </div>
             {% endfor %}
         {% else %}
-            <div class="text-center text-muted small py-3">Нет отмененных занятий</div>
+            <div class="text-center text-muted small py-3">{% trans "Нет отмененных занятий" %}</div>
         {% endif %}
       </div>
     </div>
@@ -208,12 +208,12 @@
     {% if can_edit %}
     <div class="card shadow-sm border-warning mb-3">
       <div class="card-header bg-warning text-dark py-2">
-        <h6 class="mb-0 fw-bold" style="font-size:.8rem;"><i class="bi bi-mouse2 me-1"></i>Управление</h6>
+        <h6 class="mb-0 fw-bold" style="font-size:.8rem;"><i class="bi bi-mouse2 me-1"></i>{% trans "Управление" %}</h6>
       </div>
       <div class="card-body p-3 small">
-        <p class="text-muted mb-2">Перетащите занятие для переноса. Нажмите, чтобы посмотреть детали или отменить.</p>
+        <p class="text-muted mb-2">{% trans "Перетащите занятие для переноса. Нажмите, чтобы посмотреть детали или отменить." %}</p>
         <a href="{% url 'schedule:constructor' %}{% if selected_group %}?group={{ selected_group.id }}&semester={{ active_semester.id }}{% endif %}" class="btn btn-sm btn-outline-primary w-100 fw-bold">
-          <i class="bi bi-grid-3x3 me-1"></i> Открыть конструктор группы
+          <i class="bi bi-grid-3x3 me-1"></i> {% trans "Открыть конструктор группы" %}
         </a>
       </div>
     </div>
@@ -231,25 +231,25 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-2 border-danger">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title"><i class="bi bi-exclamation-octagon me-2"></i>Массовая отмена пар</h5>
+        <h5 class="modal-title"><i class="bi bi-exclamation-octagon me-2"></i>{% trans "Массовая отмена пар" %}</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning small">
-            <strong>Внимание!</strong> Все пары вашего факультета/кафедры в выбранный день будут отменены и отправлены в "Банк часов" для дальнейшей отработки.
+            <strong>{% trans "Внимание!" %}</strong> {% trans "Все пары вашего факультета/кафедры в выбранный день будут отменены и отправлены в \"Банк часов\" для дальнейшей отработки." %}
         </div>
         <div class="mb-3">
-            <label class="fw-bold">Выберите дату:</label>
+            <label class="fw-bold">{% trans "Выберите дату:" %}</label>
             <input type="date" id="massCancelDate" class="form-control border-danger">
         </div>
         <div class="mb-3">
-            <label class="fw-bold">Причина отмены:</label>
-            <input type="text" id="massCancelReason" class="form-control" placeholder="Например: Праздничный день / Собрание">
+            <label class="fw-bold">{% trans "Причина отмены:" %}</label>
+            <input type="text" id="massCancelReason" class="form-control" placeholder="{% trans 'Например: Праздничный день / Собрание' %}">
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-        <button type="button" class="btn btn-danger fw-bold" onclick="executeMassCancel()">Отменить все пары</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Закрыть" %}</button>
+        <button type="button" class="btn btn-danger fw-bold" onclick="executeMassCancel()">{% trans "Отменить все пары" %}</button>
       </div>
     </div>
   </div>
@@ -277,13 +277,13 @@
       {% if can_move_calendar %}
       <div class="modal-footer border-0 pt-0 gap-2" id="eventModalActions">
         <button class="btn btn-sm btn-outline-danger" id="cancelLessonBtn">
-          <i class="bi bi-x-circle me-1"></i>Отменить занятие
+          <i class="bi bi-x-circle me-1"></i>{% trans "Отменить занятие" %}
         </button>
-        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{% trans "Закрыть" %}</button>
       </div>
       {% else %}
       <div class="modal-footer border-0 pt-0">
-        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{% trans "Закрыть" %}</button>
       </div>
       {% endif %}
     </div>
@@ -295,47 +295,47 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title fw-bold"><i class="bi bi-arrows-move me-2"></i>Перенос занятия</h5>
+        <h5 class="modal-title fw-bold"><i class="bi bi-arrows-move me-2"></i>{% trans "Перенос занятия" %}</h5>
         <button type="button" class="btn-close" id="moveCancelBtn"></button>
       </div>
       <div class="modal-body">
         <div id="moveSummary" class="alert alert-light border mb-3 small"></div>
-        <label class="form-label fw-bold">Тип переноса:</label>
+        <label class="form-label fw-bold">{% trans "Тип переноса:" %}</label>
         <div class="d-flex flex-column gap-2">
           <div class="form-check p-3 border rounded" style="cursor:pointer;" onclick="document.getElementById('moveOnce').click()">
             <input class="form-check-input" type="radio" name="moveType" id="moveOnce" value="once" checked>
             <label class="form-check-label" for="moveOnce" style="cursor:pointer;">
-              <strong>Только это занятие</strong>
-              <div class="small text-muted">Создаёт исключение для данной даты</div>
+              <strong>{% trans "Только это занятие" %}</strong>
+              <div class="small text-muted">{% trans "Создаёт исключение для данной даты" %}</div>
             </label>
           </div>
           <div class="form-check p-3 border rounded" style="cursor:pointer;" onclick="document.getElementById('moveAll').click()">
             <input class="form-check-input" type="radio" name="moveType" id="moveAll" value="all">
             <label class="form-check-label" for="moveAll" style="cursor:pointer;">
-              <strong>Все повторения</strong>
-              <div class="small text-muted">Постоянно меняет день и время для всех недель</div>
+              <strong>{% trans "Все повторения" %}</strong>
+              <div class="small text-muted">{% trans "Постоянно меняет день и время для всех недель" %}</div>
             </label>
           </div>
         </div>
         <div class="mt-3">
-          <label class="form-label small fw-bold">Причина (необязательно):</label>
-          <input type="text" id="moveReason" class="form-control form-control-sm" placeholder="Например: замена преподавателя">
+          <label class="form-label small fw-bold">{% trans "Причина (необязательно):" %}</label>
+          <input type="text" id="moveReason" class="form-control form-control-sm" placeholder="{% trans 'Например: замена преподавателя' %}">
         </div>
         <div class="row g-2 mt-2">
           <div class="col-6">
-            <label class="form-label small fw-bold">Начало:</label>
+            <label class="form-label small fw-bold">{% trans "Начало:" %}</label>
             <input type="time" id="moveStartTime" class="form-control form-control-sm">
           </div>
           <div class="col-6">
-            <label class="form-label small fw-bold">Конец:</label>
+            <label class="form-label small fw-bold">{% trans "Конец:" %}</label>
             <input type="time" id="moveEndTime" class="form-control form-control-sm">
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" id="moveCancelBtn2">Отмена (вернуть на место)</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="moveCancelBtn2">{% trans "Отмена (вернуть на место)" %}</button>
         <button type="button" class="btn btn-warning btn-sm fw-bold" id="moveConfirmBtn">
-          <i class="bi bi-check-lg me-1"></i>Подтвердить перенос
+          <i class="bi bi-check-lg me-1"></i>{% trans "Подтвердить перенос" %}
         </button>
       </div>
     </div>
@@ -347,6 +347,33 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js'></script>
 <script>
+// Переведенные строки для JavaScript
+const transl = {
+    error_prefix: "{% trans "Ошибка:" %}",
+    network_error: "{% trans "Сетевая ошибка сервера" %}",
+    please_wait: "{% trans "Подождите, занятие еще загружается." %}",
+    network_error_generic: "{% trans "Ошибка сети:" %}",
+    confirm_makeup: "{% trans "Назначить отработку на это время?" %}",
+    confirm_revert: "{% trans "Вернуть занятие в исходное состояние?" %}",
+    select_date: "{% trans "Пожалуйста, выберите дату!" %}",
+    confirm_mass_cancel: "{% trans "Вы точно хотите отменить ВСЕ пары за" %}",
+    mass_cancel_success: "{% trans "Успешно отменено пар:" %}",
+    added_to_bank: "{% trans "Они добавлены в Банк часов." %}",
+    server_error: "{% trans "Ошибка сети или сервера:" %}",
+    cancel_reason_prompt: "{% trans "Причина отмены (необязательно):" %}",
+    default_cancel_reason: "{% trans "Отменено" %}",
+    changed_lesson_alert: "{% trans "Это измененное занятие." %}",
+    revert_changes_btn: "{% trans "Откатить изменения (Вернуть как было)" %}",
+    cancel_lesson_btn: "{% trans "Отменить занятие (на эту дату)" %}",
+    was_label: "{% trans "Было:" %}",
+    became_label: "{% trans "Стало:" %}",
+    group_label: "{% trans "Группа:" %}",
+    drag_instruction: "{% trans "Перетащите занятие на сетку для отработки:" %}",
+    no_cancelled: "{% trans "Нет отмененных занятий" %}",
+    cancel_prefix: "{% trans "Отмена:" %}",
+    course: "{% trans "курс" %}"
+};
+
 const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
 
 (function() {
@@ -395,7 +422,7 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
         const bankEl = document.getElementById('external-events');
         if (bankEl) {
           if (data.unused_hours && data.unused_hours.length > 0) {
-            let html = '<p class="small text-muted mb-2">Перетащите занятие на сетку для отработки:</p>';
+            let html = `<p class="small text-muted mb-2">${transl.drag_instruction}</p>`;
             data.unused_hours.forEach(uh => {
               html += `
                 <div class="fc-event p-2 mb-2 rounded bg-white border border-danger text-dark"
@@ -405,12 +432,12 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
                      data-teacher="${uh.teacher}">
                   <div class="fw-bold" style="font-size: 0.8rem;">${uh.subject}</div>
                   <div class="small text-muted"><i class="bi bi-person"></i> ${uh.teacher}</div>
-                  <div class="small text-danger mt-1"><i class="bi bi-calendar-x"></i> Отмена: ${uh.date}</div>
+                  <div class="small text-danger mt-1"><i class="bi bi-calendar-x"></i> ${transl.cancel_prefix} ${uh.date}</div>
                 </div>`;
             });
             bankEl.innerHTML = html;
           } else {
-            bankEl.innerHTML = '<div class="text-center text-muted small py-3">Нет отмененных занятий</div>';
+            bankEl.innerHTML = `<div class="text-center text-muted small py-3">${transl.no_cancelled}</div>`;
           }
 
           if (CAN_EDIT && typeof FullCalendar.Draggable !== 'undefined') {
@@ -449,11 +476,11 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
       right:  'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
     },
     buttonText: {
-      today: 'Сегодня',
-      month: 'Месяц',
-      week:  'Неделя',
-      day:   'День',
-      list:  'Список',
+      today: '{% trans "Сегодня" %}',
+      month: '{% trans "Месяц" %}',
+      week:  '{% trans "Неделя" %}',
+      day:   '{% trans "День" %}',
+      list:  '{% trans "Список" %}',
     },
     slotMinTime:       '07:00:00',
     slotMaxTime:       '22:00:00',
@@ -512,8 +539,8 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
       const summary = document.getElementById('moveSummary');
       summary.innerHTML =
         `<b>${ep.subject_name || info.event.title}</b><br>` +
-        `Было: <b>${orig}</b> → Стало: <b>${newD} ${newSt}</b><br>` +
-        `Группа: <b>${ep.group}</b>`;
+        `${transl.was_label} <b>${orig}</b> → ${transl.became_label} <b>${newD} ${newSt}</b><br>` +
+        `${transl.group_label} <b>${ep.group}</b>`;
 
       document.getElementById('moveReason').value = '';
       const moveModal = new bootstrap.Modal(document.getElementById('moveModal'));
@@ -526,7 +553,7 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
         return;
       }
 
-      if (!confirm('Назначить отработку на это время?')) {
+      if (!confirm(transl.confirm_makeup)) {
         info.revert();
         return;
       }
@@ -550,12 +577,12 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
           calendar.refetchEvents();
           updateSidebar();
         } else {
-          alert('Ошибка: ' + d.error);
+          alert(transl.error_prefix + ' ' + d.error);
           info.revert();
         }
       }).catch(err => {
         console.error(err);
-        alert('Сетевая ошибка сервера');
+        alert(transl.network_error);
         info.revert();
       });
     },
@@ -581,7 +608,7 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
     },
 
     dayHeaderContent: function(arg) {
-      const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      const days = ['{% trans "Вс" %}', '{% trans "Пн" %}', '{% trans "Вт" %}', '{% trans "Ср" %}', '{% trans "Чт" %}', '{% trans "Пт" %}', '{% trans "Сб" %}'];
       const d = arg.date;
       const isToday = arg.isToday;
       return {
@@ -667,19 +694,19 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
 
     const canActSlot = CAN_EDIT || (HAS_TEACHER_PROFILE && ep.teacher_id === MY_ID);
     if (ep.cancelled || ep.rescheduled) {
-      bodyHtml += `<div class="alert alert-warning py-2 small mb-3">Это измененное занятие.</div>`;
+      bodyHtml += `<div class="alert alert-warning py-2 small mb-3">${transl.changed_lesson_alert}</div>`;
       if (canActSlot) {
-          footerHtml += `<button class="btn btn-sm btn-success w-100" onclick="revertException(${ep.exception_id})"><i class="bi bi-arrow-counterclockwise"></i> Откатить изменения (Вернуть как было)</button>`;
+          footerHtml += `<button class="btn btn-sm btn-success w-100" onclick="revertException(${ep.exception_id})"><i class="bi bi-arrow-counterclockwise"></i> ${transl.revert_changes_btn}</button>`;
       }
     } else if (canActSlot && !ep.military) {
-      footerHtml += `<button class="btn btn-sm btn-outline-danger" onclick="cancelLesson('${ep.slot_id}', '${ep.original_date}')"><i class="bi bi-x-circle me-1"></i>Отменить занятие (на эту дату)</button>`;
+      footerHtml += `<button class="btn btn-sm btn-outline-danger" onclick="cancelLesson('${ep.slot_id}', '${ep.original_date}')"><i class="bi bi-x-circle me-1"></i>${transl.cancel_lesson_btn}</button>`;
     }
 
     const rows =[
-      { label: 'Тип', value: ep.type_display || '—' },
-      { label: 'Группа', value: ep.group || '—' },
-      { label: 'Преподаватель', value: ep.teacher || '—' },
-      { label: 'Аудитория', value: ep.room || '—' },
+      { label: '{% trans "Тип" %}', value: ep.type_display || '—' },
+      { label: '{% trans "Группа" %}', value: ep.group || '—' },
+      { label: '{% trans "Преподаватель" %}', value: ep.teacher || '—' },
+      { label: '{% trans "Аудитория" %}', value: ep.room || '—' },
     ];
     rows.forEach(r => { bodyHtml += `<div class="detail-row"><span class="detail-label">${r.label}</span><span>${r.value}</span></div>`; });
 
@@ -687,14 +714,14 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
 
     const actionsDiv = document.getElementById('eventModalActions');
     if (actionsDiv) {
-        actionsDiv.innerHTML = footerHtml + '<button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>';
+        actionsDiv.innerHTML = footerHtml + '<button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{% trans "Закрыть" %}</button>';
     }
 
     new bootstrap.Modal(document.getElementById('eventModal')).show();
   }
 
   window.revertException = function(exceptionId) {
-      if(!confirm('Вернуть занятие в исходное состояние?')) return;
+      if(!confirm(transl.confirm_revert)) return;
       fetch('/schedule/api/calendar-move/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': GLOBAL_CSRF_TOKEN },
@@ -705,17 +732,17 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
               calendar.refetchEvents();
               updateSidebar();
           } else {
-              alert('Ошибка: ' + d.error);
+              alert(transl.error_prefix + ' ' + d.error);
           }
-      }).catch(err => alert('Ошибка сети: ' + err));
+      }).catch(err => alert(transl.network_error_generic + ' ' + err));
   };
 
   window.cancelLesson = function(slot_id, original_date) {
     if (!slot_id || slot_id === 'undefined') {
-        alert('Подождите, занятие еще загружается.');
+        alert(transl.please_wait);
         return;
     }
-    const reason = prompt('Причина отмены (необязательно):') || 'Отменено';
+    const reason = prompt(transl.cancel_reason_prompt) || transl.default_cancel_reason;
     fetch('/schedule/api/calendar-move/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': GLOBAL_CSRF_TOKEN },
@@ -728,9 +755,9 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
         calendar.refetchEvents();
         updateSidebar();
       } else {
-        alert('Ошибка: ' + d.error);
+        alert(transl.error_prefix + ' ' + d.error);
       }
-    }).catch(err => alert('Ошибка сети: ' + err));
+    }).catch(err => alert(transl.network_error_generic + ' ' + err));
   };
 
   {% if can_move_calendar %}
@@ -739,7 +766,7 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
     const info     = pendingDrop;
     const ep       = info.event.extendedProps;
     const moveType = document.querySelector('input[name="moveType"]:checked').value;
-    const reason   = document.getElementById('moveReason').value || 'Перенос через календарь';
+    const reason   = document.getElementById('moveReason').value || '{% trans "Перенос через календарь" %}';
     const finalStart = document.getElementById('moveStartTime').value || info._resolved.new_start_time;
     const finalEnd = document.getElementById('moveEndTime').value || info._resolved.new_end_time;
 
@@ -764,7 +791,7 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
         calendar.refetchEvents();
         updateSidebar();
       } else {
-        alert('Ошибка: ' + d.error);
+        alert(transl.error_prefix + ' ' + d.error);
         info.revert();
       }
     })
@@ -780,14 +807,14 @@ const GLOBAL_CSRF_TOKEN = "{{ csrf_token }}";
 
 function executeMassCancel() {
     const dateVal = document.getElementById('massCancelDate').value;
-    const reasonVal = document.getElementById('massCancelReason').value || 'Массовая отмена';
+    const reasonVal = document.getElementById('massCancelReason').value || '{% trans "Массовая отмена" %}';
     
-    if (!dateVal) { alert('Пожалуйста, выберите дату!'); return; }
-    if (!confirm(`Вы точно хотите отменить ВСЕ пары за ${dateVal}?`)) return;
+    if (!dateVal) { alert(transl.select_date); return; }
+    if (!confirm(`${transl.confirm_mass_cancel} ${dateVal}?`)) return;
 
     const btn = document.querySelector('#massCancelModal .btn-danger');
     const oldText = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Отмена...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> {% trans "Отмена..." %}';
     btn.disabled = true;
 
     fetch('/schedule/api/calendar-mass-cancel/', {
@@ -801,7 +828,7 @@ function executeMassCancel() {
     .then(r => r.json())
     .then(d => {
         if (d.success) {
-            alert(`Успешно отменено пар: ${d.count}. Они добавлены в Банк часов.`);
+            alert(`${transl.mass_cancel_success} ${d.count}. ${transl.added_to_bank}`);
             const modalEl = document.getElementById('massCancelModal');
             const modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
@@ -812,12 +839,12 @@ function executeMassCancel() {
             btn.innerHTML = oldText;
             btn.disabled = false;
         } else {
-            alert('Ошибка: ' + d.error);
+            alert(transl.error_prefix + ' ' + d.error);
             btn.innerHTML = oldText;
             btn.disabled = false;
         }
     }).catch(err => {
-        alert('Ошибка сети или сервера: ' + err);
+        alert(transl.server_error + ' ' + err);
         btn.innerHTML = oldText;
         btn.disabled = false;
     });

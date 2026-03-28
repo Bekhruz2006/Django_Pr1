@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Управление семестрами{% endblock %}
+{% block title %}{% trans "Управление семестрами" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-calendar-range"></i> Управление семестрами</span>
+                <span><i class="bi bi-calendar-range"></i> {% trans "Управление семестрами" %}</span>
                 {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
                 <a href="{% url 'schedule:global_semester_setup' %}" class="btn btn-warning btn-sm me-2 text-dark fw-bold shadow-sm">
-                    <i class="bi bi-rocket-takeoff"></i> Глобальный запуск
+                    <i class="bi bi-rocket-takeoff"></i> {% trans "Глобальный запуск" %}
                 </a>
                 {% endif %}
 
                 <a href="{% url 'schedule:add_semester' %}" class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-lg"></i> Создать новый семестр
+                    <i class="bi bi-plus-lg"></i> {% trans "Создать новый семестр" %}
                 </a>
             </div>
             <div class="card-body">
@@ -24,9 +25,11 @@
                 <div class="alert alert-warning d-flex align-items-center">
                     <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
                     <div>
-                        <strong>Внимание!</strong> Отсутствует активный семестр для курсов: 
-                        <b>{{ missing_courses|join:", " }}</b>.
-                        <br>Расписание для этих курсов будет недоступно преподавателям и студентам.
+                        {% blocktrans with courses=missing_courses|join:", " %}
+                            <strong>Внимание!</strong> Отсутствует активный семестр для курсов: 
+                            <b>{{ courses }}</b>.
+                            <br>Расписание для этих курсов будет недоступно преподавателям и студентам.
+                        {% endblocktrans %}
                     </div>
                 </div>
                 {% endif %}
@@ -35,13 +38,13 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>Статус</th>
-                                <th>Учебный год</th>
-                                <th>Курс</th>
-                                <th>Название (№)</th>
-                                <th>Смена</th>
-                                <th>Период</th>
-                                <th class="text-end">Управление</th>
+                                <th>{% trans "Статус" %}</th>
+                                <th>{% trans "Учебный год" %}</th>
+                                <th>{% trans "Курс" %}</th>
+                                <th>{% trans "Название (№)" %}</th>
+                                <th>{% trans "Смена" %}</th>
+                                <th>{% trans "Период" %}</th>
+                                <th class="text-end">{% trans "Управление" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -50,35 +53,37 @@
                                 <td>
                                     {% if sem.is_active %}
                                         <span class="badge bg-success shadow-sm">
-                                            <i class="bi bi-check-circle-fill"></i> АКТИВЕН
+                                            <i class="bi bi-check-circle-fill"></i> {% trans "АКТИВЕН" %}
                                         </span>
                                     {% else %}
+                                        {% trans "Сделать активным" as activate_text %}
                                         <a href="{% url 'schedule:toggle_semester' sem.id %}" 
                                            class="btn btn-sm btn-outline-secondary opacity-75"
-                                           title="Нажмите, чтобы сделать активным">
-                                            <i class="bi bi-circle"></i> Сделать активным
+                                           title="{{ activate_text }}">
+                                            <i class="bi bi-circle"></i> {{ activate_text }}
                                         </a>
                                     {% endif %}
                                 </td>
                                 <td><span class="fw-bold">{{ sem.academic_year }}</span></td>
-                                <td><span class="badge bg-primary">{{ sem.course }} курс</span></td>
+                                <td><span class="badge bg-primary">{{ sem.course }} {% trans "курс" %}</span></td>
                                 <td>{{ sem.name }} ({{ sem.number }})</td>
                                 <td>
                                     {% if sem.shift == 'MORNING' %}
-                                        <span class="text-warning"><i class="bi bi-sun-fill"></i> 1 смена</span>
+                                        <span class="text-warning"><i class="bi bi-sun-fill"></i> {% trans "1 смена" %}</span>
                                     {% else %}
-                                        <span class="text-primary"><i class="bi bi-moon-stars-fill"></i> 2 смена</span>
+                                        <span class="text-primary"><i class="bi bi-moon-stars-fill"></i> {% trans "2 смена" %}</span>
                                     {% endif %}
                                 </td>
                                 <td><small class="text-muted">{{ sem.start_date|date:"d.m.y" }} — {{ sem.end_date|date:"d.m.y" }}</small></td>
                                 <td class="text-end">
-                                    <a href="{% url 'schedule:edit_semester' sem.id %}" class="btn btn-sm btn-light text-primary border" title="Редактировать">
+                                    {% trans "Редактировать" as edit_text %}
+                                    <a href="{% url 'schedule:edit_semester' sem.id %}" class="btn btn-sm btn-light text-primary border" title="{{ edit_text }}">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="7" class="text-center py-5 text-muted">Семестры еще не созданы</td></tr>
+                            <tr><td colspan="7" class="text-center py-5 text-muted">{% trans "Семестры еще не созданы" %}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

@@ -1,37 +1,37 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% block title %}Группа {{ group.name }}{% endblock %}
+{% block title %}{% trans "Группа" %} {{ group.name }}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-people-fill"></i> Группа: {{ group.name }}</h5>
+                <h5 class="mb-0"><i class="bi bi-people-fill"></i> {% trans "Группа:" %} {{ group.name }}</h5>
                 <a href="{% url 'accounts:group_management' %}" class="btn btn-sm btn-light text-primary btn-back">
-                    <i class="bi bi-arrow-left"></i> Назад
+                    <i class="bi bi-arrow-left"></i> {% trans "Назад" %}
                 </a>
             </div>
             <div class="card-body">
                 <div class="mb-4 bg-light p-3 rounded border">
                     <div class="row">
-                        <div class="col-md-4"><strong>Курс:</strong> {{ group.course }}</div>
-                        <div class="col-md-4"><strong>Специальность:</strong> {{ group.specialty.code }}</div>
-                        <div class="col-md-4"><strong>Куратор:</strong> {{ group.curator.user.get_full_name|default:"Не назначен" }}</div>
+                        <div class="col-md-4"><strong>{% trans "Курс:" %}</strong> {{ group.course }}</div>
+                        <div class="col-md-4"><strong>{% trans "Специальность:" %}</strong> {{ group.specialty.code }}</div>
+                        <div class="col-md-4"><strong>{% trans "Куратор:" %}</strong> {{ group.curator.user.get_full_name|default:_("Не назначен") }}</div>
                     </div>
                 </div>
                 
-                <h6 class="mb-3">Список студентов ({{ students.count }})</h6>
+                <h6 class="mb-3">{% trans "Список студентов" %} ({{ students.count }})</h6>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle border">
                         <thead class="table-light">
-                            <tr>
-                                <th>№</th>
-                                <th>ФИО Студента</th>
-                                <th>Зачетка</th>
-                                <th>Бюджет/Контракт</th>
-                                <th>Действия</th>
-                            </tr>
+                             <tr>
+                                <th>{% trans "№" %}</th>
+                                <th>{% trans "ФИО Студента" %}</th>
+                                <th>{% trans "Зачетка" %}</th>
+                                <th>{% trans "Бюджет/Контракт" %}</th>
+                                <th>{% trans "Действия" %}</th>
+                             </tr>
                         </thead>
                         <tbody>
                             {% for student in students %}
@@ -40,7 +40,7 @@
                                 <td class="fw-bold">
                                     <div class="d-flex align-items-center">
                                         {% if student.user.photo %}
-                                            <img src="{{ student.user.photo.url }}" class="avatar-sm-list me-2 shadow-sm">
+                                            <img src="{{ student.user.photo.url }}" class="avatar-sm-list me-2 shadow-sm" alt="{% trans 'Фото студента' %}">
                                         {% else %}
                                             <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary me-2 fw-bold shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
                                                 {{ student.user.first_name|first|upper }}{{ student.user.last_name|first|upper }}
@@ -56,11 +56,11 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{% url 'accounts:view_user_profile' student.user.id %}" class="btn btn-sm btn-outline-info"><i class="bi bi-person-vcard"></i> Профиль</a>
+                                    <a href="{% url 'accounts:view_user_profile' student.user.id %}" class="btn btn-sm btn-outline-info"><i class="bi bi-person-vcard"></i> {% trans "Профиль" %}</a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="5" class="text-center text-muted py-4">В этой группе пока нет студентов</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted py-4">{% trans "В этой группе пока нет студентов" %}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

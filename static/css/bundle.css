@@ -870,7 +870,7 @@ body.dark-mode .modal-footer {
 
 :root {
     --border-heavy: #1e293b;
-    --border-width: 2px;
+    --border-width: 2.5px;
 }
 
 .card, 

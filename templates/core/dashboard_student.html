@@ -1,15 +1,17 @@
-
 {% extends 'base.html' %}
+{% load i18n %}
 {% block breadcrumb_container %}{% endblock %}
 {% load static %}
-{% block title %}Главная{% endblock %}
+{% block title %}{% trans "Главная" %}{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4 animate-fade-in">
         <div class="col-12">
             <div class="welcome-card p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <h2 class="mb-2">Добро пожаловать, {{ user.first_name }}! 👋</h2>
-                <p class="mb-0 opacity-75">Студент {{ profile.course }} курса, группа {{ profile.group|default:"не назначена" }}</p>
+                <h2 class="mb-2">{% trans "Добро пожаловать," %} {{ user.first_name }}! 👋</h2>
+                <p class="mb-0 opacity-75">{% trans "Студент" %} {{ profile.course }} {% trans "курса, группа" %}
+                    {% if profile.group %}{{ profile.group }}{% else %}{% trans "не назначена" %}{% endif %}
+                </p>
             </div>
         </div>
     </div>
@@ -20,7 +22,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <p class="text-muted mb-1 small text-uppercase fw-bold">Средний балл</p>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">{% trans "Средний балл" %}</p>
                             <h2 class="mb-0 fw-bold" style="color: #10b981;">{{ profile.get_average_grade|floatformat:2|default:"0.00" }}</h2>
                         </div>
                         <div class="stat-icon">
@@ -32,7 +34,7 @@
                              style="width: {% widthratio profile.get_average_grade 1 8.33 %}%; background-color: #10b981;">
                         </div>
                     </div>
-                    <small class="text-muted mt-2 d-block">из 12 баллов</small>
+                    <small class="text-muted mt-2 d-block">{% trans "из 12 баллов" %}</small>
                 </div>
             </div>
         </div>
@@ -42,7 +44,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <p class="text-muted mb-1 small text-uppercase fw-bold">Рейтинг в группе</p>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">{% trans "Рейтинг в группе" %}</p>
                             <h2 class="mb-0 fw-bold" style="color: #f59e0b;">
                                 {% if profile.get_group_rank > 0 %}
                                     #{{ profile.get_group_rank }}
@@ -57,11 +59,11 @@
                     </div>
                     <div class="mt-2">
                         {% if profile.get_group_rank == 1 %}
-                            <span class="badge bg-warning text-dark">🥇 Лучший в группе!</span>
+                            <span class="badge bg-warning text-dark">{% trans "🥇 Лучший в группе!" %}</span>
                         {% elif profile.get_group_rank <= 3 %}
-                            <span class="badge bg-warning text-dark">🥈 В тройке лидеров!</span>
+                            <span class="badge bg-warning text-dark">{% trans "🥈 В тройке лидеров!" %}</span>
                         {% else %}
-                            <span class="badge bg-light text-muted">Продолжай стараться!</span>
+                            <span class="badge bg-light text-muted">{% trans "Продолжай стараться!" %}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -73,7 +75,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <p class="text-muted mb-1 small text-uppercase fw-bold">Посещаемость</p>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">{% trans "Посещаемость" %}</p>
                             <h2 class="mb-0 fw-bold" style="color: #2563eb;">{{ profile.get_attendance_percentage|floatformat:0|default:"0" }}%</h2>
                         </div>
                         <div class="stat-icon">
@@ -95,7 +97,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <p class="text-muted mb-1 small text-uppercase fw-bold">Прогулов (НБ)</p>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">{% trans "Прогулов (НБ)" %}</p>
                             <h2 class="mb-0 fw-bold" style="color: {% if profile.get_total_absent > 10 %}#ef4444{% elif profile.get_total_absent > 5 %}#f59e0b{% else %}#10b981{% endif %};">
                                 {{ profile.get_total_absent }}
                             </h2>
@@ -105,9 +107,9 @@
                         </div>
                     </div>
                     <small class="text-muted">
-                        {% if profile.get_total_absent == 0 %}✅ Отлично!
-                        {% elif profile.get_total_absent <= 5 %}⚠️ Будь внимательнее
-                        {% else %}❌ Требует внимания!{% endif %}
+                        {% if profile.get_total_absent == 0 %}{% trans "✅ Отлично!" %}
+                        {% elif profile.get_total_absent <= 5 %}{% trans "⚠️ Будь внимательнее" %}
+                        {% else %}{% trans "❌ Требует внимания!" %}{% endif %}
                     </small>
                 </div>
             </div>
@@ -122,24 +124,24 @@
         <div class="col-lg-4 animate-slide-in" style="animation-delay: 0.5s;">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-gradient-primary text-white">
-                    <i class="bi bi-link-45deg me-2"></i>Быстрый доступ
+                    <i class="bi bi-link-45deg me-2"></i>{% trans "Быстрый доступ" %}
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-3">
                         <a href="{% url 'schedule:view' %}" class="btn btn-outline-primary text-start">
-                            <i class="bi bi-calendar-week me-2"></i> Мое расписание
+                            <i class="bi bi-calendar-week me-2"></i> {% trans "Мое расписание" %}
                         </a>
                         <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary text-start">
-                            <i class="bi bi-person me-2"></i> Мой профиль
+                            <i class="bi bi-person me-2"></i> {% trans "Мой профиль" %}
                         </a>
                         <a href="{% url 'journal:student_view' %}" class="btn btn-outline-primary text-start">
-                            <i class="bi bi-journal me-2"></i> Мои оценки
+                            <i class="bi bi-journal me-2"></i> {% trans "Мои оценки" %}
                         </a>
                         <a href="{% url 'lms:dashboard' %}" class="btn btn-primary text-start">
-                            <i class="bi bi-laptop me-2"></i> Обучение (LMS)
+                            <i class="bi bi-laptop me-2"></i> {% trans "Обучение (LMS)" %}
                         </a>
                         <a href="{% url 'chat:list' %}" class="btn btn-outline-primary text-start">
-                            <i class="bi bi-chat-dots me-2"></i> Чаты
+                            <i class="bi bi-chat-dots me-2"></i> {% trans "Чаты" %}
                         </a>
                     </div>
                 </div>
@@ -152,8 +154,8 @@
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-newspaper me-2"></i>Последние новости</h5>
-                    <a href="{% url 'news:list' %}" class="btn btn-sm btn-primary">Все новости</a>
+                    <h5 class="mb-0"><i class="bi bi-newspaper me-2"></i>{% trans "Последние новости" %}</h5>
+                    <a href="{% url 'news:list' %}" class="btn btn-sm btn-primary">{% trans "Все новости" %}</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">

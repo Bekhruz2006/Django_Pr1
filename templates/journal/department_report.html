@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Аналитический отчет{% endblock %}
+{% block title %}{% trans "Аналитический отчет" %}{% endblock %}
 
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,7 +16,7 @@
                         <i class="bi bi-people fs-4 text-primary"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Студентов</h6>
+                        <h6 class="text-muted text-uppercase small fw-bold mb-0">{% trans "Студентов" %}</h6>
                         <h3 class="mb-0 fw-bold">{{ total_students }}</h3>
                     </div>
                 </div>
@@ -28,7 +29,7 @@
                         <i class="bi bi-graph-up-arrow fs-4 text-success"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Средний GPA</h6>
+                        <h6 class="text-muted text-uppercase small fw-bold mb-0">{% trans "Средний GPA" %}</h6>
                         <h3 class="mb-0 fw-bold text-success">{{ overall_gpa|floatformat:2 }}</h3>
                     </div>
                 </div>
@@ -41,7 +42,7 @@
                         <i class="bi bi-calendar-check fs-4 text-warning"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Посещаемость</h6>
+                        <h6 class="text-muted text-uppercase small fw-bold mb-0">{% trans "Посещаемость" %}</h6>
                         <h3 class="mb-0 fw-bold text-warning">{{ overall_attendance|floatformat:1 }}%</h3>
                     </div>
                 </div>
@@ -54,7 +55,7 @@
                         <i class="bi bi-exclamation-octagon fs-4 text-danger"></i>
                     </div>
                     <div>
-                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Группа риска</h6>
+                        <h6 class="text-muted text-uppercase small fw-bold mb-0">{% trans "Группа риска" %}</h6>
                         <h3 class="mb-0 fw-bold text-danger">{{ total_at_risk }}</h3>
                     </div>
                 </div>
@@ -66,7 +67,7 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Сводный анализ групп</h6>
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>{% trans "Сводный анализ групп" %}</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="mainChart" height="140"></canvas>
@@ -77,7 +78,7 @@
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart-fill me-2 text-info"></i>Структура пропусков (НБ)</h6>
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart-fill me-2 text-info"></i>{% trans "Структура пропусков (НБ)" %}</h6>
                 </div>
                 <div class="card-body d-flex align-items-center justify-content-center">
                     <div style="width: 100%; max-width: 320px;">
@@ -92,7 +93,7 @@
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-shield-exclamation me-2 text-danger"></i>Топ групп в зоне риска</h6>
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-shield-exclamation me-2 text-danger"></i>{% trans "Топ групп в зоне риска" %}</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="riskChart" height="200"></canvas>
@@ -103,7 +104,7 @@
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-columns-reverse me-2 text-secondary"></i>Детализация пропусков</h6>
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-columns-reverse me-2 text-secondary"></i>{% trans "Детализация пропусков" %}</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="absentStackChart" height="140"></canvas>
@@ -114,7 +115,7 @@
 
     <div class="card border-0 shadow-sm mb-5">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#dataTableCollapse" style="cursor: pointer;">
-            <h6 class="mb-0 fw-bold"><i class="bi bi-table me-2"></i>Таблица данных</h6>
+            <h6 class="mb-0 fw-bold"><i class="bi bi-table me-2"></i>{% trans "Таблица данных" %}</h6>
             <i class="bi bi-chevron-down"></i>
         </div>
         <div class="collapse show" id="dataTableCollapse">
@@ -122,15 +123,15 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Группа</th>
-                                <th class="text-center">Студентов</th>
-                                <th class="text-center">GPA</th>
-                                <th class="text-center">Посещаемость</th>
-                                <th class="text-center">НБ (Всего)</th>
-                                <th class="text-center">Риск</th>
-                                <th class="text-end pe-4">Действия</th>
-                            </tr>
+                             <tr>
+                                <th class="ps-4">{% trans "Группа" %}</th>
+                                <th class="text-center">{% trans "Студентов" %}</th>
+                                <th class="text-center">{% trans "GPA" %}</th>
+                                <th class="text-center">{% trans "Посещаемость" %}</th>
+                                <th class="text-center">{% trans "НБ (Всего)" %}</th>
+                                <th class="text-center">{% trans "Риск" %}</th>
+                                <th class="text-end pe-4">{% trans "Действия" %}</th>
+                             </tr>
                         </thead>
                         <tbody>
                             {% for item in groups_data %}
@@ -160,20 +161,25 @@
                                 </td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group">
-
+                                            {% trans "Обзор успеваемости группы" as overview_title %}
                                             <a href="{% url 'journal:dean_view' %}?group={{ item.group.id }}&view=summary" 
-                                            class="btn btn-sm btn-outline-primary" title="Обзор успеваемости группы">
-                                                <i class="bi bi-journal-text"></i> Обзор
+                                            class="btn btn-sm btn-outline-primary" title="{{ overview_title }}">
+                                                <i class="bi bi-journal-text"></i> {% trans "Обзор" %}
                                             </a>
+                                            {% trans "Студенты в зоне риска" as risk_title %}
                                             <a href="{% url 'journal:dean_view' %}?group={{ item.group.id }}&view=at_risk" 
-                                            class="btn btn-sm btn-outline-danger" title="Студенты в зоне риска">
-                                                <i class="bi bi-exclamation-triangle"></i> Риск
+                                            class="btn btn-sm btn-outline-danger" title="{{ risk_title }}">
+                                                <i class="bi bi-exclamation-triangle"></i> {% trans "Риск" %}
                                                 {% if item.at_risk_count > 0 %}
                                                     <span class="badge bg-danger ms-1">{{ item.at_risk_count }}</span>
                                                 {% endif %}
                                             </a>
                                         </div>
                                     </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">{% trans "Нет данных" %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -212,7 +218,7 @@
             labels: labels,
             datasets: [
                 {
-                    label: 'GPA',
+                    label: '{% trans "GPA" %}',
                     data: gpaData,
                     backgroundColor: gradGPA,
                     borderRadius: 6,
@@ -221,7 +227,7 @@
                     order: 2
                 },
                 {
-                    label: 'Посещаемость %',
+                    label: '{% trans "Посещаемость %" %}',
                     data: attendanceData,
                     type: 'line',
                     borderColor: '#10b981', 
@@ -245,12 +251,12 @@
             scales: {
                 y: {
                     position: 'left',
-                    title: { display: true, text: 'Балл (0-5)' },
+                    title: { display: true, text: '{% trans "Балл (0-5)" %}' },
                     max: 5
                 },
                 y1: {
                     position: 'right',
-                    title: { display: true, text: 'Проценты (0-100)' },
+                    title: { display: true, text: '{% trans "Проценты (0-100)" %}' },
                     max: 100,
                     grid: { drawOnChartArea: false }
                 },
@@ -267,7 +273,7 @@
     new Chart(ctxPolar, {
         type: 'polarArea',
         data: {
-            labels: ['Болезнь', 'Уважительная', 'Прогул'],
+            labels: ['{% trans "Болезнь" %}', '{% trans "Уважительная" %}', '{% trans "Прогул" %}'],
             datasets: [{
                 data: [sumIllness, sumValid, sumInvalid],
                 backgroundColor: [
@@ -299,7 +305,7 @@
         data: {
             labels: riskLabels,
             datasets: [{
-                label: 'Студентов в зоне риска',
+                label: '{% trans "Студентов в зоне риска" %}',
                 data: riskValues,
                 backgroundColor: 'rgba(239, 68, 68, 0.8)', 
                 borderRadius: 4,
@@ -324,19 +330,19 @@
             labels: labels,
             datasets: [
                 {
-                    label: 'Болезнь',
+                    label: '{% trans "Болезнь" %}',
                     data: illnessData,
                     backgroundColor: '#93c5fd',
                     stack: 'Stack 0'
                 },
                 {
-                    label: 'Уважительная',
+                    label: '{% trans "Уважительная" %}',
                     data: validData,
                     backgroundColor: '#86efac', 
                     stack: 'Stack 0'
                 },
                 {
-                    label: 'Прогул',
+                    label: '{% trans "Прогул" %}',
                     data: invalidData,
                     backgroundColor: '#fca5a5',
                     stack: 'Stack 0'

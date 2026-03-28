@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}РУП: {{ plan.specialty.name }}{% endblock %}
+{% block title %}{% trans "РУП:" %} {{ plan.specialty.name }}{% endblock %}
 
 {% block breadcrumbs %}
-    <li class="breadcrumb-item"><a href="{% url 'schedule:manage_plans' %}">Учебные планы</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'schedule:manage_plans' %}">{% trans "Учебные планы" %}</a></li>
     <li class="breadcrumb-item active">{{ plan.specialty.code }}</li>
 {% endblock %}
 
@@ -38,6 +39,18 @@
     }
 </style>
 
+{% trans "Вы уверены? Это удалит ВЕСЬ план и все дисциплины в нем!" as confirm_delete_plan_msg %}
+{% trans "Удалить дисциплину из плана?" as confirm_delete_disc_msg %}
+{% trans "Введите название!" as js_error_empty %}
+{% trans "Ошибка сервера" as js_error_server %}
+{% trans "Введите название системы кредитов (например: Национальный):" as js_prompt_credit_name %}
+{% trans "Сколько часов в 1 кредите этой системы?" as js_prompt_credit_hours %}
+{% trans "30" as js_default_hours %}
+{% trans "Внимание: Аудиторных часов ({{ total_auditory }}) больше, чем выделено кредитами ({{ total_credit_hours }})!" as js_warning_auditory %}
+{% trans "Внимание: Аудиторных часов (" as js_warning_auditory_prefix %}
+{% trans ") больше, чем выделено кредитами (" as js_warning_auditory_mid %}
+{% trans ")!" as js_warning_auditory_suffix %}
+
 <div class="row mt-4">
     <div class="col-12 mb-3">
         <div class="card shadow-sm border-0">
@@ -48,33 +61,33 @@
                             {% if plan.specialty %}
                                 {{ plan.specialty.name }}
                             {% else %}
-                                Индивидуальный план группы: {{ plan.group.name }}
+                                {% trans "Индивидуальный план группы:" %} {{ plan.group.name }}
                             {% endif %}
                         </h4>
                         {% if plan.is_active %}
-                            <span class="badge bg-success shadow-sm">АКТИВНЫЙ ПЛАН</span>
+                            <span class="badge bg-success shadow-sm">{% trans "АКТИВНЫЙ ПЛАН" %}</span>
                         {% else %}
-                            <span class="badge bg-secondary opacity-50">АРХИВНЫЙ</span>
+                            <span class="badge bg-secondary opacity-50">{% trans "АРХИВНЫЙ" %}</span>
                             <a href="{% url 'schedule:activate_plan' plan.id %}" class="btn btn-sm btn-outline-success ms-2">
-                                <i class="bi bi-play-circle"></i> Сделать активным
+                                <i class="bi bi-play-circle"></i> {% trans "Сделать активным" %}
                             </a>
                         {% endif %}
                     </div>
                     <p class="mb-0 text-secondary mt-1">
                         {% if plan.specialty %}
-                            Код: <strong>{{ plan.specialty.code }}</strong> | 
+                            {% trans "Код:" %} <strong>{{ plan.specialty.code }}</strong> | 
                         {% elif plan.group and plan.group.specialty %}
-                            Код спец.: <strong>{{ plan.group.specialty.code }}</strong> | 
+                            {% trans "Код спец.:" %} <strong>{{ plan.group.specialty.code }}</strong> | 
                         {% endif %}
-                        Год набора: <strong>{{ plan.admission_year }}</strong>
+                        {% trans "Год набора:" %} <strong>{{ plan.admission_year }}</strong>
                     </p>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning text-dark shadow-sm">
-                        <i class="bi bi-magic"></i> Создать нагрузку
+                        <i class="bi bi-magic"></i> {% trans "Создать нагрузку" %}
                     </a>
-                    <a href="{% url 'schedule:delete_plan' plan.id %}" class="btn btn-outline-danger shadow-sm" onclick="return confirm('Вы уверены? Это удалит ВЕСЬ план и все дисциплины в нем!')">
-                        <i class="bi bi-trash"></i> Удалить план
+                    <a href="{% url 'schedule:delete_plan' plan.id %}" class="btn btn-outline-danger shadow-sm" onclick="return confirm('{{ confirm_delete_plan_msg|escapejs }}')">
+                        <i class="bi bi-trash"></i> {% trans "Удалить план" %}
                     </a>
                 </div>
             </div>
@@ -89,7 +102,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if i == current_sem_num %}active{% endif %}"
                            href="?semester={{ i }}">
-                           {{ i }} Семестр
+                           {{ i }} {% trans "Семестр" %}
                         </a>
                     </li>
                     {% endfor %}
@@ -103,12 +116,12 @@
             <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h6 class="fw-bold mb-1 text-primary">
-                        <i class="bi bi-calendar-check"></i> Настройка периода для {{ target_course }} курса
-                        <span class="badge bg-success ms-3 fs-6 shadow-sm">Всего кредитов: {{ total_semester_credits }}</span>
-                        <span class="badge bg-secondary ms-1 fs-6 shadow-sm">Всего часов: {{ total_semester_hours }}</span>
+                        <i class="bi bi-calendar-check"></i> {% trans "Настройка периода для" %} {{ target_course }} {% trans "курса" %}
+                        <span class="badge bg-success ms-3 fs-6 shadow-sm">{% trans "Всего кредитов:" %} {{ total_semester_credits }}</span>
+                        <span class="badge bg-secondary ms-1 fs-6 shadow-sm">{% trans "Всего часов:" %} {{ total_semester_hours }}</span>
                     </h6>
                     <small class="text-muted">
-                        Выберите, какой семестр (из созданных в настройках) сейчас идет у студентов этого курса.
+                        {% trans "Выберите, какой семестр (из созданных в настройках) сейчас идет у студентов этого курса." %}
                     </small>
                 </div>
 
@@ -117,9 +130,9 @@
                         {% csrf_token %}
 
                         <div class="input-group input-group-sm">
-                            <span class="bi bi-check2-circle">Текущий </span>
+                            <span class="bi bi-check2-circle">{% trans "Текущий" %} </span>
                             <select name="semester_id" class="form-select border-start-0 ps-1 fw-bold" style="min-width: 250px;">
-                                <option value="" disabled {% if not active_semester %}selected{% endif %}>-- Не выбран --</option>
+                                <option value="" disabled {% if not active_semester %}selected{% endif %}>-- {% trans "Не выбран" %} --</option>
                                 {% for sem in available_semesters %}
                                     <option value="{{ sem.id }}" {% if sem.is_active %}selected{% endif %}>
                                         {{ sem.academic_year }} | {{ sem.name }} ({{ sem.get_shift_display }})
@@ -128,14 +141,14 @@
                                 {% endfor %}
                             </select>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check2-circle"></i> Активировать
+                                <i class="bi bi-check2-circle"></i> {% trans "Активировать" %}
                             </button>
                         </div>
                     </form>
 
                     <div class="vr mx-2"></div>
 
-                    <a href="{% url 'schedule:add_semester' %}" class="btn btn-sm btn-outline-secondary" title="Создать новый, если нет в списке">
+                    <a href="{% url 'schedule:add_semester' %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Создать новый, если нет в списке' %}">
                         <i class="bi bi-plus-lg"></i>
                     </a>
                 </div>
@@ -146,7 +159,7 @@
     <div class="col-md-4">
         <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
             <div class="card-header bg-primary text-white">
-                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Добавить в {{ current_sem_num }} семестр</h6>
+                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> {% trans "Добавить в" %} {{ current_sem_num }} {% trans "семестр" %}</h6>
             </div>
             <div class="card-body p-3">
                 <form method="post">
@@ -156,15 +169,15 @@
 
                     {% if form.errors %}
                         <div class="alert alert-danger p-2 small mb-3">
-                            <strong>Ошибка!</strong> Проверьте поля. {{ form.errors }}
+                            <strong>{% trans "Ошибка!" %}</strong> {% trans "Проверьте поля." %} {{ form.errors }}
                         </div>
                     {% endif %}
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted text-uppercase">Дисциплина</label>
+                        <label class="form-label small fw-bold text-muted text-uppercase">{% trans "Дисциплина" %}</label>
                         <div class="input-group">
                             {{ form.subject_template }}
-                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addTemplateModal" title="Создать новое название">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addTemplateModal" title="{% trans 'Создать новое название' %}">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -172,42 +185,42 @@
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Цикл</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{% trans "Цикл" %}</label>
                             {{ form.cycle }}
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Тип</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{% trans "Тип" %}</label>
                             {{ form.discipline_type }}
                         </div>
                         <div class="col-12 mt-2">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Контроль</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{% trans "Контроль" %}</label>
                             {{ form.control_type }}
                         </div>
                     </div>
 
                     <div class="card border-primary shadow-sm mb-3">
                         <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 small fw-bold"><i class="bi bi-sliders"></i> Конструктор нагрузки</h6>
-                            <span class="badge bg-light text-primary" id="add_total_credits_badge">0 ч. всего</span>
+                            <h6 class="mb-0 small fw-bold"><i class="bi bi-sliders"></i> {% trans "Конструктор нагрузки" %}</h6>
+                            <span class="badge bg-light text-primary" id="add_total_credits_badge">0 {% trans "ч. всего" %}</span>
                         </div>
                         <div class="card-body p-2 bg-light">
                             <div class="mb-3 p-2 bg-white rounded border border-success">
-                                <label class="small fw-bold text-success mb-1"><i class="bi bi-magic"></i> Быстрый шаблон (Автозаполнение)</label>
+                                <label class="small fw-bold text-success mb-1"><i class="bi bi-magic"></i> {% trans "Быстрый шаблон (Автозаполнение)" %}</label>
                                 <select id="add_template_selector" class="form-select form-select-sm border-success fw-bold text-dark">
-                                    <option value="">-- Выберите шаблон кредитов --</option>
+                                    <option value="">-- {% trans "Выберите шаблон кредитов" %} --</option>
                                     {% for t in credit_templates %}
                                         <option value="{{ t.credits }}" data-lec="{{ t.lecture_pairs|stringformat:'s' }}" data-prac="{{ t.practice_pairs|stringformat:'s' }}" data-lab="{{ t.lab_pairs|stringformat:'s' }}" data-srsp="{{ t.srsp_pairs|stringformat:'s' }}">
-                                            {{ t.credits }} кр. (Л:{{ t.lecture_pairs }}, П:{{ t.practice_pairs }}, Лаб:{{ t.lab_pairs }}, СРСП:{{ t.srsp_pairs }})
+                                            {{ t.credits }} {% trans "кр." %} ({% trans "Л:" %}{{ t.lecture_pairs }}, {% trans "П:" %}{{ t.practice_pairs }}, {% trans "Лаб:" %}{{ t.lab_pairs }}, {% trans "СРСП:" %}{{ t.srsp_pairs }})
                                         </option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="row g-2 mb-2">
                                 <div class="col-6">
-                                    <label class="small fw-bold text-muted">Система кредитов</label>
+                                    <label class="small fw-bold text-muted">{% trans "Система кредитов" %}</label>
                                     <div class="input-group input-group-sm">
                                         <select name="credit_type" id="id_credit_type" class="form-select fw-bold border-primary add-ui-calc">
-                                            <option value="" data-hours="24">Стандарт (24ч)</option>
+                                            <option value="" data-hours="24">{% trans "Стандарт (24ч)" %}</option>
                                             {% for ct in credit_types %}
                                                 <option value="{{ ct.id }}" data-hours="{{ ct.hours_per_credit }}">{{ ct.name }}</option>
                                             {% endfor %}
@@ -216,72 +229,72 @@
                                     </div>
                                 </div>
                                 <div class="col-3">
-                                    <label class="small fw-bold text-muted">Кредиты</label>
+                                    <label class="small fw-bold text-muted">{% trans "Кредиты" %}</label>
                                     {{ form.credits }}
                                 </div>
                                 <div class="col-3">
-                                    <label class="small fw-bold text-muted">Недель</label>
+                                    <label class="small fw-bold text-muted">{% trans "Недель" %}</label>
                                     <input type="number" id="add_ui_weeks" class="form-control form-control-sm text-center fw-bold add-ui-calc" value="16">
                                 </div>
                             </div>
                             
-                            <label class="small fw-bold text-dark mb-1 d-block border-bottom pb-1 mt-2">Укажите количество ПАР в неделю:</label>
+                            <label class="small fw-bold text-dark mb-1 d-block border-bottom pb-1 mt-2">{% trans "Укажите количество ПАР в неделю:" %}</label>
                             <div class="row g-2 mb-2">
                                 <div class="col-6">
-                                    <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> Лекции</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> {% trans "Лекции" %}</label>
                                     <select id="add_ui_lec" class="form-select form-select-sm border-primary add-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">0 {% trans "пар" %}</option>
+                                        <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                        <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                        <option value="1.5">1.5 {% trans "пары" %}</option>
+                                        <option value="2">2 {% trans "пары" %}</option>
+                                        <option value="3">3 {% trans "пары" %}</option>
                                     </select>
                                 </div>
                                 <div class="col-6">
-                                    <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> Практика</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> {% trans "Практика" %}</label>
                                     <select id="add_ui_prac" class="form-select form-select-sm border-success add-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">0 {% trans "пар" %}</option>
+                                        <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                        <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                        <option value="1.5">1.5 {% trans "пары" %}</option>
+                                        <option value="2">2 {% trans "пары" %}</option>
+                                        <option value="3">3 {% trans "пары" %}</option>
                                     </select>
                                 </div>
                                 <div class="col-6">
-                                    <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> Лаб. работы</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> {% trans "Лаб. работы" %}</label>
                                     <select id="add_ui_lab" class="form-select form-select-sm border-info add-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">0 {% trans "пар" %}</option>
+                                        <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                        <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                        <option value="1.5">1.5 {% trans "пары" %}</option>
+                                        <option value="2">2 {% trans "пары" %}</option>
+                                        <option value="3">3 {% trans "пары" %}</option>
                                     </select>
                                 </div>
                                 <div class="col-6">
-                                    <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> СРСП</label>
+                                    <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> {% trans "СРСП" %}</label>
                                     <select id="add_ui_srsp" class="form-select form-select-sm border-warning add-ui-calc">
-                                        <option value="0">0 пар</option>
-                                        <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                        <option value="1">1 пара (Каждую)</option>
-                                        <option value="1.5">1.5 пары</option>
-                                        <option value="2">2 пары</option>
-                                        <option value="3">3 пары</option>
+                                        <option value="0">0 {% trans "пар" %}</option>
+                                        <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                        <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                        <option value="1.5">1.5 {% trans "пары" %}</option>
+                                        <option value="2">2 {% trans "пары" %}</option>
+                                        <option value="3">3 {% trans "пары" %}</option>
                                     </select>
                                 </div>
                             </div>
                             
                             <div id="add_hours_warning" class="alert alert-danger p-2 small mb-2" style="display: none;"></div>
 
-                            <label class="small fw-bold text-dark mb-1 d-block border-bottom pb-1">Итого часов за семестр (Авторасчет):</label>
+                            <label class="small fw-bold text-dark mb-1 d-block border-bottom pb-1">{% trans "Итого часов за семестр (Авторасчет):" %}</label>
                             <div class="row g-1 text-center">
-                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">Лекц</small>{{ form.lecture_hours }}</div>
-                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">Прак</small>{{ form.practice_hours }}</div>
-                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">Лаб</small>{{ form.lab_hours }}</div>
-                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">СРСП</small>{{ form.control_hours }}</div>
-                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">СРС</small>{{ form.independent_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">{% trans "Лекц" %}</small>{{ form.lecture_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">{% trans "Прак" %}</small>{{ form.practice_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">{% trans "Лаб" %}</small>{{ form.lab_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">{% trans "СРСП" %}</small>{{ form.control_hours }}</div>
+                                <div class="col"><small class="text-muted" style="font-size: 0.65rem;">{% trans "СРС" %}</small>{{ form.independent_hours }}</div>
                             </div>
                         </div>
                     </div>
@@ -290,21 +303,21 @@
                         <div class="col-6 mt-2">
                             <div class="form-check mb-2">
                                 {{ form.has_subgroups }}
-                                <label class="form-check-label small" for="{{ form.has_subgroups.id_for_label }}">+ Подгруппы</label>
+                                <label class="form-check-label small" for="{{ form.has_subgroups.id_for_label }}">+ {% trans "Подгруппы" %}</label>
                             </div>
                             <div class="form-check mb-2">
                                 {{ form.has_course_work }}
-                                <label class="form-check-label small" for="{{ form.has_course_work.id_for_label }}">+ Курсовая</label>
+                                <label class="form-check-label small" for="{{ form.has_course_work.id_for_label }}">+ {% trans "Курсовая" %}</label>
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Тип аудитории</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{% trans "Тип аудитории" %}</label>
                             {{ form.preferred_room_type }}
                         </div>
                     </div>
 
                     <button type="submit" name="add_discipline" class="btn btn-success w-100 fw-bold">
-                        <i class="bi bi-save me-2"></i> Сохранить
+                        <i class="bi bi-save me-2"></i> {% trans "Сохранить" %}
                     </button>
                 </form>
             </div>
@@ -314,13 +327,13 @@
     <div class="col-md-8">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 text-dark">Дисциплины {{ current_sem_num }}-го семестра</h5>
+                <h5 class="mb-0 text-dark">{% trans "Дисциплины" %} {{ current_sem_num }}-{% trans "го семестра" %}</h5>
                 <div class="d-flex gap-2">
                     <form action="{% url 'schedule:import_rup_excel' plan.id current_sem_num %}" method="post" enctype="multipart/form-data" class="d-flex gap-2">
                         {% csrf_token %}
-                        <input type="file" name="file" class="form-control form-control-sm w-auto" accept=".xlsx" required title="Выберите Excel файл">
+                        <input type="file" name="file" class="form-control form-control-sm w-auto" accept=".xlsx" required title="{% trans 'Выберите Excel файл' %}">
                         <button type="submit" class="btn btn-sm btn-success">
-                            <i class="bi bi-file-earmark-excel"></i> Импорт из Excel
+                            <i class="bi bi-file-earmark-excel"></i> {% trans "Импорт из Excel" %}
                         </button>
                     </form>
                 </div>
@@ -330,18 +343,18 @@
                 {% if not disciplines %}
                     <div class="text-center py-5">
                         <i class="bi bi-journal-plus text-muted opacity-50" style="font-size: 3rem;"></i>
-                        <p class="mt-3 text-muted">Семестр пуст. Добавьте дисциплины вручную или загрузите через Excel.</p>
+                        <p class="mt-3 text-muted">{% trans "Семестр пуст. Добавьте дисциплины вручную или загрузите через Excel." %}</p>
                     </div>
                 {% else %}
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light text-dark small text-uppercase">
                                 <tr>
-                                    <th class="ps-4">Название / Цикл</th>
-                                    <th class="text-center">Кредиты</th>
-                                    <th class="text-center">Л / П / КМРО / СРС</th>
-                                    <th class="text-center">Подгруппы</th>
-                                    <th>Контроль</th>
+                                    <th class="ps-4">{% trans "Название / Цикл" %}</th>
+                                    <th class="text-center">{% trans "Кредиты" %}</th>
+                                    <th class="text-center">{% trans "Л / П / КМРО / СРС" %}</th>
+                                    <th class="text-center">{% trans "Подгруппы" %}</th>
+                                    <th>{% trans "Контроль" %}</th>
                                     <th class="text-end pe-4"></th>
                                 </tr>
                             </thead>
@@ -356,30 +369,30 @@
                                     </td>
                                     <td class="text-center fw-bold text-dark">{{ disc.credits }}</td>
                                     <td class="text-center text-muted small">
-                                        <span class="badge bg-primary bg-opacity-10 text-primary" title="Лекции">{{ disc.lecture_hours }}</span>
-                                        <span class="badge bg-success bg-opacity-10 text-success" title="Практика">{{ disc.practice_hours }}</span>
-                                        <span class="badge bg-warning bg-opacity-10 text-dark" title="СРСП">{{ disc.control_hours }}</span>
-                                        <span class="badge bg-secondary bg-opacity-10 text-dark" title="СРС">{{ disc.independent_hours }}</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary" title="{% trans 'Лекции' %}">{{ disc.lecture_hours }}</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success" title="{% trans 'Практика' %}">{{ disc.practice_hours }}</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-dark" title="{% trans 'СРСП' %}">{{ disc.control_hours }}</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-dark" title="{% trans 'СРС' %}">{{ disc.independent_hours }}</span>
                                     </td>
                                     <td class="text-center">
                                         {% if disc.has_subgroups %}
-                                            <span class="badge bg-info"><i class="bi bi-people"></i> Да</span>
+                                            <span class="badge bg-info"><i class="bi bi-people"></i> {% trans "Да" %}</span>
                                         {% else %}
                                             <span class="text-muted small">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if disc.control_type == 'EXAM' %}
-                                            <span class="text-danger small fw-bold">Имтиҳон</span>
+                                            <span class="text-danger small fw-bold">{% trans "Имтиҳон" %}</span>
                                         {% else %}
-                                            <span class="text-success small">Санҷиш</span>
+                                            <span class="text-success small">{% trans "Санҷиш" %}</span>
                                         {% endif %}
                                     </td>
                                     <td class="text-end pe-4">
-                                        <button type="button" class="btn btn-sm btn-link text-primary p-0 me-2" onclick="openEditModal({{ disc.id }}, '{{ disc.credits }}', '{{ disc.lecture_hours }}', '{{ disc.practice_hours }}', '{{ disc.lab_hours }}', '{{ disc.control_hours }}', '{{ disc.independent_hours }}', '{{ disc.credit_type_id|default:'' }}')" title="Редактировать">
+                                        <button type="button" class="btn btn-sm btn-link text-primary p-0 me-2" onclick="openEditModal({{ disc.id }}, '{{ disc.credits }}', '{{ disc.lecture_hours }}', '{{ disc.practice_hours }}', '{{ disc.lab_hours }}', '{{ disc.control_hours }}', '{{ disc.independent_hours }}', '{{ disc.credit_type_id|default:'' }}')" title="{% trans 'Редактировать' %}">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <a href="{% url 'schedule:delete_plan_discipline' disc.id %}" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Удалить дисциплину из плана?')" title="Удалить">
+                                        <a href="{% url 'schedule:delete_plan_discipline' disc.id %}" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('{{ confirm_delete_disc_msg|escapejs }}')" title="{% trans 'Удалить' %}">
                                             <i class="bi bi-x-lg"></i>
                                         </a>
                                     </td>
@@ -398,17 +411,17 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Новая дисциплина (Справочник)</h5>
+                <h5 class="modal-title">{% trans "Новая дисциплина (Справочник)" %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="small text-muted">Добавьте название предмета в общий справочник, чтобы использовать его в планах.</p>
-                <input type="text" id="newSubjectName" class="form-control" placeholder="Название (например: Философия)">
+                <p class="small text-muted">{% trans "Добавьте название предмета в общий справочник, чтобы использовать его в планах." %}</p>
+                <input type="text" id="newSubjectName" class="form-control" placeholder="{% trans 'Название (например: Философия)' %}">
                 <div id="modalError" class="text-danger mt-2 small" style="display:none;"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="createSubjectTemplate()">Создать</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                <button type="button" class="btn btn-primary" onclick="createSubjectTemplate()">{% trans "Создать" %}</button>
             </div>
         </div>
     </div>
@@ -420,74 +433,74 @@
             <form method="post" id="editDisciplineForm">
                 {% csrf_token %}
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Редактировать нагрузку</h5>
+                    <h5 class="modal-title"><i class="bi bi-pencil-square"></i> {% trans "Редактировать нагрузку" %}</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-light">
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="small fw-bold text-muted">Система кредитов</label>
+                            <label class="small fw-bold text-muted">{% trans "Система кредитов" %}</label>
                             <select name="credit_type" id="edit_credit_type" class="form-select form-select-sm fw-bold border-primary edit-ui-calc">
-                                <option value="" data-hours="24">Стандарт (24ч)</option>
+                                <option value="" data-hours="24">{% trans "Стандарт (24ч)" %}</option>
                                 {% for ct in credit_types %}
                                     <option value="{{ ct.id }}" data-hours="{{ ct.hours_per_credit }}">{{ ct.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-3">
-                            <label class="small fw-bold text-muted">Кредиты</label>
+                            <label class="small fw-bold text-muted">{% trans "Кредиты" %}</label>
                             <input type="number" name="credits" id="edit_credits" class="form-control form-control-sm edit-ui-calc">
                         </div>
                         <div class="col-3">
-                            <label class="small fw-bold text-muted">Недель</label>
+                            <label class="small fw-bold text-muted">{% trans "Недель" %}</label>
                             <input type="number" id="edit_ui_weeks" class="form-control form-control-sm text-center fw-bold edit-ui-calc" value="16">
                         </div>
                     </div>
                     
-                    <label class="small fw-bold text-dark mb-2 d-block border-bottom pb-1">Укажите количество ПАР в неделю:</label>
+                    <label class="small fw-bold text-dark mb-2 d-block border-bottom pb-1">{% trans "Укажите количество ПАР в неделю:" %}</label>
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> Лекции</label>
+                            <label class="small text-muted mb-1"><i class="bi bi-person-video3 text-primary"></i> {% trans "Лекции" %}</label>
                             <select id="edit_ui_lec" class="form-select form-select-sm border-primary edit-ui-calc">
-                                <option value="0">0 пар</option>
-                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                <option value="1">1 пара (Каждую)</option>
-                                <option value="1.5">1.5 пары</option>
-                                <option value="2">2 пары</option>
-                                <option value="3">3 пары</option>
+                                <option value="0">0 {% trans "пар" %}</option>
+                                <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                <option value="1.5">1.5 {% trans "пары" %}</option>
+                                <option value="2">2 {% trans "пары" %}</option>
+                                <option value="3">3 {% trans "пары" %}</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> Практика</label>
+                            <label class="small text-muted mb-1"><i class="bi bi-tools text-success"></i> {% trans "Практика" %}</label>
                             <select id="edit_ui_prac" class="form-select form-select-sm border-success edit-ui-calc">
-                                <option value="0">0 пар</option>
-                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                <option value="1">1 пара (Каждую)</option>
-                                <option value="1.5">1.5 пары</option>
-                                <option value="2">2 пары</option>
-                                <option value="3">3 пары</option>
+                                <option value="0">0 {% trans "пар" %}</option>
+                                <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                <option value="1.5">1.5 {% trans "пары" %}</option>
+                                <option value="2">2 {% trans "пары" %}</option>
+                                <option value="3">3 {% trans "пары" %}</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> Лаб. работы</label>
+                            <label class="small text-muted mb-1"><i class="bi bi-pc-display text-info"></i> {% trans "Лаб. работы" %}</label>
                             <select id="edit_ui_lab" class="form-select form-select-sm border-info edit-ui-calc">
-                                <option value="0">0 пар</option>
-                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                <option value="1">1 пара (Каждую)</option>
-                                <option value="1.5">1.5 пары</option>
-                                <option value="2">2 пары</option>
-                                <option value="3">3 пары</option>
+                                <option value="0">0 {% trans "пар" %}</option>
+                                <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                <option value="1.5">1.5 {% trans "пары" %}</option>
+                                <option value="2">2 {% trans "пары" %}</option>
+                                <option value="3">3 {% trans "пары" %}</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> СРСП</label>
+                            <label class="small text-muted mb-1"><i class="bi bi-journal-text text-warning"></i> {% trans "СРСП" %}</label>
                             <select id="edit_ui_srsp" class="form-select form-select-sm border-warning edit-ui-calc">
-                                <option value="0">0 пар</option>
-                                <option value="0.5">0.5 (Раз в 2 нед.)</option>
-                                <option value="1">1 пара (Каждую)</option>
-                                <option value="1.5">1.5 пары</option>
-                                <option value="2">2 пары</option>
-                                <option value="3">3 пары</option>
+                                <option value="0">0 {% trans "пар" %}</option>
+                                <option value="0.5">0.5 ({% trans "Раз в 2 нед." %})</option>
+                                <option value="1">1 {% trans "пара (Каждую)" %}</option>
+                                <option value="1.5">1.5 {% trans "пары" %}</option>
+                                <option value="2">2 {% trans "пары" %}</option>
+                                <option value="3">3 {% trans "пары" %}</option>
                             </select>
                         </div>
                     </div>
@@ -495,17 +508,17 @@
                     <div id="edit_hours_warning" class="alert alert-danger p-2 small mb-2" style="display: none;"></div>
 
                     <div class="row g-1 text-center bg-white p-2 rounded border">
-                        <div class="col-12 text-start mb-1"><small class="fw-bold">Итого за семестр:</small></div>
-                        <div class="col"><small>Лекц</small><input type="number" name="lecture_hours" id="edit_lec_val" class="form-control form-control-sm bg-light" readonly></div>
-                        <div class="col"><small>Прак</small><input type="number" name="practice_hours" id="edit_prac_val" class="form-control form-control-sm bg-light" readonly></div>
-                        <div class="col"><small>Лаб</small><input type="number" name="lab_hours" id="edit_lab_val" class="form-control form-control-sm bg-light" readonly></div>
-                        <div class="col"><small>СРСП</small><input type="number" name="control_hours" id="edit_srsp_val" class="form-control form-control-sm bg-light" readonly></div>
-                        <div class="col"><small>СРС</small><input type="number" name="independent_hours" id="edit_srs_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col-12 text-start mb-1"><small class="fw-bold">{% trans "Итого за семестр:" %}</small></div>
+                        <div class="col"><small>{% trans "Лекц" %}</small><input type="number" name="lecture_hours" id="edit_lec_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>{% trans "Прак" %}</small><input type="number" name="practice_hours" id="edit_prac_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>{% trans "Лаб" %}</small><input type="number" name="lab_hours" id="edit_lab_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>{% trans "СРСП" %}</small><input type="number" name="control_hours" id="edit_srsp_val" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col"><small>{% trans "СРС" %}</small><input type="number" name="independent_hours" id="edit_srs_val" class="form-control form-control-sm bg-light" readonly></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary fw-bold">Сохранить изменения</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-primary fw-bold">{% trans "Сохранить изменения" %}</button>
                 </div>
             </form>
         </div>
@@ -514,6 +527,19 @@
 
 <script>
 window.INSTITUTE_PAIR_RATIO = {{ institute_pair_ratio|default:2 }};
+
+// Translated messages for JavaScript
+const transMessages = {
+    emptyName: '{{ js_error_empty|escapejs }}',
+    serverError: '{{ js_error_server|escapejs }}',
+    promptCreditName: '{{ js_prompt_credit_name|escapejs }}',
+    promptCreditHours: '{{ js_prompt_credit_hours|escapejs }}',
+    defaultHours: '{{ js_default_hours|escapejs }}',
+    warningAuditoryPrefix: '{{ js_warning_auditory_prefix|escapejs }}',
+    warningAuditoryMid: '{{ js_warning_auditory_mid|escapejs }}',
+    warningAuditorySuffix: '{{ js_warning_auditory_suffix|escapejs }}'
+};
+
 document.getElementById('id_lecture_hours').readOnly = true;
 document.getElementById('id_practice_hours').readOnly = true;
 document.getElementById('id_lab_hours').readOnly = true;
@@ -527,9 +553,9 @@ document.getElementById('id_control_hours').classList.add('bg-light');
 document.getElementById('id_independent_hours').classList.add('bg-light');
 
 function addCreditTypePrompt() {
-    const name = prompt("Введите название системы кредитов (например: Национальный):");
+    const name = prompt(transMessages.promptCreditName);
     if (!name) return;
-    const hours = prompt("Сколько часов в 1 кредите этой системы?", "30");
+    const hours = prompt(transMessages.promptCreditHours, transMessages.defaultHours);
     if (!hours) return;
 
     fetch('{% url "schedule:api_create_credit_type" %}', {
@@ -580,13 +606,14 @@ function calculateHours(prefix) {
     document.getElementById(prefix === 'add_' ? 'id_independent_hours' : 'edit_srs_val').value = srsHours;
     
     if(prefix === 'add_') {
-        document.getElementById('add_total_credits_badge').innerText = `${totalCreditHours} ч. всего`;
+        document.getElementById('add_total_credits_badge').innerText = totalCreditHours + ' {% trans "ч. всего" %}';
     }
     
     const warningEl = document.getElementById(prefix + 'hours_warning');
     if (totalAuditory > totalCreditHours && credits > 0) {
         warningEl.style.display = 'block';
-        warningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Внимание: Аудиторных часов (${totalAuditory}) больше, чем выделено кредитами (${totalCreditHours})!`;
+        warningEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + 
+            transMessages.warningAuditoryPrefix + totalAuditory + transMessages.warningAuditoryMid + totalCreditHours + transMessages.warningAuditorySuffix;
     } else {
         warningEl.style.display = 'none';
     }
@@ -618,7 +645,7 @@ function openEditModal(id, cred, lec, prac, lab, srsp, srs, cType) {
             if(parseFloat(select.options[i].value) === pairs) { exists = true; break; }
         }
         if(!exists && pairs > 0) {
-            select.add(new Option(pairs + " пар", pairs));
+            select.add(new Option(pairs + " {% trans "пар" %}", pairs));
         }
         select.value = pairs.toString();
     }
@@ -644,7 +671,7 @@ function createSubjectTemplate() {
     const name = nameInput.value.trim();
 
     if (!name) {
-        errorDiv.textContent = 'Введите название!';
+        errorDiv.textContent = transMessages.emptyName;
         errorDiv.style.display = 'block';
         return;
     }
@@ -676,7 +703,7 @@ function createSubjectTemplate() {
         }
     })
     .catch(err => {
-        errorDiv.textContent = 'Ошибка сервера';
+        errorDiv.textContent = transMessages.serverError;
         errorDiv.style.display = 'block';
     });
 }
@@ -697,10 +724,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateWeekly() {
         const weeks = 16;
         const PR = window.INSTITUTE_PAIR_RATIO || 2;
-        if(vLec) vLec.textContent = Math.ceil(((parseInt(lecInput.value)||0)/PR)/weeks) + ' п/н';
-        if(vPrac) vPrac.textContent = Math.ceil(((parseInt(pracInput.value)||0)/PR)/weeks) + ' п/н';
-        if(vLab) vLab.textContent = Math.ceil(((parseInt(labInput.value)||0)/PR)/weeks) + ' п/н';
-        if(vSrsp) vSrsp.textContent = Math.ceil(((parseInt(srspInput.value)||0)/PR)/weeks) + ' п/н';
+        if(vLec) vLec.textContent = Math.ceil(((parseInt(lecInput.value)||0)/PR)/weeks) + ' {% trans "п/н" %}';
+        if(vPrac) vPrac.textContent = Math.ceil(((parseInt(pracInput.value)||0)/PR)/weeks) + ' {% trans "п/н" %}';
+        if(vLab) vLab.textContent = Math.ceil(((parseInt(labInput.value)||0)/PR)/weeks) + ' {% trans "п/н" %}';
+        if(vSrsp) vSrsp.textContent = Math.ceil(((parseInt(srspInput.value)||0)/PR)/weeks) + ' {% trans "п/н" %}';
     }
 
     if (creditsInput) {
@@ -756,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 for(let i=0; i<select.options.length; i++) {
                     if(parseFloat(select.options[i].value) === parseFloat(pairs)) { exists = true; break; }
                 }
-                if(!exists && pairs > 0) { select.add(new Option(pairs + " пар", pairs)); }
+                if(!exists && pairs > 0) { select.add(new Option(pairs + " {% trans "пар" %}", pairs)); }
                 select.value = parseFloat(pairs).toString();
             }
 

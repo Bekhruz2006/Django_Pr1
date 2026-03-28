@@ -22,7 +22,14 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-bold">{{ student.user.get_full_name }}</div>
-                                        <small class="text-muted">{{ student.student_id }} | {{ student.group.name|default:"Без группы" }}</small>
+                                        <small class="text-muted">
+                                            {{ student.student_id }} | 
+                                            {% if student.group.name %}
+                                                {{ student.group.name }}
+                                            {% else %}
+                                                {% trans "Без группы" %}
+                                            {% endif %}
+                                        </small>
                                     </div>
                                     <i class="bi bi-chevron-right text-muted"></i>
                                 </div>
@@ -45,7 +52,13 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-bold">{{ teacher.user.get_full_name }}</div>
-                                        <small class="text-muted">{{ teacher.department.name|default:"Без кафедры" }}</small>
+                                        <small class="text-muted">
+                                            {% if teacher.department.name %}
+                                                {{ teacher.department.name }}
+                                            {% else %}
+                                                {% trans "Без кафедры" %}
+                                            {% endif %}
+                                        </small>
                                     </div>
                                     <i class="bi bi-chevron-right text-muted"></i>
                                 </div>
@@ -68,7 +81,10 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-bold">{{ group.name }}</div>
-                                        <small class="text-muted">{{ group.course }} курс | {{ group.specialty.name|default:"" }}</small>
+                                        <small class="text-muted">
+                                            {% blocktrans with course_number=group.course %}{{ course_number }} курс{% endblocktrans %}
+                                            | {{ group.specialty.name|default:"" }}
+                                        </small>
                                     </div>
                                     <i class="bi bi-chevron-right text-muted"></i>
                                 </div>

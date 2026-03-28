@@ -12,14 +12,15 @@
                 {% if selected_institute %}
                     <span class="badge bg-primary">{{ selected_institute.name }}</span>
                 {% else %}
-                    Обзор всего университета
+                    {% trans "Обзор всего университета" %}
                 {% endif %}
             </p>
         </div>
 
         <form method="get" class="d-flex align-items-center gap-2">
+            {% trans "-- Все Институты --" as all_institutes_text %}
             <select name="institute_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 250px;">
-                <option value="">-- Все Институты --</option>
+                <option value="">{{ all_institutes_text }}</option>
                 {% for inst in institutes %}
                     <option value="{{ inst.id }}" {% if selected_institute.id == inst.id %}selected{% endif %}>
                         {{ inst.name }}
@@ -27,7 +28,8 @@
                 {% endfor %}
             </select>
             {% if selected_institute %}
-                <a href="{% url 'core:dashboard' %}" class="btn btn-sm btn-outline-secondary" title="Сбросить">
+                {% trans "Сбросить" as reset_title %}
+                <a href="{% url 'core:dashboard' %}" class="btn btn-sm btn-outline-secondary" title="{{ reset_title }}">
                     <i class="bi bi-x-lg"></i>
                 </a>
             {% endif %}
@@ -38,7 +40,7 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:user_management' %}?role=STUDENT'">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase small fw-bold">Студентов</h6>
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Студентов" %}</h6>
                     <h2 class="mb-0 fw-bold">{{ total_students }}</h2>
                 </div>
             </div>
@@ -46,7 +48,7 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-success" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:group_management' %}'">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase small fw-bold">Групп</h6>
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Групп" %}</h6>
                     <h2 class="mb-0 fw-bold">{{ total_groups }}</h2>
                 </div>
             </div>
@@ -54,7 +56,7 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-info" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:user_management' %}?role=TEACHER'">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase small fw-bold">Преподавателей</h6>
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Преподавателей" %}</h6>
                     <h2 class="mb-0 fw-bold">{{ total_teachers }}</h2>
                 </div>
             </div>
@@ -62,7 +64,7 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning" style="cursor: pointer;" onclick="window.location.href='{% url 'accounts:manage_structure' %}'">
                 <div class="card-body">
-                    <h6 class="text-muted text-uppercase small fw-bold">Кафедр</h6>
+                    <h6 class="text-muted text-uppercase small fw-bold">{% trans "Кафедр" %}</h6>
                     <h2 class="mb-0 fw-bold">{{ total_departments }}</h2>
                 </div>
             </div>
@@ -74,20 +76,20 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-file-earmark-text me-2 text-danger"></i>Последние приказы
+                        <i class="bi bi-file-earmark-text me-2 text-danger"></i>{% trans "Последние приказы" %}
                     </h5>
-                    <a href="{% url 'accounts:all_orders' %}" class="btn btn-sm btn-light text-primary">Все приказы</a>
+                    <a href="{% url 'accounts:all_orders' %}" class="btn btn-sm btn-light text-primary">{% trans "Все приказы" %}</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0 align-middle">
                             <thead class="bg-light small">
                                 <tr>
-                                    <th class="ps-3">№ / Дата</th>
-                                    <th>Студент</th>
-                                    <th>Тип</th>
-                                    <th>Статус</th>
-                                    <th>Файл</th>
+                                    <th class="ps-3">{% trans "№ / Дата" %}</th>
+                                    <th>{% trans "Студент" %}</th>
+                                    <th>{% trans "Тип" %}</th>
+                                    <th>{% trans "Статус" %}</th>
+                                    <th>{% trans "Файл" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -106,18 +108,18 @@
                                                 {% endif %}
                                                 <br><small class="text-muted">{{ first_item.student.group.name|default:"Без группы" }}</small>
                                             {% else %}
-                                                <span class="text-muted">Пустой приказ</span>
+                                                <span class="text-muted">{% trans "Пустой приказ" %}</span>
                                             {% endif %}
                                         {% endwith %}
                                     </td>
                                     <td>{{ order.get_order_type_display }}</td>
                                     <td>
                                         {% if order.order_type == 'EXPEL' %}
-                                            <span class="badge bg-danger">Отчислен</span>
+                                            <span class="badge bg-danger">{% trans "Отчислен" %}</span>
                                         {% elif order.order_type == 'RESTORE' %}
-                                            <span class="badge bg-success">Восстановлен</span>
+                                            <span class="badge bg-success">{% trans "Восстановлен" %}</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">Инфо</span>
+                                            <span class="badge bg-secondary">{% trans "Инфо" %}</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -128,7 +130,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">Приказов пока нет</td>
+                                    <td colspan="5" class="text-center py-4 text-muted">{% trans "Приказов пока нет" %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -140,7 +142,7 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-calendar-check me-2 text-success"></i>Активные семестры
+                        <i class="bi bi-calendar-check me-2 text-success"></i>{% trans "Активные семестры" %}
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -150,24 +152,24 @@
                             <div>
                                 <h6 class="mb-0 fw-bold">{{ sem.name }} ({{ sem.academic_year }})</h6>
                                 <small class="text-muted">
-                                    {{ sem.faculty.name }} | Курс: {{ sem.course }} | Смена: {{ sem.get_shift_display }}
+                                    {{ sem.faculty.name }} | {% trans "Курс:" %} {{ sem.course }} | {% trans "Смена:" %} {{ sem.get_shift_display }}
                                 </small>
                             </div>
                         </div>
                         {% empty %}
-                        <div class="p-3 text-center text-muted">Нет активных семестров для выбранного фильтра.</div>
+                        <div class="p-3 text-center text-muted">{% trans "Нет активных семестров для выбранного фильтра." %}</div>
                         {% endfor %}
                     </div>
                 </div>
                 <div class="card-footer bg-white text-center">
-                    <a href="{% url 'schedule:manage_semesters' %}" class="btn btn-sm btn-primary">Управление семестрами</a>
+                    <a href="{% url 'schedule:manage_semesters' %}" class="btn btn-sm btn-primary">{% trans "Управление семестрами" %}</a>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-journal-x me-2 text-danger"></i>Отсутствующие РУП
+                        <i class="bi bi-journal-x me-2 text-danger"></i>{% trans "Отсутствующие РУП" %}
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -176,17 +178,17 @@
                         {% for g in missing_rup_groups %}
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0 fw-bold">{{ g.name }} <span class="badge bg-secondary">{{ g.course }} курс</span></h6>
+                                <h6 class="mb-0 fw-bold">{{ g.name }} <span class="badge bg-secondary">{{ g.course }} {% trans "курс" %}</span></h6>
                                 <small class="text-muted">{{ g.specialty.name|default:"Специальность не указана" }}</small>
                             </div>
-                            <a href="{% url 'schedule:create_plan' %}{% if g.specialty %}?specialty={{ g.specialty.id }}{% endif %}" class="btn btn-sm btn-outline-danger">Создать РУП</a>
+                            <a href="{% url 'schedule:create_plan' %}{% if g.specialty %}?specialty={{ g.specialty.id }}{% endif %}" class="btn btn-sm btn-outline-danger">{% trans "Создать РУП" %}</a>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
                     <div class="p-4 text-center text-muted">
                         <i class="bi bi-check-circle text-success fs-1 mb-2 d-block"></i>
-                        У всех групп есть активные учебные планы (РУП).
+                        {% trans "У всех групп есть активные учебные планы (РУП)." %}
                     </div>
                     {% endif %}
                 </div>
@@ -197,9 +199,9 @@
             <div class="card border-0 shadow-sm mb-4 animate-slide-in">
                 <div class="card-header bg-dark text-white border-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold">
-                        <i class="bi bi-shield-exclamation me-2 text-warning"></i>Мониторинг успеваемости
+                        <i class="bi bi-shield-exclamation me-2 text-warning"></i>{% trans "Мониторинг успеваемости" %}
                     </h6>
-                    <span class="badge bg-primary text-white">Auto-Scan</span>
+                    <span class="badge bg-primary text-white">{% trans "Auto-Scan" %}</span>
                 </div>
                 <div class="card-body p-0">
                     {% if risk_report %}
@@ -213,10 +215,10 @@
                                 </span>
                             </div>
                             <p class="small text-muted mb-1">
-                                <i class="bi bi-mortarboard"></i> Группа: {{ risk.student.group.name }} | GPA: <strong>{{ risk.gpa|floatformat:2 }}</strong>
+                                <i class="bi bi-mortarboard"></i> {% trans "Группа:" %} {{ risk.student.group.name }} | {% trans "GPA:" %} <strong>{{ risk.gpa|floatformat:2 }}</strong>
                             </p>
                             <div class="text-dark d-block small mt-2">
-                                <strong>Факторы риска:</strong>
+                                <strong>{% trans "Факторы риска:" %}</strong>
                                 <ul class="mb-0 ps-3 mt-1 text-danger">
                                     {% for reason in risk.reasons %}
                                         <li>{{ reason }}</li>
@@ -225,10 +227,10 @@
                             </div>
                             <div class="d-flex gap-2 mt-3">
                                 <a href="{% url 'accounts:view_user_profile' risk.student.user.id %}" class="btn btn-sm btn-outline-{{ risk.color }} w-50 fw-bold">
-                                    <i class="bi bi-person"></i> Профиль
+                                    <i class="bi bi-person"></i> {% trans "Профиль" %}
                                 </a>
                                 <button onclick="showStudentTrend({{ risk.student.id }}, '{{ risk.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-{{ risk.color }} w-50 fw-bold text-white">
-                                    <i class="bi bi-graph-up-arrow"></i> Прогноз
+                                    <i class="bi bi-graph-up-arrow"></i> {% trans "Прогноз" %}
                                 </button>
                             </div>
                         </div>
@@ -239,15 +241,15 @@
                         <div class="mb-3">
                             <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
                         </div>
-                        <h6 class="fw-bold text-dark">Проблемных студентов не обнаружено</h6>
-                        <p class="small text-muted mb-0">Алгоритм проанализировал оценки и посещаемость. Все показатели в норме.</p>
+                        <h6 class="fw-bold text-dark">{% trans "Проблемных студентов не обнаружено" %}</h6>
+                        <p class="small text-muted mb-0">{% trans "Алгоритм проанализировал оценки и посещаемость. Все показатели в норме." %}</p>
                     </div>
                     {% endif %}
                 </div>
                 {% if risk_report %}
                 <div class="card-footer bg-white text-center">
                     <a href="{% url 'journal:department_report' %}" class="text-decoration-none small fw-bold text-muted">
-                        Открыть полный аналитический отчет <i class="bi bi-arrow-right"></i>
+                        {% trans "Открыть полный аналитический отчет" %} <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
                 {% endif %}
@@ -256,7 +258,7 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-lightning-charge me-2 text-warning"></i>Управление
+                        <i class="bi bi-lightning-charge me-2 text-warning"></i>{% trans "Управление" %}
                     </h5>
                 </div>
                 <div class="list-group list-group-flush">
@@ -264,8 +266,8 @@
                         <div class="d-flex align-items-center">
                             <div class="bg-success bg-opacity-10 p-2 rounded me-3"><i class="bi bi-person-plus text-success"></i></div>
                             <div>
-                                <div class="fw-bold">Добавить пользователя</div>
-                                <small class="text-muted">Студент, Преподаватель, Декан</small>
+                                <div class="fw-bold">{% trans "Добавить пользователя" %}</div>
+                                <small class="text-muted">{% trans "Студент, Преподаватель, Декан" %}</small>
                             </div>
                         </div>
                     </a>
@@ -273,8 +275,8 @@
                         <div class="d-flex align-items-center">
                             <div class="bg-info bg-opacity-10 p-2 rounded me-3"><i class="bi bi-journal-text text-info"></i></div>
                             <div>
-                                <div class="fw-bold">Учебные планы (РУП)</div>
-                                <small class="text-muted">Нагрузка и дисциплины</small>
+                                <div class="fw-bold">{% trans "Учебные планы (РУП)" %}</div>
+                                <small class="text-muted">{% trans "Нагрузка и дисциплины" %}</small>
                             </div>
                         </div>
                     </a>
@@ -283,8 +285,8 @@
                         <div class="d-flex align-items-center">
                             <div class="bg-warning bg-opacity-10 p-2 rounded me-3"><i class="bi bi-building text-warning"></i></div>
                             <div>
-                                <div class="fw-bold">Структура ВУЗа</div>
-                                <small class="text-muted">Институты, Факультеты, Кафедры</small>
+                                <div class="fw-bold">{% trans "Структура ВУЗа" %}</div>
+                                <small class="text-muted">{% trans "Институты, Факультеты, Кафедры" %}</small>
                             </div>
                         </div>
                     </a>

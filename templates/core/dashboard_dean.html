@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Панель деканата{% endblock %}
+{% block title %}{% trans "Панель деканата" %}{% endblock %}
 {% block breadcrumb_container %}{% endblock %}
 {% block content %}
 <div class="container-fluid">
@@ -13,16 +14,16 @@
                             <i class="bi bi-building me-2"></i>{{ faculty.name }}
                         </h2>
                         <p class="text-muted mb-0 mt-1">
-                            <i class="bi bi-bank me-1"></i>Институт: {{ faculty.institute.name }}
+                            <i class="bi bi-bank me-1"></i>{% trans "Институт:" %} {{ faculty.institute.name }}
                         </p>
                     {% else %}
                         <h2 class="fw-bold text-danger">
-                            <i class="bi bi-exclamation-triangle me-2"></i>Факультет не привязан
+                            <i class="bi bi-exclamation-triangle me-2"></i>{% trans "Факультет не привязан" %}
                         </h2>
                     {% endif %}
                 </div>
                 <div class="text-end">
-                    <span class="text-muted d-block small">Сегодня</span>
+                    <span class="text-muted d-block small">{% trans "Сегодня" %}</span>
                     <span class="fs-5 fw-bold text-dark">{% now "d E Y" %}</span>
                 </div>
             </div>
@@ -45,14 +46,14 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
                                     <a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=STUDENT">
-                                        <i class="bi bi-eye me-2"></i>Просмотр
+                                        <i class="bi bi-eye me-2"></i>{% trans "Просмотр" %}
                                     </a>
                                 </li>
                             </ul>
                         </div>
                     </div>
                     <h3 class="mb-1 fw-bold">{{ students_count }}</h3>
-                    <p class="text-muted mb-0 small">Всего студентов</p>
+                    <p class="text-muted mb-0 small">{% trans "Всего студентов" %}</p>
                     <div class="progress mt-3" style="height: 4px;">
                         <div class="progress-bar bg-primary" style="width: 100%"></div>
                     </div>
@@ -74,14 +75,14 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
                                     <a class="dropdown-item" href="{% url 'accounts:group_management' %}">
-                                        <i class="bi bi-eye me-2"></i>Управление
+                                        <i class="bi bi-eye me-2"></i>{% trans "Управление" %}
                                     </a>
                                 </li>
                             </ul>
                         </div>
                     </div>
                     <h3 class="mb-1 fw-bold">{{ groups_count }}</h3>
-                    <p class="text-muted mb-0 small">Учебных групп</p>
+                    <p class="text-muted mb-0 small">{% trans "Учебных групп" %}</p>
                     <div class="progress mt-3" style="height: 4px;">
                         <div class="progress-bar bg-success" style="width: 100%"></div>
                     </div>
@@ -103,14 +104,14 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
                                     <a class="dropdown-item" href="{% url 'accounts:user_management' %}?role=TEACHER">
-                                        <i class="bi bi-eye me-2"></i>Список
+                                        <i class="bi bi-eye me-2"></i>{% trans "Список" %}
                                     </a>
                                 </li>
                             </ul>
                         </div>
                     </div>
                     <h3 class="mb-1 fw-bold">{{ teachers_count }}</h3>
-                    <p class="text-muted mb-0 small">Преподавателей</p>
+                    <p class="text-muted mb-0 small">{% trans "Преподавателей" %}</p>
                     <div class="progress mt-3" style="height: 4px;">
                         <div class="progress-bar bg-info" style="width: 100%"></div>
                     </div>
@@ -132,7 +133,7 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
                                     <a class="dropdown-item" href="{% url 'journal:dean_view' %}">
-                                        <i class="bi bi-graph-up me-2"></i>Аналитика
+                                        <i class="bi bi-graph-up me-2"></i>{% trans "Аналитика" %}
                                     </a>
                                 </li>
                             </ul>
@@ -145,7 +146,7 @@
                             —
                         {% endif %}
                     </h3>
-                    <p class="text-muted mb-0 small">Средний балл</p>
+                    <p class="text-muted mb-0 small">{% trans "Средний балл" %}</p>
                     <div class="progress mt-3" style="height: 4px;">
                         <div class="progress-bar bg-warning" style="width: {% if course_stats %}{% widthratio course_stats.0.avg_gpa 1 8.33 %}%{% else %}0%{% endif %}"></div>
                     </div>
@@ -160,10 +161,10 @@
                 <div class="card-header bg-white border-0 py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold text-dark">
-                            <i class="bi bi-diagram-3 me-2 text-primary"></i>Структура факультета
+                            <i class="bi bi-diagram-3 me-2 text-primary"></i>{% trans "Структура факультета" %}
                         </h5>
                         <a href="{% url 'accounts:manage_structure' %}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil me-1"></i>Управление
+                            <i class="bi bi-pencil me-1"></i>{% trans "Управление" %}
                         </a>
                     </div>
                 </div>
@@ -172,10 +173,10 @@
                         <table class="table table-hover mb-0">
                             <thead class="bg-light text-dark border-bottom">
                                 <tr>
-                                    <th class="border-0 ps-4 py-3">Кафедра</th>
-                                    <th class="border-0 py-3">Заведующий</th>
-                                    <th class="border-0 text-center py-3">Специальностей</th>
-                                    <th class="border-0 text-end pe-4 py-3">Действия</th>
+                                    <th class="border-0 ps-4 py-3">{% trans "Кафедра" %}</th>
+                                    <th class="border-0 py-3">{% trans "Заведующий" %}</th>
+                                    <th class="border-0 text-center py-3">{% trans "Специальностей" %}</th>
+                                    <th class="border-0 text-end pe-4 py-3">{% trans "Действия" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -193,7 +194,7 @@
                                                 <span>{{ dept.head.user.get_full_name }}</span>
                                             </div>
                                         {% else %}
-                                            <span class="badge bg-light text-muted">Свободно</span>
+                                            <span class="badge bg-light text-muted">{% trans "Свободно" %}</span>
                                         {% endif %}
                                     </td>
                                     <td class="text-center">
@@ -212,7 +213,7 @@
                                 <tr>
                                     <td colspan="4" class="text-center py-4 text-muted">
                                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                        Кафедры еще не созданы
+                                        {% trans "Кафедры еще не созданы" %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -226,7 +227,7 @@
                 <div class="card-header bg-white border-0 py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold text-dark">
-                            <i class="bi bi-journal-x me-2 text-danger"></i>Отсутствующие РУП
+                            <i class="bi bi-journal-x me-2 text-danger"></i>{% trans "Отсутствующие РУП" %}
                         </h5>
                     </div>
                 </div>
@@ -236,17 +237,17 @@
                         {% for g in missing_rup_groups %}
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0 fw-bold">{{ g.name }} <span class="badge bg-secondary">{{ g.course }} курс</span></h6>
+                                <h6 class="mb-0 fw-bold">{{ g.name }} <span class="badge bg-secondary">{{ g.course }} {% trans "курс" %}</span></h6>
                                 <small class="text-muted">{{ g.specialty.name|default:"Специальность не указана" }}</small>
                             </div>
-                            <a href="{% url 'schedule:create_plan' %}{% if g.specialty %}?specialty={{ g.specialty.id }}{% endif %}" class="btn btn-sm btn-outline-danger">Создать РУП</a>
+                            <a href="{% url 'schedule:create_plan' %}{% if g.specialty %}?specialty={{ g.specialty.id }}{% endif %}" class="btn btn-sm btn-outline-danger">{% trans "Создать РУП" %}</a>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
                     <div class="p-4 text-center text-muted">
                         <i class="bi bi-check-circle text-success fs-1 mb-2 d-block"></i>
-                        У всех групп факультета есть активные учебные планы (РУП).
+                        {% trans "У всех групп факультета есть активные учебные планы (РУП)." %}
                     </div>
                     {% endif %}
                 </div>
@@ -257,7 +258,7 @@
             <div class="card border-0 shadow-sm mb-4 animate-slide-in" style="animation-delay: 0.5s;">
                 <div class="card-header bg-white border-0 py-3">
                     <h6 class="mb-0 fw-bold">
-                        <i class="bi bi-lightning-charge me-2 text-warning"></i>Быстрые действия
+                        <i class="bi bi-lightning-charge me-2 text-warning"></i>{% trans "Быстрые действия" %}
                     </h6>
                 </div>
                 <div class="card-body p-0">
@@ -267,8 +268,8 @@
                                 <i class="bi bi-journal-text text-indigo"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">Учебные планы (РУП)</div>
-                                <small class="text-muted">Создание нагрузки и дисциплин</small>
+                                <div class="fw-medium">{% trans "Учебные планы (РУП)" %}</div>
+                                <small class="text-muted">{% trans "Создание нагрузки и дисциплин" %}</small>
                             </div>
                         </a>
 
@@ -277,8 +278,8 @@
                                 <i class="bi bi-calendar-week text-primary"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">Конструктор расписания</div>
-                                <small class="text-muted">Управление расписанием групп</small>
+                                <div class="fw-medium">{% trans "Конструктор расписания" %}</div>
+                                <small class="text-muted">{% trans "Управление расписанием групп" %}</small>
                             </div>
                         </a>
                         <a href="{% url 'schedule:manage_classrooms' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
@@ -286,8 +287,8 @@
                                 <i class="bi bi-door-open text-success"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">Управление аудиториями</div>
-                                <small class="text-muted">Кабинеты и вместимость</small>
+                                <div class="fw-medium">{% trans "Управление аудиториями" %}</div>
+                                <small class="text-muted">{% trans "Кабинеты и вместимость" %}</small>
                             </div>
                         </a>
                         {% if user.is_teacher_role %}
@@ -296,8 +297,8 @@
                                 <i class="bi bi-journal-check text-success"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">Мой журнал (как преподаватель)</div>
-                                <small class="text-muted">Оценки и посещаемость</small>
+                                <div class="fw-medium">{% trans "Мой журнал (как преподаватель)" %}</div>
+                                <small class="text-muted">{% trans "Оценки и посещаемость" %}</small>
                             </div>
                         </a>
                         <a href="{% url 'schedule:view' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
@@ -305,8 +306,8 @@
                                 <i class="bi bi-calendar-week text-info"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">Мое расписание</div>
-                                <small class="text-muted">График занятий</small>
+                                <div class="fw-medium">{% trans "Мое расписание" %}</div>
+                                <small class="text-muted">{% trans "График занятий" %}</small>
                             </div>
                         </a>
                         {% endif %}
@@ -315,8 +316,8 @@
                                 <i class="bi bi-laptop text-primary"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">LMS — Платформа обучения</div>
-                                <small class="text-muted">Курсы факультета</small>
+                                <div class="fw-medium">{% trans "LMS — Платформа обучения" %}</div>
+                                <small class="text-muted">{% trans "Курсы факультета" %}</small>
                             </div>
                         </a>
                         <a href="{% url 'journal:dean_view' %}" class="list-group-item list-group-item-action border-0 d-flex align-items-center py-3">
@@ -324,8 +325,8 @@
                                 <i class="bi bi-graph-up text-info"></i>
                             </div>
                             <div>
-                                <div class="fw-medium">Аналитика</div>
-                                <small class="text-muted">Успеваемость студентов</small>
+                                <div class="fw-medium">{% trans "Аналитика" %}</div>
+                                <small class="text-muted">{% trans "Успеваемость студентов" %}</small>
                             </div>
                         </a>
                     </div>
@@ -335,9 +336,9 @@
             <div class="card border-0 shadow-sm mb-4 animate-slide-in" style="animation-delay: 0.55s;">
                 <div class="card-header bg-dark text-white border-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold">
-                        <i class="bi bi-shield-exclamation me-2 text-warning"></i>Мониторинг успеваемости
+                        <i class="bi bi-shield-exclamation me-2 text-warning"></i>{% trans "Мониторинг успеваемости" %}
                     </h6>
-                    <span class="badge bg-primary text-white">Auto-Scan</span>
+                    <span class="badge bg-primary text-white">{% trans "Auto-Scan" %}</span>
                 </div>
                 <div class="card-body p-0">
                     {% if risk_report %}
@@ -351,10 +352,10 @@
                                 </span>
                             </div>
                             <p class="small text-muted mb-1">
-                                <i class="bi bi-mortarboard"></i> Группа: {{ risk.student.group.name }} | GPA: <strong>{{ risk.gpa|floatformat:2 }}</strong>
+                                <i class="bi bi-mortarboard"></i> {% trans "Группа:" %} {{ risk.student.group.name }} | GPA: <strong>{{ risk.gpa|floatformat:2 }}</strong>
                             </p>
                             <div class="text-dark d-block small mt-2">
-                                <strong>Факторы риска:</strong>
+                                <strong>{% trans "Факторы риска:" %}</strong>
                                 <ul class="mb-0 ps-3 mt-1 text-danger">
                                     {% for reason in risk.reasons %}
                                         <li>{{ reason }}</li>
@@ -363,10 +364,10 @@
                             </div>
                             <div class="d-flex gap-2 mt-3">
                                 <a href="{% url 'accounts:view_user_profile' risk.student.user.id %}" class="btn btn-sm btn-outline-{{ risk.color }} w-50 fw-bold">
-                                    <i class="bi bi-person"></i> Профиль
+                                    <i class="bi bi-person"></i> {% trans "Профиль" %}
                                 </a>
                                 <button onclick="showStudentTrend({{ risk.student.id }}, '{{ risk.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-{{ risk.color }} w-50 fw-bold text-white">
-                                    <i class="bi bi-graph-up-arrow"></i> Прогноз
+                                    <i class="bi bi-graph-up-arrow"></i> {% trans "Прогноз" %}
                                 </button>
                             </div>
                         </div>
@@ -377,15 +378,15 @@
                         <div class="mb-3">
                             <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
                         </div>
-                        <h6 class="fw-bold text-dark">Проблемных студентов не обнаружено</h6>
-                        <p class="small text-muted mb-0">Алгоритм проанализировал оценки и посещаемость. Все показатели в норме.</p>
+                        <h6 class="fw-bold text-dark">{% trans "Проблемных студентов не обнаружено" %}</h6>
+                        <p class="small text-muted mb-0">{% trans "Алгоритм проанализировал оценки и посещаемость. Все показатели в норме." %}</p>
                     </div>
                     {% endif %}
                 </div>
                 {% if risk_report %}
                 <div class="card-footer bg-white text-center">
                     <a href="{% url 'journal:department_report' %}" class="text-decoration-none small fw-bold text-muted">
-                        Открыть полный аналитический отчет <i class="bi bi-arrow-right"></i>
+                        {% trans "Открыть полный аналитический отчет" %} <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
                 {% endif %}
@@ -395,7 +396,7 @@
             <div class="card border-0 shadow-sm animate-slide-in" style="animation-delay: 0.6s;">
                 <div class="card-header bg-white border-0 py-3">
                     <h6 class="mb-0 fw-bold">
-                        <i class="bi bi-pie-chart me-2 text-primary"></i>Успеваемость по курсам
+                        <i class="bi bi-pie-chart me-2 text-primary"></i>{% trans "Успеваемость по курсам" %}
                     </h6>
                 </div>
                 <div class="card-body">
@@ -403,15 +404,15 @@
                         {% for stat in course_stats %}
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold">{{ stat.course }} курс</span>
-                                <span class="text-muted small">{{ stat.students_count }} студ.</span>
+                                <span class="fw-bold">{{ stat.course }} {% trans "курс" %}</span>
+                                <span class="text-muted small">{{ stat.students_count }} {% trans "студ." %}</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <small class="text-muted">
-                                    GPA: <span class="fw-bold text-dark">{{ stat.avg_gpa|floatformat:2 }}</span>
+                                    {% trans "GPA:" %} <span class="fw-bold text-dark">{{ stat.avg_gpa|floatformat:2 }}</span>
                                 </small>
                                 <small class="text-muted">
-                                    Посещ: <span class="fw-bold text-dark">{{ stat.avg_attendance|floatformat:0 }}%</span>
+                                    {% trans "Посещ:" %} <span class="fw-bold text-dark">{{ stat.avg_attendance|floatformat:0 }}%</span>
                                 </small>
                             </div>
                             <div class="progress" style="height: 8px;">
@@ -423,12 +424,12 @@
                         </div>
                         {% endfor %}
                         <a href="{% url 'journal:dean_view' %}" class="btn btn-primary w-100 btn-sm mt-3">
-                            <i class="bi bi-arrow-right me-1"></i>Подробная аналитика
+                            <i class="bi bi-arrow-right me-1"></i>{% trans "Подробная аналитика" %}
                         </a>
                     {% else %}
                         <p class="text-center text-muted py-3 mb-0">
                             <i class="bi bi-inbox d-block fs-1 mb-2"></i>
-                            Нет данных
+                            {% trans "Нет данных" %}
                         </p>
                     {% endif %}
                 </div>
@@ -441,14 +442,14 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-activity me-2 text-primary"></i>Динамика по курсам
+                        <i class="bi bi-activity me-2 text-primary"></i>{% trans "Динамика по курсам" %}
                     </h5>
                     <div class="btn-group" role="group">
                         <input type="radio" class="btn-check" name="chartToggle" id="btnGpa" autocomplete="off" checked onclick="updateMainChart('gpa')">
-                        <label class="btn btn-outline-primary btn-sm" for="btnGpa">Успеваемость (GPA)</label>
+                        <label class="btn btn-outline-primary btn-sm" for="btnGpa">{% trans "Успеваемость (GPA)" %}</label>
 
                         <input type="radio" class="btn-check" name="chartToggle" id="btnAtt" autocomplete="off" onclick="updateMainChart('attendance')">
-                        <label class="btn btn-outline-success btn-sm" for="btnAtt">Посещаемость (%)</label>
+                        <label class="btn btn-outline-success btn-sm" for="btnAtt">{% trans "Посещаемость (%)" %}</label>
                     </div>
                 </div>
                 <div class="card-body">
@@ -462,6 +463,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        const gpaLabel = "{% trans 'Средний балл (GPA)' %}";
+        const attendanceLabel = "{% trans 'Посещаемость (%)' %}";
+
         const coursesLabels = {{ json_courses|safe }};
         const dataGPA = {{ json_gpa|safe }};
         const dataAttendance = {{ json_attendance|safe }};
@@ -481,7 +485,7 @@
             data: {
                 labels: coursesLabels,
                 datasets: [{
-                    label: 'Средний балл (GPA)',
+                    label: gpaLabel,
                     data: dataGPA,
                     backgroundColor: gradientGPA,
                     borderColor: '#2563eb',
@@ -518,14 +522,14 @@
 
         function updateMainChart(type) {
             if (type === 'gpa') {
-                dashboardChart.data.datasets[0].label = 'Средний балл (GPA)';
+                dashboardChart.data.datasets[0].label = gpaLabel;
                 dashboardChart.data.datasets[0].data = dataGPA;
                 dashboardChart.data.datasets[0].backgroundColor = gradientGPA;
                 dashboardChart.data.datasets[0].borderColor = '#2563eb';
                 dashboardChart.data.datasets[0].type = 'bar';
                 dashboardChart.options.scales.y.max = 5;
             } else {
-                dashboardChart.data.datasets[0].label = 'Посещаемость (%)';
+                dashboardChart.data.datasets[0].label = attendanceLabel;
                 dashboardChart.data.datasets[0].data = dataAttendance;
                 dashboardChart.data.datasets[0].backgroundColor = gradientAtt;
                 dashboardChart.data.datasets[0].borderColor = '#10b981';
@@ -603,5 +607,4 @@
     .pulse-danger-light {
         animation: pulseDanger 2s infinite;
     }
-
 </style>

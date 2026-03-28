@@ -1,7 +1,8 @@
 {% extends base_template|default:"base.html" %}
 {% load i18n %}
 
-{% block title %}{{ title|default:"Подтверждение удаления" }}{% endblock %}
+{% trans "Подтверждение удаления" as default_title %}
+{% block title %}{{ title|default:default_title }}{% endblock %}
 
 {% block content %}
     {% include "core/_confirm_delete_inner.html" %}

@@ -1,16 +1,18 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-8 mx-auto">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-folder2-open"></i> Материалы: {{ subject.name }}</h5>
-                <a href="javascript:history.back()" class="btn btn-sm btn-light text-dark">Назад</a>
+                <h5 class="mb-0"><i class="bi bi-folder2-open"></i> {% trans "Materials:" %} {{ subject.name }}</h5>
+                <a href="javascript:history.back()" class="btn btn-sm btn-light text-dark">{% trans "Back" %}</a>
             </div>
             <div class="card-body">
                 {% if can_upload %}
                 <div class="mb-4 p-3 bg-light rounded border">
-                    <h6>Добавить новый материал</h6>
+                    <h6>{% trans "Add new material" %}</h6>
                     <form method="post" enctype="multipart/form-data" class="d-flex gap-2">
                         {% csrf_token %}
                         <div class="flex-grow-1">{{ form.title }}</div>
@@ -30,11 +32,12 @@
                             <div class="small text-muted">{{ mat.uploaded_at|date:"d.m.Y H:i" }}</div>
                         </div>
                         {% if can_upload %}
-                        <a href="{% url 'schedule:delete_material' mat.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить?')"><i class="bi bi-trash"></i></a>
+                        {% trans "Delete?" as confirm_text %}
+                        <a href="{% url 'schedule:delete_material' mat.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('{{ confirm_text|escapejs }}')"><i class="bi bi-trash"></i></a>
                         {% endif %}
                     </div>
                     {% empty %}
-                    <div class="text-center text-muted py-3">Нет материалов</div>
+                    <div class="text-center text-muted py-3">{% trans "No materials" %}</div>
                     {% endfor %}
                 </div>
             </div>

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}Страница не найдена{% endblock %}
+{% block title %}{% trans "Страница не найдена" %}{% endblock %}
 
 {% block content %}
 <div class="container d-flex align-items-center justify-content-center" style="min-height: 70vh;">
@@ -11,17 +11,17 @@
             <i class="bi bi-emoji-frown text-warning position-absolute" style="font-size: 3rem; top: 10px; right: -40px; transform: rotate(15deg);"></i>
         </div>
         
-        <h2 class="fw-bold mt-3 text-dark">Страница не найдена</h2>
+        <h2 class="fw-bold mt-3 text-dark">{% trans "Страница не найдена" %}</h2>
         <p class="text-muted lead mb-4">
-            Возможно, ссылка устарела, или страница была удалена.<br>
+            {% trans "Возможно, ссылка устарела, или страница была удалена." %}<br>
         </p>
         
         <div class="d-flex gap-3 justify-content-center">
             <button onclick="history.back()" class="btn btn-outline-secondary btn-lg px-4 rounded-pill shadow-sm">
-                <i class="bi bi-arrow-left me-2"></i>Назад
+                <i class="bi bi-arrow-left me-2"></i>{% trans "Назад" %}
             </button>
             <a href="{% url 'core:dashboard' %}" class="btn btn-primary btn-lg px-4 rounded-pill shadow-sm">
-                <i class="bi bi-house-door me-2"></i>На главную
+                <i class="bi bi-house-door me-2"></i>{% trans "На главную" %}
             </a>
         </div>
     </div>

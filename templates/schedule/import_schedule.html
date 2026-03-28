@@ -1,23 +1,24 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Импорт расписания{% endblock %}
+{% block title %}{% trans "Импорт расписания" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-6 mx-auto">
         <div class="card shadow">
             <div class="card-header bg-success text-white">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Импорт расписания из Excel
+                <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Импорт расписания из Excel" %}
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
-                    <strong>Инструкция:</strong><br>
-                    Загрузите файл Excel, структурированный как "Шахматка":<br>
-                    - Дни недели в первой колонке.<br>
-                    - Время пар во второй колонке.<br>
-                    - Названия групп в заголовке таблицы.<br>
-                    - В ячейках формат: <em>Предмет (Тип) Учитель</em><br>
-                    <small>Система автоматически найдет или создаст недостающие предметы и преподавателей.</small>
+                    <strong>{% trans "Инструкция:" %}</strong><br>
+                    {% trans "Загрузите файл Excel, структурированный как «Шахматка»:" %}<br>
+                    - {% trans "Дни недели в первой колонке." %}<br>
+                    - {% trans "Время пар во второй колонке." %}<br>
+                    - {% trans "Названия групп в заголовке таблицы." %}<br>
+                    - {% trans "В ячейках формат:" %} <em>{% trans "Предмет (Тип) Учитель" %}</em><br>
+                    <small>{% trans "Система автоматически найдет или создаст недостающие предметы и преподавателей." %}</small>
                 </div>
 
                 <form method="post" enctype="multipart/form-data">
@@ -35,10 +36,10 @@
 
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-success btn-lg">
-                            <i class="bi bi-upload"></i> Загрузить и обработать
+                            <i class="bi bi-upload"></i> {% trans "Загрузить и обработать" %}
                         </button>
                         <a href="{% url 'schedule:view' %}" class="btn btn-outline-secondary">
-                            Отмена
+                            {% trans "Отмена" %}
                         </a>
                     </div>
                 </form>

@@ -1,19 +1,23 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Управление учебными неделями{% endblock %}
+{% block title %}{% trans "Управление учебными неделями" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-lg-6 mx-auto">
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-calendar-range"></i> Управление учебными неделями
+                <i class="bi bi-calendar-range"></i> {% trans "Управление учебными неделями" %}
             </div>
             <div class="card-body">
                 {% if current_week %}
                 <div class="alert alert-info">
-                    <h5><i class="bi bi-info-circle"></i> Текущая учебная неделя</h5>
-                    <p class="mb-0"><strong>Неделя {{ current_week.current_week }}</strong> (начало семестра: {{ current_week.semester_start_date|date:"d.m.Y" }})</p>
+                    <h5><i class="bi bi-info-circle"></i> {% trans "Текущая учебная неделя" %}</h5>
+                    <p class="mb-0">
+                        <strong>{% trans "Неделя" %} {{ current_week.current_week }}</strong>
+                        ({% trans "начало семестра" %}: {{ current_week.semester_start_date|date:"d.m.Y" }})
+                    </p>
                 </div>
                 {% endif %}
                 
@@ -21,32 +25,33 @@
                     {% csrf_token %}
                     
                     <div class="mb-3">
-                        <label class="form-label">Дата начала семестра *</label>
+                        <label class="form-label">{% trans "Дата начала семестра" %} *</label>
                         {{ form.semester_start_date }}
                         <small class="form-text text-muted">
-                            Система автоматически рассчитает текущую неделю на основе этой даты
+                            {% trans "Система автоматически рассчитает текущую неделю на основе этой даты" %}
                         </small>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Номер текущей недели *</label>
+                        <label class="form-label">{% trans "Номер текущей недели" %} *</label>
                         {{ form.current_week }}
                         <small class="form-text text-muted">
-                            Можно корректировать вручную (от 1 до 20)
+                            {% trans "Можно корректировать вручную (от 1 до 20)" %}
                         </small>
                     </div>
                     
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle"></i> 
-                        <strong>Внимание:</strong> При создании нового семестра предыдущий будет деактивирован
+                        <strong>{% trans "Внимание:" %}</strong>
+                        {% trans "При создании нового семестра предыдущий будет деактивирован" %}
                     </div>
                     
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Сохранить
+                            <i class="bi bi-check-circle"></i> {% trans "Сохранить" %}
                         </button>
                         <a href="{% url 'schedule:constructor' %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Назад к конструктору
+                            <i class="bi bi-arrow-left"></i> {% trans "Назад к конструктору" %}
                         </a>
                     </div>
                 </form>
@@ -56,15 +61,16 @@
         {% if current_week %}
         <div class="card mt-3">
             <div class="card-header">
-                <i class="bi bi-calculator"></i> Автоматический расчет
+                <i class="bi bi-calculator"></i> {% trans "Автоматический расчет" %}
             </div>
             <div class="card-body">
                 <p>
-                    На основе даты начала семестра ({{ current_week.semester_start_date|date:"d.m.Y" }}) 
-                    система рассчитывает текущую неделю автоматически.
+                    {% blocktrans with start_date=current_week.semester_start_date|date:"d.m.Y" %}
+                    На основе даты начала семестра ({{ start_date }}) система рассчитывает текущую неделю автоматически.
+                    {% endblocktrans %}
                 </p>
                 <p class="mb-0">
-                    <strong>Рассчитанная неделя:</strong> 
+                    <strong>{% trans "Рассчитанная неделя:" %}</strong>
                     <span class="badge bg-primary">{{ current_week.calculate_current_week }}</span>
                 </p>
             </div>

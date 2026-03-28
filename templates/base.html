@@ -1,11 +1,11 @@
-{% load static %}
 {% load i18n %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}University Platform{% endblock %}</title>
+    <title>{% block title %}{% trans "University Platform" %}{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -502,7 +502,7 @@
 
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-3 gap-2">
-            <button id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+            <button id="sidebarToggle" type="button" aria-label="{% trans "Toggle sidebar" %}">
                 <i class="bi bi-list fs-5"></i>
             </button>
             <a class="navbar-brand me-auto" href="{% url 'core:dashboard' %}">
@@ -551,7 +551,7 @@
                 </form>
                 {% if user.is_authenticated %}
                 <div class="dropdown">
-                    <a class="navbar-notif-btn" href="#" role="button" data-bs-toggle="dropdown" aria-label="Notifications">
+                    <a class="navbar-notif-btn" href="#" role="button" data-bs-toggle="dropdown" aria-label="{% trans "Notifications" %}">
                         <i class="bi bi-bell fs-6"></i>
                         {% if notification_counts.total > 0 %}
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.58rem; padding: 3px 5px;">
@@ -560,11 +560,11 @@
                         {% endif %}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" style="width: 290px; min-width: 290px;">
-                        <li><div class="dropdown-header">Уведомления</div></li>
+                        <li><div class="dropdown-header">{% trans "Уведомления" %}</div></li>
                         {% if notification_counts.orders > 0 %}
                         <li>
                             <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'accounts:all_orders' %}?status=DRAFT">
-                                <span><i class="bi bi-file-earmark-text text-warning me-2"></i>Приказы на подпись</span>
+                                <span><i class="bi bi-file-earmark-text text-warning me-2"></i>{% trans "Приказы на подпись" %}</span>
                                 <span class="badge bg-warning text-dark">{{ notification_counts.orders }}</span>
                             </a>
                         </li>
@@ -572,13 +572,13 @@
                         {% if notification_counts.chat > 0 %}
                         <li>
                             <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'chat:list' %}">
-                                <span><i class="bi bi-chat-dots text-primary me-2"></i>Новые сообщения</span>
+                                <span><i class="bi bi-chat-dots text-primary me-2"></i>{% trans "Новые сообщения" %}</span>
                                 <span class="badge bg-primary">{{ notification_counts.chat }}</span>
                             </a>
                         </li>
                         {% endif %}
                         {% if notification_counts.total == 0 %}
-                        <li><span class="dropdown-item text-muted text-center small py-3">Нет новых уведомлений</span></li>
+                        <li><span class="dropdown-item text-muted text-center small py-3">{% trans "Нет новых уведомлений" %}</span></li>
                         {% endif %}
                     </ul>
                 </div>
@@ -640,13 +640,13 @@
                 <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}"><i class="bi bi-book"></i>{% trans "Дисциплины (Предметы)" %}</a>
                 <a class="sidebar-link" href="{% url 'accounts:group_management' %}"><i class="bi bi-collection"></i>{% trans "Академические группы" %}</a>
                 <a class="sidebar-link" href="{% url 'lms:dashboard' %}"><i class="bi bi-laptop"></i>{% trans "LMS — Платформа обучения" %}</a>
-                <a class="sidebar-link" href="{% url 'journal:matrix_constructor' %}"><i class="bi bi-grid-3x3"></i>Конструктор ведомости</a>
+                <a class="sidebar-link" href="{% url 'journal:matrix_constructor' %}"><i class="bi bi-grid-3x3"></i>{% trans "Конструктор ведомости" %}</a>
                 <a class="sidebar-link" href="{% url 'lms:course_list' %}"><i class="bi bi-mortarboard"></i>{% trans "Все курсы" %}</a>
                 {% if user.role == 'HEAD_OF_DEPT' or user.is_superuser %}
                 <div class="sidebar-divider"></div>
-                <div class="sidebar-sub-label">Управление кафедрой</div>
-                <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}"><i class="bi bi-briefcase"></i>Нагрузка кафедры</a>
-                <a class="sidebar-link" href="{% url 'schedule:import_department_load' %}"><i class="bi bi-file-earmark-excel"></i>Импорт нагрузки</a>
+                <div class="sidebar-sub-label">{% trans "Управление кафедрой" %}</div>
+                <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}"><i class="bi bi-briefcase"></i>{% trans "Нагрузка кафедры" %}</a>
+                <a class="sidebar-link" href="{% url 'schedule:import_department_load' %}"><i class="bi bi-file-earmark-excel"></i>{% trans "Импорт нагрузки" %}</a>
                 {% endif %}
                 <div class="sidebar-divider"></div>
                 <div class="sidebar-sub-label">{% trans "Аналитика" %}</div>
@@ -659,7 +659,7 @@
             </div>
             <div class="sidebar-menu-group" id="schedule-menu">
                 <a class="sidebar-link" href="{% url 'schedule:calendar' %}">
-                    <i class="bi bi-calendar-day text-success"></i><b>Живой календарь (Управление)</b>
+                    <i class="bi bi-calendar-day text-success"></i><b>{% trans "Живой календарь (Управление)" %}</b>
                 </a>
                 <a class="sidebar-link" href="{% url 'schedule:constructor' %}"><i class="bi bi-grid-3x3"></i><b>{% trans "Конструктор" %}</b></a>
                 <a class="sidebar-link" href="{% url 'schedule:view' %}"><i class="bi bi-eye"></i>{% trans "Просмотр сетки" %}</a>
@@ -690,10 +690,10 @@
                 <a class="sidebar-link" href="{% url 'accounts:document_templates' %}"><i class="bi bi-file-earmark-word"></i>{% trans "Шаблоны документов" %}</a>
                 <a class="sidebar-link" href="{% url 'accounts:add_user' %}"><i class="bi bi-person-plus"></i>{% trans "Добавить вручную" %}</a>
                 <div class="sidebar-divider"></div>
-                <div class="sidebar-sub-label">Движение контингента</div>
-                <a class="sidebar-link" href="{% url 'accounts:download_contingent_report' %}"><i class="bi bi-file-earmark-word text-primary"></i><b>Отчет по движению (DOCX)</b></a>
-                <a class="sidebar-link" href="{% url 'accounts:archive_alumni' %}"><i class="bi bi-mortarboard-fill text-success"></i>Выпускники (Архив)</a>
-                <a class="sidebar-link" href="{% url 'accounts:archive_expelled' %}"><i class="bi bi-person-x-fill text-danger"></i>Отчисленные (Архив)</a>
+                <div class="sidebar-sub-label">{% trans "Движение контингента" %}</div>
+                <a class="sidebar-link" href="{% url 'accounts:download_contingent_report' %}"><i class="bi bi-file-earmark-word text-primary"></i><b>{% trans "Отчет по движению (DOCX)" %}</b></a>
+                <a class="sidebar-link" href="{% url 'accounts:archive_alumni' %}"><i class="bi bi-mortarboard-fill text-success"></i>{% trans "Выпускники (Архив)" %}</a>
+                <a class="sidebar-link" href="{% url 'accounts:archive_expelled' %}"><i class="bi bi-person-x-fill text-danger"></i>{% trans "Отчисленные (Архив)" %}</a>
                 {% endif %}
             </div>
         {% endif %}
@@ -895,20 +895,20 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title"><i class="bi bi-graph-up-arrow me-2"></i> Анализ динамики обучения</h5>
+                <h5 class="modal-title"><i class="bi bi-graph-up-arrow me-2"></i> {% trans "Анализ динамики обучения" %}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
                 <div class="bg-light p-2 border-bottom d-flex justify-content-center gap-2">
                     <div class="btn-group btn-group-sm" role="group">
                         <input type="radio" class="btn-check trend-period" name="trendPeriod" id="tp_week" value="week">
-                        <label class="btn btn-outline-secondary" for="tp_week">За неделю</label>
+                        <label class="btn btn-outline-secondary" for="tp_week">{% trans "За неделю" %}</label>
                         
                         <input type="radio" class="btn-check trend-period" name="trendPeriod" id="tp_month" value="month">
-                        <label class="btn btn-outline-secondary" for="tp_month">За месяц</label>
+                        <label class="btn btn-outline-secondary" for="tp_month">{% trans "За месяц" %}</label>
                         
                         <input type="radio" class="btn-check trend-period" name="trendPeriod" id="tp_all" value="all" checked>
-                        <label class="btn btn-outline-secondary" for="tp_all">За всё время</label>
+                        <label class="btn btn-outline-secondary" for="tp_all">{% trans "За всё время" %}</label>
                     </div>
                 </div>
                 <div id="studentTrendBody" class="p-4">
@@ -942,13 +942,13 @@ document.querySelectorAll('.trend-period').forEach(radio => {
 });
 
 function fetchTrendData(period) {
-    document.getElementById('studentTrendBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Сбор данных и расчет алгоритма...</p></div>';
+    document.getElementById('studentTrendBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">{% trans "Сбор данных и расчет алгоритма..." %}</p></div>';
 
     fetch(`/journal/api/student-trend/${currentTrendStudentId}/?period=${period}`)
     .then(r => r.json())
     .then(data => {
         if(!data.success) {
-            document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-danger">${data.error || 'Ошибка сервера'}</div>`;
+            document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-danger">${data.error || '{% trans "Ошибка сервера" %}'}</div>`;
             return;
         }
         if(!data.has_data) {
@@ -966,26 +966,26 @@ function fetchTrendData(period) {
             <div class="row g-3 mb-4">
                 <div class="col-6">
                     <div class="p-3 border rounded bg-light text-center h-100">
-                        <small class="text-muted d-block text-uppercase fw-bold">GPA (Период)</small>
+                        <small class="text-muted d-block text-uppercase fw-bold">{% trans "GPA (Период)" %}</small>
                         <h2 class="mb-0 text-dark">${data.gpa_current}</h2>
-                        <span class="${gpaColor} small fw-bold">${gpaSign}${data.gpa_trend}% (динамика)</span>
+                        <span class="${gpaColor} small fw-bold">${gpaSign}${data.gpa_trend}% ({% trans "динамика" %})</span>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="p-3 border rounded bg-light text-center h-100">
-                        <small class="text-muted d-block text-uppercase fw-bold">Посещаемость</small>
+                        <small class="text-muted d-block text-uppercase fw-bold">{% trans "Посещаемость" %}</small>
                         <h2 class="mb-0 text-dark">${data.att_current}%</h2>
-                        <span class="${attColor} small fw-bold">${attSign}${data.att_trend}% (динамика)</span>
+                        <span class="${attColor} small fw-bold">${attSign}${data.att_trend}% ({% trans "динамика" %})</span>
                     </div>
                 </div>
             </div>
             <div class="alert alert-${data.color} border-0 shadow-sm mb-0">
-                <h6 class="fw-bold"><i class="bi bi-cpu"></i> Вывод алгоритма:</h6>
+                <h6 class="fw-bold"><i class="bi bi-cpu"></i> {% trans "Вывод алгоритма:" %}</h6>
                 <p class="mb-0 small">${data.prediction}</p>
             </div>
         `;
     }).catch(e => {
-        document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-danger">Ошибка сети</div>`;
+        document.getElementById('studentTrendBody').innerHTML = `<div class="alert alert-danger">{% trans "Ошибка сети" %}</div>`;
     });
 }
 </script>
@@ -1033,7 +1033,7 @@ if (searchInput && searchResults) {
                     });
                     searchResults.style.display = 'block';
                 } else {
-                    searchResults.innerHTML = '<div class="p-3 text-center text-muted small">Ничего не найдено</div>';
+                    searchResults.innerHTML = '<div class="p-3 text-center text-muted small">{% trans "Ничего не найдено" %}</div>';
                     searchResults.style.display = 'block';
                 }
             })

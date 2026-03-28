@@ -1,12 +1,13 @@
+{% load i18n %}
 <div class="card">
     <div class="card-header">
-        <i class="bi bi-calendar-day"></i> Сегодня - {{ today|date:"d.m.Y" }} ({{ today|date:"l" }})
+        <i class="bi bi-calendar-day"></i> {% trans "Сегодня" %} - {{ today|date:"d.m.Y" }} ({{ today|date:"l" }})
     </div>
     <div class="card-body">
         {% if not classes %}
             <div class="text-center text-muted py-3">
                 <i class="bi bi-sun" style="font-size: 2rem;"></i>
-                <p class="mt-2">Сегодня занятий нет</p>
+                <p class="mt-2">{% trans "Сегодня занятий нет" %}</p>
             </div>
         {% else %}
             {% for lesson in classes %}
@@ -15,7 +16,7 @@
                         <div class="class-item mb-3 p-3 rounded border border-success border-2 bg-success bg-opacity-10">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="mb-0">
-                                    <span class="badge bg-success me-2">СЕЙЧАС</span>
+                                    <span class="badge bg-success me-2">{% trans "СЕЙЧАС" %}</span>
                                     {{ lesson.subject.name }}
                                 </h6>
                                 <span class="badge bg-{{ lesson.get_color_class }}">
@@ -34,7 +35,7 @@
                                 {% endif %}
                             </p>
                             <p class="mb-0">
-                                <i class="bi bi-geo-alt"></i> Аудитория {{ lesson.classroom }}
+                                <i class="bi bi-geo-alt"></i> {% trans "Аудитория" %} {{ lesson.classroom }}
                             </p>
                         </div>
                     {% else %}
@@ -57,7 +58,7 @@
                                 {% endif %}
                             </p>
                             <p class="mb-0">
-                                <i class="bi bi-geo-alt"></i> Аудитория {{ lesson.classroom }}
+                                <i class="bi bi-geo-alt"></i> {% trans "Аудитория" %} {{ lesson.classroom }}
                             </p>
                         </div>
                     {% endif %}
@@ -66,7 +67,7 @@
                         <div class="class-item mb-3 p-3 rounded border border-success border-2 bg-success bg-opacity-10">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="mb-0">
-                                    <span class="badge bg-success me-2">СЕЙЧАС</span>
+                                    <span class="badge bg-success me-2">{% trans "СЕЙЧАС" %}</span>
                                     {{ lesson.subject.name }}
                                 </h6>
                                 <span class="badge bg-{{ lesson.get_color_class }}">
@@ -85,7 +86,7 @@
                                 {% endif %}
                             </p>
                             <p class="mb-0">
-                                <i class="bi bi-geo-alt"></i> Аудитория {{ lesson.classroom }}
+                                <i class="bi bi-geo-alt"></i> {% trans "Аудитория" %} {{ lesson.classroom }}
                             </p>
                         </div>
                     {% else %}
@@ -108,7 +109,7 @@
                                 {% endif %}
                             </p>
                             <p class="mb-0">
-                                <i class="bi bi-geo-alt"></i> Аудитория {{ lesson.classroom }}
+                                <i class="bi bi-geo-alt"></i> {% trans "Аудитория" %} {{ lesson.classroom }}
                             </p>
                         </div>
                     {% endif %}

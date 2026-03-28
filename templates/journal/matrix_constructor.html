@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}Конструктор ведомости{% endblock %}
+{% load i18n %}
+
+{% block title %}{% trans "Конструктор ведомости" %}{% endblock %}
 
 {% block content %}
 {% if institutes %}
@@ -8,10 +10,10 @@
         <div class="card shadow-sm mb-4 border-primary">
             <div class="card-body bg-light d-flex align-items-center gap-3">
                 <i class="bi bi-bank fs-4 text-primary"></i>
-                <label class="fw-bold mb-0 text-nowrap">Выберите институт для настройки матрицы:</label>
+                <label class="fw-bold mb-0 text-nowrap">{% trans "Выберите институт для настройки матрицы:" %}</label>
                 <form method="get" class="flex-grow-1">
                     <select name="institute" class="form-select border-primary fw-bold" onchange="this.form.submit()">
-                        <option value="">-- Глобальная матрица (По умолчанию для всех) --</option>
+                        <option value="">{% trans "-- Глобальная матрица (По умолчанию для всех) --" %}</option>
                         {% for inst in institutes %}
                             <option value="{{ inst.id }}" {% if selected_institute_id == inst.id %}selected{% endif %}>
                                 {{ inst.name }} ({{ inst.abbreviation }})
@@ -29,7 +31,7 @@
     <div class="col-lg-4">
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-plus-square"></i> Добавить колонку</h5>
+                <h5 class="mb-0"><i class="bi bi-plus-square"></i> {% trans "Добавить колонку" %}</h5>
             </div>
             <div class="card-body">
                 <form method="post">
@@ -37,31 +39,31 @@
                     <input type="hidden" name="action" value="add_col">
                     
                     <div class="mb-3">
-                        <label class="form-label">Название (напр. Неделя 1, Р1)</label>
+                        <label class="form-label">{% trans "Название (напр. Неделя 1, Р1)" %}</label>
                         <input type="text" name="name" class="form-control" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Тип колонки</label>
+                        <label class="form-label">{% trans "Тип колонки" %}</label>
                         <select name="col_type" class="form-select">
-                            <option value="WEEK">Учебная неделя</option>
-                            <option value="RATING">Рейтинг (Р1/Р2)</option>
-                            <option value="EXAM">Экзамен</option>
+                            <option value="WEEK">{% trans "Учебная неделя" %}</option>
+                            <option value="RATING">{% trans "Рейтинг (Р1/Р2)" %}</option>
+                            <option value="EXAM">{% trans "Экзамен" %}</option>
                         </select>
                     </div>
                     
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label">Макс. балл</label>
+                            <label class="form-label">{% trans "Макс. балл" %}</label>
                             <input type="number" step="0.1" name="max_score" class="form-control" value="12.5" required>
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label">Порядок</label>
+                            <label class="form-label">{% trans "Порядок" %}</label>
                             <input type="number" name="order" class="form-control" value="1" required>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-success w-100">Добавить</button>
+                    <button type="submit" class="btn btn-success w-100">{% trans "Добавить" %}</button>
                 </form>
             </div>
         </div>
@@ -70,34 +72,34 @@
     <div class="col-lg-8">
         <div class="card shadow-sm">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-layout-three-columns"></i> Структура: {{ structure.name }}</h5>
-                <form method="post" class="m-0" onsubmit="return confirm('Внимание! Это удалит все текущие колонки и создаст стандартные 16 недель, 2 рейтинга и экзамен. Продолжить?');">
+                <h5 class="mb-0"><i class="bi bi-layout-three-columns"></i> {% trans "Структура:" %} {{ structure.name }}</h5>
+                <form method="post" class="m-0" onsubmit="return confirm('{% trans "Внимание! Это удалит все текущие колонки и создаст стандартные 16 недель, 2 рейтинга и экзамен. Продолжить?" %}');">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="generate_bologna">
                     <button type="submit" class="btn btn-sm btn-warning fw-bold">
-                        <i class="bi bi-magic"></i> Стандарт (Болонская система)
+                        <i class="bi bi-magic"></i> {% trans "Стандарт (Болонская система)" %}
                     </button>
                 </form>
             </div>
             <div class="card-body p-0">
                 <div class="alert alert-info m-3 border shadow-sm">
-                    <h6 class="fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Как это работает?</h6>
-                    <p class="mb-1">Эта матрица — <strong>фундамент учебного процесса</strong>. Она выполняет две важнейшие функции:</p>
+                    <h6 class="fw-bold"><i class="bi bi-info-circle-fill me-2"></i>{% trans "Как это работает?" %}</h6>
+                    <p class="mb-1">{% trans "Эта матрица — <strong>фундамент учебного процесса</strong>. Она выполняет две важнейшие функции:" %}</p>
                     <ol class="mb-0">
-                        <li><strong>Формирует Сводную ведомость:</strong> Именно эти колонки увидят преподаватели и студенты в журнале успеваемости.</li>
-                        <li><strong>Генерирует LMS:</strong> При нажатии кнопки "Сгенерировать из расписания" в LMS, система создаст разделы (недели, рейтинги) <strong>в точном соответствии с этой структурой</strong>.</li>
+                        <li><strong>{% trans "Формирует Сводную ведомость:" %}</strong> {% trans "Именно эти колонки увидят преподаватели и студенты в журнале успеваемости." %}</li>
+                        <li><strong>{% trans "Генерирует LMS:" %}</strong> {% trans "При нажатии кнопки \"Сгенерировать из расписания\" в LMS, система создаст разделы (недели, рейтинги) <strong>в точном соответствии с этой структурой</strong>." %}</li>
                     </ol>
                     <hr>
-                    <p class="mb-0 small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> <strong>Важно:</strong> Баллы за колонки типа "Рейтинг" выставляются <b>АВТОМАТИЧЕСКИ</b> на основе тестов (Quiz) в LMS. Преподаватели не могут вводить их вручную.</p>
+                    <p class="mb-0 small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> <strong>{% trans "Важно:" %}</strong> {% trans "Баллы за колонки типа \"Рейтинг\" выставляются <b>АВТОМАТИЧЕСКИ</b> на основе тестов (Quiz) в LMS. Преподаватели не могут вводить их вручную." %}</p>
                 </div>
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">Порядок</th>
-                            <th>Название</th>
-                            <th>Тип</th>
-                            <th>Макс. балл</th>
-                            <th class="text-end pe-3">Действие</th>
+                            <th class="ps-3">{% trans "Порядок" %}</th>
+                            <th>{% trans "Название" %}</th>
+                            <th>{% trans "Тип" %}</th>
+                            <th>{% trans "Макс. балл" %}</th>
+                            <th class="text-end pe-3">{% trans "Действие" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,21 +114,23 @@
                             </td>
                             <td>{{ col.max_score }}</td>
                             <td class="text-end pe-3">
-                                <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editColModal{{ col.id }}" title="Редактировать">
+                                {% trans "Редактировать" as edit_title %}
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editColModal{{ col.id }}" title="{{ edit_title }}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" style="display: inline;">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="del_col">
                                     <input type="hidden" name="col_id" value="{{ col.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить колонку? Все оценки по ней будут удалены!')">
+                                    {% trans "Удалить колонку? Все оценки по ней будут удалены!" as confirm_msg %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('{{ confirm_msg|escapejs }}')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="5" class="text-center py-4 text-muted">Колонки не добавлены</td></tr>
+                        <tr><td colspan="5" class="text-center py-4 text-muted">{% trans "Колонки не добавлены" %}</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -144,36 +148,36 @@
                 <input type="hidden" name="action" value="edit_col">
                 <input type="hidden" name="col_id" value="{{ col.id }}">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Редактировать колонку</h5>
+                    <h5 class="modal-title">{% trans "Редактировать колонку" %}</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-start">
                     <div class="mb-3">
-                        <label class="form-label">Название</label>
+                        <label class="form-label">{% trans "Название" %}</label>
                         <input type="text" name="name" class="form-control" value="{{ col.name }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Тип колонки</label>
+                        <label class="form-label">{% trans "Тип колонки" %}</label>
                         <select name="col_type" class="form-select">
-                            <option value="WEEK" {% if col.col_type == 'WEEK' %}selected{% endif %}>Учебная неделя</option>
-                            <option value="RATING" {% if col.col_type == 'RATING' %}selected{% endif %}>Рейтинг (Р1/Р2)</option>
-                            <option value="EXAM" {% if col.col_type == 'EXAM' %}selected{% endif %}>Экзамен</option>
+                            <option value="WEEK" {% if col.col_type == 'WEEK' %}selected{% endif %}>{% trans "Учебная неделя" %}</option>
+                            <option value="RATING" {% if col.col_type == 'RATING' %}selected{% endif %}>{% trans "Рейтинг (Р1/Р2)" %}</option>
+                            <option value="EXAM" {% if col.col_type == 'EXAM' %}selected{% endif %}>{% trans "Экзамен" %}</option>
                         </select>
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label">Макс. балл</label>
+                            <label class="form-label">{% trans "Макс. балл" %}</label>
                             <input type="number" step="0.1" name="max_score" class="form-control" value="{{ col.max_score|stringformat:'s' }}" required>
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label">Порядок</label>
+                            <label class="form-label">{% trans "Порядок" %}</label>
                             <input type="number" name="order" class="form-control" value="{{ col.order }}" required>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Сохранить" %}</button>
                 </div>
             </form>
         </div>

@@ -1,19 +1,23 @@
 {% extends 'base.html' %}
+{% load i18n %}
+
 {% block breadcrumbs %}
-    <li class="breadcrumb-item active">Предметы</li>
+    <li class="breadcrumb-item active">{% trans "Предметы" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3><i class="bi bi-book"></i> Предметы семестра</h3>
+            <h3><i class="bi bi-book"></i> {% trans "Предметы семестра" %}</h3>
             <div>
+                {% trans "Импорт нагрузки (Excel)" as import_excel_text %}
                 <a href="{% url 'schedule:import_department_load' %}" class="btn btn-success me-2">
-                    <i class="bi bi-file-earmark-excel"></i> Импорт нагрузки (Excel)
+                    <i class="bi bi-file-earmark-excel"></i> {{ import_excel_text }}
                 </a>
+                {% trans "Генерировать из РУП" as generate_text %}
                 <a href="{% url 'schedule:generate_subjects' %}" class="btn btn-warning">
-                    <i class="bi bi-magic"></i> Генерировать из РУП
+                    <i class="bi bi-magic"></i> {{ generate_text }}
                 </a>
             </div>
         </div>
@@ -24,12 +28,12 @@
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-4">Предмет</th>
-                                <th>Тип</th>
-                                <th>Преподаватель</th>
-                                <th>Группы</th>
-                                <th>Силлабус</th>
-                                <th class="text-end pe-4">Действия</th>
+                                <th class="ps-4">{% trans "Предмет" %}</th>
+                                <th>{% trans "Тип" %}</th>
+                                <th>{% trans "Преподаватель" %}</th>
+                                <th>{% trans "Группы" %}</th>
+                                <th>{% trans "Силлабус" %}</th>
+                                <th class="text-end pe-4">{% trans "Действия" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -38,23 +42,24 @@
                                 <td class="ps-4">
                                     <strong>{{ subject.name }}</strong>
                                     {% if subject.plan_discipline %}
-                                        <br><small class="text-muted">из РУП: {{ subject.plan_discipline.plan.specialty.code }}</small>
+                                        <br><small class="text-muted">{% trans "из РУП:" %} {{ subject.plan_discipline.plan.specialty.code }}</small>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if subject.is_stream_subject %}
-                                        <span class="badge bg-indigo">ПОТОК</span>
+                                        <span class="badge bg-indigo">{% trans "ПОТОК" %}</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">Группа</span>
+                                        <span class="badge bg-secondary">{% trans "Группа" %}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if subject.teacher %}
                                         {{ subject.teacher.user.get_full_name }}
                                     {% else %}
-                                        <span class="text-danger small fw-bold">Не назначен</span>
+                                        <span class="text-danger small fw-bold">{% trans "Не назначен" %}</span>
                                         <br>
-                                        <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-sm btn-outline-primary mt-1 py-0 px-2" style="font-size: 0.75rem;">Назначить</a>
+                                        {% trans "Назначить" as assign_text %}
+                                        <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-sm btn-outline-primary mt-1 py-0 px-2" style="font-size: 0.75rem;">{{ assign_text }}</a>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -67,7 +72,8 @@
                                 </td>
                                 <td>
                                     {% if subject.syllabus_file %}
-                                        <a href="{{ subject.syllabus_file.url }}" target="_blank" class="btn btn-sm btn-outline-info" title="Скачать">
+                                        {% trans "Скачать" as download_text %}
+                                        <a href="{{ subject.syllabus_file.url }}" target="_blank" class="btn btn-sm btn-outline-info" title="{{ download_text }}">
                                             <i class="bi bi-file-earmark-arrow-down"></i>
                                         </a>
                                     {% else %}
@@ -78,19 +84,26 @@
                                     <a href="{% url 'schedule:edit_subject' subject.id %}" class="btn btn-sm btn-light text-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-light text-warning" data-bs-toggle="modal" data-bs-target="#splitModal{{ subject.id }}" title="Разделить кредиты/часы">
+                                    {% trans "Разделить кредиты/часы" as split_title %}
+                                    <button type="button" class="btn btn-sm btn-light text-warning" data-bs-toggle="modal" data-bs-target="#splitModal{{ subject.id }}" title="{{ split_title }}">
                                         <i class="bi bi-scissors"></i>
                                     </button>
-                                    <a href="{% url 'schedule:toggle_subject_active' subject.id %}" class="btn btn-sm btn-light {% if subject.is_active|default:True %}text-success{% else %}text-secondary{% endif %}" title="Вкл/Выкл активность">
+                                    {% trans "Вкл/Выкл активность" as toggle_title %}
+                                    <a href="{% url 'schedule:toggle_subject_active' subject.id %}" class="btn btn-sm btn-light {% if subject.is_active|default:True %}text-success{% else %}text-secondary{% endif %}" title="{{ toggle_title }}">
                                         <i class="bi bi-power"></i>
                                     </a>
-                                    <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-sm btn-light text-danger" onclick="return confirm('Удалить?')">
+                                    {% trans "Удалить?" as confirm_delete %}
+                                    <a href="{% url 'schedule:delete_subject' subject.id %}" class="btn btn-sm btn-light text-danger" onclick="return confirm('{{ confirm_delete|escapejs }}')">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="6" class="text-center py-4 text-muted">Предметы не найдены. Сгенерируйте их из РУП.</td></tr>
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    {% trans "Предметы не найдены. Сгенерируйте их из РУП." %}
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -107,41 +120,45 @@
             <form action="{% url 'schedule:split_subject_load' subject.id %}" method="post">
                 {% csrf_token %}
                 <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title"><i class="bi bi-scissors"></i> Перераспределение нагрузки</h5>
+                    <h5 class="modal-title"><i class="bi bi-scissors"></i> {% trans "Перераспределение нагрузки" %}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted">Укажите, сколько часов/кредитов нужно "отщипнуть" от <strong>{{ subject.name }}</strong> и передать другому преподавателю.</p>
-                    
+                    <p class="small text-muted">
+                        {% blocktrans with subject_name=subject.name trimmed %}
+                            Укажите, сколько часов/кредитов нужно "отщипнуть" от <strong>{{ subject_name }}</strong> и передать другому преподавателю.
+                        {% endblocktrans %}
+                    </p>
+
                     <div class="row g-2 mb-3">
                         <div class="col-3">
-                            <label class="small fw-bold">Кредиты</label>
+                            <label class="small fw-bold">{% trans "Кредиты" %}</label>
                             <input type="number" name="transfer_credits" class="form-control" value="0" max="{{ subject.credits }}">
                         </div>
                         <div class="col-3">
-                            <label class="small fw-bold">Лекции</label>
+                            <label class="small fw-bold">{% trans "Лекции" %}</label>
                             <input type="number" name="transfer_lec" class="form-control" value="0" max="{{ subject.lecture_hours }}">
                         </div>
                         <div class="col-3">
-                            <label class="small fw-bold">Практика</label>
+                            <label class="small fw-bold">{% trans "Практика" %}</label>
                             <input type="number" name="transfer_prac" class="form-control" value="0" max="{{ subject.practice_hours }}">
                         </div>
                         <div class="col-3">
-                            <label class="small fw-bold">Лаб.</label>
+                            <label class="small fw-bold">{% trans "Лаб." %}</label>
                             <input type="number" name="transfer_lab" class="form-control" value="0" max="{{ subject.lab_hours }}">
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label class="fw-bold">Передать преподавателю:</label>
+                        <label class="fw-bold">{% trans "Передать преподавателю:" %}</label>
                         <select name="new_teacher_id" class="form-select" required>
-                            <option value="">-- Выберите преподавателя --</option>
+                            <option value="">{% trans "-- Выберите преподавателя --" %}</option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-warning fw-bold">Разделить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-warning fw-bold">{% trans "Разделить" %}</button>
                 </div>
             </form>
         </div>

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Тестирование{% endblock %}
 {% load i18n %}
+{% block title %}{% trans "Тестирование" %}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -12,8 +12,8 @@
                 {% for q in questions %}
                 <div class="card shadow-sm border-0 mb-4" id="q{{ forloop.counter }}">
                     <div class="card-header bg-light d-flex justify-content-between">
-                        <span class="fw-bold">Вопрос {{ forloop.counter }}</span>
-                        <span class="badge bg-secondary">{{ q.default_mark }} балла</span>
+                        <span class="fw-bold">{% trans "Вопрос" %} {{ forloop.counter }}</span>
+                        <span class="badge bg-secondary">{{ q.default_mark }} {% trans "балла" %}</span>
                     </div>
                     <div class="card-body fs-5">
                         <p>{{ q.text|safe }}</p>
@@ -34,14 +34,16 @@
                             </div>
                             {% endfor %}
                         {% elif q.q_type == 'TEXT' or q.q_type == 'ESSAY' %}
-                            <textarea name="question_{{ q.id }}" class="form-control" rows="4" placeholder="Введите ваш ответ..."></textarea>
+                            {% trans "Введите ваш ответ..." as answer_placeholder %}
+                            <textarea name="question_{{ q.id }}" class="form-control" rows="4" placeholder="{{ answer_placeholder }}"></textarea>
                         {% endif %}
                     </div>
                 </div>
                 {% endfor %}
                 
+                {% trans "Завершить тест и отправить ответы" as submit_text %}
                 <button type="submit" class="btn btn-success btn-lg w-100 shadow" id="submitBtn">
-                    Завершить тест и отправить ответы
+                    {{ submit_text }}
                 </button>
             </form>
         </div>
@@ -67,7 +69,6 @@
 </div>
 
 {% if quiz.time_limit_minutes > 0 %}
-{% if quiz.time_limit_minutes > 0 %}
 <script>
     const startTimeStr = "{{ attempt.start_time|date:'c' }}"; 
     const startTime = new Date(startTimeStr).getTime();
@@ -76,6 +77,7 @@
     
     const endTime = startTime + limitMs;
     const display = document.getElementById('timerDisplay');
+    {% trans "Время вышло. Отправка..." as timeout_msg %}
 
     const timer = setInterval(function() {
         const now = new Date().getTime();
@@ -85,7 +87,7 @@
             clearInterval(timer);
             display.innerHTML = "00:00";
             display.classList.replace('text-primary', 'text-danger');
-            document.getElementById('submitBtn').innerHTML = 'Время вышло. Отправка...';
+            document.getElementById('submitBtn').innerHTML = '{{ timeout_msg|escapejs }}';
             document.getElementById('quizForm').submit();
             return;
         }
@@ -101,5 +103,5 @@
         }
     }, 1000);
 </script>
-{% endif %}{% endif %}
+{% endif %}
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}История изменений{% endblock %}
+{% block title %}{% trans "История изменений" %}{% endblock %}
 
 {% block content %}
 <div class="row mt-4">
@@ -9,10 +10,10 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>
                     <i class="bi bi-clock-history"></i> 
-                    История изменений: {{ group.name }} - {{ subject.name }}
+                    {% trans "История изменений:" %} {{ group.name }} - {{ subject.name }}
                 </span>
                 <a href="{% url 'journal:journal_view' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> К журналу
+                    <i class="bi bi-arrow-left"></i> {% trans "К журналу" %}
                 </a>
             </div>
             <div class="card-body">
@@ -36,10 +37,10 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-sm mt-2">
-                        <i class="bi bi-funnel"></i> Применить фильтры
+                        <i class="bi bi-funnel"></i> {% trans "Применить фильтры" %}
                     </button>
                     <a href="{% url 'journal:change_log' %}?group={{ group.id }}&subject={{ subject.id }}" class="btn btn-outline-secondary btn-sm mt-2">
-                        <i class="bi bi-x-circle"></i> Сбросить
+                        <i class="bi bi-x-circle"></i> {% trans "Сбросить" %}
                     </a>
                 </form>
 
@@ -47,22 +48,22 @@
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">
                         <thead class="table-light">
-                            <tr>
-                                <th>Дата и время</th>
-                                <th>Преподаватель</th>
-                                <th>Студент</th>
-                                <th>Дата занятия</th>
-                                <th>Изменение</th>
-                            </tr>
+                             <tr>
+                                <th>{% trans "Дата и время" %}</th>
+                                <th>{% trans "Преподаватель" %}</th>
+                                <th>{% trans "Студент" %}</th>
+                                <th>{% trans "Дата занятия" %}</th>
+                                <th>{% trans "Изменение" %}</th>
+                             </tr>
                         </thead>
                         <tbody>
                             {% for log in logs %}
-                            <tr>
+                             <tr>
                                 <td>
                                     <small>{{ log.changed_at|date:"d.m.Y H:i:s" }}</small>
                                 </td>
                                 <td>
-                                    {{ log.changed_by.user.get_full_name|default:"Система" }}
+                                    {{ log.changed_by.user.get_full_name|default:_("Система") }}
                                 </td>
                                 <td>
                                     {{ log.entry.student.user.get_full_name }}
@@ -76,7 +77,7 @@
                                         <br><small class="text-muted">{{ log.comment }}</small>
                                     {% endif %}
                                 </td>
-                            </tr>
+                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -84,11 +85,11 @@
                 
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i> 
-                    Показано последние 100 записей. Используйте фильтры для уточнения поиска.
+                    {% trans "Показано последние 100 записей. Используйте фильтры для уточнения поиска." %}
                 </div>
                 {% else %}
                 <div class="alert alert-warning text-center">
-                    <i class="bi bi-inbox"></i> Изменений не найдено
+                    <i class="bi bi-inbox"></i> {% trans "Изменений не найдено" %}
                 </div>
                 {% endif %}
             </div>

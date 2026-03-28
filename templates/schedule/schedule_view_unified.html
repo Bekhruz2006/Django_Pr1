@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 {% load schedule_filters %}
 
-{% block title %}Расписание{% endblock %}
+{% block title %}{% trans "Расписание" %}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item active">Расписание занятий</li>
+    <li class="breadcrumb-item active">{% trans "Расписание занятий" %}</li>
 {% endblock %}
 {% block content %}
 <div class="row mt-4">
@@ -12,16 +13,16 @@
     <div class="col-12">
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
-                <i class="bi bi-people"></i> Выбор расписания
+                <i class="bi bi-people"></i> {% trans "Выбор расписания" %}
             </div>
             <div class="card-body">
                 <form method="get">
                     <div class="row g-3">
                         {% if institutes %}
                         <div class="col-md-3">
-                            <label class="form-label">Институт</label>
+                            <label class="form-label">{% trans "Институт" %}</label>
                             <select class="form-select" name="institute" onchange="this.form.submit()">
-                                <option value="">-- Все институты --</option>
+                                <option value="">{% trans "-- Все институты --" %}</option>
                                 {% for inst in institutes %}
                                     <option value="{{ inst.id }}" {% if request.GET.institute == inst.id|stringformat:"s" %}selected{% endif %}>
                                         {{ inst.name }}
@@ -31,12 +32,12 @@
                         </div>
                         {% endif %}
                         <div class="col-md-{% if institutes %}7{% else %}10{% endif %}">
-                            <label class="form-label">Группа</label>
+                            <label class="form-label">{% trans "Группа" %}</label>
                             <select class="form-select" name="group" onchange="this.form.submit()">
-                                <option value="">{% if user.role == 'TEACHER' %}-- Показать мое расписание (Все группы) --{% else %}Выбрать...{% endif %}</option>
+                                <option value="">{% if user.role == 'TEACHER' %}{% trans "-- Показать мое расписание (Все группы) --" %}{% else %}{% trans "Выбрать..." %}{% endif %}</option>
                                 {% for g in groups %}
                                     <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>
-                                        {{ g.name }} - {{ g.specialty|truncatewords:8 }} ({{ g.students.count }} чел.)
+                                        {{ g.name }} - {{ g.specialty|truncatewords:8 }} ({{ g.students.count }} {% trans "чел." %})
                                     </option>
                                 {% endfor %}
                             </select>
@@ -44,7 +45,7 @@
                         <div class="col-md-2">
                             <label class="form-label">&nbsp;</label>
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-arrow-clockwise"></i> Загрузить
+                                <i class="bi bi-arrow-clockwise"></i> {% trans "Загрузить" %}
                             </button>
                         </div>
                     </div>
@@ -59,21 +60,21 @@
         <div class="card">
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <span>
-                    <i class="bi bi-calendar-week"></i> РАСПИСАНИЕ - {% if is_teacher_view %}МОИ ЗАНЯТИЯ{% else %}{{ group.name }}{% endif %}
+                    <i class="bi bi-calendar-week"></i> {% trans "РАСПИСАНИЕ -" %} {% if is_teacher_view %}{% trans "МОИ ЗАНЯТИЯ" %}{% else %}{{ group.name }}{% endif %}
                 </span>
                 <div>
                     {% if group %}
                     <div class="btn-group">
-                        <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-success btn-sm" title="Скачать на текущем языке сайта">
-                            <i class="bi bi-file-word"></i> Экспорт DOCX
+                        <a href="{% url 'schedule:export' %}?group={{ group.id }}" class="btn btn-success btn-sm" title="{% trans "Скачать на текущем языке сайта" %}">
+                            <i class="bi bi-file-word"></i> {% trans "Экспорт DOCX" %}
                         </a>
                         <button type="button" class="btn btn-success btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="visually-hidden">Выбор языка</span>
+                            <span class="visually-hidden">{% trans "Выбор языка" %}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=ru">На русском</a></li>
-                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=tg">Бо тоҷикӣ</a></li>
-                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=en">In English</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=ru">{% trans "На русском" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=tg">{% trans "Бо тоҷикӣ" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=en">{% trans "In English" %}</a></li>
                         </ul>
                     </div>
                     {% endif %}
@@ -85,10 +86,10 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 80px; vertical-align: middle; text-align: center;">
-                                    <strong>ДЕНЬ НЕДЕЛИ<br>ЧАС</strong>
+                                    <strong>{% trans "ДЕНЬ НЕДЕЛИ<br>ЧАС" %}</strong>
                                 </th>
-                                <th style="width: 90%;">Урок / {% if is_teacher_view %}Группа{% else %}Преподаватель{% endif %}</th>
-                            </tr>
+                                <th style="width: 90%;">{% trans "Урок /" %} {% if is_teacher_view %}{% trans "Группа" %}{% else %}{% trans "Преподаватель" %}{% endif %}</th>
+                             </tr>
                         </thead>
                         <tbody>
                             {% for day_num, day_name in days %}
@@ -116,8 +117,8 @@
                                                             <strong style="font-size: 0.95rem;" class="text-dark">{{ slot.subject.name }}</strong>
                                                             <div>
                                                                 <span class="badge bg-{{ slot.get_color_class }}">{{ slot.get_lesson_type_display }}</span>
-                                                                {% if slot.week_type == 'RED' %}<span class="badge bg-danger">Красная</span>{% endif %}
-                                                                {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary">Синяя</span>{% endif %}
+                                                                {% if slot.week_type == 'RED' %}<span class="badge bg-danger">{% trans "Красная" %}</span>{% endif %}
+                                                                {% if slot.week_type == 'BLUE' %}<span class="badge bg-primary">{% trans "Синяя" %}</span>{% endif %}
                                                             </div>
                                                         </div>
                                                         <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" style="border-color: rgba(0,0,0,0.08) !important;">
@@ -150,10 +151,10 @@
 
         <div class="card mt-3">
             <div class="card-body">
-                <h6>Обозначения:</h6>
-                <span class="badge bg-primary me-2">Лекция</span>
-                <span class="badge bg-success me-2">Практика</span>
-                <span class="badge bg-warning me-2">СРСП (КМРО)</span>
+                <h6>{% trans "Обозначения:" %}</h6>
+                <span class="badge bg-primary me-2">{% trans "Лекция" %}</span>
+                <span class="badge bg-success me-2">{% trans "Практика" %}</span>
+                <span class="badge bg-warning me-2">{% trans "СРСП (КМРО)" %}</span>
             </div>
         </div>
     </div>
@@ -162,9 +163,9 @@
             <div class="alert alert-info text-center">
                 <i class="bi bi-info-circle"></i>
                 {% if user.role == 'STUDENT' %}
-                    Расписание для вашей группы пока не составлено. Обратитесь к декану.
+                    {% trans "Расписание для вашей группы пока не составлено. Обратитесь к декану." %}
                 {% else %}
-                    Выберите группу для просмотра расписания.
+                    {% trans "Выберите группу для просмотра расписания." %}
                 {% endif %}
             </div>
         </div>

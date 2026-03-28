@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}{{ module.title }}{% endblock %}
 {% load i18n %}
+{% block title %}{{ module.title }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -15,12 +15,18 @@
                 <div class="col-md-4">
                     <div class="p-3 bg-white rounded shadow-sm">
                         <h6 class="text-muted small text-uppercase">{% trans "Лимит времени" %}</h6>
-                        <h4 class="mb-0">{% if quiz.time_limit_minutes > 0 %}{{ quiz.time_limit_minutes }} мин{% else %}Без лимита{% endif %}</h4>
+                        <h4 class="mb-0">
+                            {% if quiz.time_limit_minutes > 0 %}
+                                {{ quiz.time_limit_minutes }} {% trans "мин" %}
+                            {% else %}
+                                {% trans "Без лимита" %}
+                            {% endif %}
+                        </h4>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="p-3 bg-white rounded shadow-sm">
-                        <h6 class="text-muted small text-uppercase">Попыток</h6>
+                        <h6 class="text-muted small text-uppercase">{% trans "Попыток" %}</h6>
                         <h4 class="mb-0">{{ attempts.count }} / {% if quiz.max_attempts > 0 %}{{ quiz.max_attempts }}{% else %}∞{% endif %}</h4>
                     </div>
                 </div>
@@ -37,9 +43,9 @@
             <table class="table table-bordered bg-white">
                 <thead class="table-light">
                     <tr>
-                        <th>Дата</th>
-                        <th>Статус</th>
-                        <th>Балл</th>
+                        <th>{% trans "Дата" %}</th>
+                        <th>{% trans "Статус" %}</th>
+                        <th>{% trans "Балл" %}</th>
                     </tr>
                 </thead>
                 <tbody>

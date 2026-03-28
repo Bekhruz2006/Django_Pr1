@@ -7,6 +7,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 
+ROSETTA_EXCLUDED_PATHS = (
+    os.path.join(BASE_DIR, 'venv'),
+    os.path.join(BASE_DIR, 'env'),
+)
+
+
 LOGS_DIR = BASE_DIR / 'logs'
 LOGS_DIR.mkdir(exist_ok=True)
 

@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Нагрузка преподавателей{% endblock %}
+{% block title %}{% trans "Нагрузка преподавателей" %}{% endblock %}
 {% block breadcrumbs %}
-    <li class="breadcrumb-item">Отчеты</li>
-    <li class="breadcrumb-item active">Сарбории омӯзгорон</li>
+    <li class="breadcrumb-item">{% trans "Отчеты" %}</li>
+    <li class="breadcrumb-item active">{% trans "Сарбории омӯзгорон" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -12,10 +13,10 @@
         <div class="card shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-primary">
-                    <i class="bi bi-speedometer2"></i> Нагрузка преподавателей (Сарборӣ)
+                    <i class="bi bi-speedometer2"></i> {% trans "Нагрузка преподавателей (Сарборӣ)" %}
                 </h5>
                 <button class="btn btn-outline-success btn-sm" onclick="window.print()">
-                    <i class="bi bi-printer"></i> Печать
+                    <i class="bi bi-printer"></i> {% trans "Печать" %}
                 </button>
             </div>
             <div class="card-body">
@@ -23,12 +24,12 @@
                     <table class="table table-hover align-middle table-bordered">
                         <thead class="table-light">
                             <tr>
-                                <th>Преподаватель</th>
-                                <th>Кафедра</th>
-                                <th class="text-center">Предметов</th>
-                                <th class="text-center">Общие часы</th>
-                                <th class="text-center">Кредиты</th>
-                                <th>Краткий список дисциплин</th>
+                                <th>{% trans "Преподаватель" %}</th>
+                                <th>{% trans "Кафедра" %}</th>
+                                <th class="text-center">{% trans "Предметов" %}</th>
+                                <th class="text-center">{% trans "Общие часы" %}</th>
+                                <th class="text-center">{% trans "Кредиты" %}</th>
+                                <th>{% trans "Краткий список дисциплин" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,7 +52,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="6" class="text-center py-4">Нет данных</td>
+                                <td colspan="6" class="text-center py-4">{% trans "Нет данных" %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
