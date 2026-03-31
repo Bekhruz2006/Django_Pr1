@@ -305,18 +305,106 @@
 
     <div class="col-md-8">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <h5 class="mb-0 text-dark">{% trans "Дисциплины" %} {{ current_sem_num }}-{% trans "го семестра" %}</h5>
-                <div class="d-flex gap-2">
-                    <form action="{% url 'schedule:import_rup_excel' plan.id current_sem_num %}" method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
+                    <form id="rupImportForm" action="{% url 'schedule:import_rup_excel' plan.id current_sem_num %}" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-3">
                         {% csrf_token %}
-                        <input type="file" name="file" class="form-control form-control-sm w-auto" accept=".xlsx" required title="{% trans 'Выберите Excel файл' %}">
-                        <button type="submit" class="btn btn-sm btn-success">
-                            <i class="bi bi-file-earmark-excel"></i> {% trans "Импорт из Excel" %}
+                        <div class="d-flex flex-column gap-1 border-end pe-3">
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="radio" name="parse_method" id="methodStandard" value="standard" checked>
+                                <label class="form-check-label small fw-bold text-success" for="methodStandard">Стандартный алгоритм</label>
+                            </div>
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="radio" name="parse_method" id="methodLLM" value="llm">
+                                <label class="form-check-label small fw-bold text-primary" for="methodLLM">Нейросеть (Экспериментально)</label>
+                            </div>
+                        </div>
+                        <input type="file" name="file" id="rupFileInput" class="form-control form-control-sm w-auto" accept=".xlsx,.pdf" required title="{% trans 'Выберите файл' %}">
+                        <button type="submit" id="rupSubmitBtn" class="btn btn-sm btn-success fw-bold px-3">
+                            <i class="bi bi-file-earmark-arrow-up"></i> {% trans "Импорт" %}
                         </button>
                     </form>
                 </div>
             </div>
+
+<div class="modal fade" id="rupProgressModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-5">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                <h5 class="fw-bold text-dark mb-2">Нейросеть анализирует РУП...</h5>
+                <p class="text-muted small mb-4">Это может занять от 30 секунд до 2 минут. Пожалуйста, не закрывайте вкладку.</p>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-100 bg-primary"></div>
+                </div>
+                <div id="rupErrorAlert" class="alert alert-danger mt-3 d-none small text-start"></div>
+                <button type="button" id="rupCloseModalBtn" class="btn btn-secondary btn-sm mt-4 d-none" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('rupImportForm').addEventListener('submit', function(e) {
+    const isLLM = document.getElementById('methodLLM').checked;
+    if (!isLLM) return;
+
+    e.preventDefault();
+    const fileInput = document.getElementById('rupFileInput');
+    if (!fileInput.files.length) return;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    const modal = new bootstrap.Modal(document.getElementById('rupProgressModal'));
+    modal.show();
+    
+    document.getElementById('rupErrorAlert').classList.add('d-none');
+    document.getElementById('rupCloseModalBtn').classList.add('d-none');
+
+    fetch("{% url 'schedule:rup_parse_start' %}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) throw new Error(data.error);
+        pollRupTask(data.task_id);
+    })
+    .catch(err => showRupError(err.message));
+
+    function pollRupTask(taskId) {
+        const interval = setInterval(() => {
+            fetch(`/schedule/api/rup/parse/status/${taskId}/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'SUCCESS') {
+                    clearInterval(interval);
+                    e.target.submit();
+                } else if (data.status === 'FAILURE') {
+                    clearInterval(interval);
+                    showRupError(data.error || 'Ошибка при разборе ИИ. Попробуйте стандартный алгоритм.');
+                }
+            })
+            .catch(err => {
+                clearInterval(interval);
+                showRupError('Ошибка сети при опросе статуса.');
+            });
+        }, 2000);
+    }
+
+    function showRupError(msg) {
+        const errEl = document.getElementById('rupErrorAlert');
+        errEl.textContent = msg;
+        errEl.classList.remove('d-none');
+        document.getElementById('rupCloseModalBtn').classList.remove('d-none');
+        document.querySelector('#rupProgressModal .spinner-border').classList.add('d-none');
+        document.querySelector('#rupProgressModal .progress').classList.add('d-none');
+    }
+});
+</script>
 
             <div class="card-body p-0">
                 {% if is_overloaded %}

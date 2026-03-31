@@ -103,10 +103,8 @@
                         <label class="form-label fw-bold small text-primary">{% trans "Новая группа (для перевода) *" %}</label>
                         <select name="target_group" class="form-select border-primary" id="targetGroupSelect">
                             <option value="">-- {% trans "Выберите группу" %} --</option>
-                            {% for g in groups %}
-                                <option value="{{ g.id }}">{{ g.name }}</option>
-                            {% endfor %}
                         </select>
+                        <div class="form-text text-muted small"><i class="bi bi-search"></i> Введите название группы (минимум 2 символа). AJAX-поиск.</div>
                     </div>
 
                     <div class="mb-3">
@@ -270,9 +268,8 @@
         } else {
             targetDiv.style.display = 'none';
             targetSelect.required = false;
-            targetSelect.value = '';
             if (typeof jQuery !== 'undefined') {
-                jQuery('#targetGroupSelect').val('').trigger('change');
+                jQuery('#targetGroupSelect').val(null).trigger('change');
             }
         }
     }
@@ -295,9 +292,42 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     jQuery(document).ready(function($) {
-        $('#groupSelect, #orderTypeSelect, #targetGroupSelect').select2({
+        $('#orderTypeSelect').select2({
             width: '100%',
-            placeholder: "{% trans 'Начните вводить для поиска...' %}"
+            placeholder: "{% trans 'Выберите опцию...' %}"
+        });
+
+        $('#groupSelect').select2({
+            width: '100%',
+            placeholder: "{% trans 'Начните вводить название группы...' %}",
+            minimumInputLength: 2,
+            ajax: {
+                url: '/accounts/api/search/groups/',
+                dataType: 'json',
+                delay: 300,
+                data: function (params) { return { q: params.term }; },
+                processResults: function (data) {
+                    return { results: data.results.map(function(item) { return { id: item.id, text: item.text }; }) };
+                },
+                cache: true
+            }
+        });
+
+        $('#targetGroupSelect').select2({
+            dropdownParent: $('#targetGroupDiv'),
+            width: '100%',
+            placeholder: "{% trans 'Начните вводить название группы...' %}",
+            minimumInputLength: 2,
+            ajax: {
+                url: '/accounts/api/search/groups/',
+                dataType: 'json',
+                delay: 300,
+                data: function (params) { return { q: params.term }; },
+                processResults: function (data) {
+                    return { results: data.results.map(function(item) { return { id: item.id, text: item.text }; }) };
+                },
+                cache: true
+            }
         });
     });
 </script>

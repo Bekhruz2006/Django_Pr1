@@ -413,6 +413,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createSlot(group, day, timeSlot, subject, type, weekType, isForce = false) {
+        const dropZone = document.querySelector(`.schedule-drop-zone[data-day="${day}"][data-time-slot="${timeSlot}"]`);
+        let tempSlot = null;
+        
+        if (dropZone) {
+            dropZone.style.opacity = '0.7';
+            dropZone.style.pointerEvents = 'none';
+            const empty = dropZone.querySelector('.empty-slot');
+            if (empty) empty.remove();
+            tempSlot = document.createElement('div');
+            tempSlot.className = 'lesson-card p-2 rounded shadow-sm d-flex justify-content-center align-items-center bg-light temp-slot mt-1';
+            tempSlot.innerHTML = '<div class="spinner-border text-primary spinner-border-sm"></div>';
+            dropZone.appendChild(tempSlot);
+        }
+
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
@@ -424,8 +438,16 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            if (dropZone) {
+                dropZone.style.opacity = '1';
+                dropZone.style.pointerEvents = 'auto';
+                if (tempSlot) tempSlot.remove();
+            }
+
             if (data.success) {
-                location.reload();
+                if (dropZone && data.html) {
+                    dropZone.insertAdjacentHTML('beforeend', data.html);
+                }
             } else {
                 if (data.is_conflict) {
                     document.getElementById('conflictMessage').innerHTML = `
@@ -447,7 +469,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         })
-        .catch(err => alert('{% trans "Ошибка сети:" %} ' + err));
+        .catch(err => {
+            if (dropZone) {
+                dropZone.style.opacity = '1';
+                dropZone.style.pointerEvents = 'auto';
+                if (tempSlot) tempSlot.remove();
+            }
+            alert('{% trans "Ошибка сети:" %} ' + err);
+        });
     }
 
     const forceBtn = document.getElementById('forceSaveBtn');
@@ -527,6 +556,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!confirm('{% trans "Удалить занятие? Если это поток, удалится у всех групп." %}')) return;
         const slotId = btn.dataset.slotId;
         if (!slotId) return;
+
+        const card = btn.closest('.lesson-card');
+        const zone = card.closest('.schedule-drop-zone');
+        
+        card.style.pointerEvents = 'none';
+        card.style.opacity = '0.5';
+
         fetch('/schedule/constructor/delete/' + slotId + '/', {
             method: 'POST',
             headers: {'X-CSRFToken': csrftoken}
@@ -534,16 +570,36 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => safeJson(r))
         .then(data => {
             if (data.success) {
-                location.reload();
-            } else alert(data.error || '{% trans "Ошибка удаления" %}');
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    card.remove();
+                    if(zone && zone.querySelectorAll('.lesson-card').length === 0) {
+                        zone.innerHTML = '<div class="empty-slot d-flex align-items-center justify-content-center text-muted h-100" style="min-height: 60px; border: 2px dashed #eee; border-radius: 4px;"><small class="opacity-50">{% trans "Свободно" %}</small></div>';
+                    }
+                }, 300);
+            } else {
+                alert(data.error || '{% trans "Ошибка удаления" %}');
+                card.style.pointerEvents = '';
+                card.style.opacity = '1';
+            }
         })
-        .catch(err => { alert('{% trans "Ошибка соединения:" %} ' + (err.message || err)); });
+        .catch(err => { 
+            alert('{% trans "Ошибка соединения:" %} ' + (err.message || err)); 
+            card.style.pointerEvents = '';
+            card.style.opacity = '1';
+        });
     });
     window.isConfirmingRoom = false;
 
 window.saveAud = function(input, slotId, isForce = false) {
     const val = input.value; 
     window.isConfirmingRoom = true;
+    
+    const originalBg = input.style.backgroundColor;
+    input.style.backgroundColor = '#e9ecef';
+    input.disabled = true;
 
     fetch(`/schedule/constructor/update-room/${slotId}/`, {
         method: 'POST',
@@ -555,9 +611,13 @@ window.saveAud = function(input, slotId, isForce = false) {
     })
     .then(res => res.json())
     .then(data => {
+        input.disabled = false;
+        input.style.backgroundColor = originalBg;
+
         if(data.success) {
             input.value = data.room;
             input.dataset.oldValue = data.room;
+            input.style.transition = 'background-color 0.3s ease';
             input.classList.add('bg-success', 'text-white');
             setTimeout(() => input.classList.remove('bg-success', 'text-white'), 1000);
         } else {
@@ -566,6 +626,7 @@ window.saveAud = function(input, slotId, isForce = false) {
                     saveAud(input, slotId, true);
                 } else {
                     input.value = input.dataset.oldValue || "";
+                    input.focus();
                 }
             } else {
                 alert('{% trans "Ошибка:" %} ' + data.error);
@@ -575,9 +636,15 @@ window.saveAud = function(input, slotId, isForce = false) {
         }
     })
     .catch(err => {
+        input.disabled = false;
+        input.style.backgroundColor = originalBg;
         alert('{% trans "Ошибка сети" %}');
         console.error(err);
     })
+    .finally(() => {
+        window.isConfirmingRoom = false; 
+    });
+};
     .finally(() => {
         window.isConfirmingRoom = false; 
     });

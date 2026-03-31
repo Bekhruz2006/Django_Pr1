@@ -60,5 +60,6 @@ urlpatterns = [
     path('structure/specialization/edit/<int:pk>/', views.edit_specialization, name='edit_specialization'),
     path('structure/specialization/delete/<int:pk>/', views.delete_specialization, name='delete_specialization'),
     path('api/users/search/', views.select2_user_search, name='select2_user_search'),
+    path('api/search/groups/', views.select2_group_search, name='select2_group_search'),
 
 ]

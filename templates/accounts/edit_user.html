@@ -193,6 +193,22 @@
             width: '100%',
             tags: true
         });
+
+        $('.select2-ajax-users').select2({
+            ajax: {
+                url: '/accounts/api/users/search/',
+                dataType: 'json',
+                delay: 300,
+                data: function (params) { 
+                    return { q: params.term }; 
+                },
+                processResults: function (data) { 
+                    return { results: data.results }; 
+                }
+            },
+            minimumInputLength: 3,
+            placeholder: "Начните вводить ФИО или зачетку..."
+        });
     });
 </script>
 

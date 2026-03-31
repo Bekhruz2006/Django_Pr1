@@ -1977,6 +1977,47 @@ def select2_user_search(request):
 
     return JsonResponse({'results': results})
 
+@login_required
+@user_passes_test(is_management)
+def select2_group_search(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+
+    user = request.user
+    groups_qs = Group.objects.select_related('specialty')
+
+    if user.is_superuser:
+        pass
+    elif hasattr(user, 'dean_profile') and getattr(user.dean_profile, 'faculty', None):
+        faculty = user.dean_profile.faculty
+        groups_qs = groups_qs.filter(specialty__department__faculty=faculty)
+    elif hasattr(user, 'vicedean_profile') and getattr(user.vicedean_profile, 'faculty', None):
+        faculty = user.vicedean_profile.faculty
+        groups_qs = groups_qs.filter(specialty__department__faculty=faculty)
+    elif hasattr(user, 'head_of_dept_profile') and getattr(user.head_of_dept_profile, 'department', None):
+        dept = user.head_of_dept_profile.department
+        groups_qs = groups_qs.filter(specialty__department=dept)
+    elif hasattr(user, 'director_profile') and getattr(user.director_profile, 'institute', None):
+        institute = user.director_profile.institute
+        groups_qs = groups_qs.filter(specialty__department__faculty__institute=institute)
+    elif hasattr(user, 'prorector_profile') and getattr(user.prorector_profile, 'institute', None):
+        institute = user.prorector_profile.institute
+        groups_qs = groups_qs.filter(specialty__department__faculty__institute=institute)
+    else:
+        return JsonResponse({'results': []})
+
+    groups = groups_qs.filter(name__icontains=q)[:15]
+
+    results = []
+    for g in groups:
+        results.append({
+            'id': g.id,
+            'text': f"{g.name} ({g.course} курс)"
+        })
+
+    return JsonResponse({'results': results})
+
 
 
 

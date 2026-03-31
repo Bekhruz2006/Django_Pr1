@@ -98,30 +98,35 @@
             </div>
         </div>
 
+        <h6 class="bg-success text-white p-2 mb-0 mt-3 rounded-top"><i class="bi bi-bookmark-star-fill"></i> {% trans "Обязательные дисциплины" %}</h6>
+        <div class="bg-light p-3 border border-top-0 rounded-bottom mb-4">
         {% for item in preview_data %}
+        {% if item.type == 'REQUIRED' or not item.type %}
         <div id="card_{{ item.id }}"
-             class="card mb-3 shadow-sm{% if item.name == 'Нераспознанный предмет' %} border-warning{% endif %}">
+             class="card mb-3 shadow-sm">
 
             <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
-                 style="background:#f8fafc;">
+                 style="background:#f0fdf4;">
                 <div class="d-flex align-items-center gap-2 flex-grow-1 me-3">
                     <input type="checkbox" class="form-check-input flex-shrink-0 row-cb"
                            id="chk_{{ item.id }}" checked
                            onchange="toggleCard(this, '{{ item.id }}')">
-                    <input type="text"
-                           id="name_{{ item.id }}" name="name_{{ item.id }}"
-                           class="form-control form-control-sm fw-bold border-0 bg-transparent ps-0
-                                  {% if item.name == 'Нераспознанный предмет' %}text-warning{% endif %}"
-                           style="font-size:1rem;box-shadow:none;"
-                           value="{{ item.name }}" required>
+                    <div class="d-flex flex-column">
+                        <input type="text"
+                               id="name_{{ item.id }}" name="name_{{ item.id }}"
+                               class="form-control form-control-sm fw-bold border-0 bg-transparent ps-0"
+                               style="font-size:1rem;box-shadow:none;"
+                               value="{{ item.name }}" required>
+                        {% if item.is_new_template %}
+                        <span class="badge bg-warning text-dark mt-1" style="font-size: 0.65rem; width: fit-content;"><i class="bi bi-star"></i> Новый предмет (в справочник)</span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                     <span class="badge bg-light text-dark border" style="font-size:.75rem;">
                         #{{ forloop.counter }}
                     </span>
-                    {% if item.type == 'REQUIRED' %}<span class="badge bg-success">{% trans "Обязательная" %}</span>
-                    {% elif item.type == 'ELECTIVE' %}<span class="badge bg-warning text-dark">{% trans "По выбору" %}</span>
-                    {% else %}<span class="badge bg-info text-dark">{% trans "Практика" %}</span>{% endif %}
+                    <span class="badge bg-success">{% trans "Обязательная" %}</span>
                 </div>
             </div>
 
@@ -328,11 +333,249 @@
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="alert alert-warning">
-            <i class="bi bi-inbox me-2"></i>{% trans "Нет данных для отображения." %}
-        </div>
+        {% endif %}
         {% endfor %}
+        </div>
+
+        <h6 class="bg-warning text-dark p-2 mb-0 mt-4 rounded-top"><i class="bi bi-bookmark-plus-fill"></i> {% trans "Элективы / По выбору / Практика" %}</h6>
+        <div class="bg-light p-3 border border-top-0 rounded-bottom">
+        {% for item in preview_data %}
+        {% if item.type == 'ELECTIVE' or item.type == 'PRACTICE' %}
+        <div id="card_{{ item.id }}"
+             class="card mb-3 shadow-sm">
+
+            <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
+                 style="background:#fffbeb;">
+                <div class="d-flex align-items-center gap-2 flex-grow-1 me-3">
+                    <input type="checkbox" class="form-check-input flex-shrink-0 row-cb"
+                           id="chk_{{ item.id }}" checked
+                           onchange="toggleCard(this, '{{ item.id }}')">
+                    <div class="d-flex flex-column">
+                        <input type="text"
+                               id="name_{{ item.id }}" name="name_{{ item.id }}"
+                               class="form-control form-control-sm fw-bold border-0 bg-transparent ps-0"
+                               style="font-size:1rem;box-shadow:none;"
+                               value="{{ item.name }}" required>
+                        {% if item.is_new_template %}
+                        <span class="badge bg-warning text-dark mt-1" style="font-size: 0.65rem; width: fit-content;"><i class="bi bi-star"></i> Новый предмет (в справочник)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <span class="badge bg-light text-dark border" style="font-size:.75rem;">
+                        #{{ forloop.counter }}
+                    </span>
+                    {% if item.type == 'ELECTIVE' %}<span class="badge bg-warning text-dark">{% trans "По выбору" %}</span>
+                    {% elif item.type == 'PRACTICE' %}<span class="badge bg-info text-dark">{% trans "Практика" %}</span>{% endif %}
+                </div>
+            </div>
+
+            <div class="card-body py-3 px-3" id="body_{{ item.id }}">
+                <div class="row g-3">
+
+                    <div class="col-lg-5">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">{% trans "Семестр" %}</label>
+                                <input type="number" min="1" max="12"
+                                       id="semester_{{ item.id }}" name="semester_{{ item.id }}"
+                                       class="form-control text-center fw-bold" style="font-size:1.1rem;"
+                                       value="{{ semester_num }}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">{% trans "Тип блока" %}</label>
+                                <select id="type_{{ item.id }}" name="type_{{ item.id }}"
+                                        class="form-select">
+                                    <option value="REQUIRED" {% if item.type == 'REQUIRED' %}selected{% endif %}>{% trans "Обязательная" %}</option>
+                                    <option value="ELECTIVE"  {% if item.type == 'ELECTIVE'  %}selected{% endif %}>{% trans "По выбору" %}</option>
+                                    <option value="PRACTICE"  {% if item.type == 'PRACTICE'  %}selected{% endif %}>{% trans "Практика" %}</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 mt-1">
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">{% trans "Часы и кредиты" %}</label>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Кредиты" %}</label>
+                                        <input type="number" min="0" max="30"
+                                               id="credits_{{ item.id }}" name="credits_{{ item.id }}"
+                                               class="form-control text-center fw-bold text-primary"
+                                               style="font-size:1rem;" value="{{ item.credits }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Лекции" %}</label>
+                                        <input type="number" min="0"
+                                               id="lec_{{ item.id }}" name="lec_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.lec }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Практика" %}</label>
+                                        <input type="number" min="0"
+                                               id="prac_{{ item.id }}" name="prac_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.prac }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРСП" %}</label>
+                                        <input type="number" min="0"
+                                               id="srsp_{{ item.id }}" name="srsp_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.srsp }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРС" %}</label>
+                                        <input type="number" min="0"
+                                               id="srs_{{ item.id }}" name="srs_{{ item.id }}"
+                                               class="form-control text-center" value="{{ item.srs }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label mb-2 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                            {% trans "Группы" %} <span class="text-danger">*</span>
+                        </label>
+                        <div class="border rounded p-2" style="background:#f9fafb;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted" style="font-size:.75rem;">{% trans "Отметьте нужные" %}</span>
+                                <button type="button" class="btn btn-link p-0 text-primary" style="font-size:.75rem;"
+                                        onclick="selectAllGroups('{{ item.id }}')">{% trans "Все" %}</button>
+                            </div>
+                            {% for grp in plan_groups %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input group-check-{{ item.id }}"
+                                       type="checkbox"
+                                       id="grp_{{ item.id }}_{{ grp.id }}"
+                                       name="groups_{{ item.id }}" value="{{ grp.id }}"
+                                       {% if plan_groups|length == 1 %}checked{% endif %}>
+                                <label class="form-check-label" for="grp_{{ item.id }}_{{ grp.id }}">
+                                    <span class="fw-semibold">{{ grp.name }}</span>
+                                    <span class="text-muted" style="font-size:.8rem;">{{ grp.course }}к · {{ grp.language }}</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                            <div id="err_grp_{{ item.id }}" class="text-danger d-none mt-1" style="font-size:.75rem;">
+                                <i class="bi bi-exclamation-circle me-1"></i>{% trans "Выберите хотя бы одну группу" %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <label class="form-label mb-2 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                            <i class="bi bi-person-fill me-1"></i>{% trans "Преподаватель 1" %}
+                        </label>
+                        <select id="teacher1_{{ item.id }}" name="teacher1_{{ item.id }}"
+                                class="form-select mb-3">
+                            <option value="">— {% trans "Не назначен" %} —</option>
+                            {% for t in teachers %}
+                            <option value="{{ t.id }}">
+                                {{ t.user.get_full_name }}{% if t.department %} · {{ t.department.name|truncatechars:22 }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox"
+                                   id="split_{{ item.id }}" name="split_{{ item.id }}"
+                                   role="switch"
+                                   onchange="toggleSplit(this, '{{ item.id }}')">
+                            <label class="form-check-label fw-semibold text-primary" for="split_{{ item.id }}">
+                                <i class="bi bi-scissors me-1"></i>{% trans "Разделить нагрузку между двумя преподавателями" %}
+                            </label>
+                        </div>
+
+                        <div id="split_block_{{ item.id }}" class="d-none">
+                            <div class="border border-primary rounded p-3" style="background:#f0f4ff;">
+
+                                <label class="form-label mb-1 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                                    <i class="bi bi-person-fill text-primary me-1"></i>{% trans "Преподаватель 2" %}
+                                </label>
+                                <select id="teacher2_{{ item.id }}" name="teacher2_{{ item.id }}"
+                                        class="form-select mb-3">
+                                    <option value="">— {% trans "Выберите" %} —</option>
+                                    {% for t in teachers %}
+                                    <option value="{{ t.id }}">
+                                        {{ t.user.get_full_name }}{% if t.department %} · {{ t.department.name|truncatechars:22 }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+
+                                <label class="form-label mb-2 text-muted" style="font-size:.75rem;font-weight:600;text-transform:uppercase;">
+                                    {% trans "Часы преподавателя 2 (остаток — преподавателю 1)" %}
+                                </label>
+                                <div class="row g-2 mb-2">
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Кредиты" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_credits_{{ item.id }}" name="split_credits_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="credits_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Лекции" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_lec_{{ item.id }}" name="split_lec_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="lec_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "Практика" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_prac_{{ item.id }}" name="split_prac_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="prac_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРСП" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_srsp_{{ item.id }}" name="split_srsp_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="srsp_{{ item.id }}">
+                                    </div>
+                                    <div class="col">
+                                        <label class="d-block text-center text-muted" style="font-size:.72rem;">{% trans "СРС" %}</label>
+                                        <input type="number" min="0"
+                                               id="split_srs_{{ item.id }}" name="split_srs_{{ item.id }}"
+                                               class="form-control text-center split-field-{{ item.id }}"
+                                               value="0" data-total="srs_{{ item.id }}">
+                                    </div>
+                                </div>
+
+                                <div id="split_preview_{{ item.id }}" class="d-none">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="rounded p-2 text-center" style="background:#dcfce7;">
+                                                <div class="fw-bold text-success mb-1" style="font-size:.78rem;">
+                                                    <i class="bi bi-person-fill me-1"></i>{% trans "Преп. 1 получит" %}
+                                                </div>
+                                                <div id="preview1_{{ item.id }}" class="fw-semibold" style="font-size:.82rem;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="rounded p-2 text-center" style="background:#dbeafe;">
+                                                <div class="fw-bold text-primary mb-1" style="font-size:.78rem;">
+                                                    <i class="bi bi-person-fill me-1"></i>{% trans "Преп. 2 получит" %}
+                                                </div>
+                                                <div id="preview2_{{ item.id }}" class="fw-semibold" style="font-size:.82rem;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="err_split_{{ item.id }}" class="alert alert-danger py-1 px-2 mb-0 mt-2 d-none" style="font-size:.8rem;">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    <span id="err_split_msg_{{ item.id }}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        </div>
 
         <div class="d-flex justify-content-between align-items-center py-3 border-top mt-2">
             <p class="text-muted small mb-0">
