@@ -160,11 +160,16 @@ def course_create(request):
         return HttpResponseForbidden()
     form = CourseForm(request.POST or None, request.FILES or None)
     if form.is_valid():
-        course = form.save(commit=False)
-        course.created_by = request.user
-        course.save()
-        CourseEnrolment.objects.get_or_create(course=course, user=request.user, defaults={'role': 'TEACHER'})
-        messages.success(request, _("Курс создан"))
+        with transaction.atomic():
+            course = form.save(commit=False)
+            course.created_by = request.user
+            course.save()
+            CourseEnrolment.objects.get_or_create(course=course, user=request.user, defaults={'role': 'TEACHER'})
+            
+            if course.id_number:
+                LMSManager.generate_structure_from_schedule(course)
+            
+            messages.success(request, _("Курс и его структура успешно созданы!"))
         return redirect('lms:course_detail', course_id=course.pk)
     return render(request, 'lms/course_form.html', {'form': form, 'title': _('Создать курс')})
 
@@ -331,6 +336,11 @@ def module_delete(request, module_id):
     module = get_object_or_404(CourseModule, pk=module_id)
     if not can_manage_course(request.user, module.section.course):
         return HttpResponseForbidden()
+
+    if module.section.section_type in ['RATING1', 'RATING2', 'EXAM']:
+        messages.error(request, _("Нельзя удалять модули, привязанные к итоговым рейтингам ведомости. Только через деканат."))
+        return redirect('lms:course_detail', course_id=module.section.course.pk)
+
     course_id = module.section.course.pk
     if request.method == 'POST':
         module.delete()
@@ -432,6 +442,7 @@ def assignment_submit(request, module_id):
 
 
 @login_required
+@login_required
 def assignment_grade(request, submission_id):
     submission = get_object_or_404(AssignmentSubmission, pk=submission_id)
     module     = submission.assignment.module
@@ -443,18 +454,27 @@ def assignment_grade(request, submission_id):
     form = GradeSubmissionForm(request.POST or None, initial={
         'score': submission.score, 'feedback': submission.teacher_feedback
     })
+    
     if form.is_valid():
-        submission.score = form.cleaned_data['score']
+        score = form.cleaned_data['score']
+        if score > submission.assignment.max_score:
+            score = submission.assignment.max_score
+            
+        submission.score = score
         submission.teacher_feedback = form.cleaned_data['feedback']
         submission.status = form.cleaned_data['action']
         submission.graded_at = timezone.now()
         submission.graded_by = request.user
         submission.save()
-        messages.success(request, _("Оценка сохранена"))
+        messages.success(request, _("Оценка сохранена и автоматически распределена в журнал."))
         return redirect('lms:module_detail', module_id=module.pk)
+
+    from lms.services import LMSGradeSynchronizer
+    weight_info = LMSGradeSynchronizer.get_section_weight_info(module.section)
 
     return render(request, 'lms/assignment_grade.html', {
         'form': form, 'submission': submission, 'module': module, 'course': course,
+        'weight_info': weight_info, 'assignment_max': submission.assignment.max_score
     })
 
 
@@ -841,7 +861,7 @@ def section_grading(request, section_id):
     students = [e.user.student_profile for e in course.enrolments.filter(role='STUDENT', is_active=True) if hasattr(e.user, 'student_profile')]
 
     is_future = False
-    active_sem = Semester.objects.filter(is_active=True).first()
+    active_sem = Semester.get_current()
     curr_week = active_sem.get_current_week_number() if active_sem else 1
     
     if col_type == 'WEEK':
@@ -857,7 +877,7 @@ def section_grading(request, section_id):
             is_future = True
 
     user_is_admin = is_dean_or_admin(request.user)
-    can_edit = (user_is_admin or not is_future) and not is_auto_rating
+    can_edit = user_is_admin or (not is_future and not is_auto_rating)
 
     if request.method == 'POST' and can_edit:
         with transaction.atomic():

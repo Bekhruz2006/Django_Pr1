@@ -15,8 +15,7 @@
                 <form method="post" id="importForm">
                     {% csrf_token %}
                     <input type="hidden" name="confirm_import" value="1">
-                    <input type="hidden" name="semester_id" value="{{ semester.id }}">
-                    
+
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
                         {% trans "Проверьте таблицу. Исправьте названия предметов (уберите None), имена преподавателей и номера кабинетов." %}

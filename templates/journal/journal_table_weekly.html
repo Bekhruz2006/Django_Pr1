@@ -263,6 +263,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (newVal === this.dataset.oldValue) return;
 
             this.style.opacity = '0.5';
+            this.dataset.oldValueTemp = this.dataset.oldValue;
+            this.classList.remove('text-danger');
+
+            let indicator = this.parentElement.querySelector('.journal-input-indicator');
+            if (!indicator) {
+                indicator = document.createElement('span');
+                indicator.className = 'journal-input-indicator ms-2';
+                this.parentElement.appendChild(indicator);
+            }
+            indicator.textContent = '⏳';
 
             fetch('{% url "journal:update_journal_cell" %}', {
                 method: 'POST',
@@ -278,10 +288,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 this.style.opacity = '1';
+                if (indicator) indicator.textContent = '';
 
                 if (data.success) {
                     this.value = data.display;
-                    this.classList.remove('val-grade', 'val-absent-invalid', 'val-absent-valid', 'val-absent-illness');
+                    this.classList.remove('val-grade', 'val-absent-invalid', 'val-absent-valid', 'val-absent-illness', 'is-invalid');
 
                     if (data.type === 'grade') this.classList.add('val-grade');
                     if (data.type === 'absent_invalid') this.classList.add('val-absent-invalid');
@@ -293,6 +304,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert(data.error);
                     this.value = this.dataset.oldValue;
                     this.focus();
+                    this.classList.add('is-invalid');
+                    if (indicator) indicator.textContent = '❌';
                 }
             })
 
@@ -300,6 +313,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('{% trans "Ошибка соединения" %}');
                 this.style.opacity = '1';
                 this.value = this.dataset.oldValue;
+                this.classList.add('is-invalid');
+                if (indicator) indicator.textContent = '❌';
             });
         });
     });

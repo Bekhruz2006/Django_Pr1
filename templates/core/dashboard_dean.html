@@ -155,6 +155,25 @@
         </div>
     </div>
 
+    {% if schedule_stats %}
+    <div class="row g-4 mb-2">
+        <div class="col-12 animate-slide-in">
+            <div class="card border-0 shadow-sm border-start border-4 border-success">
+                <div class="card-body d-flex flex-wrap gap-4 align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-muted text-uppercase small mb-1">{% trans "Расписание (текущий семестр)" %}</h6>
+                        <p class="mb-0 fw-bold">{{ schedule_stats.semester.academic_year }} — {% if schedule_stats.semester.number == 1 %}{% trans "осень" %}{% else %}{% trans "весна" %}{% endif %}</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="text-muted small">{% trans "Активных занятий по группам факультета" %}</div>
+                        <div class="fs-3 fw-bold text-success">{{ schedule_stats.active_schedule_slots }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row g-4">
         <div class="col-lg-8 animate-slide-in" style="animation-delay: 0.4s;">
             <div class="card border-0 shadow-sm">

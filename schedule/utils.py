@@ -10,10 +10,8 @@ def calculate_semester_hours(group, semester):
         return {}
 
     slots = ScheduleSlot.objects.filter(group=group, semester=semester, is_active=True)
-    vacation_weeks =[int(w.strip()) for w in semester.vacation_weeks.split(',')] if semester.vacation_weeks else[]
-    
-    total_weeks = ((semester.end_date - semester.start_date).days // 7) + 1
-    active_weeks = total_weeks - len(vacation_weeks)
+    total_weeks = max(1, ((semester.end_date - semester.start_date).days // 7) + 1)
+    active_weeks = max(1, total_weeks // 2)
 
     hours_report = {}
     for slot in slots:
@@ -23,7 +21,10 @@ def calculate_semester_hours(group, semester):
 
         if slot.week_type == 'EVERY':
             multiplier = active_weeks
-            multiplier = active_weeks // 2 
+        else:
+            multiplier = active_weeks // 2
+            if multiplier < 1:
+                multiplier = 1
 
         hours_report[subject_name]['pairs'] += multiplier
         hours_report[subject_name]['academic_hours'] += (multiplier * 2)

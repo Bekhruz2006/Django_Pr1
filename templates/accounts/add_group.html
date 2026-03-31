@@ -53,6 +53,14 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "Смена" %}</label>
+                        {{ form.shift }}
+                        {% if form.shift.errors %}
+                            <div class="text-danger small">{{ form.shift.errors.0 }}</div>
+                        {% endif %}
+                    </div>
                     
                     <div class="mb-3">
                         <label class="form-label">{% trans "Специальность *" %}</label>

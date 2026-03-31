@@ -222,15 +222,7 @@ class StudentStatistics(models.Model):
         from schedule.models import Semester
         entries = JournalEntry.objects.filter(student=self.student)
         
-        active_sem = None
-        if self.student.group:
-            faculty = self.student.group.specialty.department.faculty if self.student.group.specialty else None
-            if faculty:
-                active_sem = Semester.objects.filter(faculty=faculty, is_active=True, course=self.student.group.course).first()
-            if not active_sem:
-                active_sem = Semester.objects.filter(course=self.student.group.course, is_active=True).first()
-        if not active_sem:
-            active_sem = Semester.objects.filter(is_active=True).first()
+        active_sem = Semester.get_current() if self.student.group else None
 
         if active_sem and active_sem.start_date and active_sem.end_date:
             entries = entries.filter(

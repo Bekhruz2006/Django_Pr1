@@ -46,20 +46,15 @@
                         </select>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">{% trans "Семестр" %}</label>
-                        <select class="form-select border-primary" name="semester">
-                            {% for sem in all_semesters %}
-                                <option value="{{ sem.id }}" {% if semester and semester.id == sem.id %}selected{% endif %}>
-                                    {% if sem.is_active %}✅{% endif %}
-                                    {{ sem.name }} ({{ sem.academic_year }}) — {{ sem.get_shift_display }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text text-muted small">
-                            {% trans "Активный семестр выбран автоматически" %}
+                    {% if semester %}
+                    <input type="hidden" id="constructorSemesterId" value="{{ semester.id }}">
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="small text-muted mb-2">
+                            {% trans "Текущий период" %}:
+                            <strong>{{ semester.academic_year }}</strong> — {{ semester.get_number_display }}
                         </div>
                     </div>
+                    {% endif %}
 
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
@@ -97,7 +92,7 @@
                             <i class="bi bi-shield-shaded me-1"></i> {{ day_name }}
                         </span>
                         <button class="btn btn-sm btn-outline-danger ms-1 flex-shrink-0"
-                                onclick="clearMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
+                                onclick="clearMilitaryDay({{ group.id }}, {{ day_num }})"
                                 title="{% trans 'Снять военную кафедру с этого дня' %}">
                             <i class="bi bi-x"></i>
                         </button>
@@ -206,7 +201,7 @@
                             <li><a class="dropdown-item" href="{% url 'schedule:export' %}?group={{ group.id }}&lang=en">{% trans "In English" %}</a></li>
                         </ul>
                     </div>
-                    <button class="btn btn-outline-danger btn-sm" onclick="window.clearSchedule({{ group.id }}, {{ semester.id }})">
+                    <button class="btn btn-outline-danger btn-sm" onclick="window.clearSchedule({{ group.id }})">
                         <i class="bi bi-trash"></i> {% trans "Очистить всё" %}
                     </button>
                 </div>
@@ -232,7 +227,7 @@
                                             <span class="badge bg-dark ms-2"><i class="bi bi-shield-shaded"></i> {% trans "Военная кафедра" %}</span>
                                         </div>
                                         <button class="btn btn-sm btn-outline-danger me-2"
-                                                onclick="clearMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
+                                                onclick="clearMilitaryDay({{ group.id }}, {{ day_num }})"
                                                 title="{% trans 'Снять военную кафедру' %}">
                                             <i class="bi bi-x-circle"></i> {% trans "Снять" %}
                                         </button>
@@ -267,7 +262,7 @@
                                         {% if group.has_military_training %}
                                         <button class="btn btn-xs btn-outline-dark me-2"
                                                 style="font-size: 0.7rem; padding: 1px 6px;"
-                                                onclick="setMilitaryDay({{ group.id }}, {{ semester.id }}, {{ day_num }})"
+                                                onclick="setMilitaryDay({{ group.id }}, {{ day_num }})"
                                                 title="{% trans 'Назначить этот день военной кафедрой' %}">
                                             <i class="bi bi-shield-plus"></i> {% trans "Военная кафедра" %}
                                         </button>
@@ -417,13 +412,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function createSlot(group, day, timeSlot, subject, type, semesterId, weekType, isForce = false) {
+    function createSlot(group, day, timeSlot, subject, type, weekType, isForce = false) {
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
             body: JSON.stringify({
                 group: group, day_of_week: day, time_slot: timeSlot, subject: subject,
-                lesson_type: type, semester_id: semesterId, force: isForce,
+                lesson_type: type, force: isForce,
                 week_type: weekType 
             })
         })
@@ -443,7 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         dayOfWeek: day,
                         timeSlot: timeSlot,
                         lessonType: type,
-                        semesterId: semesterId,
                         weekType: weekType     
                     };
                     const modal = new bootstrap.Modal(document.getElementById('conflictModal'));
@@ -466,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     lastAttemptData.timeSlot,
                     lastAttemptData.subjectId,
                     lastAttemptData.lessonType,
-                    lastAttemptData.semesterId,
                     lastAttemptData.weekType,  
                     true                        
                 );
@@ -590,7 +583,7 @@ window.saveAud = function(input, slotId, isForce = false) {
     });
 };
 
-window.clearSchedule = function(groupId, semesterId) {
+window.clearSchedule = function(groupId) {
     if (!confirm('{% trans "Вы уверены, что хотите удалить ВСЕ занятия для этой группы в текущем семестре? Это действие необратимо." %}')) return;
     
     let cookieValue = null;
@@ -611,7 +604,7 @@ window.clearSchedule = function(groupId, semesterId) {
             'Content-Type': 'application/json',
             'X-CSRFToken': cookieValue
         },
-        body: JSON.stringify({ group_id: groupId, semester_id: semesterId })
+        body: JSON.stringify({ group_id: groupId })
     })
     .then(res => res.json())
     .then(data => {
@@ -621,7 +614,7 @@ window.clearSchedule = function(groupId, semesterId) {
     .catch(err => alert('{% trans "Ошибка сети" %}'));
 };
 
-    window.setMilitaryDay = function(groupId, semesterId, dayNum) {
+    window.setMilitaryDay = function(groupId, dayNum) {
         if (!confirm('{% trans "Назначить военную кафедру на ВЕСЬ этот день? Все текущие пары этого дня будут удалены." %}')) return;
         fetch('{% url "schedule:create_slot" %}', {
             method: 'POST',
@@ -629,8 +622,7 @@ window.clearSchedule = function(groupId, semesterId) {
             body: JSON.stringify({
                 is_military_day: true,
                 group: groupId,
-                day_of_week: dayNum,
-                semester_id: semesterId
+                day_of_week: dayNum
             })
         }).then(r => r.json()).then(resp => {
             if(resp.success) location.reload();
@@ -638,12 +630,12 @@ window.clearSchedule = function(groupId, semesterId) {
         });
     };
 
-    window.clearMilitaryDay = function(groupId, semesterId, dayNum) {
+    window.clearMilitaryDay = function(groupId, dayNum) {
         if (!confirm('{% trans "Снять военную кафедру с этого дня?" %}')) return;
         fetch('{% url "schedule:clear_military_day" %}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-            body: JSON.stringify({ group_id: groupId, semester_id: semesterId, day_of_week: dayNum })
+            body: JSON.stringify({ group_id: groupId, day_of_week: dayNum })
         }).then(r => r.json()).then(resp => {
             if(resp.success) location.reload();
             else alert(resp.error || '{% trans "Ошибка" %}');
@@ -758,7 +750,6 @@ window.clearSchedule = function(groupId, semesterId) {
 
                     const groupId = this.dataset.groupId;
                     const day = this.dataset.day;
-                    const semesterId = document.querySelector('select[name="semester"]').value;
 
                     fetch('{% url "schedule:create_slot" %}', {
                         method: 'POST',
@@ -766,8 +757,7 @@ window.clearSchedule = function(groupId, semesterId) {
                         body: JSON.stringify({
                             is_military_day: true,
                             group: groupId,
-                            day_of_week: day,
-                            semester_id: semesterId
+                            day_of_week: day
                         })
                     }).then(r => r.json()).then(resp => {
                         if(resp.success) location.reload();
@@ -784,8 +774,6 @@ window.clearSchedule = function(groupId, semesterId) {
                 const groupId = this.dataset.groupId;
                 const day = this.dataset.day;
                 const timeSlot = this.dataset.timeSlot;
-                const semesterSelect = document.querySelector('select[name="semester"]');
-                const semesterId = semesterSelect ? semesterSelect.value : null;
 
                 const weekTypeRadio = document.querySelector('input[name="drag_week_type"]:checked');
                 const weekType = weekTypeRadio ? weekTypeRadio.value : 'EVERY';
@@ -796,11 +784,10 @@ window.clearSchedule = function(groupId, semesterId) {
                     dayOfWeek: day,
                     timeSlot: timeSlot,
                     lessonType: draggedData.subjectType,
-                    semesterId: semesterId,
                     weekType: weekType
                 };
 
-                createSlot(groupId, day, timeSlot, draggedData.subjectId, draggedData.subjectType, semesterId, weekType);
+                createSlot(groupId, day, timeSlot, draggedData.subjectId, draggedData.subjectType, weekType);
 
             } catch (ex) { console.error(ex); }
             finally {

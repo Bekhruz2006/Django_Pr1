@@ -142,27 +142,30 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-calendar-check me-2 text-success"></i>{% trans "Активные семестры" %}
+                        <i class="bi bi-calendar-check me-2 text-success"></i>{% trans "Расписание и ведомости" %}
                     </h5>
                 </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        {% for sem in active_semesters %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-bold">{{ sem.name }} ({{ sem.academic_year }})</h6>
-                                <small class="text-muted">
-                                    {{ sem.faculty.name }} | {% trans "Курс:" %} {{ sem.course }} | {% trans "Смена:" %} {{ sem.get_shift_display }}
-                                </small>
+                <div class="card-body">
+                    {% if schedule_stats.semester %}
+                    <p class="mb-2 small text-muted">
+                        {% trans "Текущий период:" %} <strong>{{ schedule_stats.semester.academic_year }}</strong>
+                        — {% if schedule_stats.semester.number == 1 %}{% trans "осень" %}{% else %}{% trans "весна" %}{% endif %}
+                    </p>
+                    {% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-light border">
+                                <div class="text-muted small text-uppercase fw-bold">{% trans "Активных занятий в расписании" %}</div>
+                                <div class="fs-3 fw-bold text-primary">{{ schedule_stats.active_schedule_slots }}</div>
                             </div>
                         </div>
-                        {% empty %}
-                        <div class="p-3 text-center text-muted">{% trans "Нет активных семестров для выбранного фильтра." %}</div>
-                        {% endfor %}
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-light border">
+                                <div class="text-muted small text-uppercase fw-bold">{% trans "Ячеек матрицы с баллами" %}</div>
+                                <div class="fs-3 fw-bold text-success">{{ schedule_stats.matrix_scores_filled }}</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="card-footer bg-white text-center">
-                    <a href="{% url 'schedule:manage_semesters' %}" class="btn btn-sm btn-primary">{% trans "Управление семестрами" %}</a>
                 </div>
             </div>
 
@@ -287,6 +290,16 @@
                             <div>
                                 <div class="fw-bold">{% trans "Структура ВУЗа" %}</div>
                                 <small class="text-muted">{% trans "Институты, Факультеты, Кафедры" %}</small>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'core:export_db' %}" class="list-group-item list-group-item-action py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success bg-opacity-10 p-2 rounded me-3"><i class="bi bi-download text-success"></i></div>
+                            <div>
+                                <div class="fw-bold">{% trans "Создать Бэкап" %}</div>
+                                <small class="text-muted">{% trans "Скачать базу данных в формате JSON" %}</small>
                             </div>
                         </div>
                     </a>

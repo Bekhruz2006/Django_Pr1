@@ -19,17 +19,9 @@ from schedule.models import Subject, ScheduleSlot, Semester
 from .models import SubjectRating
 from schedule.models import ScheduleException
 
-def get_active_semester_for_group(group):
+def get_active_semester_for_group(group=None):
     from schedule.models import Semester
-    if group and group.specialty and group.specialty.department.faculty:
-        faculty = group.specialty.department.faculty
-        semester = Semester.objects.filter(faculty=faculty, is_active=True, course=group.course).first()
-        if semester:
-            return semester
-    semester = Semester.objects.filter(course=group.course, is_active=True).first()
-    if not semester:
-        semester = Semester.objects.filter(is_active=True).first()
-    return semester
+    return Semester.get_current()
 
 def is_teacher_or_management(user):
     return user.is_authenticated and (
@@ -343,10 +335,7 @@ def update_entry(request, entry_id):
             if new_grade and new_grade.strip():
                 grade_value = int(new_grade)
 
-                active_semester = Semester.objects.filter(
-                    is_active=True,
-                    course=entry.student.group.course
-                ).first()
+                active_semester = Semester.get_current()
 
                 if active_semester:
                     week_num = active_semester.get_current_week_number()
@@ -503,6 +492,14 @@ def change_log_view(request):
 def student_journal_view(request):
     student = request.user.student_profile
     entries = JournalEntry.objects.filter(student=student).select_related('subject').order_by('lesson_date')
+
+    semester_id = request.GET.get('semester_id')
+    selected_semester = None
+    if semester_id:
+        selected_semester = Semester.objects.filter(id=semester_id).first()
+        if selected_semester:
+            entries = entries.filter(lesson_date__gte=selected_semester.start_date, lesson_date__lte=selected_semester.end_date)
+
     subjects_data = {}
     
     for entry in entries:
@@ -526,9 +523,14 @@ def student_journal_view(request):
         data['attendance_pct'] = data['attended'] / data['total_lessons'] * 100 if data['total_lessons'] > 0 else 0
     
     stats, created = StudentStatistics.objects.get_or_create(student=student)
+    semesters = Semester.objects.all().order_by('-academic_year', '-number')
     
     return render(request, 'journal/student_view.html', {
-        'student': student, 'subjects_data': subjects_data.values(), 'stats': stats
+        'student': student,
+        'subjects_data': subjects_data.values(),
+        'stats': stats,
+        'semesters': semesters,
+        'selected_semester': selected_semester,
     })
 
 @login_required
@@ -917,7 +919,7 @@ def update_matrix_cell(request):
         if col_type not in ['r1', 'r2', 'exam']:
             return JsonResponse({'success': True})
 
-        active_sem = Semester.objects.filter(is_active=True).first()
+        active_sem = Semester.get_current()
         curr_week = active_sem.get_current_week_number() if active_sem else 1
         if not is_dean_or_admin(request.user):
             if col_type == 'r1' and curr_week < 8:

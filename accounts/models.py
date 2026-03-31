@@ -324,9 +324,16 @@ class Group(models.Model):
         verbose_name=_("Куратор группы")
     )
 
+    SHIFT_CHOICES = [
+        ('MORNING', _('Утренняя смена')),
+        ('DAY', _('Дневная смена')),
+        ('EVENING', _('Вечерняя смена')),
+    ]
+
     name = models.CharField(max_length=50, unique=True, verbose_name=_("Название группы (напр. 400101-А)"))
     course = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(6)], verbose_name=_("Курс"))
     academic_year = models.CharField(max_length=20, verbose_name=_("Учебный год"))
+    shift = models.CharField(max_length=10, choices=SHIFT_CHOICES, default='MORNING', verbose_name=_("Смена"))
     language = models.CharField(max_length=2, choices=[('TJ', _('TJ')), ('RU', _('RU')), ('EN', _('EN'))], default='RU', verbose_name=_("Язык"))
     has_military_training = models.BooleanField(default=False, verbose_name=_("Военная кафедра"))
 

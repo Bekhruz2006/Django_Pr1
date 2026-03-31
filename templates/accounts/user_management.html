@@ -85,6 +85,15 @@
                                 </td>
                                 <td>{{ user_obj.phone|default:"—" }}</td>
                                 <td>
+                                    {% if user_obj.role == 'STUDENT' and user_data.has_profile %}
+                                        <select class="form-select form-select-sm d-inline-block w-auto mb-1" 
+                                                onchange="updateFinancing({{ user_data.profile_id }}, this.value)"
+                                                {% if not user.is_superuser and user.role not in 'HR,DEAN' %}disabled{% endif %}>
+                                            <option value="BUDGET" {% if user_obj.student_profile.financing_type == 'BUDGET' %}selected{% endif %}>{% trans "Бюджет" %}</option>
+                                            <option value="CONTRACT" {% if user_obj.student_profile.financing_type == 'CONTRACT' %}selected{% endif %}>{% trans "Контракт" %}</option>
+                                        </select>
+                                        <br>
+                                    {% endif %}
                                     {% if user_obj.is_active %}
                                         <span class="badge bg-success">{% trans "Активен" %}</span>
                                     {% else %}
@@ -158,4 +167,26 @@
         </div>
     </div>
 </div>
+
+<script>
+function updateFinancing(studentId, financingType) {
+    fetch('{% url "accounts:update_financing_type" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            student_id: studentId,
+            financing_type: financingType
+        })
+    }).then(r => r.json()).then(data => {
+        if(data.success) {
+        } else {
+            alert('Ошибка: ' + data.error);
+            location.reload();
+        }
+    });
+}
+</script>
 {% endblock %}

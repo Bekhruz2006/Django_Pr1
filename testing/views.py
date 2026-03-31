@@ -100,36 +100,9 @@ def quiz_submit(request, attempt_id):
 
         if attempt.state == 'FINISHED':
             try:
-                from schedule.models import Subject
-                from journal.models import MatrixStructure, MatrixColumn, StudentMatrixScore
-
+                from lms.services import LMSGradeSynchronizer
                 module = attempt.quiz.module
-                section = module.section
-                course = section.course
-
-                subject = Subject.objects.filter(code=course.id_number).first()
-                if subject:
-                    faculty = subject.department.faculty
-                    institute = faculty.institute
-
-                    matrix = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
-
-                    if matrix:
-                        column = MatrixColumn.objects.filter(structure=matrix, name=section.name).first()
-                        if column and column.col_type in['RATING', 'EXAM']:
-                            max_quiz_score = attempt.quiz.questions.aggregate(total=Sum('default_mark'))['total'] or 100
-                            earned = attempt.total_score or 0
-                            scaled_score = (earned / max_quiz_score) * column.max_score
-
-                            StudentMatrixScore.objects.update_or_create(
-                                student=attempt.user.student_profile,
-                                subject=subject,
-                                column=column,
-                                defaults={
-                                    'score': round(scaled_score, 2),
-                                    'updated_by': request.user 
-                                }
-                            )
+                LMSGradeSynchronizer.sync_section_grades(module.section, request.user, request.user)
             except Exception as e:
                 print(f"Ошибка синхронизации Quiz с Матрицей: {e}")
 

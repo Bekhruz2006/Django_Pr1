@@ -72,7 +72,9 @@ class GroupAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'student_id', 'group', 'course', 'status']
+    list_display = ['user', 'student_id', 'group', 'course', 'financing_type', 'status']
+    list_editable = ['financing_type', 'status']
+
     list_filter = ['course', 'status', 'financing_type', 'education_type']
     search_fields = ['user__first_name', 'user__last_name', 'student_id']
     raw_id_fields = ['user', 'group']

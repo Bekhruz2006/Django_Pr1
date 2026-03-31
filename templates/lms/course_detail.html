@@ -19,17 +19,25 @@
             <p class="text-muted mb-0">{{ course.category.get_full_path }}</p>
           </div>
           {% if can_manage %}
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <form action="{% url 'lms:sync_schedule' course.pk %}" method="post" class="d-inline">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-warning btn-sm shadow-sm fw-bold" onclick="return confirm('Внимание! Это удалит текущие секции и сгенерирует новые на основе расписания. Продолжить?');">
-                      <i class="bi bi-magic"></i>{% trans "Сгенерировать структуру из расписания"  %}
-                  </button>
-              </form>
-              <small class="text-muted">
-                <i class="bi bi-arrows-move me-1"></i>{% trans "Перетащите секции для сортировки" %}
-              </small>
-            </div>
+            {% if not course.sections.all %}
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <form action="{% url 'lms:sync_schedule' course.pk %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm shadow-sm fw-bold">
+                        <i class="bi bi-magic"></i> {% trans "Автоматически создать 16 недель и рейтинги" %}
+                    </button>
+                </form>
+              </div>
+            {% else %}
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-light text-primary border"><i class="bi bi-check-all"></i> {% trans "Структура курса сформирована" %}</span>
+              </div>
+            {% endif %}
+            
+            <small class="text-muted">
+              <i class="bi bi-arrows-move me-1"></i>{% trans "Перетащите секции для сортировки" %}
+            </small>
+            
             <div class="dropdown">
               <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-gear"></i>
@@ -46,7 +54,16 @@
                 {% else %}
                 <li><a class="dropdown-item" href="{% url 'lms:gradebook' course.pk %}"><i class="bi bi-table me-2"></i>{% trans "Журнал оценок" %}</a></li>
                 {% endif %}
+                
                 <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="{% url 'lms:sync_schedule' course.pk %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item text-warning" onclick="return confirm('ВНИМАНИЕ! Это удалит текущие недели и создаст новые. Все материалы могут быть потеряны. Вы уверены?');">
+                            <i class="bi bi-arrow-clockwise me-2"></i>{% trans "Сбросить структуру (Пересоздать)" %}
+                        </button>
+                    </form>
+                </li>
                 <li><a class="dropdown-item text-danger" href="{% url 'lms:course_delete' course.pk %}"><i class="bi bi-trash me-2"></i>{% trans "Удалить курс" %}</a></li>
               </ul>
             </div>

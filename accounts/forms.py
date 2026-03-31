@@ -468,12 +468,13 @@ class GroupForm(forms.ModelForm):
 
     class Meta:
         model = Group
-        fields = ['specialty', 'name', 'course', 'academic_year', 'language', 'has_military_training', 'curator']
+        fields = ['specialty', 'name', 'course', 'academic_year', 'shift', 'language', 'has_military_training', 'curator']
         widgets = {
             'specialty': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'course': forms.NumberInput(attrs={'class': 'form-control'}),
             'academic_year': forms.TextInput(attrs={'class': 'form-control'}),
+            'shift': forms.Select(attrs={'class': 'form-select'}),
             'language': forms.Select(attrs={'class': 'form-select'}),
             'has_military_training': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'curator': forms.Select(attrs={'class': 'form-select'}),

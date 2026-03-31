@@ -9,65 +9,19 @@
         <div class="col-lg-4 mb-4">
             <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-gear-fill"></i> {% trans "Генератор сетки" %}</h5>
+                    <h5 class="mb-0"><i class="bi bi-clock"></i> {% trans "Добавить пару" %}</h5>
                 </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">{% trans "Уровень настройки" %}</label>
-                            {{ form.institute }}
-                            <div class="form-label fw-bold">Выберите "Глобальная настройка", чтобы задать время для всех, у кого нет своих настроек.</div>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label class="form-label fw-bold">{% trans "Смена" %}</label>
-                                {{ form.shift }}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
                             </div>
-                            <div class="col-6">
-                                <label class="form-label fw-bold">{% trans "Начало 1-й пары" %}</label>
-                                {{ form.start_time }}
-                            </div>
-                        </div>
-
-                        <div class="card bg-light border-0 p-3 mb-3">
-                            <h6 class="text-muted small text-uppercase fw-bold mb-2">Параметры времени (мин)</h6>
-                            <div class="row g-2 align-items-end">
-                                <div class="col-6">
-                                    <label class="small">Урок</label>
-                                    {{ form.lesson_duration }}
-                                </div>
-                                <div class="col-6">
-                                    <label class="small">Перемена</label>
-                                    {{ form.break_duration }}
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <label class="small">Большая перемена после пары №</label>
-                                <div class="input-group input-group-sm">
-                                    {{ form.big_break_after }}
-                                    <span class="form-check-label text-danger small">длит.</span>
-                                    {{ form.big_break_duration }}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">{% trans "Всего пар в смену" %}</label>
-                            {{ form.pairs_count }}
-                        </div>
-
-                        <div class="form-check mb-3">
-                            {{ form.delete_existing }}
-                            <label class="form-check-label text-danger small" for="{{ form.delete_existing.id_for_label }}">
-                                {% trans "Удалить старые звонки этой смены перед созданием" %}
-                            </label>
-                        </div>
-
+                        {% endfor %}
                         <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
-                            <i class="bi bi-play-circle"></i> {% trans "Сгенерировать сетку" %}
+                            <i class="bi bi-plus-lg"></i> {% trans "Сохранить время" %}
                         </button>
                     </form>
                 </div>
@@ -103,6 +57,7 @@
                                                 <th class="text-center">№ Пары</th>
                                                 <th class="text-center">Время</th>
                                                 <th class="text-center">Длительность</th>
+                                                <th class="text-center">Действие</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -121,6 +76,15 @@
                                                         </span>
                                                     </td>
                                                     <td class="text-center text-muted small">{{ slot.duration }} мин</td>
+                                                    <td class="text-center">
+                                                        <form method="post" style="display:inline;">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="delete_id" value="{{ slot.id }}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </td>
                                                 </tr>
                                                 {% endfor %}
                                             {% endfor %}
@@ -149,7 +113,7 @@
                                                         <th class="ps-3">Смена</th>
                                                         <th class="text-center">№</th>
                                                         <th class="text-center">Время</th>
-                                                        <th></th>
+                                                        <th class="text-center">Действие</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -162,7 +126,15 @@
                                                         </td>
                                                         <td class="text-center fw-bold">{{ slot.number }}</td>
                                                         <td class="text-center">{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</td>
-                                                        <td></td>
+                                                        <td class="text-center">
+                                                            <form method="post" style="display:inline;">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="delete_id" value="{{ slot.id }}">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
                                                     </tr>
                                                     {% endfor %}
                                                 </tbody>

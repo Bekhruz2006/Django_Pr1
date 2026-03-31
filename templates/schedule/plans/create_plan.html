@@ -24,39 +24,22 @@
                     {% endif %}
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-dark">{% trans "Специальность" %} *</label>
-                        {{ form.specialty }}
-                        <div class="form-text text-muted">{% trans "Выберите специальность, для которой создается план." %}</div>
+                        <label class="form-label fw-bold text-dark">{% trans "Группа" %} *</label>
+                        {{ form.group }}
+                        <div class="form-text text-muted">{% trans "Выберите группу (показаны только группы без активного РУП)." %}</div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-dark">{% trans "Год набора (поступления)" %} *</label>
+                            <label class="form-label fw-bold text-dark">{% trans "Год набора" %} *</label>
                             {{ form.admission_year }}
                         </div>
 
                         <div class="col-md-6 mb-4 d-flex align-items-center">
                             <div class="form-check form-switch mt-3">
                                 {{ form.is_active }}
-                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                    {% trans "Сделать активным сразу" %}
-                                </label>
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{% trans "Активный" %}</label>
                             </div>
-                        </div>
-                    </div>
-
-                    <hr class="my-3 text-muted">
-
-                    <div class="mb-4 bg-light p-3 rounded border">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-people-fill"></i> {% trans "Индивидуальный план для группы (Опционально)" %}
-                        </label>
-                        {{ form.group }}
-                        <div class="form-text mt-2">
-                            {% blocktrans trimmed %}
-                                Выберите группу <strong>ТОЛЬКО</strong> если этот план отличается от общего плана специальности.
-                                <br>Оставьте "Общий план", если он подходит для всех.
-                            {% endblocktrans %}
                         </div>
                     </div>
 
@@ -71,50 +54,4 @@
         </div>
     </div>
 </div>
-
-<script>
-    // Переводимые строки для JavaScript
-    {% trans "-- Общий план для всей специальности --" as default_option_text %}
-    {% trans "(Нет групп на этой специальности)" as no_groups_text %}
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const specialtySelect = document.getElementById('id_specialty');
-        const groupSelect = document.getElementById('id_group');
-
-        const allGroups = [
-            {% for group in all_groups %}
-            {
-                id: "{{ group.id }}",
-                name: "{{ group.name }}",
-                specialty_id: "{{ group.specialty.id }}"
-            },
-            {% endfor %}
-        ];
-
-        function filterGroups() {
-            const selectedSpecId = specialtySelect.value;
-            const currentGroupValue = groupSelect.value;
-
-            groupSelect.innerHTML = '<option value="">' + default_option_text + '</option>';
-
-            const filteredGroups = allGroups.filter(g => g.specialty_id == selectedSpecId);
-
-            filteredGroups.forEach(g => {
-                const option = new Option(g.name, g.id);
-                if (g.id === currentGroupValue) option.selected = true;
-                groupSelect.add(option);
-            });
-
-            if (filteredGroups.length === 0 && selectedSpecId) {
-                const option = new Option(no_groups_text, "");
-                option.disabled = true;
-                groupSelect.add(option);
-            }
-        }
-
-        specialtySelect.addEventListener('change', filterGroups);
-
-        filterGroups();
-    });
-</script>
 {% endblock %}

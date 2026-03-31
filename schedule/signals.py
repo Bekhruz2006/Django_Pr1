@@ -24,21 +24,23 @@ def auto_create_rup_for_group(sender, instance, created, **kwargs):
             )
 
             plan, plan_created = AcademicPlan.objects.get_or_create(
-                specialty=instance.specialty,
-                admission_year=admission_year,
-                group__isnull=True,
-                defaults={'is_active': True}
+                group=instance,
+                defaults={
+                    'specialty': instance.specialty,
+                    'admission_year': admission_year,
+                    'is_active': True,
+                }
             )
 
             if plan_created:
                 logger.info(
-                    "Auto-created AcademicPlan for specialty=%s admission_year=%s triggered by group=%s",
-                    instance.specialty.code, admission_year, instance.name
+                    "Auto-created AcademicPlan for group=%s admission_year=%s",
+                    instance.name, admission_year
                 )
             else:
                 logger.debug(
-                    "AcademicPlan already exists for specialty=%s admission_year=%s, skipped creation",
-                    instance.specialty.code, admission_year
+                    "AcademicPlan already exists for group=%s, skipped creation",
+                    instance.name
                 )
         except Exception as e:
             logger.exception(

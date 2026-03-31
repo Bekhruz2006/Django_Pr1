@@ -21,9 +21,11 @@
             <div class="alert alert-warning py-3 shadow-sm border-warning">
                 <h5 class="fw-bold text-dark"><i class="bi bi-robot text-warning"></i> {% trans "Автоматический расчет" %}</h5>
                 <p class="mb-0">
-                    {% blocktrans %}
-                        Баллы за этот раздел (Рейтинг/Экзамен) <strong>нельзя ввести вручную</strong>. Они автоматически подтягиваются из результатов <b>Тестирования (Quiz)</b>, которое студенты проходят в LMS.
-                    {% endblocktrans %}
+                    {% if is_admin %}
+                        {% trans "Баллы за этот раздел обычно выставляются автоматически из тестов LMS, но так как вы Администратор/Декан, вы можете вводить их вручную (на основании файлов от преподавателей)." %}
+                    {% else %}
+                        {% blocktrans %}Баллы за этот раздел (Рейтинг/Экзамен) <strong>нельзя ввести вручную</strong>. Они автоматически подтягиваются из результатов <b>Тестирования (Quiz)</b>.{% endblocktrans %}
+                    {% endif %}
                 </p>
             </div>
         {% elif is_future and not is_admin %}

@@ -513,6 +513,11 @@
             </a>
 
             <div class="d-flex align-items-center gap-2">
+                <div class="navbar-text text-white text-nowrap small me-1 d-flex align-items-center gap-2 px-2 py-1 rounded" style="background: rgba(255,255,255,0.12);">
+                    <i class="bi bi-calendar3 d-md-none" title="{{ current_term }}"></i>
+                    <span class="d-none d-md-inline">{{ current_date|date:"d E Y" }}</span>
+                    <span class="d-none d-lg-inline border-start border-light border-opacity-25 ps-2 ms-1">{{ current_term }}</span>
+                </div>
                 <div class="d-none d-md-flex me-2 position-relative" id="globalSearchContainer">
                     <div class="input-group input-group-sm" style="width: 280px; background: rgba(255, 255, 255, 0.15); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);">
                         <span class="input-group-text bg-transparent border-0 text-white"><i class="bi bi-search"></i></span>
@@ -666,7 +671,6 @@
                 <div class="sidebar-divider"></div>
                 <div class="sidebar-sub-label">{% trans "Настройки" %}</div>
                 <a class="sidebar-link" href="{% url 'schedule:manage_credit_templates' %}"><i class="bi bi-diagram-2"></i>{% trans "Шаблоны кредитов" %}</a>
-                <a class="sidebar-link" href="{% url 'schedule:manage_semesters' %}"><i class="bi bi-calendar-range"></i>{% trans "Семестры" %}</a>
                 {% if user.is_superuser or user.role in 'RECTOR,PRO_RECTOR,DIRECTOR' %}
                 <a class="sidebar-link" href="{% url 'schedule:manage_time_slots' %}"><i class="bi bi-clock-history"></i>{% trans "Звонки (Временные слоты)" %}</a>
                 {% endif %}
@@ -731,6 +735,16 @@
     {% endif %}
 
     <main id="main-content">
+        {% if rating_banner %}
+        <div class="alert {% if rating_banner.urgent %}alert-danger animate-pulse{% else %}alert-warning{% endif %} shadow-sm border-0 d-flex align-items-center justify-content-center py-3 mb-4 rounded-3 animate-slide-in" style="border-left: 5px solid {% if rating_banner.urgent %}#dc3545{% else %}#ffc107{% endif %} !important;">
+            <i class="bi bi-alarm-fill fs-3 me-3 {% if rating_banner.urgent %}text-danger{% else %}text-warning{% endif %}"></i>
+            <span class="fs-5 text-dark">
+                {% trans "Внимание! До начала" %} <strong>{{ rating_banner.target }}</strong> {% trans "осталось" %} 
+                <span class="badge {% if rating_banner.urgent %}bg-danger{% else %}bg-warning text-dark{% endif %} fs-5 mx-1">{{ rating_banner.days_left }}</span> 
+                {% trans "дней!" %}
+            </span>
+        </div>
+        {% endif %}
         {% block breadcrumb_container %}
         <nav aria-label="breadcrumb" class="breadcrumb-area animate-fade-in">
             <ol class="breadcrumb">

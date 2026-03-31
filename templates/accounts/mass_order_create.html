@@ -30,6 +30,10 @@
                     </select>
                 </div>
 
+                <div class="mb-2">
+                    <input type="text" id="localStudentSearch" class="form-control form-control-sm" placeholder="{% trans 'Быстрый поиск студента...' %}" onkeyup="filterStudentsTable()">
+                </div>
+
                 <div class="table-responsive border rounded" style="height: 400px; overflow-y: auto;">
                     <table class="table table-hover align-middle mb-0" id="sourceTable">
                         <thead class="table-light sticky-top">
@@ -140,6 +144,8 @@
         if (!groupId) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-5">{% trans "Выберите группу" %}</td></tr>';
             selectAllCb.checked = false;
+            const q = document.getElementById('localStudentSearch');
+            if (q) q.value = '';
             return;
         }
         
@@ -265,7 +271,34 @@
             targetDiv.style.display = 'none';
             targetSelect.required = false;
             targetSelect.value = '';
+            if (typeof jQuery !== 'undefined') {
+                jQuery('#targetGroupSelect').val('').trigger('change');
+            }
         }
     }
+
+    function filterStudentsTable() {
+        const el = document.getElementById('localStudentSearch');
+        const query = (el && el.value ? el.value : '').toLowerCase();
+        const rows = document.querySelectorAll('#sourceStudentsBody tr');
+        rows.forEach(row => {
+            if (row.innerText.toLowerCase().includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+</script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    jQuery(document).ready(function($) {
+        $('#groupSelect, #orderTypeSelect, #targetGroupSelect').select2({
+            width: '100%',
+            placeholder: "{% trans 'Начните вводить для поиска...' %}"
+        });
+    });
 </script>
 {% endblock %}

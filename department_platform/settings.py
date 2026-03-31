@@ -43,7 +43,7 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'debug.log',
-            'maxBytes': 1024 * 1024 * 15, # 15 MB
+            'maxBytes': 1024 * 1024 * 15,
             'backupCount': 3,
             'formatter': 'simple',
             'encoding': 'utf-8',
@@ -124,6 +124,7 @@ TEMPLATES = [
                 'django.template.context_processors.i18n',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.global_notifications',
+                'core.context_processors.academic_context',
             ],
         },
     },
@@ -143,6 +144,7 @@ DATABASES = {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
         },
+        'CONN_MAX_AGE': 60,
     }
 }
 

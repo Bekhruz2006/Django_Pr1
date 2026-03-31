@@ -36,7 +36,7 @@ from lms.models import Assignment
 
 from django import forms
 from .models import Subject, CreditType, CreditTemplate, ScheduleSlot, Semester, Classroom, TimeSlot, TeacherUnavailableSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
-from .forms import SubjectForm, RupImportForm, SemesterForm, ClassroomForm, BulkClassroomForm, TimeSlotGeneratorForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm, CreditTemplateForm
+from .forms import SubjectForm, RupImportForm, ClassroomForm, BulkClassroomForm, TimeSlotForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm, CreditTemplateForm
 from .services import ScheduleImporter, RupImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department, Faculty
 import math
@@ -119,31 +119,8 @@ def safe_int(val) -> int:
     except (ValueError, TypeError, AttributeError):
         return 0
 
-def get_active_semester_for_group(group):
-    if group and group.specialty and group.specialty.department.faculty:
-        faculty = group.specialty.department.faculty
-        semester = Semester.objects.filter(faculty=faculty, is_active=True, course=group.course).first()
-        if semester:
-            logger.debug(
-                "get_active_semester_for_group: group=%s -> semester=%s (faculty match)",
-                group.name, semester
-            )
-            return semester
-    semester = Semester.objects.filter(course=group.course, is_active=True).first()
-    if not semester:
-        semester = Semester.objects.filter(is_active=True).first()
-    if semester:
-        logger.debug(
-            "get_active_semester_for_group: group=%s -> semester=%s (fallback)",
-            group.name, semester
-        )
-    else:
-        logger.warning(
-            "get_active_semester_for_group: no active semester found for group=%s course=%s",
-            group.name if group else None,
-            group.course if group else None
-        )
-    return semester
+def get_active_semester_for_group(group=None):
+    return Semester.get_current()
 
 
 @login_required
@@ -179,42 +156,7 @@ def schedule_constructor(request):
         if not selected_group:
             request.session.pop('last_constructor_group', None)
 
-    if 'semester' in request.GET:
-        semester_id = request.GET.get('semester')
-        if semester_id:
-            request.session['last_constructor_semester'] = semester_id
-        else:
-            request.session.pop('last_constructor_semester', None)
-    else:
-        semester_id = request.session.get('last_constructor_semester')
-
-    active_semester = None
-    if semester_id:
-        active_semester = Semester.objects.filter(id=semester_id).first()
-        if not active_semester:
-            request.session.pop('last_constructor_semester', None)
-            
-    if not active_semester and selected_group:
-        active_semester = get_active_semester_for_group(selected_group)
-    else:
-        if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
-            profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
-            faculty = profile.faculty
-            active_semester = Semester.objects.filter(Q(faculty=faculty) | Q(faculty__isnull=True), is_active=True).first()
-        elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
-            profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
-            institute = profile.institute
-            if institute:
-                active_semester = Semester.objects.filter(Q(faculty__institute=institute) | Q(faculty__isnull=True), is_active=True).first()
-        
-        if not active_semester:
-            active_semester = Semester.objects.filter(is_active=True).first()
-
-    if not active_semester:
-        active_semester = Semester.objects.order_by('-start_date').first()
-        if not active_semester:
-            messages.warning(request, _('Сначала создайте семестр в настройках.'))
-            return redirect('schedule:manage_semesters')
+    active_semester = Semester.get_current()
 
     schedule_data = {}
     subjects_to_schedule = []
@@ -274,7 +216,7 @@ def schedule_constructor(request):
             else:
                 institute = Institute.objects.first()
 
-            shift = active_semester.shift
+            shift = selected_group.shift
             time_slots = get_time_slots_for_shift(shift, institute)
         except AttributeError:
             time_slots = TimeSlot.objects.none()
@@ -282,21 +224,13 @@ def schedule_constructor(request):
         time_slots = TimeSlot.objects.none()
 
     days = [(0, _('Понедельник')), (1, _('Вторник')), (2, _('Среда')), (3, _('Четверг')), (4, _('Пятница')), (5, _('Суббота'))]
-    all_semesters = Semester.objects.all().order_by('-is_active', '-start_date')
-    if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
-        profile = getattr(request.user, 'dean_profile', None) or getattr(request.user, 'vicedean_profile', None)
-        all_semesters = all_semesters.filter(Q(faculty=profile.faculty) | Q(faculty__isnull=True))
-    elif hasattr(request.user, 'director_profile') or hasattr(request.user, 'prorector_profile'):
-        profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
-        if profile.institute:
-            all_semesters = all_semesters.filter(Q(faculty__institute=profile.institute) | Q(faculty__isnull=True))
 
     classrooms = Classroom.objects.filter(is_active=True).select_related('building').order_by('building__name', 'number')
 
     occupied_rooms = {}
     if active_semester and time_slots:
         all_active_slots = ScheduleSlot.objects.filter(
-            semester__is_active=True, is_active=True
+            semester=active_semester, is_active=True
         ).exclude(classroom__isnull=True).values(
             'day_of_week', 'start_time', 'end_time', 'classroom_id', 'stream_id', 'id', 'week_type'
         )
@@ -337,7 +271,6 @@ def schedule_constructor(request):
         'groups': groups,
         'group': selected_group,
         'semester': active_semester,
-        'all_semesters': all_semesters,
         'time_slots': time_slots,
         'days': days,
         'schedule_data': schedule_data,
@@ -360,16 +293,14 @@ def create_schedule_slot(request):
 
         if data.get('is_military_day'):
             logger.info(
-                "create_schedule_slot: MILITARY DAY assignment user=%s group=%s day=%s semester=%s",
-                request.user.username, data.get('group'), data.get('day_of_week'), data.get('semester_id')
+                "create_schedule_slot: MILITARY DAY assignment user=%s group=%s day=%s",
+                request.user.username, data.get('group'), data.get('day_of_week')
             )
             try:
                 group_id = data.get('group')
                 day_of_week = int(data.get('day_of_week'))
-                semester_id = data.get('semester_id')
-
                 group = get_object_or_404(Group, id=group_id)
-                semester = get_object_or_404(Semester, id=semester_id)
+                semester = Semester.get_current()
 
                 institute = None
                 try:
@@ -378,9 +309,9 @@ def create_schedule_slot(request):
                 except AttributeError:
                     pass
 
-                time_slots = get_time_slots_for_shift(semester.shift, institute)
+                time_slots = get_time_slots_for_shift(group.shift, institute)
                 if not time_slots.exists():
-                    time_slots = get_time_slots_for_shift(semester.shift)
+                    time_slots = get_time_slots_for_shift(group.shift)
                 if not time_slots.exists():
                     return JsonResponse({'success': False, 'error': 'Сначала создайте сетку звонков (Временные слоты) для этой смены в настройках.'}, status=400)
 
@@ -428,8 +359,8 @@ def create_schedule_slot(request):
                 return JsonResponse({'success': True, 'message': f'Назначено {created_count} часов военной кафедры'})
             except Exception as e:
                 logger.exception(
-                    "create_schedule_slot military: group=%s day=%s semester=%s error=%s",
-                    group_id, day_of_week, semester_id, e
+                    "create_schedule_slot military: group=%s day=%s error=%s",
+                    group_id, day_of_week, e
                 )
                 return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
 
@@ -439,31 +370,22 @@ def create_schedule_slot(request):
         day_of_week = data.get('day_of_week')
         time_slot_id = data.get('time_slot')
         lesson_type = data.get('lesson_type', 'LECTURE')
-        semester_id = data.get('semester_id')
-
         logger.info(
-            "create_schedule_slot: user=%s group=%s subject=%s day=%s ts=%s semester=%s week_type=%s force=%s",
+            "create_schedule_slot: user=%s group=%s subject=%s day=%s ts=%s week_type=%s force=%s",
             request.user.username, group_id, subject_id, day_of_week, time_slot_id,
-            semester_id, data.get('week_type', 'EVERY'), data.get('force', False)
+            data.get('week_type', 'EVERY'), data.get('force', False)
         )
 
         main_group = get_object_or_404(Group, id=group_id)
         subject = get_object_or_404(Subject, id=subject_id)
         time_slot = get_object_or_404(TimeSlot, id=time_slot_id)
 
-        if semester_id:
-            active_semester = get_object_or_404(Semester, id=semester_id)
-        else:
-            active_semester = get_active_semester_for_group(main_group)
-
+        active_semester = Semester.get_current()
         if not active_semester:
             return JsonResponse({'success': False, 'error': _('Нет активного семестра')}, status=400)
 
-        start_h = time_slot.start_time.hour
-        if active_semester.shift == 'MORNING' and start_h >= 13:
-            return JsonResponse({'success': False, 'error': _('Ошибка смены: Слот ДНЕВНОЙ, а семестр УТРЕННИЙ.')}, status=400)
-        if active_semester.shift == 'DAY' and start_h < 13:
-            return JsonResponse({'success': False, 'error': _('Ошибка смены: Слот УТРЕННИЙ, а семестр ДНЕВНОЙ.')}, status=400)
+        if time_slot.shift != main_group.shift:
+            return JsonResponse({'success': False, 'error': _('Слот не соответствует смене группы.')}, status=400)
 
         groups_to_schedule = [main_group]
         is_stream = False
@@ -709,10 +631,9 @@ def clear_schedule(request):
     try:
         data = json.loads(request.body)
         group_id = data.get('group_id')
-        semester_id = data.get('semester_id')
 
         group = get_object_or_404(Group, id=group_id)
-        semester = get_object_or_404(Semester, id=semester_id)
+        semester = Semester.get_current()
 
         if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
@@ -791,13 +712,7 @@ def schedule_view(request):
             pass
 
     if not active_semester:
-        active_semester = Semester.objects.filter(is_active=True).first()
-
-    if not active_semester:
-        active_semester = Semester.objects.order_by('-start_date').first()
-        if not active_semester:
-             messages.warning(request, _('В системе не создано ни одного семестра.'))
-             return render(request, 'schedule/no_semester.html')
+        active_semester = Semester.get_current()
 
     groups = Group.objects.none()
     is_management = hasattr(user, 'dean_profile') or user.is_superuser or hasattr(user, 'director_profile') or hasattr(user, 'prorector_profile')
@@ -836,9 +751,7 @@ def schedule_view(request):
             if not group:
                 request.session.pop('last_schedule_group', None)
             else:
-                active_semester = get_active_semester_for_group(group)
-                if not active_semester:
-                    messages.warning(request, _('Нет активного семестра для %(course)s курса') % {'course': group.course})
+                active_semester = Semester.get_current()
         elif is_teacher and request.GET.get('view') != 'groups':
             teacher = user.teacher_profile
             
@@ -862,7 +775,7 @@ def schedule_view(request):
         institute = None
         if group.specialty and group.specialty.department.faculty:
             institute = group.specialty.department.faculty.institute
-        time_slots = get_time_slots_for_shift(active_semester.shift, institute)
+        time_slots = get_time_slots_for_shift(group.shift, institute)
         valid_slot_ids = list(time_slots.values_list('id', flat=True))
 
         slots = ScheduleSlot.objects.filter(
@@ -884,7 +797,9 @@ def schedule_view(request):
             institute = None
             if teacher.department and teacher.department.faculty:
                 institute = teacher.department.faculty.institute
-            time_slots = get_time_slots_for_shift(active_semester.shift, institute)
+            time_slots = TimeSlot.objects.filter(
+                Q(institute=institute) | Q(institute__isnull=True)
+            ).order_by('shift', 'start_time')
 
         slots = ScheduleSlot.objects.filter(
             teacher=teacher,
@@ -944,7 +859,7 @@ def today_classes(request):
             logger.exception("today_classes active_semester")
             active_semester = None
     else:
-        active_semester = Semester.objects.filter(is_active=True).first()
+        active_semester = Semester.get_current()
 
     classes = []
     if not active_semester:
@@ -1237,80 +1152,6 @@ def delete_subject(request, subject_id):
     subject.delete()
     messages.success(request, _('Предмет удален'))
     return redirect('schedule:manage_subjects')
-@login_required 
-@user_passes_test(is_dean_or_admin)
-def manage_semesters(request):
-    semesters = Semester.objects.all().order_by('-academic_year', 'course')
-    
-    if hasattr(request.user, 'dean_profile'):
-        faculty = request.user.dean_profile.faculty
-        semesters = semesters.filter(faculty=faculty)
-
-    return render(request, 'schedule/manage_semesters.html', {
-        'semesters': semesters
-    })
-
-@user_passes_test(is_dean_or_admin)
-def add_semester(request):
-    if request.method == 'POST':
-        form = SemesterForm(request.POST, user=request.user)
-        if form.is_valid():
-            semester = form.save()
-            faculty_name = semester.faculty.name if semester.faculty else _("Всего университета")
-            messages.success(request, _('Семестр "%(semester_name)s" создан (%(faculty_name)s)') % {
-                'semester_name': semester.name, 
-                'faculty_name': faculty_name
-            })
-            return redirect('schedule:manage_semesters')
-    else:
-        form = SemesterForm(user=request.user)
-    return render(request, 'schedule/semester_form.html', {'form': form, 'title': _('Добавить семестр')})
-
-@user_passes_test(is_dean_or_admin)
-def edit_semester(request, semester_id):
-    semester = get_object_or_404(Semester, id=semester_id)
-    if request.method == 'POST':
-        form = SemesterForm(request.POST, instance=semester, user=request.user)
-        if form.is_valid():
-            semester = form.save(commit=False)
-            semester.save()
-            
-            dept = form.cleaned_data.get('department_filter')
-            course = form.cleaned_data.get('course')
-            
-            if dept and course:
-                dept_groups = Group.objects.filter(specialty__department=dept, course=course)
-                semester.groups.add(*dept_groups)
-                
-            form.save_m2m()
-            messages.success(request, _('Семестр обновлен'))
-            return redirect('schedule:manage_semesters')
-    else:
-        form = SemesterForm(instance=semester, user=request.user)
-        
-    return render(request, 'schedule/semester_form.html', {'form': form, 'semester': semester, 'title': _('Редактировать семестр')})
-
-@user_passes_test(is_dean_or_admin)
-def toggle_semester_active(request, semester_id):
-    semester = get_object_or_404(Semester, id=semester_id)
-    
-    with transaction.atomic():
-        if not semester.is_active:
-            Semester.objects.filter(
-                faculty=semester.faculty,
-                course=semester.course, 
-                is_active=True
-            ).update(is_active=False)
-            
-            semester.is_active = True
-            semester.save()
-            messages.success(request, _('Семестр "%(semester_name)s" (%(course)s курс) теперь АКТИВЕН!') % {'semester_name': semester.name, 'course': semester.course})
-        else:
-            semester.is_active = False
-            semester.save()
-            messages.warning(request, _('Семестр "%(semester_name)s" деактивирован.') % {'semester_name': semester.name})
-
-    return redirect('schedule:manage_semesters')
 
 @login_required
 def manage_classrooms(request):
@@ -1462,8 +1303,7 @@ def export_schedule(request):
             else:
                 specialty_code = "—"
                 specialty_name = _("Умумитаълимӣ (Общая)")
-                faculty = active_semester.faculty
-                institute = faculty.institute if faculty else Institute.objects.first()
+                institute = Institute.objects.first()
         except AttributeError:
             return HttpResponse(_("Ошибка структуры: Невозможно определить институт."), status=400)
 
@@ -1609,7 +1449,8 @@ def export_schedule(request):
         run_sub.font.size = Pt(12)
         run_sub.bold = True
 
-        shift_num = "1" if active_semester.shift == "MORNING" else "2"
+        shift_map = {'MORNING': '1', 'DAY': '2', 'EVENING': '3'}
+        shift_num = shift_map.get(group.shift, '1')
         shift_p = doc.add_paragraph(t['shift'].format(shift_num=shift_num))
         shift_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         shift_p.runs[0].bold = True
@@ -1647,7 +1488,7 @@ def export_schedule(request):
                 run.bold = True
                 run.font.size = Pt(10)
 
-        time_slots = get_time_slots_for_shift(active_semester.shift, institute)
+        time_slots = get_time_slots_for_shift(group.shift, institute)
 
         days = list(enumerate(t['days']))
 
@@ -1838,12 +1679,7 @@ def plan_detail(request, plan_id):
 
     target_course = (current_sem_num + 1) // 2
 
-    available_semesters = Semester.objects.filter(course=target_course)
-    if user_faculty:
-        available_semesters = available_semesters.filter(Q(faculty=user_faculty) | Q(faculty__isnull=True))
-
-    available_semesters = available_semesters.order_by('-academic_year', 'number')
-    active_semester = available_semesters.filter(is_active=True).first()
+    calendar_semester = Semester.get_current()
 
     credit_types = CreditType.objects.filter(Q(faculty=user_faculty) | Q(faculty__isnull=True))
 
@@ -1862,8 +1698,12 @@ def plan_detail(request, plan_id):
         form = PlanDisciplineForm(initial={'semester_number': current_sem_num}, faculty=user_faculty)
 
     disciplines = PlanDiscipline.objects.filter(plan=plan, semester_number=current_sem_num)
+    req_disciplines = disciplines.filter(discipline_type='REQUIRED')
+    elec_disciplines = disciplines.exclude(discipline_type='REQUIRED')
 
     total_semester_credits = disciplines.aggregate(Sum('credits'))['credits__sum'] or 0
+    is_overloaded = total_semester_credits > 30
+
     total_semester_hours = disciplines.aggregate(
         total=Sum('lecture_hours') + Sum('practice_hours') + Sum('lab_hours') + Sum('control_hours') + Sum('independent_hours')
     )['total'] or 0
@@ -1875,15 +1715,17 @@ def plan_detail(request, plan_id):
     return render(request, 'schedule/plans/plan_detail.html', {
         'plan': plan,
         'disciplines': disciplines,
+        'req_disciplines': req_disciplines,
+        'elec_disciplines': elec_disciplines,
+        'is_overloaded': is_overloaded,
+        'total_semester_credits': total_semester_credits,
         'form': form,
         'current_sem_num': current_sem_num,
         'semesters_range': range(1, 9),
         'target_course': target_course,
-        'available_semesters': available_semesters,
-        'active_semester': active_semester,
+        'calendar_semester': calendar_semester,
         'credit_types': credit_types,
         'credit_templates': credit_templates,
-        'total_semester_credits': total_semester_credits,
         'total_semester_hours': total_semester_hours,
         'institute_pair_ratio': institute_pair_ratio(inst),
     })
@@ -1909,16 +1751,18 @@ def generate_subjects_from_rup(request):
     diagnostics =[]
 
     for group in groups:
-        active_semester = get_active_semester_for_group(group)
-        if not active_semester:
-            diagnostics.append(f"Группа {group.name} ({group.course} курс): Нет активного семестра для этого курса.")
-            continue
-
+        active_semester = Semester.get_current()
         current_semester_num = (group.course - 1) * 2 + active_semester.number
 
-        plan = AcademicPlan.objects.filter(group=group, is_active=True).order_by('-admission_year').first()
-        if not plan and group.specialty:
-            plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
+        plan = None
+        try:
+            plan = group.academic_plan
+        except AcademicPlan.DoesNotExist:
+            pass
+
+        if not plan:
+            if group.specialty:
+                plan = AcademicPlan.objects.filter(specialty=group.specialty, is_active=True).order_by('-admission_year').first()
 
         if not plan:
             diagnostics.append(f"Группа {group.name}: Нет активного РУП (учебного плана).")
@@ -1939,7 +1783,7 @@ def generate_subjects_from_rup(request):
             if exists:
                 continue
 
-            key = f"{disc.subject_template.id}_{disc.id}_{active_semester.id}"
+            key = f"{disc.subject_template.id}_{active_semester.id}_{disc.discipline_type}_{disc.credits}"
 
             if key not in suggestions:
                 suggestions[key] = {
@@ -2104,14 +1948,11 @@ def edit_classroom(request, classroom_id):
     })
 
 @login_required
-@login_required
 def classroom_occupancy(request):
     day = int(request.GET.get('day', 0))
-    shift_filter = request.GET.get('shift', '')  
- 
-    active_semesters = Semester.objects.filter(is_active=True)
-    if not active_semesters.exists():
-        active_semesters = Semester.objects.order_by('-start_date')[:1]
+    shift_filter = request.GET.get('shift', '')
+
+    current_semester = Semester.get_current()
  
     classrooms = Classroom.objects.select_related('building').filter(is_active=True)
     institutes = []
@@ -2150,11 +1991,13 @@ def classroom_occupancy(request):
     ]
  
     slots = ScheduleSlot.objects.filter(
-        semester__in=active_semesters,
+        semester=current_semester,
         day_of_week=day,
         is_active=True,
-        classroom__in=classrooms
+        classroom__in=classrooms,
     ).select_related('classroom', 'group', 'subject', 'time_slot', 'teacher__user')
+    if shift_filter in ('MORNING', 'DAY', 'EVENING'):
+        slots = slots.filter(group__shift=shift_filter)
  
     occupancy = {}
     for slot in slots:
@@ -2184,8 +2027,7 @@ def import_schedule_view(request):
         return redirect('schedule:view')
 
     if request.method == 'POST' and 'confirm_import' in request.POST:
-        semester_id = request.POST.get('semester_id')
-        semester = Semester.objects.get(id=semester_id)
+        semester = Semester.get_current()
 
         all_keys = [k for k in request.POST.keys() if k.startswith('item_') and k.endswith('_group_id')]
         if not all_keys:
@@ -2234,7 +2076,6 @@ def import_schedule_view(request):
 
                 context = {
                     'preview_data': preview_data,
-                    'semester': form.cleaned_data['semester'],
                     'days_map_rev': {0: _('Понедельник'), 1: _('Вторник'), 2: _('Среда'), 3: _('Четверг'), 4: _('Пятница'), 5: _('Суббота')}
                 }
                 return render(request, 'schedule/import_preview_edit.html', context)
@@ -2479,101 +2320,21 @@ def delete_plan(request, plan_id):
     messages.success(request, _("Учебный план удален"))
     return redirect('schedule:manage_plans')
 
-@user_passes_test(is_dean_or_admin)
-def activate_semester_from_plan(request, semester_id):
-    semester = get_object_or_404(Semester, id=semester_id)
-    
-    with transaction.atomic():
-        Semester.objects.filter(course=semester.course, is_active=True).update(is_active=False)
-        
-        semester.is_active = True
-        semester.save()
-        
-    messages.success(request, _("Семестр '%(semester_name)s' (%(course)s курс) успешно активирован!") % {
-        'semester_name': semester.name,
-        'course': semester.course
-    })
-    return redirect(request.META.get('HTTP_REFERER', 'schedule:manage_plans'))
-
-@user_passes_test(is_dean_or_admin)
-@require_POST
-def set_active_semester_manual(request):
-    semester_id = request.POST.get('semester_id')
-    
-    if not semester_id:
-        messages.error(request, _("Выберите семестр из списка"))
-        return redirect(request.META.get('HTTP_REFERER'))
-
-    semester = get_object_or_404(Semester, id=semester_id)
-    
-    if hasattr(request.user, 'dean_profile') and semester.faculty != request.user.dean_profile.faculty:
-        messages.error(request, _("Ошибка доступа"))
-        return redirect(request.META.get('HTTP_REFERER'))
-
-    with transaction.atomic():
-        Semester.objects.filter(
-            faculty=semester.faculty, 
-            course=semester.course, 
-            is_active=True
-        ).update(is_active=False)
-        
-        semester.is_active = True
-        semester.save()
-
-    messages.success(request, _("Семестр %(semester)s теперь АКТИВЕН для %(course)s курса!") % {
-        'semester': semester,
-        'course': semester.course
-    })
-    return redirect(request.META.get('HTTP_REFERER'))
-
-
 @user_passes_test(lambda u: u.is_superuser or hasattr(u, 'director_profile') or hasattr(u, 'prorector_profile'))
 def manage_time_slots(request):
     if request.method == 'POST':
-        form = TimeSlotGeneratorForm(request.POST)
+        if 'delete_id' in request.POST:
+            TimeSlot.objects.filter(id=request.POST.get('delete_id')).delete()
+            messages.success(request, _("Время пары удалено."))
+            return redirect('schedule:manage_time_slots')
+
+        form = TimeSlotForm(request.POST)
         if form.is_valid():
-            data = form.cleaned_data
-            inst = data['institute']
-            shift = data['shift']
-
-            if data['delete_existing']:
-                TimeSlot.objects.filter(institute=inst, shift=shift).delete()
-
-            current_time = datetime.combine(date.today(), data['start_time'])
-            created_count = 0
-
-            big_break_after = data.get('big_break_after') or 0
-            big_break_dur = data.get('big_break_duration') or data['break_duration']
-
-            for i in range(1, data['pairs_count'] + 1):
-                start = current_time.time()
-                end_dt = current_time + timedelta(minutes=data['lesson_duration'])
-                end = end_dt.time()
-
-                TimeSlot.objects.create(
-                    institute=inst,
-                    number=i,
-                    start_time=start,
-                    end_time=end,
-                    shift=shift,
-                    duration=data['lesson_duration']
-                )
-                created_count += 1
-
-                is_big_break = (i == big_break_after)
-                break_min = big_break_dur if is_big_break else data['break_duration']
-
-                current_time = end_dt + timedelta(minutes=break_min)
-
-            logger.info(
-                "manage_time_slots: generated %s time slots shift=%s institute=%s user=%s",
-                created_count, shift, inst, request.user.username
-            )
-            target = inst.name if inst else "Всего Университета (Глобально)"
-            messages.success(request, _(f"Сетка звонков создана для: {target}. Сгенерировано {created_count} пар."))
+            form.save()
+            messages.success(request, _("Время пары успешно добавлено."))
             return redirect('schedule:manage_time_slots')
     else:
-        form = TimeSlotGeneratorForm()
+        form = TimeSlotForm()
 
     global_slots = TimeSlot.objects.filter(institute__isnull=True).order_by('shift', 'start_time')
     institute_slots = TimeSlot.objects.filter(institute__isnull=False).select_related('institute').order_by('institute', 'shift', 'start_time')
@@ -2666,6 +2427,14 @@ def check_schedule_conflicts(request):
     data = json.loads(request.body)
     
     semester_id = data.get('semester_id')
+    if semester_id is not None and semester_id != '':
+        try:
+            semester_id = int(semester_id)
+        except (TypeError, ValueError):
+            semester_id = None
+    if not semester_id:
+        sem = Semester.get_current()
+        semester_id = sem.pk if sem else None
     day = data.get('day')
     time_slot_id = data.get('time_slot_id')
     group_id = data.get('group_id')
@@ -3106,56 +2875,9 @@ def api_ai_assign_teachers(request):
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')})
 
 
-@user_passes_test(lambda u: u.is_superuser or hasattr(u, 'director_profile'))
-def global_semester_setup(request):
-    if request.method == 'POST':
-        academic_year = request.POST.get('academic_year')
-        number = int(request.POST.get('number'))
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
-        
-        if not all([academic_year, number, start_date, end_date]):
-            messages.error(request, "Заполните все поля!")
-            return redirect('schedule:manage_semesters')
-
-        try:
-            with transaction.atomic():
-                Semester.objects.filter(is_active=True).update(is_active=False)
-                
-                faculties = Faculty.objects.all()
-                created_count = 0
-                
-                for faculty in faculties:
-                    for course in range(1, 6):
-                        shift = 'MORNING' if course <= 2 else 'DAY'
-                        
-                        Semester.objects.create(
-                            faculty=faculty,
-                            name=f"{'Осенний' if number == 1 else 'Весенний'} семестр",
-                            academic_year=academic_year,
-                            number=number,
-                            course=course,
-                            shift=shift,
-                            start_date=start_date,
-                            end_date=end_date,
-                            is_active=True
-                        )
-                        created_count += 1
-                
-                messages.success(request, f"🚀 Успешно! Старые данные отправлены в архив. Создано {created_count} новых семестров. Система готова к работе с {start_date}!")
-        except Exception as e:
-            logger.exception("global_semester_setup")
-            messages.error(request, _("Ошибка при генерации семестров. См. журнал сервера."))
-            
-        return redirect('schedule:manage_semesters')
-        
-    return render(request, 'schedule/global_setup.html')
-
-
 @login_required
 @user_passes_test(is_dean_or_admin)
 def auto_schedule_config(request):
-    semesters = Semester.objects.filter(is_active=True)
     institute = None
 
     if hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
@@ -3163,7 +2885,6 @@ def auto_schedule_config(request):
         faculty = profile.faculty
         institute = faculty.institute if faculty else None
 
-        semesters = semesters.filter(Q(faculty=faculty) | Q(faculty__isnull=True))
         groups = Group.objects.filter(specialty__department__faculty=faculty)
 
         if institute:
@@ -3189,7 +2910,6 @@ def auto_schedule_config(request):
         profile = getattr(request.user, 'director_profile', None) or getattr(request.user, 'prorector_profile', None)
         institute = profile.institute
         if institute:
-            semesters = semesters.filter(Q(faculty__institute=institute) | Q(faculty__isnull=True))
             groups = Group.objects.filter(specialty__department__faculty__institute=institute)
             teachers = Teacher.objects.filter(
                 Q(department__faculty__institute=institute) |
@@ -3209,7 +2929,6 @@ def auto_schedule_config(request):
         rooms = Classroom.objects.filter(is_active=True)
 
     if request.method == 'POST':
-        semester_id = request.POST.get('semester')
         group_ids = request.POST.getlist('groups')
         teacher_ids = request.POST.getlist('teachers')
         room_ids = request.POST.getlist('rooms')
@@ -3220,17 +2939,17 @@ def auto_schedule_config(request):
         overflow_mode = int(request.POST.get('overflow_mode', 1))
         iterations = int(request.POST.get('iterations', 5))
 
-        if not semester_id or not group_ids:
-            messages.error(request, "Выберите семестр и хотя бы одну группу.")
+        if not group_ids:
+            messages.error(request, "Выберите хотя бы одну группу.")
             return redirect('schedule:auto_schedule_config')
 
-        semester = get_object_or_404(Semester, id=semester_id)
+        semester = Semester.get_current()
         target_groups = Group.objects.filter(id__in=group_ids)
 
         logger.info(
             "auto_schedule_config: starting generation user=%s semester=%s groups=%s "
             "clear=%s avoid_gaps=%s strict_rooms=%s overflow=%s iterations=%s",
-            request.user.username, semester_id, group_ids,
+            request.user.username, semester.pk, group_ids,
             clear_existing, avoid_gaps, strict_room_types, overflow_mode, iterations
         )
 
@@ -3264,14 +2983,14 @@ def auto_schedule_config(request):
             if result['unassigned_count'] == 0:
                 logger.info(
                     "auto_schedule_config: generation complete created=%s user=%s semester=%s",
-                    result['created'], request.user.username, semester_id
+                    result['created'], request.user.username, semester.pk
                 )
                 messages.success(request, f"✨ Успех! Сгенерировано {result['created']} занятий. Проанализировано {iterations} вариантов.")
             else:
                 logger.warning(
                     "auto_schedule_config: generation partial created=%s unassigned=%s user=%s semester=%s details=%s",
                     result['created'], result['unassigned_count'],
-                    request.user.username, semester_id,
+                    request.user.username, semester.pk,
                     result['unassigned_details'][:5]
                 )
                 error_list = "<br>".join(result['unassigned_details'][:10])
@@ -3279,20 +2998,18 @@ def auto_schedule_config(request):
 
             if target_groups.exists():
                 request.session['last_constructor_group'] = str(target_groups.first().id)
-                request.session['last_constructor_semester'] = str(semester.id)
-                return redirect(f"/schedule/constructor/?group={target_groups.first().id}&semester={semester.id}")
+                return redirect(f"/schedule/constructor/?group={target_groups.first().id}")
             return redirect('schedule:constructor')
 
         except Exception as e:
             logger.exception(
                 "auto_schedule_config: generation failed user=%s semester=%s groups=%s error=%s",
-                request.user.username, semester_id, group_ids, e
+                request.user.username, semester.pk, group_ids, e
             )
             messages.error(request, _("Критическая ошибка алгоритма. См. журнал сервера."))
             return redirect('schedule:auto_schedule_config')
 
     return render(request, 'schedule/auto_schedule.html', {
-        'semesters': semesters,
         'groups': groups,
         'teachers': teachers,
         'rooms': rooms
@@ -3727,11 +3444,10 @@ def clear_military_day(request):
     try:
         data = json.loads(request.body)
         group_id   = data.get('group_id')
-        semester_id = data.get('semester_id')
         day_of_week = data.get('day_of_week')
  
         group    = get_object_or_404(Group, id=group_id)
-        semester = get_object_or_404(Semester, id=semester_id)
+        semester = Semester.get_current()
  
         if hasattr(request.user, 'dean_profile'):
             faculty = request.user.dean_profile.faculty
@@ -3798,11 +3514,7 @@ def schedule_calendar(request):
     if group_id:
         selected_group = Group.objects.filter(id=group_id).first()
 
-    active_semester = None
-    if selected_group:
-        active_semester = get_active_semester_for_group(selected_group)
-    if not active_semester:
-        active_semester = Semester.objects.filter(is_active=True).first()
+    active_semester = Semester.get_current()
 
     can_edit = is_dean_or_admin(user)
     can_move_calendar = (
@@ -3856,7 +3568,7 @@ def calendar_sidebar_api(request):
         if not group:
             return JsonResponse({'weekly_slots': 0, 'unused_hours': []})
 
-        active_semester = get_active_semester_for_group(group)
+        active_semester = Semester.get_current()
         if not active_semester:
             return JsonResponse({'weekly_slots': 0, 'unused_hours': []})
 
@@ -3930,17 +3642,12 @@ def schedule_calendar_events(request):
         sem = slot.semester
         if not sem or not sem.start_date or not sem.end_date: continue
 
-        vac_weeks =[int(w.strip()) for w in sem.vacation_weeks.split(',') if w.strip().isdigit()] if sem.vacation_weeks else[]
         loop_start = max(sem.start_date, start_date)
         days_ahead  = (slot.day_of_week - loop_start.weekday()) % 7
         current     = loop_start + timedelta(days=days_ahead)
 
         while current <= min(sem.end_date, end_date):
             week_num = ((current - sem.start_date).days // 7) + 1
-
-            if week_num in vac_weeks:
-                current += timedelta(weeks=1)
-                continue
 
             is_red = (week_num % 2 == 1)
             show = (slot.week_type == 'EVERY' or (slot.week_type == 'RED' and is_red) or (slot.week_type == 'BLUE' and not is_red))
@@ -4226,9 +3933,10 @@ def mass_cancel_day(request):
         with transaction.atomic():
             count = 0
             for slot in slots:
-                sem = slot.semester
-                if not sem or not sem.start_date: continue
-                
+                sem = Semester.get_current(cancel_date)
+                if not sem or not sem.start_date:
+                    continue
+
                 week_num = ((cancel_date - sem.start_date).days // 7) + 1
                 is_red = (week_num % 2 == 1)
                 show = (slot.week_type == 'EVERY' or (slot.week_type == 'RED' and is_red) or (slot.week_type == 'BLUE' and not is_red))
@@ -4241,7 +3949,7 @@ def mass_cancel_day(request):
                     )
                     UnusedHourPool.objects.get_or_create(
                         group=slot.group, subject=slot.subject, teacher=slot.teacher,
-                        semester=slot.semester, original_date=cancel_date,
+                        semester=sem, original_date=cancel_date,
                         defaults={'reason': reason}
                     )
                     count += 1

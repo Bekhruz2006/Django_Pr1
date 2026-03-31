@@ -22,8 +22,13 @@ class AutoScheduleEngine:
         self.overflow_mode = overflow_mode 
         self.strict_room_types = strict_room_types 
         self.iterations = iterations
-        
-        ts_qs = TimeSlot.objects.filter(shift=semester.shift)
+
+        groups_list = list(target_groups) if target_groups is not None else []
+        if groups_list:
+            shifts = {g.shift for g in groups_list}
+        else:
+            shifts = {'MORNING', 'DAY', 'EVENING'}
+        ts_qs = TimeSlot.objects.filter(shift__in=shifts)
         if self.institute:
             inst_ts = ts_qs.filter(institute=self.institute)
             if inst_ts.exists():
@@ -32,8 +37,8 @@ class AutoScheduleEngine:
                 ts_qs = ts_qs.filter(institute__isnull=True)
         else:
             ts_qs = ts_qs.filter(institute__isnull=True)
-        
-        self.time_slots = list(ts_qs.order_by('start_time'))
+
+        self.time_slots = list(ts_qs.order_by('shift', 'start_time'))
         self.days = [0, 1, 2, 3, 4, 5]
         self.week_types = ['EVERY', 'RED', 'BLUE']
 

@@ -40,19 +40,16 @@ class TimeSlotAdmin(admin.ModelAdmin):
 
 @admin.register(Semester)
 class SemesterAdmin(admin.ModelAdmin):
-    list_display = ['name', 'number', 'shift', 'start_date', 'end_date', 'is_active']
-    list_filter = ['is_active', 'shift', 'number']
-    ordering = ['-start_date']
-    
+    list_display = ['academic_year', 'number', 'start_date', 'end_date']
+    list_filter = ['number', 'academic_year']
+    ordering = ['-academic_year', 'number']
+
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'number', 'shift')
+            'fields': ('academic_year', 'number')
         }),
         ('Период', {
             'fields': ('start_date', 'end_date')
-        }),
-        ('Статус', {
-            'fields': ('is_active',)
         }),
     )
 

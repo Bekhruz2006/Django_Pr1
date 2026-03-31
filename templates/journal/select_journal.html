@@ -56,12 +56,14 @@
     </div>
 </div>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const subjectSelect = document.getElementById('id_subject');
-        const groupSelect = document.getElementById('id_group');
-        
-        subjectSelect.addEventListener('change', function() {
+    jQuery(document).ready(function($) {
+        $('#id_group, #id_subject').select2({
+            width: '100%',
+            placeholder: "{% trans 'Начните вводить для поиска...' %}"
         });
     });
 </script>

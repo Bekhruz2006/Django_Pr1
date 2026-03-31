@@ -61,6 +61,22 @@
                         </div>
                     </div>
                 </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <form method="get" class="d-flex align-items-center gap-2">
+                            <label class="mb-0 fw-bold">{% trans "Семестр" %}:</label>
+                            <select name="semester_id" class="form-select form-select-sm">
+                                <option value="">{% trans "Все" %}</option>
+                                {% for sem in semesters %}
+                                <option value="{{ sem.id }}" {% if selected_semester and selected_semester.id == sem.id %}selected{% endif %}>
+                                    {{ sem.academic_year }} - {% if sem.number == 1 %}{% trans "1-е" %}{% else %}{% trans "2-е" %}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary">{% trans "Применить" %}</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
         

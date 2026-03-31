@@ -263,24 +263,14 @@ class Subject(models.Model):
             return math.ceil(hours_count / 2)
 
     def get_actual_semester_weeks(self):
-            from schedule.models import Semester
             import math
-            
-            faculty = self.department.faculty
-            active_sem = Semester.objects.filter(faculty=faculty, is_active=True).first()
-            if not active_sem:
-                active_sem = Semester.objects.filter(is_active=True).first()
-                
+            from schedule.models import Semester
+
+            active_sem = Semester.get_current()
             if active_sem and active_sem.start_date and active_sem.end_date:
                 delta = active_sem.end_date - active_sem.start_date
                 weeks = delta.days / 7.0
-                
-                if active_sem.vacation_weeks:
-                    vacs = len([w for w in active_sem.vacation_weeks.split(',') if w.strip().isdigit()])
-                    weeks -= vacs
-                    
                 return max(1, int(math.ceil(weeks)))
-                
             return self.semester_weeks
 
     def get_weekly_slots_needed(self):
@@ -351,38 +341,39 @@ class TimeSlot(models.Model):
         return f"[{inst}] {self.number}-пара ({self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')})"
 
 class Semester(models.Model):
+    NUMBER_CHOICES = [
+        (1, _('1-е полугодие')),
+        (2, _('2-е полугодие')),
+    ]
+
+    academic_year = models.CharField(max_length=20, verbose_name=_("Учебный год"), help_text=_("Формат: 2024-2025"))
+    number = models.IntegerField(choices=NUMBER_CHOICES, verbose_name=_("Номер семестра"))
+    start_date = models.DateField(verbose_name=_("Дата начала"))
+    end_date = models.DateField(verbose_name=_("Дата окончания"))
+
+    class Meta:
+        verbose_name = _("Семестр")
+        verbose_name_plural = _("Семестры")
+        unique_together = ['academic_year', 'number']
+        ordering = ['-academic_year', 'number']
+
+    def __str__(self):
+        half = _('1-е полугодие') if self.number == 1 else _('2-е полугодие')
+        return f"{half} {self.academic_year}"
+
     def get_week_type_for_date(self, target_date):
         if not self.start_date:
             return 'EVERY'
-
         if target_date < self.start_date:
             return 'RED'
-
         delta = target_date - self.start_date
         week_number = (delta.days // 7) + 1
-
         return 'RED' if week_number % 2 != 0 else 'BLUE'
 
     def get_week_start_date(self, academic_week_num):
         if not self.start_date:
             return timezone.now().date()
-        
-        vacations = []
-        if self.vacation_weeks:
-            vacations = sorted([int(w.strip()) for w in self.vacation_weeks.split(',') if w.strip().isdigit()])
-        
-        chrono_week = 1
-        academic_week = 1
-        
-        while academic_week < academic_week_num:
-            chrono_week += 1
-            if chrono_week not in vacations:
-                academic_week += 1
-                
-        while chrono_week in vacations:
-            chrono_week += 1
-            
-        return self.start_date + timedelta(weeks=chrono_week - 1)
+        return self.start_date + timedelta(weeks=academic_week_num - 1)
 
     def get_current_week_number(self):
         if not self.start_date:
@@ -391,86 +382,40 @@ class Semester(models.Model):
         if today < self.start_date:
             return 1
         delta = today - self.start_date
-        chrono_week = (delta.days // 7) + 1
-        
-        vacations = []
-        if self.vacation_weeks:
-            vacations = [int(w.strip()) for w in self.vacation_weeks.split(',') if w.strip().isdigit()]
-            
-        if chrono_week in vacations:
-            return -1
-            
-        academic_week = chrono_week
-        for v in vacations:
-            if v < chrono_week:
-                academic_week -= 1
-                
-        return academic_week
+        return (delta.days // 7) + 1
 
-    NUMBER_CHOICES = [
-        (1, _('Первый')),
-        (2, _('Второй')),
-    ]
-
-    SHIFT_CHOICES = [
-        ('MORNING', _('Утренняя смена')),
-        ('DAY', _('Дневная смена')),
-    ]
-
-    COURSE_CHOICES = [
-        (1, _('1 курс')),
-        (2, _('2 курс')),
-        (3, _('3 курс')),
-        (4, _('4 курс')),
-        (5, _('5 курс')),
-    ]
-    faculty = models.ForeignKey(
-        Faculty,
-        on_delete=models.CASCADE,
-        related_name='semesters',
-        verbose_name=_("Факультет"),
-        null=True,
-        blank=True
-    )
-    name = models.CharField(max_length=200, verbose_name=_("Название (напр. Осенний)"))
-    academic_year = models.CharField(max_length=20, verbose_name=_("Учебный год"), help_text=_("Формат: 2024-2025"))
-    number = models.IntegerField(choices=NUMBER_CHOICES, verbose_name=_("Номер семестра"))
-    course = models.IntegerField(choices=COURSE_CHOICES, verbose_name=_("Курс"))
-    shift = models.CharField(max_length=10, choices=SHIFT_CHOICES, verbose_name=_("Смена"))
-
-    start_date = models.DateField(verbose_name=_("Дата начала"))
-    end_date = models.DateField(verbose_name=_("Дата окончания"))
-    vacation_weeks = models.CharField(
-        max_length=50, 
-        blank=True, 
-        verbose_name=_("Каникулярные недели"), 
-        help_text=_("Номера хронологических недель от начала семестра через запятую (напр. 8,9)")
-    )
-    is_active = models.BooleanField(default=False, verbose_name=_("Активный"))
-
-    class Meta:
-        verbose_name = _("Семестр")
-        verbose_name_plural = _("Семестры")
-        unique_together = ['faculty', 'academic_year', 'number', 'course']
-        ordering = ['-academic_year', 'course', 'number']
-
-    def __str__(self):
-        return f"{self.name} ({self.course} курс)"
-
-    def save(self, *args, **kwargs):
-        if self.is_active and self.faculty and self.course:
-            Semester.objects.filter(
-                faculty=self.faculty,
-                course=self.course,
-                is_active=True
-            ).exclude(pk=self.pk).update(is_active=False)
-        super().save(*args, **kwargs)
+    @staticmethod
+    def _infer_bounds(d):
+        y, m = d.year, d.month
+        if m >= 9:
+            ay = f"{y}-{y + 1}"
+            sd, ed = date(y, 9, 1), date(y + 1, 1, 31)
+            return ay, 1, sd, ed
+        if m == 1:
+            ay = f"{y - 1}-{y}"
+            sd, ed = date(y - 1, 9, 1), date(y, 1, 31)
+            return ay, 1, sd, ed
+        if m in (7, 8):
+            ay = f"{y}-{y + 1}"
+            sd, ed = date(y, 9, 1), date(y + 1, 1, 31)
+            return ay, 1, sd, ed
+        ay = f"{y - 1}-{y}"
+        sd, ed = date(y, 2, 1), date(y, 6, 30)
+        return ay, 2, sd, ed
 
     @classmethod
-    def get_active(cls, course=None):
-        if course:
-            return cls.objects.filter(is_active=True, course=course).first()
-        return cls.objects.filter(is_active=True).first()
+    def get_current(cls, at_date=None):
+        d = at_date or timezone.now().date()
+        row = cls.objects.filter(start_date__lte=d, end_date__gte=d).first()
+        if row:
+            return row
+        ay, num, sd, ed = cls._infer_bounds(d)
+        row, _ = cls.objects.get_or_create(
+            academic_year=ay,
+            number=num,
+            defaults={'start_date': sd, 'end_date': ed},
+        )
+        return row
 
 class Classroom(models.Model):
 
@@ -640,37 +585,19 @@ class AcademicPlan(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, verbose_name=_("Актуальный"))
 
-    group = models.ForeignKey(
+    group = models.OneToOneField(
         'accounts.Group',
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='academic_plans',
-        verbose_name=_("Группа (для индивидуального плана)")
+        related_name='academic_plan',
+        verbose_name=_("Группа")
     )
 
     class Meta:
         verbose_name = _("Учебный план (РУП)")
         verbose_name_plural = _("Учебные планы")
-        constraints = [
-            models.UniqueConstraint(
-                fields=['specialty', 'admission_year'], 
-                condition=models.Q(group__isnull=True), 
-                name='unique_specialty_year_no_group'
-            ),
-            models.UniqueConstraint(
-                fields=['specialty', 'admission_year', 'group'], 
-                condition=models.Q(group__isnull=False), 
-                name='unique_specialty_year_group'
-            )
-        ]
 
-
-        
     def __str__(self):
-        if self.group:
-            return f"РУП Группы: {self.group.name} ({self.admission_year})"
-        return f"РУП Специальности: {self.specialty.name} ({self.admission_year})"
+        return f"РУП Группы: {self.group.name} ({self.admission_year})"
 
 class PlanDiscipline(models.Model):
     CONTROL_CHOICES = [

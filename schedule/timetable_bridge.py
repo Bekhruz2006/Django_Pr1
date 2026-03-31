@@ -83,27 +83,6 @@ class TimetableBridge:
             semester, overflow_mode, strict_room_types, avoid_gaps
         )
 
-        ts_qs = TimeSlot.objects.filter(shift=semester.shift)
-        if institute:
-            inst_ts = ts_qs.filter(institute=institute)
-            ts_qs = inst_ts if inst_ts.exists() else ts_qs.filter(institute__isnull=True)
-        else:
-            ts_qs = ts_qs.filter(institute__isnull=True)
-        time_slots = list(ts_qs.order_by("start_time"))
-
-        ts_id_to_idx = {ts.id: i for i, ts in enumerate(time_slots)}
-
-        slots_json = [
-            {
-                "id": ts.id,
-                "index": i,
-                "number": i + 1,
-                "start_time": ts.start_time.strftime("%H:%M"),
-                "end_time": ts.end_time.strftime("%H:%M"),
-            }
-            for i, ts in enumerate(time_slots)
-        ]
-
         room_qs = Classroom.objects.filter(is_active=True)
         if target_rooms:
             room_qs = room_qs.filter(id__in=target_rooms)
@@ -129,6 +108,28 @@ class TimetableBridge:
 
         groups_list = list(target_groups_qs)
         group_ids_set = {g.id for g in groups_list}
+
+        shifts = {g.shift for g in groups_list} if groups_list else {'MORNING', 'DAY', 'EVENING'}
+        ts_qs = TimeSlot.objects.filter(shift__in=shifts)
+        if institute:
+            inst_ts = ts_qs.filter(institute=institute)
+            ts_qs = inst_ts if inst_ts.exists() else ts_qs.filter(institute__isnull=True)
+        else:
+            ts_qs = ts_qs.filter(institute__isnull=True)
+        time_slots = list(ts_qs.order_by("shift", "start_time"))
+
+        ts_id_to_idx = {ts.id: i for i, ts in enumerate(time_slots)}
+
+        slots_json = [
+            {
+                "id": ts.id,
+                "index": i,
+                "number": i + 1,
+                "start_time": ts.start_time.strftime("%H:%M"),
+                "end_time": ts.end_time.strftime("%H:%M"),
+            }
+            for i, ts in enumerate(time_slots)
+        ]
 
         groups_json = [
             {

@@ -121,37 +121,16 @@
                         <span class="badge bg-secondary ms-1 fs-6 shadow-sm">{% trans "Всего часов:" %} {{ total_semester_hours }}</span>
                     </h6>
                     <small class="text-muted">
-                        {% trans "Выберите, какой семестр (из созданных в настройках) сейчас идет у студентов этого курса." %}
+                        {% trans "Календарный семестр определяется автоматически по дате (единый для вуза)." %}
                     </small>
                 </div>
 
-                <div class="d-flex align-items-center bg-white p-2 rounded border">
-                    <form action="{% url 'schedule:set_active_semester_manual' %}" method="post" class="d-flex align-items-center gap-2">
-                        {% csrf_token %}
-
-                        <div class="input-group input-group-sm">
-                            <span class="bi bi-check2-circle">{% trans "Текущий" %} </span>
-                            <select name="semester_id" class="form-select border-start-0 ps-1 fw-bold" style="min-width: 250px;">
-                                <option value="" disabled {% if not active_semester %}selected{% endif %}>-- {% trans "Не выбран" %} --</option>
-                                {% for sem in available_semesters %}
-                                    <option value="{{ sem.id }}" {% if sem.is_active %}selected{% endif %}>
-                                        {{ sem.academic_year }} | {{ sem.name }} ({{ sem.get_shift_display }})
-                                        {% if sem.is_active %} ✅{% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check2-circle"></i> {% trans "Активировать" %}
-                            </button>
-                        </div>
-                    </form>
-
-                    <div class="vr mx-2"></div>
-
-                    <a href="{% url 'schedule:add_semester' %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Создать новый, если нет в списке' %}">
-                        <i class="bi bi-plus-lg"></i>
-                    </a>
+                {% if calendar_semester %}
+                <div class="badge bg-primary fs-6 px-3 py-2">
+                    {{ calendar_semester.academic_year }}
+                    — {% if calendar_semester.number == 1 %}{% trans "Осенний семестр" %}{% else %}{% trans "Весенний семестр" %}{% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -340,6 +319,13 @@
             </div>
 
             <div class="card-body p-0">
+                {% if is_overloaded %}
+                <div class="alert alert-danger m-3 fw-bold">
+                    <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                    {% trans "Внимание! Сумма кредитов в этом семестре" %} ({{ total_semester_credits }}) {% trans "превышает норму Болонского процесса (30 кредитов). Возможна перегрузка студентов!" %}
+                </div>
+                {% endif %}
+
                 {% if not disciplines %}
                     <div class="text-center py-5">
                         <i class="bi bi-journal-plus text-muted opacity-50" style="font-size: 3rem;"></i>
@@ -347,7 +333,8 @@
                     </div>
                 {% else %}
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <h6 class="bg-success text-white p-2 mb-0 mt-3"><i class="bi bi-bookmark-star-fill"></i> {% trans "Обязательные дисциплины" %}</h6>
+                        <table class="table table-hover align-middle mb-3">
                             <thead class="bg-light text-dark small text-uppercase">
                                 <tr>
                                     <th class="ps-4">{% trans "Название / Цикл" %}</th>
@@ -359,20 +346,18 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for disc in disciplines %}
+                                {% for disc in req_disciplines %}
                                 <tr>
                                     <td class="ps-4 fw-medium text-dark">
-                                        {{ disc.subject_template.name }}
-                                        <br>
+                                        {{ disc.subject_template.name }}<br>
                                         <span class="badge bg-secondary bg-opacity-10 text-dark border">{{ disc.get_cycle_display }}</span>
-                                        <small class="text-muted ms-1">{{ disc.get_discipline_type_display }}</small>
                                     </td>
                                     <td class="text-center fw-bold text-dark">{{ disc.credits }}</td>
                                     <td class="text-center text-muted small">
-                                        <span class="badge bg-primary bg-opacity-10 text-primary" title="{% trans 'Лекции' %}">{{ disc.lecture_hours }}</span>
-                                        <span class="badge bg-success bg-opacity-10 text-success" title="{% trans 'Практика' %}">{{ disc.practice_hours }}</span>
-                                        <span class="badge bg-warning bg-opacity-10 text-dark" title="{% trans 'СРСП' %}">{{ disc.control_hours }}</span>
-                                        <span class="badge bg-secondary bg-opacity-10 text-dark" title="{% trans 'СРС' %}">{{ disc.independent_hours }}</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ disc.lecture_hours }}</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success">{{ disc.practice_hours }}</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-dark">{{ disc.control_hours }}</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-dark">{{ disc.independent_hours }}</span>
                                     </td>
                                     <td class="text-center">
                                         {% if disc.has_subgroups %}
@@ -397,9 +382,67 @@
                                         </a>
                                     </td>
                                 </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-muted">{% trans "Обязательных дисциплин нет." %}</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+
+                        <h6 class="bg-warning text-dark p-2 mb-0 mt-4"><i class="bi bi-bookmark-plus-fill"></i> {% trans "Элективные (По выбору / Практика)" %}</h6>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-dark small text-uppercase">
+                                <tr>
+                                    <th class="ps-4">{% trans "Название / Цикл" %}</th>
+                                    <th class="text-center">{% trans "Кредиты" %}</th>
+                                    <th class="text-center">{% trans "Л / П / КМРО / СРС" %}</th>
+                                    <th class="text-center">{% trans "Подгруппы" %}</th>
+                                    <th>{% trans "Контроль" %}</th>
+                                    <th class="text-end pe-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for disc in elec_disciplines %}
+                                <tr>
+                                    <td class="ps-4 fw-medium text-dark">
+                                        {{ disc.subject_template.name }}<br>
+                                        <span class="badge bg-secondary bg-opacity-10 text-dark border">{{ disc.get_cycle_display }}</span>
+                                    </td>
+                                    <td class="text-center fw-bold text-dark">{{ disc.credits }}</td>
+                                    <td class="text-center text-muted small">
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ disc.lecture_hours }}</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success">{{ disc.practice_hours }}</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-dark">{{ disc.control_hours }}</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-dark">{{ disc.independent_hours }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if disc.has_subgroups %}
+                                            <span class="badge bg-info"><i class="bi bi-people"></i> {% trans "Да" %}</span>
+                                        {% else %}
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if disc.control_type == 'EXAM' %}
+                                            <span class="text-danger small fw-bold">{% trans "Имтиҳон" %}</span>
+                                        {% else %}
+                                            <span class="text-success small">{% trans "Санҷиш" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button type="button" class="btn btn-sm btn-link text-primary p-0 me-2" onclick="openEditModal({{ disc.id }}, '{{ disc.credits }}', '{{ disc.lecture_hours }}', '{{ disc.practice_hours }}', '{{ disc.lab_hours }}', '{{ disc.control_hours }}', '{{ disc.independent_hours }}', '{{ disc.credit_type_id|default:'' }}')" title="{% trans 'Редактировать' %}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <a href="{% url 'schedule:delete_plan_discipline' disc.id %}" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('{{ confirm_delete_disc_msg|escapejs }}')" title="{% trans 'Удалить' %}">
+                                            <i class="bi bi-x-lg"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-muted">{% trans "Элективных дисциплин нет." %}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
                     </div>
                 {% endif %}
             </div>

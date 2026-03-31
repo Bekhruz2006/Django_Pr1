@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Sum
 import logging
 from .models import Course, CourseCategory, CourseEnrolment, CourseSection
 logger = logging.getLogger(__name__)
@@ -10,6 +11,10 @@ import hashlib
 
 
 class LMSManager:
+    @staticmethod
+    def get_group_course_id(subject, group):
+        return f"SUBJ_{subject.id}_GRP_{group.id}"
+
     @staticmethod
     def get_shared_course_id(subject):
         return f"SUBJ_{subject.id}"
@@ -77,69 +82,59 @@ class LMSManager:
 
     @staticmethod
     def sync_subject_to_course(subject):
-        with transaction.atomic():
-            category, _ = CourseCategory.objects.get_or_create(
-                name=subject.department.name,
-                faculty=subject.department.faculty
-            )
-            
+        """Создает отдельные курсы для каждой группы, привязанной к предмету"""
+        category, _ = CourseCategory.objects.get_or_create(
+            name=subject.department.name,
+            defaults={'faculty': subject.department.faculty}
+        )
+        created_courses = []
+
+        for group in subject.groups.all():
+            course_id = LMSManager.get_group_course_id(subject, group)
+            course_name = f"{subject.name} - {group.name}"
+
             course, created = Course.objects.get_or_create(
-                id_number=subject.code,
+                id_number=course_id,
                 defaults={
                     'category': category,
-                    'full_name': f"{subject.name} ({subject.get_type_display()})",
-                    'short_name': subject.name[:50],
+                    'full_name': course_name,
+                    'short_name': f"{subject.name[:30]} ({group.name})",
+                    'allowed_group': group,
                 }
             )
 
             if created:
-                for i in range(1, subject.semester_weeks + 1):
-                    CourseSection.objects.create(
-                        course=course,
-                        name=f"Неделя {i}",
-                        sequence=i
-                    )
+                LMSManager.generate_structure_from_schedule(course, subject)
 
             if subject.teacher:
                 CourseEnrolment.objects.get_or_create(
-                    course=course,
-                    user=subject.teacher.user,
-                    defaults={'role': 'TEACHER'}
+                    course=course, user=subject.teacher.user, defaults={'role': 'TEACHER'}
                 )
 
-            for group in subject.groups.all():
-                students = Student.objects.filter(group=group, status='ACTIVE')
-                for student in students:
-                    CourseEnrolment.objects.get_or_create(
-                        course=course,
-                        user=student.user,
-                        defaults={'role': 'STUDENT'}
-                    )
-            return course
+            students = group.students.filter(status='ACTIVE')
+            for student in students:
+                CourseEnrolment.objects.get_or_create(
+                    course=course, user=student.user, defaults={'role': 'STUDENT'}
+                )
+
+            created_courses.append(course)
+
+        return created_courses
+
     @staticmethod
-    def generate_structure_from_schedule(course):
+    def generate_structure_from_schedule(course, subject=None):
         from journal.models import MatrixStructure
-        from testing.models import Quiz
-        from schedule.models import Subject, Semester
-        
-        subject = LMSManager.get_subject_from_shared_id(course.id_number)
+
         if not subject:
-            return False, "Предмет не найден. Убедитесь, что курс привязан к предмету из расписания."
+            parts = course.id_number.split('_')
+            if len(parts) == 4:
+                from schedule.models import Subject
+                subject = Subject.objects.filter(id=parts[1]).first()
 
-        group = subject.groups.first()
-        if not group:
-            return False, "У предмета нет привязанных групп."
+        if not subject or not subject.department:
+            return False, "Невозможно определить предмет для генерации структуры."
 
-        semester = Semester.objects.filter(is_active=True, course=group.course).first()
-        if not semester:
-            semester = Semester.objects.filter(is_active=True).first()
-
-        if not semester:
-            return False, "Активный семестр не найден."
-
-        faculty = subject.department.faculty
-        institute = faculty.institute
-
+        institute = subject.department.faculty.institute if subject.department and subject.department.faculty else None
         matrix = MatrixStructure.get_or_create_default(institute=institute, faculty=None)
 
         course.sections.all().delete()
@@ -151,9 +146,9 @@ class LMSManager:
             elif column.col_type == 'EXAM':
                 section_type = 'EXAM'
             elif column.col_type == 'WEEK':
-                section_type = column.week_type if hasattr(column, 'week_type') and column.week_type in ['RED', 'BLUE'] else 'REGULAR'
-                
-            section = CourseSection.objects.create(
+                section_type = column.week_type if column.week_type in ['RED', 'BLUE'] else 'REGULAR'
+
+            CourseSection.objects.create(
                 course=course,
                 name=column.name,
                 sequence=column.order,
@@ -161,22 +156,89 @@ class LMSManager:
                 matrix_column_id=column.id
             )
 
-            if column.col_type == 'WEEK':
-                assign_mod = CourseModule.objects.create(
-                    section=section, module_type='ASSIGNMENT',
-                    title=f"Задания: {column.name}", sequence=1
-                )
-                Assignment.objects.create(module=assign_mod, description="Загрузите выполненное задание сюда.", max_score=column.max_score)
-            
-            elif column.col_type in ['RATING', 'EXAM']:
-                quiz_mod = CourseModule.objects.create(
-                    section=section, module_type='QUIZ',
-                    title=f"Тестирование: {column.name}", sequence=1
-                )
-                Quiz.objects.create(
-                    module=quiz_mod, 
-                    description=f"Автоматический тест для колонки '{column.name}'.",
-                    passing_score=(column.max_score / 2)
-                )
+        return True, "Структура LMS успешно синхронизирована с ведомостью!"
 
-        return True, "Структура LMS успешно сгенерирована на основе Сводной ведомости факультета!"
+
+class LMSGradeSynchronizer:
+    @staticmethod
+    def get_section_weight_info(section):
+        from journal.models import MatrixColumn
+        from lms.models import CourseModule
+        
+        column = None
+        if section.matrix_column_id:
+            column = MatrixColumn.objects.filter(id=section.matrix_column_id).first()
+            
+        if not column:
+            return {'total_max': 0, 'item_count': 0, 'weight_per_item': 0, 'column': None}
+
+        total_max = column.max_score
+        modules = CourseModule.objects.filter(
+            section=section, 
+            is_visible=True, 
+            module_type__in=['ASSIGNMENT', 'QUIZ']
+        )
+        item_count = modules.count()
+        
+        weight_per_item = (total_max / item_count) if item_count > 0 else 0
+        
+        return {
+            'total_max': total_max,
+            'item_count': item_count,
+            'weight_per_item': round(weight_per_item, 2),
+            'column': column
+        }
+
+    @staticmethod
+    def sync_section_grades(section, student_user, graded_by_user=None):
+        from journal.models import StudentMatrixScore
+        from lms.models import CourseModule
+        from testing.models import QuizAttempt
+        
+        info = LMSGradeSynchronizer.get_section_weight_info(section)
+        column = info['column']
+        
+        if not column: 
+            return
+
+        subject = LMSManager.get_subject_from_shared_id(section.course.id_number)
+        if not subject: 
+            return
+
+        total_earned = 0.0
+        
+        if info['item_count'] > 0:
+            modules = CourseModule.objects.filter(
+                section=section, is_visible=True, module_type__in=['ASSIGNMENT', 'QUIZ']
+            )
+            
+            for mod in modules:
+                if mod.module_type == 'ASSIGNMENT':
+                    assign = getattr(mod, 'assignment', None)
+                    if assign and assign.max_score > 0:
+                        sub = assign.submissions.filter(student=student_user, status='GRADED').first()
+                        if sub and sub.score is not None:
+                            pct = sub.score / assign.max_score
+                            total_earned += pct * info['weight_per_item']
+                            
+                elif mod.module_type == 'QUIZ':
+                    quiz = getattr(mod, 'quiz_detail', None)
+                    if quiz:
+                        att = QuizAttempt.objects.filter(quiz=quiz, user=student_user, state='FINISHED').order_by('-total_score').first()
+                        if att and att.total_score is not None:
+                            max_quiz_score = quiz.questions.aggregate(t=Sum('default_mark'))['t'] or 100
+                            if max_quiz_score > 0:
+                                pct = att.total_score / max_quiz_score
+                                total_earned += pct * info['weight_per_item']
+
+        final_score = min(round(total_earned, 2), info['total_max'])
+
+        StudentMatrixScore.objects.update_or_create(
+            student=student_user.student_profile,
+            subject=subject,
+            column=column,
+            defaults={
+                'score': final_score if final_score > 0 else None, 
+                'updated_by': graded_by_user
+            }
+        )

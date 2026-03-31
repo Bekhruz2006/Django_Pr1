@@ -4,35 +4,86 @@ from django.contrib import messages
 from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.urls import reverse
+from django.core.management import call_command
 from accounts.models import Student, Teacher, Group, Institute, Department, Order, User
 from news.models import News
-from journal.models import StudentStatistics
+from journal.models import StudentStatistics, MatrixStructure, MatrixColumn, StudentMatrixScore
 from schedule.models import ScheduleSlot
 import json
 from datetime import datetime
 from schedule.models import Semester, SubjectMaterial, AcademicPlan, Classroom, Subject
+from schedule.academic_calendar import get_bologna_week, format_rating_week_alerts
 from lms.models import Course
 import logging
+import os
+import tempfile
+from io import StringIO
+
 logger = logging.getLogger(__name__)
 
+
+def build_upcoming_ratings(student, today):
+    info = get_bologna_week(today)
+    cw = info.get('week')
+    if cw in (6, 7):
+        return format_rating_week_alerts(student, [8], today)
+    if cw in (14, 15):
+        return format_rating_week_alerts(student, [16], today)
+    return []
+
+
+def build_teacher_missing_alerts(teacher, today):
+    info = get_bologna_week(today)
+    cw = info.get('week') or 0
+    if cw not in (7, 8, 15, 16):
+        return []
+    rating_idx = 0 if cw in (7, 8) else 1
+    alerts = []
+    subjects = Subject.objects.filter(teacher=teacher).prefetch_related('groups')
+    for subj in subjects:
+        if not subj.department or not subj.department.faculty:
+            continue
+        institute = subj.department.faculty.institute
+        faculty = subj.department.faculty
+        matrix = MatrixStructure.get_or_create_default(institute=institute, faculty=faculty)
+        cols = list(matrix.columns.filter(col_type='RATING').order_by('order', 'id'))
+        if len(cols) <= rating_idx:
+            continue
+        col = cols[rating_idx]
+        for grp in subj.groups.all():
+            students = Student.objects.filter(group=grp, status='ACTIVE')
+            if not students.exists():
+                continue
+            missing = False
+            for st in students:
+                sc = StudentMatrixScore.objects.filter(student=st, subject=subj, column=col).first()
+                if sc is None or sc.score is None:
+                    missing = True
+                    break
+            if missing:
+                alerts.append({
+                    'group': grp.name,
+                    'subject': subj.name,
+                    'rating_name': col.name,
+                    'link': f"{reverse('journal:journal_view')}?group={grp.id}&subject={subj.id}",
+                })
+    return alerts
+
+
 def get_ai_report_status():
-    active_sems = Semester.objects.filter(is_active=True)
+    sem = Semester.get_current()
     ai_report_ready = False
     days_until_report = 30
-    
-    for sem in active_sems:
-        if sem.start_date:
-            days_passed = (timezone.now().date() - sem.start_date).days
-            if days_passed >= 30:
-                ai_report_ready = True
-                days_until_report = 0
-                break
-            else:
-                if 30 - days_passed < days_until_report:
-                    days_until_report = 30 - days_passed
-                    
-    return ai_report_ready, max(1, days_until_report)
+    if sem and sem.start_date:
+        days_passed = (timezone.now().date() - sem.start_date).days
+        if days_passed >= 30:
+            ai_report_ready = True
+            days_until_report = 0
+        else:
+            days_until_report = max(1, 30 - days_passed)
+    return ai_report_ready, days_until_report
 
 
 def get_missing_rup_groups(faculty=None, institute=None):
@@ -175,7 +226,6 @@ def dashboard(request):
             teachers_qs = Teacher.objects.all()
             groups_qs = Group.objects.all()
             departments_qs = Department.objects.all()
-            active_semesters = Semester.objects.filter(is_active=True).select_related('faculty')
 
             if selected_institute_id:
                 try:
@@ -186,10 +236,13 @@ def dashboard(request):
                     teachers_qs = teachers_qs.filter(department__faculty__in=faculties_ids)
                     groups_qs = groups_qs.filter(specialty__department__faculty__in=faculties_ids)
                     departments_qs = departments_qs.filter(faculty__in=faculties_ids)
-                    active_semesters = active_semesters.filter(faculty__institute=selected_institute)
                 except Institute.DoesNotExist:
                     pass
 
+            cur_sem = Semester.get_current()
+            slot_qs = ScheduleSlot.objects.filter(semester=cur_sem, is_active=True)
+            if selected_institute:
+                slot_qs = slot_qs.filter(group__specialty__department__faculty__institute=selected_institute)
             context.update({
                 'institutes': institutes,
                 'selected_institute': selected_institute,
@@ -199,7 +252,11 @@ def dashboard(request):
                 'total_departments': departments_qs.count(),
                 'total_users': User.objects.count(),
                 'latest_orders': Order.objects.all().order_by('-created_at')[:5],
-                'active_semesters': active_semesters,
+                'schedule_stats': {
+                    'semester': cur_sem,
+                    'active_schedule_slots': slot_qs.count(),
+                    'matrix_scores_filled': StudentMatrixScore.objects.filter(score__isnull=False).count(),
+                },
                 'risk_report': get_algorithmic_risk_report(limit=5),
                 'missing_rup_groups': get_missing_rup_groups(institute=selected_institute)
             })
@@ -218,9 +275,6 @@ def dashboard(request):
         faculty = profile.faculty if profile else None
         context['profile'] = profile
         context['faculty'] = faculty
-
-        if not Semester.objects.filter(is_active=True).exists():
-            messages.warning(request, "Внимание! Активный семестр не выбран. Расписание может не работать.")
 
         if faculty:
             students_count = Student.objects.filter(group__specialty__department__faculty=faculty).count()
@@ -268,21 +322,37 @@ def dashboard(request):
             context['json_gpa'] = json.dumps(chart_gpa)
             context['json_attendance'] = json.dumps(chart_attendance)
 
+            cur_sem = Semester.get_current()
+            context['schedule_stats'] = {
+                'semester': cur_sem,
+                'active_schedule_slots': ScheduleSlot.objects.filter(
+                    semester=cur_sem,
+                    is_active=True,
+                    group__specialty__department__faculty=faculty,
+                ).count(),
+            }
+
         return render(request, 'core/dashboard_dean.html', context)
 
     elif hasattr(user, 'teacher_profile') or hasattr(user, 'head_of_dept_profile'):
             if hasattr(user, 'teacher_profile'):
                 context['profile'] = user.teacher_profile
-                
+                context['missing_grades_alerts'] = build_teacher_missing_alerts(
+                    user.teacher_profile, timezone.now().date()
+                )
                 context['my_materials'] = SubjectMaterial.objects.filter(
                     subject__teacher=user.teacher_profile
                 ).order_by('-uploaded_at')[:10]
             elif hasattr(user, 'head_of_dept_profile'):
                 context['profile'] = user.head_of_dept_profile
+                context['missing_grades_alerts'] = []
             return render(request, 'core/dashboard_teacher.html', context)
 
     elif hasattr(user, 'student_profile'):
         context['profile'] = user.student_profile
+        context['upcoming_ratings'] = build_upcoming_ratings(
+            user.student_profile, timezone.now().date()
+        )
     else:
         context['profile'] = None
 
@@ -292,7 +362,7 @@ def dashboard(request):
         current_time = today.time()
         classes =[]
 
-        active_semester = Semester.objects.filter(is_active=True).first()
+        active_semester = Semester.get_current()
 
         if active_semester:
             base_slots = ScheduleSlot.objects.filter(
@@ -465,3 +535,42 @@ def global_search(request):
         return JsonResponse({'results': results})
 
     return render(request, 'core/search_results.html', {'query': query})
+
+
+@login_required
+def export_database(request):
+    if not request.user.is_superuser:
+        return HttpResponse('Доступ запрещен', status=403)
+    
+    out = StringIO()
+    call_command('dumpdata', exclude=['contenttypes', 'auth.Permission', 'sessions.Session', 'admin.LogEntry'], stdout=out)
+    
+    response = HttpResponse(out.getvalue(), content_type='application/json')
+    response['Content-Disposition'] = f'attachment; filename="academix_backup_{timezone.now().strftime("%Y%m%d_%H%M")}.json"'
+    return response
+
+
+@login_required
+def import_database(request):
+    if not request.user.is_superuser:
+        return HttpResponse('Доступ запрещен', status=403)
+    
+    if request.method == 'POST' and request.FILES.get('backup_file'):
+        backup_file = request.FILES['backup_file']
+        
+        fd, path = tempfile.mkstemp(suffix='.json')
+        with os.fdopen(fd, 'wb') as f:
+            for chunk in backup_file.chunks():
+                f.write(chunk)
+                
+        try:
+            call_command('loaddata', path)
+            messages.success(request, "База данных успешно восстановлена!")
+        except Exception as e:
+            messages.error(request, f"Ошибка восстановления: {str(e)}")
+        finally:
+            os.remove(path)
+            
+        return redirect('core:dashboard')
+        
+    return render(request, 'core/import_backup.html')

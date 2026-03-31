@@ -18,6 +18,25 @@
         </div>
     </div>
 
+    {% if missing_grades_alerts %}
+    <div class="row mb-3 animate-fade-in">
+        <div class="col-12">
+            <div class="alert alert-danger shadow-sm border-0">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-exclamation-octagon-fill fs-3 me-3 text-danger"></i>
+                    <h5 class="fw-bold mb-0">{% trans "Срочно! Требуется выставление баллов" %}</h5>
+                </div>
+                <ul class="mb-0">
+                    {% for alert in missing_grades_alerts %}
+                    <li><strong>{{ alert.group }}</strong>: {% trans "не выставлены баллы" %} ({{ alert.rating_name }}) {% trans "по предмету" %} <em>{{ alert.subject }}</em>.
+                        <a href="{{ alert.link }}" class="alert-link">{% trans "Перейти к ведомости" %}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row g-4">
         <div class="col-lg-8 animate-slide-in">
             {% include 'schedule/today_widget.html' %}

@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db import transaction, IntegrityError
 from django.db import models
@@ -87,6 +88,25 @@ def login_view(request):
             messages.error(request, _('Неверный логин или пароль'))
     
     return render(request, 'accounts/login.html')
+
+
+@login_required
+@require_POST
+def update_financing_type(request):
+    if not (request.user.is_superuser or request.user.role in ['HR', 'DEAN']):
+        return JsonResponse({'success': False, 'error': 'Нет прав'})
+    try:
+        data = json.loads(request.body)
+        ft = data.get('financing_type')
+        if ft not in dict(Student.FINANCING_CHOICES):
+            return JsonResponse({'success': False, 'error': str(_('Недопустимое значение'))})
+        student = Student.objects.get(id=data['student_id'])
+        student.financing_type = ft
+        student.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    
 
 @login_required
 def logout_view(request):
@@ -823,7 +843,8 @@ def group_management(request):
     if search:
         groups = groups.filter(
             models.Q(name__icontains=search) |
-            models.Q(specialty__name__icontains=search)
+            models.Q(specialty__name__icontains=search) |
+            models.Q(specialty__code__icontains=search)
         )
     
     if course_filter:
@@ -947,7 +968,7 @@ def manage_structure(request):
         return redirect('core:dashboard')
         
     context = {}
-    active_semester = Semester.objects.filter(is_active=True).first()
+    active_semester = Semester.get_current()
     
     if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
         institutes = Institute.objects.prefetch_related(
@@ -1010,7 +1031,7 @@ def manage_structure(request):
                     queryset=Subject.objects.prefetch_related(
                         Prefetch(
                             'scheduleslot_set',
-                            queryset=ScheduleSlot.objects.filter(semester__is_active=True).select_related('semester'),
+                            queryset=ScheduleSlot.objects.filter(semester=active_semester).select_related('semester'),
                         ),
                     ),
                 ),
