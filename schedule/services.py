@@ -412,6 +412,8 @@ class RupImporter:
         _ELECTIVE_MARKERS  = {'интихобӣ', 'ихтиёрӣ', 'выбор'}
         _SKIP_MARKERS      = {'номгӯйи', 'наименование', 'семестр', 'итого', 'барча', 'всего'}
 
+        from schedule.models import SubjectTemplate
+
         for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
             raw_name = row[0] if row else None
             subj_name = safe_str(raw_name).strip()
@@ -448,6 +450,8 @@ class RupImporter:
                         row_idx, subj_name, total_h
                     )
 
+            is_new = not SubjectTemplate.objects.filter(name__iexact=subj_name).exists()
+
             preview_data.append({
                 'id':      row_idx,
                 'name':    subj_name,
@@ -457,6 +461,7 @@ class RupImporter:
                 'prac':    prac,
                 'srsp':    srsp,
                 'srs':     srs,
+                'is_new_template': is_new,
             })
 
         logger.info(

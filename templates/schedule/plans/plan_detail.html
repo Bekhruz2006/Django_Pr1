@@ -382,6 +382,11 @@ document.getElementById('rupImportForm').addEventListener('submit', function(e) 
             .then(data => {
                 if (data.status === 'SUCCESS') {
                     clearInterval(interval);
+                    const hiddenTask = document.createElement('input');
+                    hiddenTask.type = 'hidden';
+                    hiddenTask.name = 'task_id';
+                    hiddenTask.value = taskId;
+                    e.target.appendChild(hiddenTask);
                     e.target.submit();
                 } else if (data.status === 'FAILURE') {
                     clearInterval(interval);

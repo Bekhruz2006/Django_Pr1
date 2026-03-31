@@ -10,6 +10,10 @@ from datetime import datetime, timedelta, date
 import json
 import uuid
 import re
+import tempfile
+import os
+import glob
+import time
 from io import BytesIO 
 from django.db.models import Q, Sum
 from django.urls import reverse
@@ -2761,9 +2765,13 @@ def import_rup_excel(request, plan_id, semester_num):
             )
         return redirect(plan_url)
 
-    if request.method == 'POST' and 'file' in request.FILES:
+    if request.method == 'POST' and ('file' in request.FILES or 'task_id' in request.POST):
         try:
-            preview_data = RupImporter.parse_for_preview(request.FILES['file'])
+            task_id = request.POST.get('task_id')
+            if task_id:
+                preview_data = RupParseTask.objects.get(id=task_id).result
+            else:
+                preview_data = RupImporter.parse_for_preview(request.FILES['file'])
         except Exception as e:
             messages.error(request, f"Ошибка обработки файла: {e}")
             return redirect(plan_url)
@@ -3991,6 +3999,17 @@ def mass_cancel_day(request):
         return JsonResponse({'success': False, 'error': f"Внутренняя ошибка: {str(e)}"})
 
 
+def _cleanup_old_temp_files():
+    temp_dir = tempfile.gettempdir()
+    now = time.time()
+    for f in glob.glob(os.path.join(temp_dir, "rup_upload_*.tmp")):
+        try:
+            if os.stat(f).st_mtime < now - 7200:
+                os.remove(f)
+        except OSError:
+            pass
+
+
 @login_required
 @user_passes_test(is_dean_or_admin)
 def rup_parse_start(request):
@@ -4001,12 +4020,18 @@ def rup_parse_start(request):
     if not uploaded:
         return JsonResponse({'error': 'No file provided'}, status=400)
  
-    if not uploaded.name.lower().endswith(('.pdf', '.xlsx', '.xls')):
-        return JsonResponse({'error': 'Unsupported file type'}, status=400)
+    if not uploaded.name.lower().endswith(('.pdf', '.xlsx')):
+        return JsonResponse({'error': 'Unsupported file type. Please use .pdf or .xlsx'}, status=400)
  
-    file_bytes = uploaded.read()
-    if len(file_bytes) > 20 * 1024 * 1024:
+    if uploaded.size > 20 * 1024 * 1024:
         return JsonResponse({'error': 'File too large (max 20 MB)'}, status=400)
+ 
+    _cleanup_old_temp_files()
+
+    fd, temp_path = tempfile.mkstemp(prefix="rup_upload_", suffix=".tmp")
+    with os.fdopen(fd, 'wb') as f:
+        for chunk in uploaded.chunks():
+            f.write(chunk)
  
     from schedule.models import RupParseTask
     from schedule.tasks import start_parse_task
@@ -4015,7 +4040,8 @@ def rup_parse_start(request):
         original_filename=uploaded.name,
         created_by=request.user,
     )
-    start_parse_task(str(task.id), file_bytes, uploaded.name)
+    
+    start_parse_task(str(task.id), temp_path, uploaded.name)
  
     logger.info(
         "rup_parse_start: task_id=%s filename=%s user=%s",

@@ -14,6 +14,7 @@ from django.dispatch import receiver
 import os
 from django.db import models
 import math
+from schedule.math_utils import calculate_pairs_from_hours
 
 
 ROOM_TYPES =[
@@ -251,16 +252,17 @@ class Subject(models.Model):
     def check_is_multiple_groups(self):
         return self.groups.count() > 1
 
-    def get_hours_in_pairs(self, hours_count):
-        import math
+    def get_hours_in_pairs(self, hours_count: int) -> int:
+        acad_min, pair_min = 50, 100
         try:
-            inst = self.department.faculty.institute
-            acad_min = inst.academic_hour_duration or 50
-            pair_min = inst.pair_duration or 50
-            
-            return math.ceil((hours_count * acad_min) / pair_min)
+            if self.department and getattr(self.department, 'faculty', None):
+                inst = self.department.faculty.institute
+                if inst:
+                    acad_min = getattr(inst, 'academic_hour_duration', 50) or 50
+                    pair_min = getattr(inst, 'pair_duration', 100) or 100
         except AttributeError:
-            return math.ceil(hours_count / 2)
+            pass
+        return calculate_pairs_from_hours(hours_count, acad_min, pair_min)
 
     def get_actual_semester_weeks(self):
             import math
@@ -273,9 +275,10 @@ class Subject(models.Model):
                 return max(1, int(math.ceil(weeks)))
             return self.semester_weeks
 
-    def get_weekly_slots_needed(self):
+    def get_weekly_slots_needed(self) -> dict:
         actual_weeks = self.get_actual_semester_weeks()
-        if actual_weeks <= 0: return {'LECTURE': 0, 'PRACTICE': 0, 'LAB': 0, 'SRSP': 0}
+        if actual_weeks <= 0:
+            return {'LECTURE': 0.0, 'PRACTICE': 0.0, 'LAB': 0.0, 'SRSP': 0.0}
 
         lec_h = self.lecture_hours
         prac_h = self.practice_hours
@@ -287,7 +290,7 @@ class Subject(models.Model):
                 hours_per_credit = self.credit_type.hours_per_credit if self.credit_type else 24
             except AttributeError:
                 hours_per_credit = 24
-                
+
             total_auditory = (self.credits * hours_per_credit) * 2 // 3
             lec_h = total_auditory // 3
             prac_h = total_auditory // 3
@@ -298,12 +301,20 @@ class Subject(models.Model):
         total_lab_pairs = self.get_hours_in_pairs(lab_h)
         total_srsp_pairs = self.get_hours_in_pairs(srsp_h)
 
-        import math
+        def _weekly_rate(total_pairs: int) -> float:
+            if total_pairs <= 0:
+                return 0.0
+            rate = total_pairs / actual_weeks
+            rounded_rate = round(rate * 2) / 2.0
+            if rounded_rate == 0.0 and rate > 0:
+                return 0.5
+            return rounded_rate
+
         return {
-            'LECTURE': math.ceil(total_lec_pairs / actual_weeks),
-            'PRACTICE': math.ceil(total_prac_pairs / actual_weeks),
-            'LAB': math.ceil(total_lab_pairs / actual_weeks),
-            'SRSP': math.ceil(total_srsp_pairs / actual_weeks),
+            'LECTURE':  _weekly_rate(total_lec_pairs),
+            'PRACTICE': _weekly_rate(total_prac_pairs),
+            'LAB':      _weekly_rate(total_lab_pairs),
+            'SRSP':     _weekly_rate(total_srsp_pairs),
         }
     
 
@@ -686,6 +697,32 @@ class PlanDiscipline(models.Model):
     @property
     def total_auditory_hours(self):
         return self.lecture_hours + self.practice_hours + self.lab_hours + self.control_hours
+
+    @property
+    def total_calculated_pairs(self) -> int:
+        acad_min, pair_min = 50, 100
+        try:
+            inst = None
+            if self.plan.group and self.plan.group.specialty:
+                inst = self.plan.group.specialty.department.faculty.institute
+            elif self.plan.specialty:
+                inst = self.plan.specialty.department.faculty.institute
+            
+            if inst:
+                acad_min = getattr(inst, 'academic_hour_duration', 50) or 50
+                pair_min = getattr(inst, 'pair_duration', 100) or 100
+        except AttributeError:
+            pass
+
+        def _to_pairs(hours: int) -> int:
+            return calculate_pairs_from_hours(hours, acad_min, pair_min)
+
+        return (
+            _to_pairs(self.lecture_hours)
+            + _to_pairs(self.practice_hours)
+            + _to_pairs(self.lab_hours)
+            + _to_pairs(self.control_hours)
+        )
 
 class SubjectMaterial(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='materials', verbose_name=_("Предмет"))

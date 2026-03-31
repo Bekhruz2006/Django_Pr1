@@ -417,12 +417,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let tempSlot = null;
         
         if (dropZone) {
-            dropZone.style.opacity = '0.7';
-            dropZone.style.pointerEvents = 'none';
+            if (dropZone.dataset.locked === 'true') return;
+            dropZone.dataset.locked = 'true';
+            dropZone.style.opacity = '0.6';
             const empty = dropZone.querySelector('.empty-slot');
-            if (empty) empty.remove();
+            if (empty) empty.style.display = 'none';
             tempSlot = document.createElement('div');
-            tempSlot.className = 'lesson-card p-2 rounded shadow-sm d-flex justify-content-center align-items-center bg-light temp-slot mt-1';
+            tempSlot.className = 'd-flex justify-content-center align-items-center py-2';
             tempSlot.innerHTML = '<div class="spinner-border text-primary spinner-border-sm"></div>';
             dropZone.appendChild(tempSlot);
         }
@@ -439,8 +440,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (dropZone) {
+                dropZone.dataset.locked = 'false';
                 dropZone.style.opacity = '1';
-                dropZone.style.pointerEvents = 'auto';
                 if (tempSlot) tempSlot.remove();
             }
 
@@ -471,8 +472,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(err => {
             if (dropZone) {
+                dropZone.dataset.locked = 'false';
                 dropZone.style.opacity = '1';
-                dropZone.style.pointerEvents = 'auto';
                 if (tempSlot) tempSlot.remove();
             }
             alert('{% trans "Ошибка сети:" %} ' + err);
