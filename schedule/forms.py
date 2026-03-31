@@ -165,19 +165,15 @@ class SubjectTemplateForm(forms.ModelForm):
 class AcademicPlanForm(forms.ModelForm):
     class Meta:
         model = AcademicPlan
-        fields = ['group', 'admission_year', 'is_active']
+        fields = ['group', 'is_active']
         widgets = {
             'group': forms.Select(attrs={'class': 'form-select select2'}),
-            'admission_year': forms.Select(choices=[], attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-
+ 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        self.fields['admission_year'].widget.choices = get_year_choices()
-        if not self.instance.pk:
-            self.fields['admission_year'].initial = datetime.now().year
         self.fields['group'].required = True
         if user and hasattr(user, 'dean_profile'):
             faculty = user.dean_profile.faculty
@@ -188,13 +184,8 @@ class AcademicPlanForm(forms.ModelForm):
             qs = (qs | Group.objects.filter(pk=self.instance.group_id)).distinct()
         self.fields['group'].queryset = qs
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if instance.group_id and getattr(instance.group, 'specialty_id', None):
-            instance.specialty_id = instance.group.specialty_id
-        if commit:
-            instance.save()
-        return instance
+
+
 
 class PlanDisciplineForm(forms.ModelForm):
     class Meta:

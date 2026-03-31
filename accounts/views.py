@@ -1910,6 +1910,72 @@ def view_group(request, group_id):
 
 
 
+@login_required
+@user_passes_test(is_management)
+def select2_user_search(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+
+    user = request.user
+    students_qs = Student.objects.select_related('user')
+    teachers_qs = Teacher.objects.select_related('user', 'department')
+
+    if user.is_superuser:
+        pass
+    elif hasattr(user, 'dean_profile') and getattr(user.dean_profile, 'faculty', None):
+        faculty = user.dean_profile.faculty
+        students_qs = students_qs.filter(group__specialty__department__faculty=faculty)
+        teachers_qs = teachers_qs.filter(department__faculty=faculty)
+    elif hasattr(user, 'vicedean_profile') and getattr(user.vicedean_profile, 'faculty', None):
+        faculty = user.vicedean_profile.faculty
+        students_qs = students_qs.filter(group__specialty__department__faculty=faculty)
+        teachers_qs = teachers_qs.filter(department__faculty=faculty)
+    elif hasattr(user, 'head_of_dept_profile') and getattr(user.head_of_dept_profile, 'department', None):
+        dept = user.head_of_dept_profile.department
+        students_qs = students_qs.filter(group__specialty__department=dept)
+        teachers_qs = teachers_qs.filter(department=dept)
+    elif hasattr(user, 'director_profile') and getattr(user.director_profile, 'institute', None):
+        institute = user.director_profile.institute
+        students_qs = students_qs.filter(group__specialty__department__faculty__institute=institute)
+        teachers_qs = teachers_qs.filter(department__faculty__institute=institute)
+    elif hasattr(user, 'prorector_profile') and getattr(user.prorector_profile, 'institute', None):
+        institute = user.prorector_profile.institute
+        students_qs = students_qs.filter(group__specialty__department__faculty__institute=institute)
+        teachers_qs = teachers_qs.filter(department__faculty__institute=institute)
+    else:
+        return JsonResponse({'results': []})
+
+    students = students_qs.filter(
+        Q(user__last_name__icontains=q) |
+        Q(user__first_name__icontains=q) |
+        Q(student_id__icontains=q)
+    )[:15]
+
+    teachers = teachers_qs.filter(
+        Q(user__last_name__icontains=q) |
+        Q(user__first_name__icontains=q)
+    )[:15]
+
+    results = []
+    for s in students:
+        results.append({
+            'id': s.user.id,
+            'text': s.user.get_full_name(),
+            'type': 'student',
+            'type_display': 'Студент',
+            'meta': s.student_id,
+        })
+    for t in teachers:
+        results.append({
+            'id': t.user.id,
+            'text': t.user.get_full_name(),
+            'type': 'teacher',
+            'type_display': 'Преподаватель',
+            'meta': t.department.name if t.department else '',
+        })
+
+    return JsonResponse({'results': results})
 
 
 

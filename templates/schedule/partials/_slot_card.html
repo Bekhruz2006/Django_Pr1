@@ -1,0 +1,43 @@
+{% load i18n %}
+<div class="schedule-slot card shadow-sm border-0 mb-1"
+     data-slot-id="{{ slot.id }}"
+     data-stream-id="{{ slot.stream_id|default:'' }}"
+     data-subject-id="{{ slot.subject_id }}"
+     style="border-left: 3px solid var(--bs-{{ slot.get_color_class }}) !important;">
+    <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start gap-1">
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-semibold text-{{ slot.get_color_class }} small text-truncate"
+                     title="{{ slot.subject.name }}">
+                    {{ slot.subject.name }}
+                </div>
+                {% if slot.teacher %}
+                <div class="text-muted" style="font-size:0.72rem;line-height:1.2">
+                    {{ slot.teacher.user.get_full_name }}
+                </div>
+                {% endif %}
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    <span class="badge bg-{{ slot.get_color_class }}">{{ slot.get_lesson_type_display }}</span>
+                    {% if slot.week_type == 'RED' %}
+                    <span class="badge bg-danger">{% trans "Красн. нед." %}</span>
+                    {% elif slot.week_type == 'BLUE' %}
+                    <span class="badge bg-primary">{% trans "Синяя нед." %}</span>
+                    {% endif %}
+                    {% if slot.stream_id %}<span class="badge bg-secondary">{% trans "Поток" %}</span>{% endif %}
+                </div>
+            </div>
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger border-0 py-0 px-1 flex-shrink-0 delete-slot-btn"
+                    data-slot-id="{{ slot.id }}"
+                    data-stream="{{ slot.stream_id|default:'' }}"
+                    title="{% trans 'Удалить' %}">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        {% if slot.room %}
+        <div class="text-muted mt-1" style="font-size:0.7rem">
+            <i class="bi bi-door-open"></i> {{ slot.room }}
+        </div>
+        {% endif %}
+    </div>
+</div>

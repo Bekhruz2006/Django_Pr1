@@ -19,7 +19,7 @@ from .models import UnusedHourPool
 from schedule.models import UnusedHourPool
 from django.utils import timezone
 logger = logging.getLogger('schedule')
-
+from django.template.loader import render_to_string
 
 try:
     from docx import Document
@@ -465,7 +465,21 @@ def create_schedule_slot(request):
             "create_schedule_slot: created %s slots stream=%s user=%s group=%s subject=%s",
             len(created_slots), is_stream, request.user.username, group_id, subject_id
         )
-        return JsonResponse({'success': True, 'count': len(created_slots), 'is_stream': is_stream})
+        main_slot = created_slots[0] if created_slots else None
+        html = ""
+        if main_slot:
+            html = render_to_string(
+                'schedule/partials/_slot_card.html',
+                {'slot': main_slot},
+                request=request,
+            )
+        return JsonResponse({
+            'success': True,
+            'count': len(created_slots),
+            'is_stream': is_stream,
+            'html': html,
+        })
+
     except Exception as e:
         logger.exception(
             "create_schedule_slot: unexpected error user=%s data=%s",
@@ -609,9 +623,20 @@ def update_schedule_room(request, slot_id):
             "update_schedule_room: updated slot_id=%s room=%s stream=%s user=%s",
             slot_id, room_number, bool(slot.stream_id), request.user.username
         )
-        display_name = room_number
-        return JsonResponse({'success': True, 'room': display_name})
-
+        stream_id_val = str(slot.stream_id) if slot.stream_id else None
+        affected_ids = (
+            list(ScheduleSlot.objects.filter(stream_id=slot.stream_id).values_list('id', flat=True))
+            if slot.stream_id
+            else [slot.id]
+        )
+        return JsonResponse({
+            'success': True,
+            'room': room_number,
+            'slot_id': slot_id,
+            'stream_id': stream_id_val,
+            'affected_slot_ids': affected_ids,
+        })
+    
     except Exception as e:
         logger.exception(
             "update_schedule_room: slot_id=%s user=%s error=%s",
@@ -685,8 +710,12 @@ def delete_schedule_slot(request, slot_id):
             schedule_slot.group.name,
             schedule_slot.subject.name
         )
-        return JsonResponse({'success': True, 'message': msg})
-
+        return JsonResponse({
+          'success': True,
+          'message': msg,
+          'deleted_slot_id': slot_id,
+          'stream_id': str(schedule_slot.stream_id) if schedule_slot.stream_id else None,
+          })
     except Exception as e:
         logger.exception("delete_schedule_slot")
         return JsonResponse({'success': False, 'error': _('Внутренняя ошибка сервера')}, status=500)
@@ -3960,4 +3989,60 @@ def mass_cancel_day(request):
     except Exception as e:
         logger.exception(f"КРИТИЧЕСКАЯ ОШИБКА В MASS_CANCEL: {str(e)}")
         return JsonResponse({'success': False, 'error': f"Внутренняя ошибка: {str(e)}"})
+
+
+@login_required
+@user_passes_test(is_dean_or_admin)
+def rup_parse_start(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+ 
+    uploaded = request.FILES.get('file')
+    if not uploaded:
+        return JsonResponse({'error': 'No file provided'}, status=400)
+ 
+    if not uploaded.name.lower().endswith(('.pdf', '.xlsx', '.xls')):
+        return JsonResponse({'error': 'Unsupported file type'}, status=400)
+ 
+    file_bytes = uploaded.read()
+    if len(file_bytes) > 20 * 1024 * 1024:
+        return JsonResponse({'error': 'File too large (max 20 MB)'}, status=400)
+ 
+    from schedule.models import RupParseTask
+    from schedule.tasks import start_parse_task
+ 
+    task = RupParseTask.objects.create(
+        original_filename=uploaded.name,
+        created_by=request.user,
+    )
+    start_parse_task(str(task.id), file_bytes, uploaded.name)
+ 
+    logger.info(
+        "rup_parse_start: task_id=%s filename=%s user=%s",
+        task.id, uploaded.name, request.user.username,
+    )
+    return JsonResponse({'task_id': str(task.id)})
+ 
+ 
+@login_required
+@user_passes_test(is_dean_or_admin)
+def rup_parse_status(request, task_id):
+    from schedule.models import RupParseTask
+ 
+    try:
+        task = RupParseTask.objects.get(pk=task_id)
+    except RupParseTask.DoesNotExist:
+        return JsonResponse({'error': 'Task not found'}, status=404)
+ 
+    payload = {'status': task.status}
+    if task.status == 'SUCCESS':
+        payload['result'] = task.result
+    elif task.status == 'FAILURE':
+        payload['error'] = task.error
+    return JsonResponse(payload)
+
+
+
+
+
 

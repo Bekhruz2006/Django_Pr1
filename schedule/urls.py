@@ -69,4 +69,8 @@ urlpatterns = [
     path('credit-templates/<int:template_id>/edit/', views.edit_credit_template, name='edit_credit_template'),
     path('credit-templates/<int:template_id>/delete/', views.delete_credit_template, name='delete_credit_template'),
     path('api/calendar-mass-cancel/', views.mass_cancel_day, name='mass_cancel_day'),
+    path('api/rup/parse/start/', views.rup_parse_start, name='rup_parse_start'),
+    path('api/rup/parse/status/<uuid:task_id>/', views.rup_parse_status, name='rup_parse_status'),
+
+
 ]

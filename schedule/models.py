@@ -598,6 +598,32 @@ class AcademicPlan(models.Model):
 
     def __str__(self):
         return f"РУП Группы: {self.group.name} ({self.admission_year})"
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        super().clean()
+        if not self.pk and self.group_id:
+            group = self.group
+            if not group.course:
+                raise ValidationError(
+                    "У группы не указан курс. Расчет года невозможен."
+                )
+ 
+    def save(self, *args, **kwargs):
+        if not self.pk and self.group_id:
+            import re as _re
+            from datetime import datetime as _dt
+            group = self.group
+            if group.course:
+                year_str = group.academic_year or str(_dt.now().year)
+                match = _re.search(r'\d{4}', year_str)
+                start_year = int(match.group()) if match else _dt.now().year
+                self.admission_year = start_year - group.course + 1
+            if not self.specialty_id and group.specialty_id:
+                self.specialty_id = group.specialty_id
+        super().save(*args, **kwargs)
+    
+
+
 
 class PlanDiscipline(models.Model):
     CONTROL_CHOICES = [
@@ -710,3 +736,41 @@ class TeacherUnavailableSlot(models.Model):
 
     def __str__(self):
         return f"{self.teacher} - {self.get_day_of_week_display()} {self.time_slot}"
+
+
+
+
+
+class RupParseTask(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', _('В обработке')),
+        ('SUCCESS', _('Успешно')),
+        ('FAILURE', _('Ошибка')),
+    ]
+ 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True
+    )
+    result = models.JSONField(null=True, blank=True, verbose_name=_("Результат (JSON)"))
+    error = models.TextField(blank=True, verbose_name=_("Текст ошибки"))
+    original_filename = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rup_parse_tasks',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+ 
+    class Meta:
+        verbose_name = _("Задача парсинга РУП")
+        verbose_name_plural = _("Задачи парсинга РУП")
+        ordering = ['-created_at']
+ 
+    def __str__(self):
+        return f"RupParseTask {self.id} [{self.status}]"
+
+
