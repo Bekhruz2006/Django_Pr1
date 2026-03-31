@@ -37,9 +37,9 @@ except ImportError:
     DOCX_AVAILABLE = False
 from schedule.models import ROOM_TYPES
 from lms.models import Assignment
-
+from schedule.models import RupParseTask
 from django import forms
-from .models import Subject, CreditType, CreditTemplate, ScheduleSlot, Semester, Classroom, TimeSlot, TeacherUnavailableSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute
+from .models import Subject, CreditType, CreditTemplate, ScheduleSlot, Semester, Classroom, TimeSlot, TeacherUnavailableSlot, AcademicPlan, PlanDiscipline, SubjectTemplate, SubjectMaterial, Building, Institute, RupParseTask
 from .forms import SubjectForm, RupImportForm, ClassroomForm, BulkClassroomForm, TimeSlotForm, MaterialUploadForm, ScheduleImportForm, AcademicPlanForm, PlanDisciplineForm, SubjectTemplateForm, BuildingForm, CreditTemplateForm
 from .services import ScheduleImporter, RupImporter
 from accounts.models import Group, Student, Teacher, Director, ProRector, Department, Faculty

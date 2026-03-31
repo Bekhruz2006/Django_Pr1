@@ -401,22 +401,51 @@ class ScheduleImporter:
 class RupImporter:
     @staticmethod
     def parse_for_preview(file):
+        import openpyxl
+        import re
+        from schedule.utils import safe_int, safe_str
+        import logging
+        
+        logger = logging.getLogger(__name__)
         logger.info("RupImporter.parse_for_preview: starting parse")
+        
         wb = openpyxl.load_workbook(file, data_only=True)
         sheet = wb.active
 
         preview_data = []
         current_disc_type = 'REQUIRED'
 
-        _REQUIRED_MARKERS = {'ҳатмӣ', 'обязательн'}
-        _ELECTIVE_MARKERS  = {'интихобӣ', 'ихтиёрӣ', 'выбор'}
-        _SKIP_MARKERS      = {'номгӯйи', 'наименование', 'семестр', 'итого', 'барча', 'всего'}
+        _REQUIRED_MARKERS = {'ҳатмӣ', 'обязательн', 'ҳатми'}
+        _ELECTIVE_MARKERS  = {'интихобӣ', 'ихтиёрӣ', 'выбор', 'интихоби', 'ихтиёри'}
+
+        _SKIP_WORDS = {
+            'ректори', 'вазорати', 'тасдиқ', 'тасдик', 'имзо', 'мӯҳр', 'сана',
+            'донишгоҳи', 'муассиса', 'факултети', 'институт',
+            'эзоҳ', 'шарҳ', 'изоҳ', 'примечани', 'курсҳо', 'семестр',
+            'итого', 'всего', 'барча', 'ҷамъ', 'жами', 'в том числе',
+            'роҳбари', 'декан', 'раёсат', 'наименование', 'номгӯйи',
+            'намуди', 'шакли', 'шуъбаи', 'шӯъбаи', 'хулоса', 'асосӣ', 'тахассус'
+        }
+
+        _JUNK_RE = re.compile(r'^[\s_№\-\.\dIVXLC]+$', re.IGNORECASE)
 
         from schedule.models import SubjectTemplate
 
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, values_only=True), start=1):
-            raw_name = row[0] if row else None
-            subj_name = safe_str(raw_name).strip()
+        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_row=500, values_only=True), start=1):
+            cells = [str(c).strip() if c is not None else "" for c in row]
+            if not any(cells):
+                continue
+
+            subj_name = ""
+            col_offset = 0
+            
+            for idx, val in enumerate(cells[:8]):
+                cleaned_val = val.lstrip('_ \t').strip()
+                has_letters = bool(re.search(r'[a-zA-Zа-яА-ЯёЁӣғқҷҳӯ]', cleaned_val))
+                if len(cleaned_val) >= 3 and has_letters and not _JUNK_RE.match(cleaned_val):
+                    subj_name = cleaned_val
+                    col_offset = idx
+                    break
 
             if not subj_name:
                 continue
@@ -425,30 +454,38 @@ class RupImporter:
 
             if any(m in lower_name for m in _REQUIRED_MARKERS):
                 current_disc_type = 'REQUIRED'
-                logger.debug("RupImporter: row=%s — switching to REQUIRED block", row_idx)
                 continue
             if any(m in lower_name for m in _ELECTIVE_MARKERS):
                 current_disc_type = 'ELECTIVE'
-                logger.debug("RupImporter: row=%s — switching to ELECTIVE block", row_idx)
-                continue
-            if any(m in lower_name for m in _SKIP_MARKERS):
-                logger.debug("RupImporter: row=%s — skip marker found: %s", row_idx, subj_name)
                 continue
 
-            credits = safe_int(row[1]) if len(row) > 1 else 0
-            lec     = safe_int(row[4]) if len(row) > 4 else 0
-            prac    = safe_int(row[5]) if len(row) > 5 else 0
-            srsp    = safe_int(row[6]) if len(row) > 6 else 0
-            srs     = safe_int(row[7]) if len(row) > 7 else 0
+            skip = False
+            for marker in _SKIP_WORDS:
+                if marker in lower_name:
+                    skip = True
+                    break
+            if skip:
+                continue
 
-            if lec == 0 and prac == 0 and srsp == 0 and srs == 0:
-                total_h = safe_int(row[3]) if len(row) > 3 else 0
-                if total_h > 0:
-                    srs = total_h
-                    logger.debug(
-                        "RupImporter: row=%s name=%s — no hour breakdown, using total=%s as SRS",
-                        row_idx, subj_name, total_h
-                    )
+            if "у.с." in lower_name or "д.и." in lower_name or "н.и." in lower_name:
+                continue
+
+            raw_nums = []
+            for val in cells[col_offset+1:]:
+                raw_nums.append(safe_int(val))
+            
+            while raw_nums and raw_nums[0] == 0:
+                raw_nums.pop(0)
+
+            credits = raw_nums[0] if len(raw_nums) > 0 else 0
+            total_h = raw_nums[1] if len(raw_nums) > 1 else 0
+            lec     = raw_nums[2] if len(raw_nums) > 2 else 0
+            prac    = raw_nums[3] if len(raw_nums) > 3 else 0
+            srsp    = raw_nums[4] if len(raw_nums) > 4 else 0
+            srs     = raw_nums[5] if len(raw_nums) > 5 else 0
+
+            if lec == 0 and prac == 0 and srsp == 0 and srs == 0 and total_h > 0:
+                srs = total_h
 
             is_new = not SubjectTemplate.objects.filter(name__iexact=subj_name).exists()
 
@@ -464,9 +501,7 @@ class RupImporter:
                 'is_new_template': is_new,
             })
 
-        logger.info(
-            "RupImporter.parse_for_preview: found %s disciplines", len(preview_data)
-        )
+        logger.info("RupImporter.parse_for_preview: found %s valid disciplines", len(preview_data))
         return preview_data
 
 
