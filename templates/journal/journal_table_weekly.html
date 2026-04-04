@@ -64,7 +64,7 @@
                 </h5>
                 <div>
                     <span class="badge bg-light text-dark border me-2">{% trans "Неделя" %} {{ week_num }}</span>
-                    <a href="{% url 'journal:journal_view' %}?clear=1" class="btn btn-outline-secondary btn-sm">{% trans "Назад" %}</a>
+                    <a href="{% url 'journal:journal_view' %}?clear=1" class="btn btn-outline-secondary btn-sm">{% trans "Назад к выбору" %}</a>
                 </div>
             </div>
             <div class="px-3 pb-0 border-bottom">
@@ -81,7 +81,6 @@
                             </button>
                         </li>
                     </ul>
-                    <a href="{% url 'journal:journal_view' %}?clear=1" class="btn btn-outline-secondary btn-sm mb-2">{% trans "Назад к выбору" %}</a>
                 </div>
             </div>
             
