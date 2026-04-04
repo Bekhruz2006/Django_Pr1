@@ -3,6 +3,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Count, Sum, Q
 from django.utils.html import format_html
+from django.db.models import OuterRef, Subquery, IntegerField, Value, Case, When, F
+from django.db.models.functions import Coalesce
 
 from .models import (
     User, Student, Teacher, Dean, ViceDean, Director, ProRector,
@@ -152,34 +154,29 @@ class AdmissionPlanAdmin(admin.ModelAdmin):
     ordering = ['-academic_year', 'specialty__code']
  
     def get_queryset(self, request):
-        from django.db.models import OuterRef, Subquery, IntegerField, Value, Case, When, CharField
-        from django.db.models.functions import Coalesce
 
-        qs = super().get_queryset(request).annotate(
-            mapped_edu_type=Case(
-                When(study_form='FULL_TIME', then=Value('FULL_TIME')),
-                When(study_form='PART_TIME', then=Value('PART_TIME')),
-                When(study_form='DISTANCE',  then=Value('EVENING')),
-                default=Value('FULL_TIME'),
-                output_field=CharField(),
-            ),
-            mapped_fin_type=Case(
-                When(financing_type='CONTRACT', then=Value('CONTRACT')),
-                default=Value('BUDGET'),
-                output_field=CharField(),
-            )
-        )
+        qs = super().get_queryset(request)
 
         enrolled_sq = (
             Student.objects
+            .filter(status='ACTIVE')
+            .annotate(
+                mapped_study_form=Case(
+                    When(education_type='EVENING', then=Value('DISTANCE')),
+                    default=F('education_type')
+                ),
+                mapped_financing=Case(
+                    When(financing_type='CONTRACT', then=Value('CONTRACT')),
+                    default=Value('BUDGET') 
+                )
+            )
             .filter(
                 specialty_id=OuterRef('specialty_id'),
-                status='ACTIVE',
-                education_type=OuterRef('mapped_edu_type'),
                 education_language=OuterRef('education_language'),
-                financing_type=OuterRef('mapped_fin_type'),
+                mapped_study_form=OuterRef('study_form'),
+                mapped_financing=OuterRef('financing_type'),
             )
-            .values('specialty_id')
+            .values('specialty_id')  
             .annotate(cnt=Count('id'))
             .values('cnt')
         )
