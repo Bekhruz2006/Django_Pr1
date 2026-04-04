@@ -144,10 +144,7 @@ class Specialty(models.Model):
         return f"{self.code} - {self.name}"
 
     def save(self, *args, **kwargs):
-        if self.name_ru:
-            self.name = self.name_ru
-        elif self.name_tj:
-            self.name = self.name_tj
+        self.name = self.name_ru or self.name_tj or self.name_en or self.name
         super().save(*args, **kwargs)
 
     def get_display_name(self, lang: str = 'ru') -> str:
@@ -896,8 +893,6 @@ class AdmissionPlan(models.Model):
             f"{self.education_language}"
         )
 
-    
-    
     
     
     _STUDY_FORM_MAP = {

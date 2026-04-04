@@ -966,116 +966,243 @@ def delete_group(request, group_id):
 
 @login_required
 def manage_structure(request):
+    """
+    Optimised structure view.
+ 
+    KEY FIX: replaced the single .annotate() that joined teachers + groups +
+    subjects in one shot (Cartesian fan-out → wrong Sum values) with
+    independent correlated Subqueries.  Each Subquery is a separate
+    single-table aggregation, so they never multiply each other.
+    """
+    from django.db.models import OuterRef, Subquery, IntegerField
+ 
     if not is_management(request.user):
         return redirect('core:dashboard')
-        
+ 
     context = {}
     active_semester = Semester.get_current()
-    
+ 
     if request.user.is_superuser or request.user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+ 
+        
+        
+ 
+        _staff_sq = (
+            Teacher.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(cnt=Count('id'))
+            .values('cnt')
+        )
+ 
+        _credits_sq = (
+            Subject.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(total=Sum('credits'))
+            .values('total')
+        )
+ 
+        _group_sq = (
+            Group.objects
+            .filter(specialty__department=OuterRef('pk'))
+            .values('specialty__department')
+            .annotate(cnt=Count('id', distinct=True))
+            .values('cnt')
+        )
+ 
+        _student_sq = (
+            Student.objects
+            .filter(
+                group__specialty__department=OuterRef('pk'),
+                status='ACTIVE',
+            )
+            .values('group__specialty__department')
+            .annotate(cnt=Count('id', distinct=True))
+            .values('cnt')
+        )
+ 
+        _specialty_sq = (
+            Specialty.objects
+            .filter(department__faculty=OuterRef('pk'))
+            .values('department__faculty')
+            .annotate(cnt=Count('id', distinct=True))
+            .values('cnt')
+        )
+ 
+        
+        departments_qs = (
+            Department.objects
+            .annotate(
+                staff_count=Subquery(_staff_sq, output_field=IntegerField()),
+                total_credits=Subquery(_credits_sq, output_field=IntegerField()),
+                group_count=Subquery(_group_sq, output_field=IntegerField()),
+                student_count=Subquery(_student_sq, output_field=IntegerField()),
+            )
+            .select_related('faculty')
+            .prefetch_related(
+                Prefetch('head__user'),
+                Prefetch(
+                    'specialties',
+                    queryset=Specialty.objects.prefetch_related('groups'),
+                ),
+            )
+        )
+ 
+        
+        faculties_qs = (
+            Faculty.objects
+            .annotate(
+                specialty_count=Subquery(_specialty_sq, output_field=IntegerField()),
+            )
+            .select_related('institute')
+            .prefetch_related(
+                Prefetch('dean_manager__user'),
+                Prefetch('departments', queryset=departments_qs),
+            )
+        )
+ 
         institutes = Institute.objects.prefetch_related(
-            'directors__user',
-            'faculties__dean_manager__user',
-            'faculties__departments__head__user',
-            'faculties__departments__specialties',
-            'faculties__departments__specialties__groups' 
+            Prefetch('directors__user'),
+            Prefetch('faculties', queryset=faculties_qs),
         ).all()
+ 
         
         structure_data = []
         for inst in institutes:
             inst_data = {
                 'obj': inst,
-                'director': inst.directors.first(),
-                'faculties': []
+                'director': inst.directors.all().first(),
+                'faculties': [],
             }
-            
+ 
             for fac in inst.faculties.all():
                 fac_data = {
                     'obj': fac,
+                    'specialty_count': getattr(fac, 'specialty_count', 0) or 0,
                     'dean': getattr(fac, 'dean_manager', None),
-                    'departments': []
+                    'departments': [],
                 }
-                
+ 
                 for dept in fac.departments.all():
                     dept_data = {
                         'obj': dept,
                         'head': getattr(dept, 'head', None),
                         'specialties': dept.specialties.all(),
                         'stats': {
-                            'teachers': dept.teachers.count(),
-                            'groups': Group.objects.filter(specialty__department=dept).count(),
-                            'students': Student.objects.filter(group__specialty__department=dept).count()
-                        }
+                            
+                            'teachers': getattr(dept, 'staff_count', 0) or 0,
+                            'groups':   getattr(dept, 'group_count', 0) or 0,
+                            'students': getattr(dept, 'student_count', 0) or 0,
+                            'total_credits': getattr(dept, 'total_credits', 0) or 0,
+                        },
                     }
                     fac_data['departments'].append(dept_data)
-                
+ 
                 inst_data['faculties'].append(fac_data)
-            
+ 
             structure_data.append(inst_data)
-
+ 
         context['structure_data'] = structure_data
         context['is_admin'] = True
-        
+ 
     elif hasattr(request.user, 'dean_profile') or hasattr(request.user, 'vicedean_profile'):
         user_faculty = None
         if hasattr(request.user, 'dean_profile'):
             user_faculty = request.user.dean_profile.faculty
         elif hasattr(request.user, 'vicedean_profile'):
             user_faculty = request.user.vicedean_profile.faculty
-            
-        if user_faculty:
-            departments = Department.objects.filter(faculty=user_faculty).prefetch_related(
-                'specialties__groups',
-                'specialties__academicplan_set',
-                'head__user',
+ 
+        if not user_faculty:
+            messages.error(request, _("Ваш профиль не привязан к факультету"))
+            return redirect('core:dashboard')
+ 
+        
+        from django.db.models import OuterRef, Subquery, IntegerField
+ 
+        _dean_staff_sq = (
+            Teacher.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(cnt=Count('id'))
+            .values('cnt')
+        )
+ 
+        _dean_credits_sq = (
+            Subject.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(total=Sum('credits'))
+            .values('total')
+        )
+ 
+        departments = (
+            Department.objects
+            .filter(faculty=user_faculty)
+            .annotate(
+                staff_count=Subquery(_dean_staff_sq, output_field=IntegerField()),
+                total_credits=Subquery(_dean_credits_sq, output_field=IntegerField()),
+            )
+            .prefetch_related(
+                Prefetch('head__user'),
+                Prefetch(
+                    'specialties',
+                    queryset=Specialty.objects.prefetch_related(
+                        'groups',
+                        'academicplan_set',
+                    ),
+                ),
                 Prefetch(
                     'subjects',
                     queryset=Subject.objects.prefetch_related(
                         Prefetch(
                             'scheduleslot_set',
-                            queryset=ScheduleSlot.objects.filter(semester=active_semester).select_related('semester'),
+                            queryset=ScheduleSlot.objects.filter(
+                                semester=active_semester,
+                            ).select_related('semester'),
                         ),
                     ),
                 ),
             )
-            
-            dept_data = []
-            for dept in departments:
-                current_subjects = [
-                    s for s in dept.subjects.all()
-                    if s.scheduleslot_set.all()
-                ]
-
-                total_hours = sum(s.total_auditory_hours for s in current_subjects)
-                budget = dept.total_hours_budget or 1 
-                load_percent = round((total_hours / budget) * 100, 1) if dept.total_hours_budget else 0
-                
-                specs_data = []
-                for spec in dept.specialties.all():
-                    last_plan = spec.academicplan_set.filter(is_active=True).order_by('-admission_year').first()
-                    specs_data.append({
-                        'obj': spec,
-                        'groups': spec.groups.all(),
-                        'plan': last_plan
-                    })
-
-                dept_data.append({
-                    'obj': dept,
-                    'total_hours': total_hours,
-                    'load_percent': load_percent,
-                    'subjects_count': len(current_subjects),
-                    'teachers_count': dept.teachers.count(),
-                    'specialties_data': specs_data
+        )
+ 
+        dept_data = []
+        for dept in departments:
+            current_subjects = [
+                s for s in dept.subjects.all()
+                if s.scheduleslot_set.all()
+            ]
+            total_hours = sum(s.total_auditory_hours for s in current_subjects)
+            budget = dept.total_hours_budget or 1
+            load_percent = round((total_hours / budget) * 100, 1) if dept.total_hours_budget else 0
+ 
+            specs_data = []
+            for spec in dept.specialties.all():
+                last_plan = spec.academicplan_set.filter(
+                    is_active=True
+                ).order_by('-admission_year').first()
+                specs_data.append({
+                    'obj': spec,
+                    'groups': spec.groups.all(),
+                    'plan': last_plan,
                 })
-
-            context['faculty'] = user_faculty
-            context['dept_data'] = dept_data
-            context['is_dean'] = True
-            context['active_semester'] = active_semester
-        else:
-            messages.error(request, _("Ваш профиль не привязан к факультету"))
-            return redirect('core:dashboard')
-            
+ 
+            dept_data.append({
+                'obj': dept,
+                'total_hours': total_hours,
+                'load_percent': load_percent,
+                'subjects_count': len(current_subjects),
+                
+                'teachers_count': getattr(dept, 'staff_count', 0) or 0,
+                'total_credits':  getattr(dept, 'total_credits', 0) or 0,
+                'specialties_data': specs_data,
+            })
+ 
+        context['faculty'] = user_faculty
+        context['dept_data'] = dept_data
+        context['is_dean'] = True
+        context['active_semester'] = active_semester
+ 
     return render(request, 'accounts/structure_manage.html', context)
 
 @user_passes_test(is_admin_or_rector)
@@ -2024,3 +2151,318 @@ def select2_group_search(request):
 
 
 
+def _check_structure_edit_permission(user, faculty=None) -> bool:
+    if user.is_superuser or user.role in ['RECTOR', 'PRO_RECTOR', 'DIRECTOR']:
+        return True
+    if faculty and hasattr(user, 'dean_profile'):
+        return user.dean_profile.faculty == faculty
+    return False
+
+@login_required
+def api_faculty_detail(request, pk):
+    faculty = get_object_or_404(Faculty, pk=pk)
+
+    if not _check_structure_edit_permission(request.user, faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'id':         faculty.pk,
+            'name':       faculty.name,
+            'short_name': faculty.short_name,
+            'code':       faculty.code,
+            'institute':  faculty.institute_id,
+        },
+    })
+
+@login_required
+@require_POST
+def api_faculty_update(request, pk):
+    faculty = get_object_or_404(Faculty, pk=pk)
+
+    if not _check_structure_edit_permission(request.user, faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+
+    from .forms import FacultyForm as _FacultyForm
+    form = _FacultyForm(request.POST, instance=faculty)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({
+            'success': True,
+            'message': _('Факультет «%(name)s» успешно обновлён') % {'name': faculty.name},
+        })
+
+    return JsonResponse({
+        'success': False,
+        'errors': form.errors.as_json(),
+    }, status=422)
+
+@login_required
+def api_department_detail(request, pk):
+    dept = get_object_or_404(Department, pk=pk)
+
+    if not _check_structure_edit_permission(request.user, dept.faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+
+    head = getattr(dept, 'head', None)
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'id':                 dept.pk,
+            'name':               dept.name,
+            'faculty':            dept.faculty_id,
+            'total_wage_rate':    dept.total_wage_rate,
+            'total_hours_budget': dept.total_hours_budget,
+            'head_user_id':       head.user_id if head else None,
+            'head_user_name':     head.user.get_full_name() if head else '',
+        },
+    })
+
+
+@login_required
+@require_POST
+def api_department_update(request, pk):
+    dept = get_object_or_404(Department, pk=pk)
+
+    if not _check_structure_edit_permission(request.user, dept.faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+
+    from .forms import DepartmentForm as _DeptForm
+    form = _DeptForm(request.POST, instance=dept, faculty_context=dept.faculty)
+    if form.is_valid():
+        with transaction.atomic():
+            dept = form.save()
+            head_user = form.cleaned_data.get('head_of_department')
+            if head_user:
+                if head_user.role == 'TEACHER':
+                    head_user.role = 'HEAD_OF_DEPT'
+                    head_user.save()
+                HeadOfDepartment.objects.update_or_create(
+                    user=head_user, defaults={'department': dept}
+                )
+        return JsonResponse({
+            'success': True,
+            'message': _('Кафедра «%(name)s» обновлена') % {'name': dept.name},
+        })
+
+    return JsonResponse({
+        'success': False,
+        'errors': form.errors.as_json(),
+    }, status=422)
+
+
+
+@login_required
+def api_specialty_detail(request, pk):
+    spec = get_object_or_404(Specialty, pk=pk)
+
+    if not _check_structure_edit_permission(request.user, spec.department.faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+
+    return JsonResponse({
+        'success': True,
+        'data': {
+            'id':              spec.pk,
+            'name':            spec.name,
+            'name_tj':         spec.name_tj,
+            'name_ru':         spec.name_ru,
+            'name_en':         spec.name_en,
+            'education_level': spec.education_level,
+            'code':            spec.code,
+            'qualification':   spec.qualification,
+            'department':      spec.department_id,
+        },
+    })
+
+
+@login_required
+@require_POST
+def api_specialty_update(request, pk):
+    spec = get_object_or_404(Specialty, pk=pk)
+
+    if not _check_structure_edit_permission(request.user, spec.department.faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+
+    from .forms import SpecialtyForm as _SpecForm
+    form = _SpecForm(request.POST, instance=spec)
+    if hasattr(request.user, 'dean_profile'):
+        form.fields['department'].queryset = Department.objects.filter(
+            faculty=request.user.dean_profile.faculty
+        )
+
+    if form.is_valid():
+        form.save()
+        return JsonResponse({
+            'success': True,
+            'message': _('Специальность «%(code)s» обновлена') % {'code': spec.code},
+        })
+
+    return JsonResponse({
+        'success': False,
+        'errors': form.errors.as_json(),
+    }, status=422)
+
+
+
+@login_required
+@user_passes_test(
+    lambda u: u.is_superuser
+    or hasattr(u, 'dean_profile')
+    or u.role in ['PRO_RECTOR', 'DIRECTOR']
+)
+def admission_plan_list(request):
+    """
+    Admission plan list with enrollment counts.
+ 
+    KEY FIX: instead of calling plan.get_enrolled_count() inside a Python
+    loop (100 plans → 101 DB queries), we fire ONE aggregated query that
+    groups active students by (specialty, education_type, education_language,
+    financing_type) and build a Python dict.  Each plan's count is then an
+    O(1) dict lookup — the whole page costs exactly 2 SQL queries regardless
+    of how many plans exist.
+    """
+    user = request.user
+    plans = (
+        AdmissionPlan.objects
+        .select_related('specialty__department__faculty__institute')
+        .order_by('-academic_year', 'specialty__code')
+    )
+ 
+    if hasattr(user, 'dean_profile') and not user.is_superuser:
+        plans = plans.filter(
+            specialty__department__faculty=user.dean_profile.faculty
+        )
+ 
+    year_filter = request.GET.get('year', '')
+    if year_filter:
+        plans = plans.filter(academic_year=year_filter)
+ 
+    specialty_id = request.GET.get('specialty', '')
+    if specialty_id and specialty_id.isdigit():
+        plans = plans.filter(specialty_id=int(specialty_id))
+ 
+    
+    
+    
+    enrolled_rows = (
+        Student.objects
+        .filter(status='ACTIVE')
+        .values('specialty_id', 'education_type', 'education_language', 'financing_type')
+        .annotate(cnt=Count('id'))
+    )
+ 
+    
+    enrolled_lookup: dict = {}
+    for row in enrolled_rows:
+        key = (
+            row['specialty_id'],
+            row['education_type'],
+            row['education_language'],
+            row['financing_type'],
+        )
+        enrolled_lookup[key] = row['cnt']
+ 
+    
+    plans_with_stats = []
+    for plan in plans:
+        edu_type = AdmissionPlan._STUDY_FORM_MAP.get(plan.study_form, 'FULL_TIME')
+        fin_type = AdmissionPlan._FINANCING_MAP.get(plan.financing_type, 'BUDGET')
+        key = (plan.specialty_id, edu_type, plan.education_language, fin_type)
+        enrolled = enrolled_lookup.get(key, 0)
+        pct = round(enrolled / plan.target_quota * 100, 1) if plan.target_quota else 0.0
+        plans_with_stats.append({
+            'plan': plan,
+            'enrolled': enrolled,
+            'fulfillment_pct': pct,
+            'is_fulfilled': enrolled >= plan.target_quota,
+        })
+ 
+    available_years = (
+        AdmissionPlan.objects
+        .values_list('academic_year', flat=True)
+        .distinct()
+        .order_by('-academic_year')
+    )
+ 
+    context = {
+        'plans_with_stats': plans_with_stats,
+        'available_years': available_years,
+        'year_filter': year_filter,
+        'specialty_filter': specialty_id,
+    }
+    return render(request, 'accounts/admission_plans/list.html', context)
+
+
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or hasattr(u, 'dean_profile') or u.role in ['PRO_RECTOR', 'DIRECTOR'])
+def admission_plan_create(request):
+    faculty = None
+    if hasattr(request.user, 'dean_profile') and not request.user.is_superuser:
+        faculty = request.user.dean_profile.faculty
+
+    if request.method == 'POST':
+        form = AdmissionPlanForm(request.POST, faculty=faculty)
+        if form.is_valid():
+            plan = form.save()
+            messages.success(
+                request,
+                _('План приёма для %(code)s на %(year)s создан') % {
+                    'code': plan.specialty.code,
+                    'year': plan.academic_year,
+                }
+            )
+            return redirect('accounts:admission_plan_list')
+    else:
+        form = AdmissionPlanForm(faculty=faculty)
+
+    return render(request, 'accounts/admission_plans/form.html', {
+        'form': form,
+        'title': _('Создать план приёма'),
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or hasattr(u, 'dean_profile') or u.role in ['PRO_RECTOR', 'DIRECTOR'])
+def admission_plan_edit(request, pk):
+    plan = get_object_or_404(AdmissionPlan, pk=pk)
+
+    if hasattr(request.user, 'dean_profile') and not request.user.is_superuser:
+        faculty = request.user.dean_profile.faculty
+        if plan.specialty.department.faculty != faculty:
+            messages.error(request, _('Нет доступа'))
+            return redirect('accounts:admission_plan_list')
+    else:
+        faculty = None
+
+    if request.method == 'POST':
+        form = AdmissionPlanForm(request.POST, instance=plan, faculty=faculty)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('План приёма обновлён'))
+            return redirect('accounts:admission_plan_list')
+    else:
+        form = AdmissionPlanForm(instance=plan, faculty=faculty)
+
+    return render(request, 'accounts/admission_plans/form.html', {
+        'form': form,
+        'plan': plan,
+        'title': _('Редактировать план приёма'),
+        'enrolled': plan.get_enrolled_count(),
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.role in ['PRO_RECTOR', 'DIRECTOR'])
+def admission_plan_delete(request, pk):
+    plan = get_object_or_404(AdmissionPlan, pk=pk)
+    if request.method == 'POST':
+        plan.delete()
+        messages.success(request, _('План приёма удалён'))
+        return redirect('accounts:admission_plan_list')
+    return render(request, 'core/confirm_delete.html', {
+        'obj': plan,
+        'title': _('Удалить план приёма'),
+    })

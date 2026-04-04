@@ -29,7 +29,7 @@ class InstituteAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(Faculty)
@@ -40,11 +40,12 @@ class FacultyAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
+ 
     list_display = [
         'id_badge', 'name', 'faculty',
         'staff_count_display', 'total_credits_display',
@@ -52,30 +53,72 @@ class DepartmentAdmin(admin.ModelAdmin):
     ]
     list_filter = ['faculty__institute', 'faculty']
     search_fields = ['id', 'name']
-
+ 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('faculty').prefetch_related('subjects').annotate(
-            staff_count=Count('teachers', distinct=True),
-            total_credits=Sum('subjects__credits'),
+        from django.db.models import (
+            OuterRef, Subquery, IntegerField, F,
+            ExpressionWrapper,
         )
-
+        from schedule.models import Subject as _Subject
+        from accounts.models import Teacher as _Teacher
+ 
+        qs = super().get_queryset(request).select_related('faculty')
+ 
+        staff_sq = (
+            _Teacher.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(cnt=Count('id'))
+            .values('cnt')
+        )
+ 
+        credits_sq = (
+            _Subject.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(total=Sum('credits'))
+            .values('total')
+        )
+        occupied_sq = (
+            _Subject.objects
+            .filter(department=OuterRef('pk'))
+            .values('department')
+            .annotate(
+                total=Sum(
+                    ExpressionWrapper(
+                        F('lecture_hours') + F('practice_hours') +
+                        F('lab_hours') + F('control_hours'),
+                        output_field=IntegerField(),
+                    )
+                )
+            )
+            .values('total')
+        )
+ 
+        return qs.annotate(
+            staff_count=Subquery(staff_sq, output_field=IntegerField()),
+            total_credits=Subquery(credits_sq, output_field=IntegerField()),
+            occupied_hours=Subquery(occupied_sq, output_field=IntegerField()),
+        )
+ 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
-
+        return format_html('<span style="color:#888;font-size:11px">#{}</span>', obj.pk)
+ 
     @admin.display(description='Преподавателей', ordering='staff_count')
     def staff_count_display(self, obj):
-        return getattr(obj, 'staff_count', '—')
-
+        return getattr(obj, 'staff_count', None) or 0
+ 
     @admin.display(description='Кредитов (∑)', ordering='total_credits')
     def total_credits_display(self, obj):
-        return getattr(obj, 'total_credits', 0) or 0
-
+        return getattr(obj, 'total_credits', None) or 0
+ 
+    @admin.display(description='Нагрузка (Занято / План)')
     def hours_stats(self, obj):
-        occupied = obj.get_occupied_hours()
-        return f"{occupied} / {obj.total_hours_budget} ({obj.get_load_percentage()}%)"
-    hours_stats.short_description = "Нагрузка (Занято / План)"
+        occupied = getattr(obj, 'occupied_hours', None) or 0
+        budget = obj.total_hours_budget or 0
+        pct = round(occupied / budget * 100, 1) if budget else 0
+        return f"{occupied} / {budget} ({pct}%)"
 
 
 @admin.register(Specialty)
@@ -90,41 +133,91 @@ class SpecialtyAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(AdmissionPlan)
-class AdmissionPlanAdmin(admin.ModelAdmin):
+class AdmissionPlanAdmin(admin.ModelAdmin): 
     list_display = [
         'id_badge', 'specialty', 'academic_year',
         'study_form', 'financing_type', 'education_language',
         'target_quota', 'enrolled_count_display', 'fulfillment_display',
     ]
-    list_filter = ['academic_year', 'specialty__department__faculty', 'study_form', 'financing_type']
+    list_filter = [
+        'academic_year', 'specialty__department__faculty',
+        'study_form', 'financing_type',
+    ]
     search_fields = ['id', 'specialty__code', 'specialty__name', 'academic_year']
     list_select_related = ['specialty__department__faculty']
     ordering = ['-academic_year', 'specialty__code']
+ 
+    def get_queryset(self, request):
+        from django.db.models import OuterRef, Subquery, IntegerField, Value, Case, When, CharField
+        from django.db.models.functions import Coalesce
 
-    @admin.display(description='ID')
-    def id_badge(self, obj):
-        return format_html('<span style="color:
-
-    @admin.display(description='Зачислено (факт.)')
-    def enrolled_count_display(self, obj):
-        count = obj.get_enrolled_count()
-        return format_html(
-            '<strong style="color: {}">{}</strong>',
-            '
-            count,
+        qs = super().get_queryset(request).annotate(
+            mapped_edu_type=Case(
+                When(study_form='FULL_TIME', then=Value('FULL_TIME')),
+                When(study_form='PART_TIME', then=Value('PART_TIME')),
+                When(study_form='DISTANCE',  then=Value('EVENING')),
+                default=Value('FULL_TIME'),
+                output_field=CharField(),
+            ),
+            mapped_fin_type=Case(
+                When(financing_type='CONTRACT', then=Value('CONTRACT')),
+                default=Value('BUDGET'),
+                output_field=CharField(),
+            )
         )
 
+        enrolled_sq = (
+            Student.objects
+            .filter(
+                specialty_id=OuterRef('specialty_id'),
+                status='ACTIVE',
+                education_type=OuterRef('mapped_edu_type'),
+                education_language=OuterRef('education_language'),
+                financing_type=OuterRef('mapped_fin_type'),
+            )
+            .values('specialty_id')
+            .annotate(cnt=Count('id'))
+            .values('cnt')
+        )
+
+        return qs.annotate(
+            enrolled_count=Coalesce(
+                Subquery(enrolled_sq, output_field=IntegerField()),
+                Value(0),
+            )
+        )
+ 
+    @admin.display(description='ID')
+    def id_badge(self, obj):
+        return format_html('<span style="color:#888;font-size:11px">#{}</span>', obj.pk)
+ 
+    @admin.display(description='Зачислено (факт.)')
+    def enrolled_count_display(self, obj):
+        count = getattr(obj, 'enrolled_count', 0)
+        color = '#16a34a' if count >= obj.target_quota else '#dc2626'
+        return format_html(
+            '<strong style="color:{}">{}</strong>',
+            color,
+            count,
+        )
+ 
     @admin.display(description='Выполнение плана')
     def fulfillment_display(self, obj):
-        pct = obj.get_fulfillment_percent()
-        color = '
+        count = getattr(obj, 'enrolled_count', 0)
+        pct = round(count / obj.target_quota * 100, 1) if obj.target_quota else 0.0
+        color = (
+            '#16a34a' if pct >= 90
+            else '#f59e0b' if pct >= 50
+            else '#dc2626'
+        )
         return format_html(
             '<span style="color:{};font-weight:bold">{} %</span>',
-            color, pct,
+            color,
+            pct,
         )
 
 
@@ -147,7 +240,7 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(Group)
@@ -159,8 +252,7 @@ class GroupAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
-
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
@@ -173,7 +265,7 @@ class StudentAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(Teacher)
@@ -185,7 +277,7 @@ class TeacherAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(Dean)
@@ -196,7 +288,7 @@ class DeanAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(ViceDean)
@@ -207,7 +299,7 @@ class ViceDeanAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(Director)
@@ -218,7 +310,7 @@ class DirectorAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(ProRector)
@@ -229,7 +321,7 @@ class ProRectorAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 @admin.register(StructureChangeLog)
@@ -268,7 +360,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     @admin.display(description='ID')
     def id_badge(self, obj):
-        return format_html('<span style="color:
+        return format_html('<span style="color: blue;">{}</span>', obj.id)
 
 
 admin.site.register(Specialization)
