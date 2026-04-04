@@ -9,7 +9,7 @@ from django.http import HttpResponseForbidden, HttpRequest, JsonResponse
 from django.utils.translation import gettext as _
 from .services import StudentImportService
 from schedule.models import Semester, Subject, AcademicPlan, ScheduleSlot
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncMonth 
 from django.utils import timezone
@@ -966,14 +966,6 @@ def delete_group(request, group_id):
 
 @login_required
 def manage_structure(request):
-    """
-    Optimised structure view.
- 
-    KEY FIX: replaced the single .annotate() that joined teachers + groups +
-    subjects in one shot (Cartesian fan-out → wrong Sum values) with
-    independent correlated Subqueries.  Each Subquery is a separate
-    single-table aggregation, so they never multiply each other.
-    """
     from django.db.models import OuterRef, Subquery, IntegerField
  
     if not is_management(request.user):
@@ -2088,20 +2080,35 @@ def select2_user_search(request):
 
     results = []
     for s in students:
+        text = s.user.get_full_name()
+        if user.is_superuser:
+            text = f"[ID: {s.user.id}] {text}"
         results.append({
             'id': s.user.id,
-            'text': s.user.get_full_name(),
+            'text': text,
             'type': 'student',
             'type_display': 'Студент',
             'meta': s.student_id,
         })
     for t in teachers:
+        text = t.user.get_full_name()
+        if user.is_superuser:
+            text = f"[ID: {t.user.id}] {text}"
         results.append({
             'id': t.user.id,
-            'text': t.user.get_full_name(),
+            'text': text,
             'type': 'teacher',
             'type_display': 'Преподаватель',
             'meta': t.department.name if t.department else '',
+        })
+    results = []
+    for g in groups:
+        text = f"{g.name} ({g.course} курс)"
+        if user.is_superuser:
+            text = f"[ID: {g.id}] {text}"
+        results.append({
+            'id': g.id,
+            'text': text
         })
 
     return JsonResponse({'results': results})
@@ -2140,9 +2147,12 @@ def select2_group_search(request):
 
     results = []
     for g in groups:
+        text = f"{g.name} ({g.course} курс)"
+        if user.is_superuser:
+            text = f"[ID: {g.id}] {text}"
         results.append({
             'id': g.id,
-            'text': f"{g.name} ({g.course} курс)"
+            'text': text
         })
 
     return JsonResponse({'results': results})

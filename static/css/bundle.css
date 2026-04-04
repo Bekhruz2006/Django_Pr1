@@ -898,3 +898,36 @@ body.dark-mode .modal-footer {
 body.dark-mode {
     --border-heavy: #334155; 
 }
+.specialty-inner-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.specialty-inner-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+.specialty-inner-card:last-child {
+    margin-bottom: 0;
+}
+.id-badge {
+    background: #e2e8f0;
+    color: #475569;
+    font-family: monospace;
+    font-size: 0.75rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+body.dark-mode .specialty-inner-card {
+    background: var(--card-dark);
+    border-color: var(--border-dark);
+}
+body.dark-mode .id-badge {
+    background: #1e293b;
+    color: #94a3b8;
+}

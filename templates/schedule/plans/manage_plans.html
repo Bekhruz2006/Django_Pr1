@@ -25,6 +25,7 @@
                 <a href="{% url 'schedule:plan_detail' plan.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
                     <div>
                         <h5 class="mb-1 fw-bold text-primary">
+                            {% if user.is_superuser %}<span class="badge bg-dark me-2" style="font-size:0.75rem;">ID: {{ plan.id }}</span>{% endif %}
                             {% if plan.group %}
                                 {% trans "РУП Группы:" %} {{ plan.group.name }}
                             {% else %}

@@ -39,7 +39,12 @@
                             <i class="bi bi-bank text-primary fs-5"></i>
                         </div>
                         <div>
-                            <h5 class="mb-0 fw-bold text-dark">{{ inst_data.obj.name }}</h5>
+                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center">
+                                {% if user.is_superuser %}
+                                    <span class="badge bg-dark me-2">ID: {{ inst_data.obj.id }}</span>
+                                {% endif %}
+                                {{ inst_data.obj.name }}
+                            </h5>
                             <div class="small text-muted mt-1">
                                 <i class="bi bi-person-badge me-1"></i>{% trans "Директор:" %}
                                 <span class="fw-medium text-dark">
@@ -65,25 +70,28 @@
                     </div>
                 </div>
 
-                <div id="collapseInst{{ inst_data.obj.id }}" class="accordion-collapse collapse" data-bs-parent="#structureAccordion">
+                <div id="collapseInst{{ inst_data.obj.id }}" class="accordion-collapse collapse show" data-bs-parent="#structureAccordion">
                     <div class="card-body bg-light p-3">
 
                         {% if inst_data.faculties %}
                             {% for fac_data in inst_data.faculties %}
-                            <div class="card border border-light shadow-sm mb-3">
-                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+                            <div class="card border border-dark shadow-sm mb-3">
+                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
                                     <div class="d-flex align-items-center">
+                                        {% if user.is_superuser %}
+                                            <span class="badge bg-dark me-2">ID: {{ fac_data.obj.id }}</span>
+                                        {% endif %}
                                         <i class="bi bi-diagram-2-fill text-success me-2"></i>
                                         <span class="fw-bold">{{ fac_data.obj.name }}</span>
-                                        <span class="badge bg-light text-muted border ms-2">{{ fac_data.obj.code }}</span>
+                                        <span class="badge bg-light text-muted border ms-2" title="Код факультета">{{ fac_data.obj.code }}</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-3">
-                                        <small class="text-muted">
-                                            {% trans "Декан:" %} <b>{{ fac_data.dean.user.get_full_name|default:"-" }}</b>
-                                        </small>
+                                        <small class="text-muted">{% trans "Декан:" %} <b>{{ fac_data.dean.user.get_full_name|default:"-" }}</b></small>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}" class="btn btn-outline-success" title="{% trans 'Добавить кафедру' %}">{% trans "+ Каф" %}</a>
-                                            <a href="{% url 'accounts:edit_faculty' fac_data.obj.id %}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                                            <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}" class="btn btn-outline-success">{% trans "+ Кафедра" %}</a>
+                                            <button type="button" class="btn btn-outline-secondary edit-faculty-btn" data-id="{{ fac_data.obj.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
                                             <a href="{% url 'accounts:delete_faculty' fac_data.obj.id %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i></a>
                                         </div>
                                     </div>
@@ -91,61 +99,83 @@
 
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
-                                        <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
-                                            <thead class="bg-light text-muted">
+                                        <!-- Строгая таблица с границами -->
+                                        <table class="table table-bordered table-hover mb-0 align-middle" style="font-size: 0.9rem;">
+                                            <thead class="table-dark small">
                                                 <tr>
-                                                    <th class="ps-4" style="width: 30%;">{% trans "Кафедра" %}</th>
-                                                    <th style="width: 20%;">{% trans "Заведующий" %}</th>
-                                                    <th style="width: 15%;">{% trans "Статистика" %}</th>
-                                                    <th style="width: 25%;">{% trans "Специальности" %}</th>
-                                                    <th class="text-end pe-3" style="width: 10%;">{% trans "Действия" %}</th>
+                                                    {% if user.is_superuser %}<th style="width: 50px;" class="text-center">ID</th>{% endif %}
+                                                    <th style="width: 25%;">{% trans "Номгуи Кафедраҳо (Кафедры)" %}</th>
+                                                    <th style="width: 15%;" class="text-center">{% trans "Омор (Статистика)" %}</th>
+                                                    <th style="width: 40%;">{% trans "Ихтисосҳо (Специальности)" %}</th>
+                                                    <th style="width: 15%;" class="text-center">{% trans "Амалҳо" %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% for dept_data in fac_data.departments %}
                                                 <tr>
-                                                    <td class="ps-4 align-middle fw-medium">
-                                                        {{ dept_data.obj.name }}
-                                                    </td>
-                                                    <td class="align-middle">
-                                                        {{ dept_data.head.user.get_full_name|default:"<span class='text-muted'>-</span>"|safe }}
-                                                    </td>
-                                                    <td class="align-middle">
-                                                        <div class="d-flex flex-column small">
-                                                            <span><i class="bi bi-person text-muted"></i> {{ dept_data.stats.teachers }} {% trans "преп." %}</span>
-                                                            <span><i class="bi bi-people text-muted"></i> {{ dept_data.stats.students }} {% trans "студ." %}</span>
+                                                    {% if user.is_superuser %}
+                                                    <td class="text-center fw-bold">{{ dept_data.obj.id }}</td>
+                                                    {% endif %}
+                                                    
+                                                    <td class="fw-medium">
+                                                        <div class="text-dark fw-bold mb-1">{{ dept_data.obj.name }}</div>
+                                                        <div class="small text-muted border-top pt-1 mt-1">
+                                                            <i class="bi bi-person me-1"></i> {% trans "Мудир:" %} {{ dept_data.head.user.get_full_name|default:"<span class='text-danger'>Таъин нашудааст</span>"|safe }}
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle">
-                                                        <div class="d-flex flex-column gap-1">
-                                                        {% for spec in dept_data.specialties %}
-                                                            <div class="d-flex justify-content-between align-items-center bg-light p-1 rounded border">
-                                                                <span class="fw-bold text-dark small" title="{{ spec.name }}">
-                                                                    {{ spec.code }}
-                                                                </span>
-                                                                <div class="btn-group btn-group-sm">
-                                                                    <a href="{% url 'accounts:edit_specialty' spec.id %}" class="btn btn-link text-primary p-0 px-1"><i class="bi bi-pencil"></i></a>
-                                                                    <a href="{% url 'accounts:group_management' %}?search={{ spec.code|urlencode }}" class="btn btn-link text-success p-0 px-1"><i class="bi bi-collection"></i></a>
-                                                                </div>
+                                                    
+                                                    <td class="text-center">
+                                                        <div class="badge bg-warning text-dark w-100 mb-1 border" title="{% trans 'Кредитҳо' %}">{{ dept_data.stats.total_credits }} {% trans "кр." %}</div>
+                                                        <div class="badge bg-info text-dark w-100 mb-1 border" title="{% trans 'Воҳиди корӣ' %}">{{ dept_data.obj.total_wage_rate|default:"0" }} {% trans "ст." %}</div>
+                                                        <div class="badge bg-light text-dark w-100 border" title="{% trans 'Аъзоён' %}">{{ dept_data.stats.teachers }} {% trans "омузгор" %}</div>
+                                                    </td>
+                                                    
+                                                    <td class="p-0">
+                                                        <!-- Вложенная строгая таблица для специальностей -->
+                                                        <table class="table table-bordered mb-0 w-100 h-100" style="border-style: hidden;">
+                                                            <tbody>
+                                                                {% for spec in dept_data.specialties %}
+                                                                <tr>
+                                                                    {% if user.is_superuser %}
+                                                                    <td style="width:40px; border-top: 0; border-left: 0; border-bottom: 1px solid #dee2e6;" class="text-center fw-bold text-muted small">{{ spec.id }}</td>
+                                                                    {% endif %}
+                                                                    <td style="border-top: 0; border-left: 0; border-bottom: 1px solid #dee2e6;">
+                                                                        <div class="d-flex justify-content-between align-items-center">
+                                                                            <div>
+                                                                                <span class="fw-bold text-primary">{{ spec.code }}</span>
+                                                                                <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ spec.get_education_level_display }}</span>
+                                                                                <div class="fw-bold text-dark small mt-1">{{ spec.get_display_name }}</div>
+                                                                                <div class="text-muted fst-italic" style="font-size: 0.75rem;">{% trans "Ихтисос:" %} {{ spec.qualification }}</div>
+                                                                            </div>
+                                                                            <div class="d-flex flex-column gap-1 align-items-end">
+                                                                                <!-- Кнопка вызова модалки для групп -->
+                                                                                <button type="button" class="btn btn-sm btn-outline-success" onclick="openGroupModal({{ spec.id }}, '{{ spec.code }}')" title="{% trans 'Гӯруҳҳо (Группы)' %}">
+                                                                                    <i class="bi bi-collection"></i> Гӯруҳҳо
+                                                                                </button>
+                                                                                <div class="btn-group btn-group-sm">
+                                                                                    <button type="button" class="btn btn-light text-primary border edit-spec-btn" data-id="{{ spec.id }}" title="{% trans 'Таҳрир' %}"><i class="bi bi-pencil"></i></button>
+                                                                                    <button type="button" class="btn btn-light text-danger border" onclick="openAdmissionPlanModal({{ spec.id }}, '{{ spec.code }}', '{{ spec.name|escapejs }}')" title="{% trans 'Нақшаи қабул' %}"><i class="bi bi-clipboard-data"></i></button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                {% empty %}
+                                                                <tr><td class="text-center text-muted small py-3" style="border: none;">{% trans "Специальности отсутствуют" %}</td></tr>
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                    
+                                                    <td class="text-center bg-light">
+                                                        <div class="d-grid gap-2 p-1">
+                                                            <a href="{% url 'schedule:manage_subjects' %}?department={{ dept_data.obj.id }}" class="btn btn-sm btn-primary shadow-sm"><i class="bi bi-briefcase"></i> Сарборӣ</a>
+                                                            <a href="{% url 'accounts:user_management' %}?role=TEACHER&department={{ dept_data.obj.id }}" class="btn btn-sm btn-outline-info bg-white"><i class="bi bi-people"></i> Аъзоён</a>
+                                                            <div class="btn-group btn-group-sm w-100">
+                                                                <a href="{% url 'accounts:add_specialty' %}?department={{ dept_data.obj.id }}" class="btn btn-light text-success border"><i class="bi bi-plus"></i> Ихтисос</a>
+                                                                <button type="button" class="btn btn-light text-secondary border edit-dept-btn" data-id="{{ dept_data.obj.id }}"><i class="bi bi-gear"></i></button>
                                                             </div>
-                                                        {% empty %}
-                                                            <span class="text-muted small">-</span>
-                                                        {% endfor %}
                                                         </div>
-                                                    </td>
-                                                    <td class="text-end pe-3 align-middle">
-                                                        <div class="btn-group btn-group-sm">
-                                                            <a href="{% url 'accounts:add_specialty' %}?department={{ dept_data.obj.id }}" class="btn btn-light text-primary" title="{% trans 'Добавить специальность' %}">{% trans "+Спец" %}</a>
-                                                            <a href="{% url 'accounts:edit_department' dept_data.obj.id %}" class="btn btn-light text-secondary"><i class="bi bi-gear"></i></a>
-                                                            <a href="{% url 'accounts:delete_department' dept_data.obj.id %}" class="btn btn-light text-danger"><i class="bi bi-trash"></i></a>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {% empty %}
-                                                <tr>
-                                                    <td colspan="5" class="text-center py-3 text-muted small">
-                                                        {% trans "Кафедры отсутствуют." %}
-                                                        <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}">{% trans "Добавить первую" %}</a>
                                                     </td>
                                                 </tr>
                                                 {% endfor %}
@@ -155,144 +185,8 @@
                                 </div>
                             </div>
                             {% endfor %}
-                        {% else %}
-                            <div class="text-center py-4 text-muted">
-                                <i class="bi bi-diagram-2 fs-3 d-block mb-2 opacity-50"></i>
-                                {% trans "В этом институте пока нет факультетов." %}
-                                <br>
-                                <a href="{% url 'accounts:add_faculty' %}?institute={{ inst_data.obj.id }}" class="btn btn-sm btn-primary mt-2">{% trans "Добавить факультет" %}</a>
-                            </div>
                         {% endif %}
 
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="text-center py-5">
-                <div class="mb-3">
-                    <i class="bi bi-building-dash text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
-                </div>
-                <h4>{% trans "Структура пуста" %}</h4>
-                <p class="text-muted">{% trans "Начните с создания первого института." %}</p>
-                <a href="{% url 'accounts:add_institute' %}" class="btn btn-primary btn-lg mt-2">
-                    <i class="bi bi-plus-lg"></i> {% trans "Создать Институт" %}
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-
-    {% elif is_dean %}
-        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
-            <i class="bi bi-info-circle-fill fs-4 me-3"></i>
-            <div>
-                <strong>{% trans "Панель Декана:" %}</strong> {% blocktrans %}Вы управляете факультетом <u>{{ faculty.name }}</u>.{% endblocktrans %}
-                <br><small>{% trans "Используйте этот раздел для настройки кафедр, специальностей и назначения заведующих." %}</small>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-end mb-3">
-            <a href="{% url 'accounts:add_department' %}" class="btn btn-primary shadow-sm">
-                <i class="bi bi-plus-lg"></i> {% trans "Новая кафедра" %}
-            </a>
-        </div>
-
-        <div class="accordion" id="deptAccordion">
-            {% for item in dept_data %}
-            <div class="accordion-item shadow-sm mb-3 border-0 overflow-hidden">
-                <h2 class="accordion-header">
-                    <button class="accordion-button collapsed bg-white text-dark py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ item.obj.id }}">
-                        <div class="d-flex w-100 justify-content-between align-items-center me-3">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-diagram-3-fill me-3 text-primary fs-5"></i>
-                                <div>
-                                    <span class="fw-bold fs-6 text-dark">{{ item.obj.name }}</span>
-                                    <div class="small text-muted mt-1 fw-normal">
-                                        <i class="bi bi-person-badge"></i> {% trans "Зав:" %} <span class="text-dark fw-medium">{{ item.obj.head.user.get_full_name|default:"{% trans 'Не назначен' %}" }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-end d-none d-md-block">
-                                <small class="text-muted d-block" style="font-size: 0.7rem;">{% trans "НАГРУЗКА" %}</small>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="progress" style="width: 80px; height: 6px;">
-                                        <div class="progress-bar {% if item.load_percent > 100 %}bg-danger{% else %}bg-success{% endif %}"
-                                             role="progressbar" style="width: {{ item.load_percent }}%"></div>
-                                    </div>
-                                    <small class="fw-bold text-dark">{{ item.load_percent }}%</small>
-                                </div>
-                            </div>
-                        </div>
-                    </button>
-                </h2>
-
-                <div id="collapse{{ item.obj.id }}" class="accordion-collapse collapse">
-                    <div class="accordion-body bg-light p-3">
-                        <div class="d-flex gap-2 mb-3 p-2 bg-white rounded border flex-wrap align-items-center">
-                            <span class="text-muted small text-uppercase fw-bold ms-2 me-auto">{% trans "Действия:" %}</span>
-
-                            <a href="{% url 'accounts:add_specialty' %}?department={{ item.obj.id }}" class="btn btn-xs btn-outline-primary">
-                                <i class="bi bi-mortarboard-plus"></i> {% trans "+Специальность" %}
-                            </a>
-                            <a href="{% url 'accounts:add_user' %}?role=TEACHER&department={{ item.obj.id }}" class="btn btn-xs btn-outline-success">
-                                <i class="bi bi-person-plus"></i> {% trans "+Преподаватель" %}
-                            </a>
-                            <a href="{% url 'accounts:user_management' %}?role=TEACHER&department={{ item.obj.id }}" class="btn btn-xs btn-info text-white">
-                                <i class="bi bi-people"></i> {% trans "Штат" %} ({{ item.teachers_count }})
-                            </a>
-                            <div class="vr mx-2"></div>
-                            <a href="{% url 'accounts:edit_department' item.obj.id %}" class="btn btn-xs btn-secondary">
-                                <i class="bi bi-gear"></i> {% trans "Настройки" %}
-                            </a>
-                        </div>
-
-                        <div class="row g-3">
-                            {% for spec_data in item.specialties_data %}
-                            <div class="col-lg-6">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-2">
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge bg-primary me-2">{{ spec_data.obj.code }}</span>
-                                            <span class="small fw-bold text-dark">{{ spec_data.obj.name|truncatechars:30 }}</span>
-                                        </div>
-                                        <div>
-                                            <a href="{% url 'accounts:edit_specialty' spec_data.obj.id %}" class="text-muted small"><i class="bi bi-pencil"></i></a>
-                                        </div>
-                                    </div>
-                                    <div class="card-body p-2 bg-light bg-opacity-10">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <small class="text-muted fw-bold">{% trans "ГРУППЫ:" %}</small>
-                                            <div class="d-flex gap-2">
-                                                <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="badge bg-primary text-white text-decoration-none">
-                                                    <i class="bi bi-plus"></i> Группа
-                                                </a>
-                                                
-                                                {% if not spec_data.plan %}
-                                                    <a href="{% url 'schedule:create_plan' %}?specialty={{ spec_data.obj.id }}" class="badge bg-warning text-dark text-decoration-none">{% trans "Нет РУП! Создать" %}</a>
-                                                {% else %}
-                                                    <a href="{% url 'schedule:plan_detail' spec_data.plan.id %}" class="badge bg-success text-decoration-none">{% trans "РУП" %} {{ spec_data.plan.admission_year }}</a>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex flex-wrap gap-1">
-                                            {% for group in spec_data.groups %}
-                                                <a href="{% url 'schedule:constructor' %}?group={{ group.id }}"
-                                                   class="btn btn-sm btn-white border d-flex align-items-center px-2 py-1"
-                                                   style="font-size: 0.75rem;"
-                                                   title="{% trans 'Расписание' %}">
-                                                    <span class="fw-bold me-1">{{ group.name }}</span>
-                                                    <span class="badge bg-secondary rounded-pill" style="font-size: 0.6rem;">{{ group.course }}</span>
-                                                </a>
-                                            {% empty %}
-                                                <small class="text-muted fst-italic">{% trans "Групп нет" %}</small>
-                                                <a href="{% url 'accounts:add_group' %}?specialty={{ spec_data.obj.id }}" class="ms-2 small text-primary text-decoration-none">{% trans "+Доб." %}</a>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -301,20 +195,458 @@
     {% endif %}
 </div>
 
-<style>
-    .btn-xs {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        border-radius: 4px;
+<!-- ================= МОДАЛЬНЫЕ ОКНА И AJAX ================= -->
+
+<!-- Modal: Список групп специальности -->
+<div class="modal fade" id="groupsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-collection me-2"></i>Гӯруҳҳои ихтисоси <span id="gm_spec_code"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="list-group list-group-flush" id="groupsModalList">
+                    <!-- Заполняется через JS -->
+                </div>
+                <div class="p-3 bg-light text-center border-top">
+                    <a href="{% url 'accounts:group_management' %}" class="btn btn-sm btn-primary w-100">Идоракунии ҳамаи гӯруҳҳо</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Нақшаи қабул (План приема) -->
+<div class="modal fade" id="admissionPlanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-clipboard-data me-2"></i>{% trans "Нақшаи қабул (План приема)" %}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="admissionPlanForm" action="{% url 'accounts:admission_plan_create' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body bg-light">
+                    <div class="alert alert-danger bg-white border-danger mb-4">
+                        <strong class="d-block mb-1" id="ap_spec_code"></strong>
+                        <span id="ap_spec_name" class="text-muted small"></span>
+                    </div>
+                    <input type="hidden" name="specialty" id="ap_specialty_id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">{% trans "Учебный год" %} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="academic_year" placeholder="Напр: 2024-2025" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">{% trans "Квота (Кол-во мест)" %} <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control text-primary fw-bold" name="target_quota" value="0" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">{% trans "Форма обучения" %} <span class="text-danger">*</span></label>
+                            <select name="study_form" class="form-select" required>
+                                <option value="FULL_TIME">Очная (Рӯзона)</option>
+                                <option value="PART_TIME">Заочная (Ғоибона)</option>
+                                <option value="DISTANCE">Дистанционная (Фосилавӣ)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">{% trans "Финансирование" %} <span class="text-danger">*</span></label>
+                            <select name="financing_type" class="form-select" required>
+                                <option value="BUDGET">Бюджет (Буҷавӣ)</option>
+                                <option value="CONTRACT">Контракт (Шартномавӣ)</option>
+                                <option value="QUOTA">Квота</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">{% trans "Язык обучения" %} <span class="text-danger">*</span></label>
+                            <select name="education_language" class="form-select" required>
+                                <option value="TJ">Тоҷикӣ</option>
+                                <option value="RU">Русский</option>
+                                <option value="EN">English</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <label class="form-label fw-bold small">{% trans "Стоимость для иностранных граждан" %}</label>
+                            <input type="number" step="0.01" class="form-control" name="foreign_tuition_fee" value="0">
+                            <div class="form-text">Оставьте 0, если не применимо. Указывается в долларах США.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{% url 'accounts:admission_plan_list' %}" class="btn btn-outline-secondary me-auto">{% trans "Открыть реестр планов" %}</a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-danger fw-bold"><i class="bi bi-save me-1"></i>{% trans "Сохранить квоту" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Редактирование Факультета -->
+<div class="modal fade" id="ajaxFacultyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="ajaxFacultyForm" novalidate>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-building me-2"></i>{% trans "Редактировать факультет" %}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="fac_id" name="id">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{% trans "Название" %} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fac_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">{% trans "Краткое название" %}</label>
+                            <input type="text" class="form-control" id="fac_short_name" name="short_name">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">{% trans "Код" %} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="fac_code" name="code" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="fac_institute" name="institute">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-primary" id="fac_submit_btn"><i class="bi bi-save me-1"></i>{% trans "Сохранить" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Редактирование Кафедры -->
+<div class="modal fade" id="ajaxDeptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="ajaxDeptForm" novalidate>
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-diagram-3 me-2"></i>{% trans "Таҳрири кафедра" %}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="dept_id" name="id">
+                    <input type="hidden" id="dept_faculty" name="faculty">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{% trans "Название кафедры" %} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="dept_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">{% trans "Штатные единицы (ставки)" %}</label>
+                            <input type="number" step="0.25" class="form-control" id="dept_wage" name="total_wage_rate">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">{% trans "Бюджет часов" %}</label>
+                            <input type="number" class="form-control" id="dept_hours" name="total_hours_budget">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-success" id="dept_submit_btn"><i class="bi bi-save me-1"></i>{% trans "Сохранить" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Редактирование Специальности -->
+<div class="modal fade" id="ajaxSpecModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form id="ajaxSpecForm" novalidate>
+                <div class="modal-header bg-info text-dark">
+                    <h5 class="modal-title"><i class="bi bi-mortarboard me-2"></i>{% trans "Таҳрири ихтисос" %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <input type="hidden" id="spec_id" name="id">
+                    <input type="hidden" id="spec_department" name="department">
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">{% trans "Шифр (Код)" %} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fw-bold text-primary" id="spec_code" name="code" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">{% trans "Ступень" %} <span class="text-danger">*</span></label>
+                            <select class="form-select" id="spec_level" name="education_level" required>
+                                <option value="BACHELOR">Бакалавриат</option>
+                                <option value="MASTER">Магистратура</option>
+                                <option value="DOCTORAL">Докторантура</option>
+                                <option value="POSTGRAD">Аспирантура</option>
+                                <option value="SECOND_HIGHER">Второе высшее</option>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">{% trans "Квалификация" %} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="spec_qual" name="qualification" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">{% trans "Название (TJ)" %}</label>
+                                <input type="text" class="form-control border-success" id="spec_name_tj" name="name_tj">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">{% trans "Название (RU)" %} <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control border-primary" id="spec_name_ru" name="name_ru" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label fw-bold small">{% trans "Название (EN)" %}</label>
+                                <input type="text" class="form-control border-danger" id="spec_name_en" name="name_en">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
+                    <button type="submit" class="btn btn-info fw-bold" id="spec_submit_btn"><i class="bi bi-save me-1"></i>{% trans "Сохранить" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================= СКРИПТЫ ================= -->
+<script>
+// Чтобы не перегружать сервер, мы встроили список групп прямо в HTML через JSON (создаем словарь в JS)
+const groupsDict = {
+    {% for inst in structure_data %}
+        {% for fac in inst.faculties %}
+            {% for dept in fac.departments %}
+                {% for spec in dept.specialties %}
+                    "{{ spec.id }}": [
+                        {% for g in spec.groups.all %}
+                            {"id": {{ g.id }}, "name": "{{ g.name }}", "course": {{ g.course }}},
+                        {% endfor %}
+                    ],
+                {% endfor %}
+            {% endfor %}
+        {% endfor %}
+    {% endfor %}
+};
+
+function openGroupModal(specId, specCode) {
+    document.getElementById('gm_spec_code').innerText = specCode;
+    const list = document.getElementById('groupsModalList');
+    list.innerHTML = '';
+    
+    const groups = groupsDict[specId];
+    if (groups && groups.length > 0) {
+        groups.forEach(g => {
+            list.innerHTML += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="fw-bold text-dark"><span class="badge bg-dark me-2">ID: ${g.id}</span> ${g.name} <span class="badge bg-secondary ms-1">${g.course} курс</span></div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="/accounts/groups/${g.id}/view/" class="btn btn-outline-info" title="Студенты"><i class="bi bi-people"></i></a>
+                        <a href="/schedule/constructor/?group=${g.id}" class="btn btn-outline-primary" title="Расписание"><i class="bi bi-calendar3"></i></a>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        list.innerHTML = '<div class="p-4 text-center text-muted">Группы пока не созданы</div>';
     }
-    .accordion-button:not(.collapsed) {
-        background-color: #f8fafc;
-        color: var(--bs-primary);
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+    
+    new bootstrap.Modal(document.getElementById('groupsModal')).show();
+}
+
+function openAdmissionPlanModal(specialtyId, code, name) {
+    document.getElementById('ap_specialty_id').value = specialtyId;
+    document.getElementById('ap_spec_code').innerText = code;
+    document.getElementById('ap_spec_name').innerText = name;
+    
+    const currentYear = new Date().getFullYear();
+    document.querySelector('input[name="academic_year"]').value = `${currentYear}-${currentYear + 1}`;
+    
+    new bootstrap.Modal(document.getElementById('admissionPlanModal')).show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '{{ csrf_token }}';
+
+    function clearErrors(form) {
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
     }
-    .accordion-button:focus {
-        box-shadow: none;
-        border-color: rgba(0,0,0,.125);
+
+    function applyErrors(form, errorsJson) {
+        const errors = JSON.parse(errorsJson);
+        for (const field in errors) {
+            const input = form.querySelector(`[name="${field}"]`);
+            if (input) {
+                input.classList.add('is-invalid');
+                const feedback = input.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = errors[field][0].message;
+                }
+            }
+        }
     }
-</style>
+
+    const facModal = new bootstrap.Modal(document.getElementById('ajaxFacultyModal'));
+    document.querySelectorAll('.edit-faculty-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            try {
+                const res = await fetch(`/accounts/api/faculty/${id}/detail/`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('fac_id').value = data.data.id;
+                    document.getElementById('fac_name').value = data.data.name;
+                    document.getElementById('fac_short_name').value = data.data.short_name;
+                    document.getElementById('fac_code').value = data.data.code;
+                    document.getElementById('fac_institute').value = data.data.institute;
+                    clearErrors(document.getElementById('ajaxFacultyForm'));
+                    facModal.show();
+                } else { alert(data.error); }
+            } catch (e) { alert('Network error'); }
+        });
+    });
+
+    document.getElementById('ajaxFacultyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('fac_submit_btn');
+        btn.disabled = true;
+        clearErrors(this);
+        
+        const id = document.getElementById('fac_id').value;
+        const formData = new FormData(this);
+        
+        try {
+            const res = await fetch(`/accounts/api/faculty/${id}/update/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                window.location.reload();
+            } else if (res.status === 422) {
+                applyErrors(this, data.errors);
+            } else {
+                alert(data.error || 'Server error');
+            }
+        } catch (e) { alert('Network error'); }
+        finally { btn.disabled = false; }
+    });
+
+    const deptModal = new bootstrap.Modal(document.getElementById('ajaxDeptModal'));
+    document.querySelectorAll('.edit-dept-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            try {
+                const res = await fetch(`/accounts/api/department/${id}/detail/`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('dept_id').value = data.data.id;
+                    document.getElementById('dept_name').value = data.data.name;
+                    document.getElementById('dept_wage').value = data.data.total_wage_rate;
+                    document.getElementById('dept_hours').value = data.data.total_hours_budget;
+                    document.getElementById('dept_faculty').value = data.data.faculty;
+                    clearErrors(document.getElementById('ajaxDeptForm'));
+                    deptModal.show();
+                } else { alert(data.error); }
+            } catch (e) { alert('Network error'); }
+        });
+    });
+
+    document.getElementById('ajaxDeptForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('dept_submit_btn');
+        btn.disabled = true;
+        clearErrors(this);
+        
+        const id = document.getElementById('dept_id').value;
+        const formData = new FormData(this);
+        
+        try {
+            const res = await fetch(`/accounts/api/department/${id}/update/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                window.location.reload();
+            } else if (res.status === 422) {
+                applyErrors(this, data.errors);
+            } else {
+                alert(data.error || 'Server error');
+            }
+        } catch (e) { alert('Network error'); }
+        finally { btn.disabled = false; }
+    });
+
+    const specModal = new bootstrap.Modal(document.getElementById('ajaxSpecModal'));
+    document.querySelectorAll('.edit-spec-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            try {
+                const res = await fetch(`/accounts/api/specialty/${id}/detail/`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('spec_id').value = data.data.id;
+                    document.getElementById('spec_code').value = data.data.code;
+                    document.getElementById('spec_level').value = data.data.education_level;
+                    document.getElementById('spec_qual').value = data.data.qualification;
+                    document.getElementById('spec_name_tj').value = data.data.name_tj;
+                    document.getElementById('spec_name_ru').value = data.data.name_ru || data.data.name;
+                    document.getElementById('spec_name_en').value = data.data.name_en;
+                    document.getElementById('spec_department').value = data.data.department;
+                    clearErrors(document.getElementById('ajaxSpecForm'));
+                    specModal.show();
+                } else { alert(data.error); }
+            } catch (e) { alert('Network error'); }
+        });
+    });
+
+    document.getElementById('ajaxSpecForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('spec_submit_btn');
+        btn.disabled = true;
+        clearErrors(this);
+        
+        const formData = new FormData(this);
+        formData.append('name', formData.get('name_ru') || formData.get('name_tj'));
+        const id = document.getElementById('spec_id').value;
+        
+        try {
+            const res = await fetch(`/accounts/api/specialty/${id}/update/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                window.location.reload();
+            } else if (res.status === 422) {
+                applyErrors(this, data.errors);
+            } else {
+                alert(data.error || 'Server error');
+            }
+        } catch (e) { alert('Network error'); }
+        finally { btn.disabled = false; }
+    });
+});
+</script>
 {% endblock %}

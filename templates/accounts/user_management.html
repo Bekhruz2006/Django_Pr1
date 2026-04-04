@@ -41,6 +41,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                {% if user.is_superuser %}<th style="width: 60px;">ID</th>{% endif %}
                                 <th>{% trans "Логин" %}</th>
                                 <th>{% trans "ФИО" %}</th>
                                 <th>{% trans "Роль" %}</th>
@@ -53,6 +54,9 @@
                             {% for user_data in users_with_profiles %}
                             {% with user_obj=user_data.user %}
                             <tr>
+                                {% if user.is_superuser %}
+                                <td><span class="badge bg-dark">ID: {{ user_obj.id }}</span></td>
+                                {% endif %}
                                 <td>
                                     {{ user_obj.username }}
                                     {% if user_obj.is_superuser %}
@@ -68,7 +72,10 @@
                                                 {{ user_obj.first_name|first|upper }}{{ user_obj.last_name|first|upper }}
                                             </div>
                                         {% endif %}
-                                        {{ user_obj.get_full_name }}
+                                        <span class="fw-bold">{{ user_obj.get_full_name }}</span>
+                                        {% if user.is_superuser %}
+                                            <span class="badge bg-dark text-white ms-2 fs-6" title="System ID">ID: {{ user_obj.id }}</span>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>
@@ -78,7 +85,6 @@
                                         {% else %}bg-warning{% endif %}">
                                         {{ user_obj.get_role_display|default:"{% trans 'Не указана' %}" }}
                                     </span>
-
                                     {% if not user_data.has_profile %}
                                         <span class="badge bg-danger" title="{% trans 'Профиль не создан' %}">!</span>
                                     {% endif %}
@@ -102,58 +108,19 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'accounts:view_user_profile' user_obj.id %}"
-                                           class="btn btn-outline-info"
-                                           title="{% trans 'Просмотр профиля' %}">
+                                        <a href="{% url 'accounts:view_user_profile' user_obj.id %}" class="btn btn-outline-info" title="{% trans 'Просмотр профиля' %}">
                                             <i class="bi bi-eye"></i>
                                         </a>
-
-                                        <a href="{% url 'accounts:edit_user' user_obj.id %}"
-                                           class="btn btn-outline-primary"
-                                           title="{% trans 'Редактировать' %}">
+                                        <a href="{% url 'accounts:edit_user' user_obj.id %}" class="btn btn-outline-primary" title="{% trans 'Редактировать' %}">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-
-                                        <a href="{% url 'accounts:reset_password' user_obj.id %}"
-                                           class="btn btn-outline-warning"
-                                           title="{% trans 'Сбросить пароль' %}">
+                                        <a href="{% url 'accounts:reset_password' user_obj.id %}" class="btn btn-outline-warning" title="{% trans 'Сбросить пароль' %}">
                                             <i class="bi bi-key"></i>
                                         </a>
-
                                         {% if user_obj.id == user.id %}
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary"
-                                                    title="{% trans 'Нельзя заблокировать себя' %}"
-                                                    disabled>
-                                                <i class="bi bi-shield-lock"></i>
-                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" title="{% trans 'Нельзя заблокировать себя' %}" disabled><i class="bi bi-shield-lock"></i></button>
                                         {% else %}
-                                            <a href="{% url 'accounts:toggle_user_active' user_obj.id %}"
-                                               class="btn btn-outline-danger"
-                                               onclick="return confirm('{% if user_obj.is_active %}{% trans 'Заблокировать' %}{% else %}{% trans 'Активировать' %}{% endif %} {% trans 'пользователя' %} {{ user_obj.username }}?')"
-                                               title="{% if user_obj.is_active %}{% trans 'Заблокировать' %}{% else %}{% trans 'Активировать' %}{% endif %}">
-                                                <i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i>
-                                            </a>
-                                        {% endif %}
-
-                                        {% if user_obj.role == 'STUDENT' %}
-                                            <a href="{% url 'accounts:student_orders' user_data.profile_id %}" class="btn btn-outline-danger" title="{% trans 'Приказы (Отчисление/Выпуск)' %}">
-                                                <i class="bi bi-file-earmark-text"></i>
-                                            </a>
-                                            {% if user_data.has_profile and user_data.profile_id %}
-                                                <a href="{% url 'accounts:transfer_student' user_data.profile_id %}"
-                                                   class="btn btn-outline-info"
-                                                   title="{% trans 'Перевести в другую группу' %}">
-                                                    <i class="bi bi-arrow-left-right"></i>
-                                                </a>
-                                            {% else %}
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary"
-                                                        title="{% trans 'Профиль студента не создан' %}"
-                                                        disabled>
-                                                    <i class="bi bi-exclamation-triangle"></i>
-                                                </button>
-                                            {% endif %}
+                                            <a href="{% url 'accounts:toggle_user_active' user_obj.id %}" class="btn btn-outline-danger" onclick="return confirm('Вы уверены?')" title="Блокировка"><i class="bi bi-{% if user_obj.is_active %}lock{% else %}unlock{% endif %}"></i></a>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -167,25 +134,14 @@
         </div>
     </div>
 </div>
-
 <script>
 function updateFinancing(studentId, financingType) {
     fetch('{% url "accounts:update_financing_type" %}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            student_id: studentId,
-            financing_type: financingType
-        })
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ student_id: studentId, financing_type: financingType })
     }).then(r => r.json()).then(data => {
-        if(data.success) {
-        } else {
-            alert('Ошибка: ' + data.error);
-            location.reload();
-        }
+        if(!data.success) { alert('Ошибка: ' + data.error); location.reload(); }
     });
 }
 </script>

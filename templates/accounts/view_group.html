@@ -37,16 +37,19 @@
                             {% for student in students %}
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td class="fw-bold">
+                                <td>
                                     <div class="d-flex align-items-center">
                                         {% if student.user.photo %}
-                                            <img src="{{ student.user.photo.url }}" class="avatar-sm-list me-2 shadow-sm" alt="{% trans 'Фото студента' %}">
+                                            <img src="{{ student.user.photo.url }}" class="avatar-sm-list me-2 shadow-sm">
                                         {% else %}
                                             <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary me-2 fw-bold shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
                                                 {{ student.user.first_name|first|upper }}{{ student.user.last_name|first|upper }}
                                             </div>
                                         {% endif %}
-                                        {{ student.user.get_full_name }}
+                                        <span class="fw-bold">{{ student.user.get_full_name }}</span>
+                                        {% if user.is_superuser %}
+                                            <span class="badge bg-dark text-white ms-2 fs-6">ID: {{ student.user.id }}</span>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>{{ student.student_id }}</td>

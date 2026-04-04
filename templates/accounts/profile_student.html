@@ -436,8 +436,32 @@
     .bar-att { background: #10b981; }
     .bar-danger { background: #ef4444; }
 </style>
-
-<script>
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-start border-4 border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-person-bounding-box text-info me-2"></i>Система контроля доступа (FaceID / СКУД)</h5>
+                        <span class="badge bg-info text-dark">{% trans "Сегодня" %}</span>
+                    </div>
+                    <div class="d-flex gap-4 mt-3">
+                        <div class="bg-light p-3 rounded flex-fill text-center">
+                            <span class="d-block text-muted small text-uppercase">{% trans "Время входа (Турникет)" %}</span>
+                            <strong class="fs-3 text-success">{{ faceid_time_in|default:"--:--" }}</strong>
+                        </div>
+                        <div class="bg-light p-3 rounded flex-fill text-center">
+                            <span class="d-block text-muted small text-uppercase">{% trans "Время выхода" %}</span>
+                            <strong class="fs-3 text-secondary">{{ faceid_time_out|default:"--:--" }}</strong>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <small class="text-muted">* Данные синхронизируются с входом с корпуса автоматически (В стадии разрботки).</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
     const labels = {{ chart_labels|safe }};
     const gpaData = {{ chart_gpa|safe }};
     const attData = {{ chart_attendance|safe }};

@@ -16,9 +16,6 @@
                     <h5 class="mb-0 fw-bold text-dark">
                         <i class="bi bi-person-lines-fill text-primary me-2"></i>{% trans "Студенты, ожидающие распределения" %}
                     </h5>
-                    <small class="text-muted">
-                        {% if faculty %}Факультет: <strong>{{ faculty.name }}</strong>{% else %}Все институты{% endif %}
-                    </small>
                 </div>
                 <span class="badge bg-warning text-dark fs-6">{{ students.count }} {% trans "чел." %}</span>
             </div>
@@ -66,13 +63,10 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th width="40" class="text-center">
-                                            <input class="form-check-input" type="checkbox" id="selectAll">
-                                        </th>
+                                        <th width="40" class="text-center"><input class="form-check-input" type="checkbox" id="selectAll"></th>
                                         <th>{% trans "ФИО Студента" %}</th>
                                         <th>{% trans "ID (Зачетка)" %}</th>
                                         <th>{% trans "Специальность (Куда зачислен)" %}</th>
-                                        <th>{% trans "Тип обучения" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -85,22 +79,17 @@
                                             <a href="{% url 'accounts:view_user_profile' student.user.id %}" class="text-decoration-none" target="_blank">
                                                 {{ student.user.get_full_name }}
                                             </a>
+                                            {% if user.is_superuser %}
+                                                <span class="badge bg-dark text-white ms-2 fs-6">ID: {{ student.user.id }}</span>
+                                            {% endif %}
                                         </td>
                                         <td class="text-muted">{{ student.student_id }}</td>
                                         <td>
                                             {% if student.specialty %}
-                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
-                                                    {{ student.specialty.code }}
-                                                </span>
-                                                <small class="d-block text-muted">{{ student.specialty.name|truncatechars:35 }}</small>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">{{ student.specialty.code }}</span>
                                             {% else %}
                                                 <span class="badge bg-danger">{% trans "Не указана" %}</span>
                                             {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="badge {% if student.financing_type == 'BUDGET' %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                                                {{ student.get_financing_type_display }}
-                                            </span>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -125,10 +114,7 @@
             const checkedCount = document.querySelectorAll('.student-checkbox:checked').length;
             selectedCount.textContent = checkedCount;
             submitBtn.disabled = checkedCount === 0;
-            
-            if (selectAll) {
-                selectAll.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
-            }
+            if (selectAll) selectAll.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
         }
 
         if (selectAll) {
@@ -137,10 +123,7 @@
                 updateState();
             });
         }
-
-        checkboxes.forEach(cb => {
-            cb.addEventListener('change', updateState);
-        });
+        checkboxes.forEach(cb => cb.addEventListener('change', updateState));
     });
 </script>
 {% endblock %}

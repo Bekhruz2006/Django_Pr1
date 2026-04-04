@@ -932,12 +932,15 @@ def manage_subjects(request):
     if hasattr(request.user, 'dean_profile'):
         subjects = subjects.filter(department__faculty=request.user.dean_profile.faculty)
         
+    dept_id = request.GET.get('department')
+    if dept_id:
+        subjects = subjects.filter(department_id=dept_id)
+        
     search = request.GET.get('search', '')
     if search:
         subjects = subjects.filter(Q(name__icontains=search) | Q(code__icontains=search))
         
     return render(request, 'schedule/manage_subjects.html', {'subjects': subjects, 'search': search})
-
 
 
 @login_required

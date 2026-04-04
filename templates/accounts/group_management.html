@@ -17,12 +17,7 @@
                 {% if is_head_of_dept %}
                 <div class="alert alert-info shadow-sm border-0 mb-4">
                     <h6 class="fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Памятка заведующему кафедрой</h6>
-                    <p class="mb-1 small">В этом разделе вы управляете группами, прикрепленными к специальностям вашей кафедры. Ваши возможности:</p>
-                    <ul class="mb-0 small">
-                        <li><strong>Просмотр состава:</strong> Нажмите на иконку глаза <i class="bi bi-eye"></i>, чтобы увидеть список студентов группы.</li>
-                        <li><strong>Редактирование:</strong> Иконка карандаша <i class="bi bi-pencil"></i> позволяет изменить куратора, язык обучения или профиль группы.</li>
-                        <li><strong>Перевод студентов:</strong> Осуществляется через раздел "Контингент -> Студенты".</li>
-                    </ul>
+                    <p class="mb-1 small">В этом разделе вы управляете группами, прикрепленными к специальностям вашей кафедры.</p>
                 </div>
                 {% endif %}
                 
@@ -49,6 +44,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                {% if user.is_superuser %}<th style="width: 60px;">ID</th>{% endif %}
                                 <th>{% trans "Название" %}</th>
                                 <th>{% trans "Курс" %}</th>
                                 <th>{% trans "Год обучения" %}</th>
@@ -60,36 +56,27 @@
                         <tbody>
                             {% for group in groups %}
                             <tr>
-                                <td><strong>{{ group.name }}</strong></td>
                                 <td>
-                                    <span class="badge bg-primary">{{ group.course }}</span>
+                                    <strong>{{ group.name }}</strong>
+                                {% if user.is_superuser %}
+                                <td><span class="badge bg-dark">ID: {{ group.id }}</span></td>
+                                {% endif %}
                                 </td>
+                                <td><span class="badge bg-primary">{{ group.course }}</span></td>
                                 <td>{{ group.academic_year }}</td>
                                 <td>{{ group.specialty }}</td>
-                                <td>
-                                    <span class="badge bg-info">{{ group.students.count }}</span>
-                                </td>
+                                <td><span class="badge bg-info">{{ group.students.count }}</span></td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'accounts:view_group' group.id %}" class="btn btn-outline-success" title="{% trans 'Просмотр студентов' %}">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{% url 'accounts:edit_group' group.id %}" class="btn btn-outline-primary" title="{% trans 'Редактировать' %}">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" class="btn btn-outline-info" title="{% trans 'Расписание' %}">
-                                            <i class="bi bi-calendar3"></i>
-                                        </a>
-                                        <a href="{% url 'accounts:delete_group' group.id %}" class="btn btn-outline-danger" title="{% trans 'Удалить' %}">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+                                        <a href="{% url 'accounts:view_group' group.id %}" class="btn btn-outline-success" title="{% trans 'Просмотр студентов' %}"><i class="bi bi-eye"></i></a>
+                                        <a href="{% url 'accounts:edit_group' group.id %}" class="btn btn-outline-primary" title="{% trans 'Редактировать' %}"><i class="bi bi-pencil"></i></a>
+                                        <a href="{% url 'schedule:constructor' %}?group={{ group.id }}" class="btn btn-outline-info" title="{% trans 'Расписание' %}"><i class="bi bi-calendar3"></i></a>
+                                        <a href="{% url 'accounts:delete_group' group.id %}" class="btn btn-outline-danger" title="{% trans 'Удалить' %}"><i class="bi bi-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">{% trans "Группы не найдены" %}</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center text-muted">{% trans "Группы не найдены" %}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

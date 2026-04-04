@@ -515,7 +515,7 @@
             <div class="d-flex align-items-center gap-2">
                 <div class="navbar-text text-white text-nowrap small me-1 d-flex align-items-center gap-2 px-2 py-1 rounded" style="background: rgba(255,255,255,0.12);">
                     <i class="bi bi-calendar3 d-md-none" title="{{ current_term }}"></i>
-                    <span class="d-none d-md-inline">{{ current_date|date:"d E Y" }}</span>
+                    <span class="d-none d-md-inline" id="localized-date" data-raw-date="{{ current_date|date:'Y-m-d' }}"></span>
                     <span class="d-none d-lg-inline border-start border-light border-opacity-25 ps-2 ms-1">{{ current_term }}</span>
                 </div>
                 <div class="d-none d-md-flex me-2 position-relative" id="globalSearchContainer">
@@ -1067,6 +1067,34 @@ if (searchInput && searchResults) {
         }
     });
 }
+document.addEventListener('DOMContentLoaded', function() {
+    const dateEl = document.getElementById('localized-date');
+    if (dateEl) {
+        const rawDate = dateEl.getAttribute('data-raw-date');
+        const lang = document.documentElement.lang || 'ru'; // Берет 'ru', 'tg' или 'en'
+        
+        let displayLocale = lang === 'tg' ? 'ru-RU' : (lang === 'en' ? 'en-US' : 'ru-RU');
+        
+        const dateObj = new Date(rawDate);
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        let formattedDate = dateObj.toLocaleDateString(displayLocale, options);
+        
+        if (lang === 'tg') {
+            const tjMonths = {
+                "января": "январ", "февраля": "феврал", "марта": "март", "апреля": "апрел", 
+                "мая": "май", "июня": "июн", "июля": "июл", "августа": "август", 
+                "сентября": "сентябр", "октября": "октябр", "ноября": "ноябр", "декабря": "декабр"
+            };
+            for (const [ru, tj] of Object.entries(tjMonths)) {
+                formattedDate = formattedDate.replace(ru, tj);
+            }
+            formattedDate = formattedDate.replace(' г.', ' с.');
+        }
+        
+        dateEl.textContent = formattedDate;
+    }
+});
+
 </script>
 
 </body>
