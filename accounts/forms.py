@@ -9,6 +9,8 @@ from core.validators import validate_image_only
 from django.utils.translation import gettext_lazy as _
 
 from .models import Order, OrderItem, DocumentTemplate, KnowledgeArea 
+from .models import AdmissionPlan
+
 
 class SpecializationForm(forms.ModelForm):
     class Meta:
@@ -177,11 +179,18 @@ class DepartmentForm(forms.ModelForm):
 class SpecialtyCreateForm(forms.ModelForm):
     class Meta:
         model = Specialty
-        fields = ['department', 'name', 'code', 'qualification']
+        fields = [
+            'department', 'name', 'name_tj', 'name_ru', 'name_en',
+            'education_level', 'code', 'qualification',
+        ]
         widgets = {
             'department': forms.Select(attrs={'class': 'form-select'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'name':       forms.TextInput(attrs={'class': 'form-control'}),
+            'name_tj':    forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Тоҷикӣ')}),
+            'name_ru':    forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Русский')}),
+            'name_en':    forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('English')}),
+            'education_level': forms.Select(attrs={'class': 'form-select'}),
+            'code':        forms.TextInput(attrs={'class': 'form-control'}),
             'qualification': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -192,14 +201,22 @@ class SpecialtyCreateForm(forms.ModelForm):
             self.fields['department'].queryset = Department.objects.filter(faculty=faculty)
 
 class SpecialtyForm(forms.ModelForm):
+    """Используется и в admin, и в modal-редактировании."""
     class Meta:
         model = Specialty
-        fields = ['department', 'name', 'code', 'qualification']
+        fields = [
+            'department', 'name', 'name_tj', 'name_ru', 'name_en',
+            'education_level', 'code', 'qualification',
+        ]
         widgets = {
-            'department': forms.Select(attrs={'class': 'form-select'}),
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
-            'qualification': forms.TextInput(attrs={'class': 'form-control'}),
+            'department':     forms.Select(attrs={'class': 'form-select'}),
+            'name':           forms.TextInput(attrs={'class': 'form-control'}),
+            'name_tj':        forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Тоҷикӣ')}),
+            'name_ru':        forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Русский')}),
+            'name_en':        forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('English')}),
+            'education_level': forms.Select(attrs={'class': 'form-select'}),
+            'code':           forms.TextInput(attrs={'class': 'form-control'}),
+            'qualification':  forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 class HeadOfDepartmentForm(forms.ModelForm):
@@ -557,3 +574,43 @@ class OrderForm(forms.ModelForm):
         self.fields['number'].help_text = _("Оставьте пустым для авто-генерации")
 
         
+
+
+
+
+
+class AdmissionPlanForm(forms.ModelForm):
+    class Meta:
+        model = AdmissionPlan
+        fields = [
+            'specialty', 'academic_year', 'study_form',
+            'financing_type', 'education_language',
+            'target_quota', 'foreign_tuition_fee',
+        ]
+        widgets = {
+            'specialty':        forms.Select(attrs={'class': 'form-select select2'}),
+            'academic_year':    forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': '2025-2026'
+            }),
+            'study_form':       forms.Select(attrs={'class': 'form-select'}),
+            'financing_type':   forms.Select(attrs={'class': 'form-select'}),
+            'education_language': forms.Select(attrs={'class': 'form-select'}),
+            'target_quota':     forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'foreign_tuition_fee': forms.NumberInput(attrs={
+                'class': 'form-control', 'step': '0.01', 'min': 0,
+                'placeholder': _('0.00 — для бесплатного обучения')
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        faculty = kwargs.pop('faculty', None)
+        super().__init__(*args, **kwargs)
+        if faculty:
+            self.fields['specialty'].queryset = Specialty.objects.filter(
+                department__faculty=faculty
+            ).select_related('department').order_by('code')
+        else:
+            self.fields['specialty'].queryset = Specialty.objects.select_related(
+                'department__faculty'
+            ).order_by('department__faculty__name', 'code')
+

@@ -35,6 +35,8 @@ from typing import List, Optional
 from django.core.exceptions import ValidationError
 import logging
 logger = logging.getLogger(__name__)
+from .models import AdmissionPlan
+from .forms import AdmissionPlanForm
 
 def is_hr_or_admin(user):
     return user.is_authenticated and (user.is_superuser or hasattr(user, 'hr_profile') or user.role == 'HR')

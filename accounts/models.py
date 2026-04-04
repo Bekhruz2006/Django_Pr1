@@ -36,8 +36,16 @@ class Institute(models.Model):
         return self.name
 
 class Faculty(models.Model):
-    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='faculties', verbose_name=_("Институт"))
+    institute = models.ForeignKey(
+        Institute, on_delete=models.CASCADE,
+        related_name='faculties', verbose_name=_("Институт")
+    )
     name = models.CharField(max_length=200, verbose_name=_("Название факультета"))
+    short_name = models.CharField(
+        max_length=50, blank=True,
+        verbose_name=_("Краткое название (аббревиатура)"),
+        help_text=_("Например: ФЗС, ФТР")
+    )
     code = models.CharField(max_length=50, unique=True, verbose_name=_("Код факультета"))
 
     class Meta:
@@ -92,10 +100,38 @@ class Department(models.Model):
         return 0
 
 class Specialty(models.Model):
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='specialties', verbose_name=_("Кафедра"))
+    EDUCATION_LEVEL_CHOICES = [
+        ('BACHELOR', _('Бакалавриат')),
+        ('MASTER', _('Магистратура')),
+        ('DOCTORAL', _('Докторантура')),
+        ('POSTGRAD', _('Аспирантура')),
+        ('SECOND_HIGHER', _('Второе высшее')),
+    ]
+
+    department = models.ForeignKey(
+        Department, on_delete=models.CASCADE,
+        related_name='specialties', verbose_name=_("Кафедра")
+    )
     name = models.CharField(max_length=200, verbose_name=_("Название направления"))
-    code = models.CharField(max_length=50, unique=True, verbose_name=_("Шифр (напр. 400.101.08)"))
-    qualification = models.CharField(max_length=100, verbose_name=_("Квалификация (напр. Инженер-программист)"))
+
+    name_tj = models.CharField(max_length=200, blank=True, verbose_name=_("Название (TJ)"))
+    name_ru = models.CharField(max_length=200, blank=True, verbose_name=_("Название (RU)"))
+    name_en = models.CharField(max_length=200, blank=True, verbose_name=_("Название (EN)"))
+
+    education_level = models.CharField(
+        max_length=20,
+        choices=EDUCATION_LEVEL_CHOICES,
+        default='BACHELOR',
+        verbose_name=_("Ступень образования")
+    )
+    code = models.CharField(
+        max_length=50, unique=True,
+        verbose_name=_("Шифр (напр. 400.101.08)")
+    )
+    qualification = models.CharField(
+        max_length=100,
+        verbose_name=_("Квалификация (напр. Инженер-программист)")
+    )
 
     class Meta:
         verbose_name = _("Направление")
@@ -106,6 +142,17 @@ class Specialty(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+    def save(self, *args, **kwargs):
+        if self.name_ru:
+            self.name = self.name_ru
+        elif self.name_tj:
+            self.name = self.name_tj
+        super().save(*args, **kwargs)
+
+    def get_display_name(self, lang: str = 'ru') -> str:
+        mapping = {'tj': self.name_tj, 'ru': self.name_ru, 'en': self.name_en}
+        return mapping.get(lang) or self.name_ru or self.name_tj or self.name_en or self.name
 
 
 class User(AbstractUser):
@@ -770,3 +817,119 @@ class Diploma(models.Model):
 
     def __str__(self):
         return f"Диплом №{self.number} - {self.student.user.get_full_name()}"
+
+
+
+
+
+
+class AdmissionPlan(models.Model):
+    """
+    План приёма студентов на специальность.
+    Количество фактически зачисленных считается ТОЛЬКО на лету (enrolled_count),
+    никакого денормализованного поля — исключаем рассинхронизацию.
+    """
+    STUDY_FORM_CHOICES = [
+        ('FULL_TIME', _('Очная')),
+        ('PART_TIME', _('Заочная')),
+        ('DISTANCE', _('Дистанционная')),
+    ]
+    FINANCING_TYPE_CHOICES = [
+        ('BUDGET', _('Бюджет')),
+        ('CONTRACT', _('Контракт')),
+        ('QUOTA', _('Квота')),
+        ('GRANT', _('Грант')),
+    ]
+    LANGUAGE_CHOICES = [
+        ('TJ', 'TJ'),
+        ('RU', 'RU'),
+        ('EN', 'EN'),
+    ]
+
+    specialty = models.ForeignKey(
+        'Specialty', on_delete=models.CASCADE,
+        related_name='admission_plans',
+        verbose_name=_("Специальность")
+    )
+    academic_year = models.CharField(
+        max_length=20, verbose_name=_("Учебный год"),
+        help_text=_("Формат: 2024-2025")
+    )
+    study_form = models.CharField(
+        max_length=20, choices=STUDY_FORM_CHOICES,
+        default='FULL_TIME', verbose_name=_("Форма обучения")
+    )
+    financing_type = models.CharField(
+        max_length=20, choices=FINANCING_TYPE_CHOICES,
+        default='BUDGET', verbose_name=_("Источник финансирования")
+    )
+    education_language = models.CharField(
+        max_length=2, choices=LANGUAGE_CHOICES,
+        default='TJ', verbose_name=_("Язык обучения")
+    )
+    target_quota = models.IntegerField(
+        default=0, verbose_name=_("Плановое число мест"),
+        help_text=_("Количество мест по плану набора")
+    )
+    foreign_tuition_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name=_("Стоимость обучения (иностр. валюта)"),
+        help_text=_("Для иностранных студентов, в USD")
+    )
+
+    class Meta:
+        verbose_name = _("План приёма")
+        verbose_name_plural = _("Планы приёма")
+        ordering = ['-academic_year', 'specialty__code']
+        unique_together = [
+            ['specialty', 'academic_year', 'study_form', 'financing_type', 'education_language']
+        ]
+        indexes = [
+            models.Index(fields=['academic_year']),
+            models.Index(fields=['specialty', 'academic_year']),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.specialty.code} | {self.academic_year} | "
+            f"{self.get_study_form_display()} | {self.get_financing_type_display()} | "
+            f"{self.education_language}"
+        )
+
+    
+    
+    
+    
+    _STUDY_FORM_MAP = {
+        'FULL_TIME': 'FULL_TIME',
+        'PART_TIME': 'PART_TIME',
+        'DISTANCE': 'EVENING',
+    }
+    
+    
+    _FINANCING_MAP = {
+        'BUDGET': 'BUDGET',
+        'CONTRACT': 'CONTRACT',
+        'QUOTA': 'BUDGET',
+        'GRANT': 'BUDGET',
+    }
+
+    def get_enrolled_count(self) -> int:
+        from .models import Student  
+        return Student.objects.filter(
+            specialty=self.specialty,
+            status='ACTIVE',
+            education_type=self._STUDY_FORM_MAP.get(self.study_form, 'FULL_TIME'),
+            education_language=self.education_language,
+            financing_type=self._FINANCING_MAP.get(self.financing_type, 'BUDGET'),
+        ).count()
+
+    def get_fulfillment_percent(self) -> float:
+        if not self.target_quota:
+            return 0.0
+        return round(self.get_enrolled_count() / self.target_quota * 100, 1)
+
+
+
+
+
