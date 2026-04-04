@@ -73,9 +73,6 @@
                                             </div>
                                         {% endif %}
                                         <span class="fw-bold">{{ user_obj.get_full_name }}</span>
-                                        {% if user.is_superuser %}
-                                            <span class="badge bg-dark text-white ms-2 fs-6" title="System ID">ID: {{ user_obj.id }}</span>
-                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>
@@ -91,15 +88,6 @@
                                 </td>
                                 <td>{{ user_obj.phone|default:"—" }}</td>
                                 <td>
-                                    {% if user_obj.role == 'STUDENT' and user_data.has_profile %}
-                                        <select class="form-select form-select-sm d-inline-block w-auto mb-1" 
-                                                onchange="updateFinancing({{ user_data.profile_id }}, this.value)"
-                                                {% if not user.is_superuser and user.role not in 'HR,DEAN' %}disabled{% endif %}>
-                                            <option value="BUDGET" {% if user_obj.student_profile.financing_type == 'BUDGET' %}selected{% endif %}>{% trans "Бюджет" %}</option>
-                                            <option value="CONTRACT" {% if user_obj.student_profile.financing_type == 'CONTRACT' %}selected{% endif %}>{% trans "Контракт" %}</option>
-                                        </select>
-                                        <br>
-                                    {% endif %}
                                     {% if user_obj.is_active %}
                                         <span class="badge bg-success">{% trans "Активен" %}</span>
                                     {% else %}
