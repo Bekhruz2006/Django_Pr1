@@ -1,123 +1,119 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Детальный отчет" %} - {{ group.name }}{% endblock %}
+{% block title %}{% trans "Ведомость (Болонская система)" %} - {{ group.name }}{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>
-                    <i class="bi bi-collection"></i> {% trans "Детальный отчет" %} - {{ group.name }}
-                    <span class="badge bg-primary ms-2">{{ group.course }} {% trans "курс" %}</span>
-                </span>
-                <a href="{% url 'journal:department_report' %}" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> {% trans "К отчету по кафедре" %}
+<style>
+    .grade-A { color: #16a34a; font-weight: 800; }
+    .grade-B { color: #2563eb; font-weight: 800; }
+    .grade-C { color: #0891b2; font-weight: 800; }
+    .grade-D { color: #d97706; font-weight: 800; }
+    .grade-E { color: #f97316; font-weight: 800; }
+    .grade-F { color: #dc2626; font-weight: 800; }
+    
+    .rating-tooltip {
+        font-size: 0.75rem;
+        cursor: help;
+        border-bottom: 1px dashed #cbd5e1;
+    }
+    
+    .table-sticky th:first-child, .table-sticky td:first-child {
+        position: sticky;
+        left: 0;
+        background-color: #fff;
+        z-index: 2;
+        border-right: 2px solid #dee2e6;
+    }
+    .table-sticky th:first-child { background-color: #f8f9fa; z-index: 3; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+            <div>
+                <h5 class="mb-0 fw-bold text-dark">
+                    <i class="bi bi-mortarboard-fill text-primary me-2"></i>{% trans "Ҷадвали натиҷаҳои сессия (Ведомость)" %}
+                </h5>
+                <p class="text-muted small mb-0 mt-1">{% trans "Группа:" %} <strong>{{ group.name }}</strong> ({{ group.course }} {% trans "курс" %}) | {% trans "Специальность:" %} {{ group.specialty.code }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-outline-secondary btn-sm fw-bold shadow-sm">
+                    <i class="bi bi-printer"></i> {% trans "Печать" %}
+                </button>
+                <a href="{% url 'journal:department_report' %}" class="btn btn-primary btn-sm fw-bold shadow-sm">
+                    <i class="bi bi-arrow-left"></i> {% trans "Назад к факультету" %}
                 </a>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th rowspan="2" class="align-middle">{% trans "Студент" %}</th>
-                                <th rowspan="2" class="align-middle text-center">{% trans "GPA" %}</th>
-                                <th rowspan="2" class="align-middle text-center">{% trans "Посещ." %}</th>
-                                <th rowspan="2" class="align-middle text-center">{% trans "НБ" %}</th>
-                                <th rowspan="2" class="align-middle text-center">{% trans "Рейтинг" %}</th>
-                                {% for subject in subjects %}
-                                    <th class="text-center">{{ subject.name }}</th>
-                                {% endfor %}
-                                <th rowspan="2" class="align-middle text-center">{% trans "Статус" %}</th>
-                            </tr>
-                            <tr>
-                                {% for subject in subjects %}
-                                    <th class="text-center"><small>{% trans "Балл / Посещ." %}</small></th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in students_data %}
-                                <tr {% if item.is_at_risk %}class="table-danger"{% endif %}>
-                                    <td>
-                                        <a href="{% url 'accounts:view_user_profile' item.student.user.id %}">
-                                            <strong>{{ item.student.user.get_full_name }}</strong>
-                                        </a>
-                                        {% trans "Алгоритмический прогноз" as tooltip_title %}
-                                        <button onclick="showStudentTrend({{ item.student.id }}, '{{ item.student.user.get_full_name|escapejs }}')" class="btn btn-sm btn-link text-primary p-0 ms-2" title="{{ tooltip_title }}">
-                                            <i class="bi bi-graph-up-arrow fs-5"></i>
-                                        </button>
-                                        <br>
-                                        <small class="text-muted">{{ item.student.student_id }}</small>
-                                    </td>
-                                    <td class="text-center">
-                                        <strong class="{% if item.stats.overall_gpa >= 7 %}text-success{% elif item.stats.overall_gpa >= 4 %}text-warning{% else %}text-danger{% endif %}">
-                                            {{ item.stats.overall_gpa|floatformat:2 }}
-                                        </strong>
-                                    </td>
-                                    <td class="text-center">
-                                        <strong class="{% if item.stats.attendance_percentage >= 80 %}text-success{% elif item.stats.attendance_percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
-                                            {{ item.stats.attendance_percentage|floatformat:0 }}%
-                                        </strong>
-                                    </td>
-                                    <td class="text-center">
-                                        <strong class="{% if item.stats.total_absent <= 5 %}text-success{% elif item.stats.total_absent <= 10 %}text-warning{% else %}text-danger{% endif %}">
-                                            {{ item.stats.total_absent }}
-                                        </strong>
-                                        <br>
-                                        <small class="text-muted">
-                                            {% trans "Б" %}:{{ item.stats.absent_illness }} 
-                                            {% trans "У" %}:{{ item.stats.absent_valid }} 
-                                            {% trans "Н" %}:{{ item.stats.absent_invalid }}
-                                        </small>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-warning">{{ item.stats.group_rank }}</span>
-                                    </td>
-                                    
-                                    {% for subject in subjects %}
-                                        <td class="text-center">
-                                            {% for subj_perf in item.subjects %}
-                                                {% if subj_perf.subject == subject %}
-                                                    <div>
-                                                        <span class="badge {% if subj_perf.avg_grade >= 7 %}bg-success{% elif subj_perf.avg_grade >= 4 %}bg-warning{% else %}bg-danger{% endif %}">
-                                                            {{ subj_perf.avg_grade|floatformat:1 }}
-                                                        </span>
-                                                    </div>
-                                                    <small class="text-muted">
-                                                        {{ subj_perf.attendance|floatformat:0 }}%
-                                                    </small>
-                                                    <br>
-                                                    <small class="text-danger">
-                                                        {% trans "НБ" %}: {{ subj_perf.absent }}
-                                                    </small>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </td>
-                                    {% endfor %}
-                                    
-                                    <td class="text-center">
-                                        {% if item.is_at_risk %}
-                                            <span class="badge bg-danger">{% trans "Под угрозой" %}</span>
-                                        {% else %}
-                                            <span class="badge bg-success">{% trans "Норма" %}</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 75vh; overflow-y: auto;">
+                <table class="table table-bordered table-hover align-middle text-center mb-0 table-sticky" style="font-size: 0.85rem; white-space: nowrap;">
+                    <thead class="table-light fw-bold text-muted text-uppercase">
+                        <tr>
+                            <th rowspan="2" class="text-start ps-4 align-middle" style="min-width: 250px;">{% trans "ФИО Студента" %}</th>
+                            <th rowspan="2" class="align-middle" style="width: 80px;">{% trans "GPA" %}</th>
+                            <th rowspan="2" class="align-middle" style="width: 80px;">{% trans "Посещ." %}</th>
+                            <th rowspan="2" class="align-middle text-danger" style="width: 60px;">{% trans "НБ" %}</th>
+                            
+                            {% for subject in subjects %}
+                                <th colspan="2" class="bg-primary bg-opacity-10 border-primary" style="min-width: 150px;" title="{{ subject.name }}">
+                                    {{ subject.name|truncatechars:20 }}
+                                </th>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="alert alert-info mt-3">
-                    <h6><i class="bi bi-info-circle"></i> {% trans "Легенда:" %}</h6>
-                    <ul class="mb-0">
-                        <li><strong>{% trans "Зеленый" %}</strong> — {% trans "отличная успеваемость (балл ≥ 7, посещаемость ≥ 80%, НБ ≤ 5)" %}</li>
-                        <li><strong>{% trans "Желтый" %}</strong> — {% trans "удовлетворительная (балл 4-7, посещаемость 60-80%, НБ 5-10)" %}</li>
-                        <li><strong>{% trans "Красный" %}</strong> — {% trans "критическая (балл < 4, посещаемость < 60%, НБ > 10)" %}</li>
-                        <li><strong>{% trans "НБ" %}</strong> — {% trans "Неявка на занятие (Б-Болезнь, У-Уважительная, Н-Неуважительная)" %}</li>
-                    </ul>
+                        </tr>
+                        <tr>
+                            {% for subject in subjects %}
+                                <th class="bg-light text-muted fw-normal" style="width: 75px;" title="Итоговый балл (Р1+Р2+Экз)">{% trans "Балл" %}</th>
+                                <th class="bg-light text-muted fw-normal" style="width: 75px;" title="Оценка (A, B, C... F)">{% trans "Баҳо" %}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in students_data %}
+                            <tr {% if item.is_at_risk %}class="bg-danger bg-opacity-10"{% endif %}>
+                                <td class="text-start ps-4 fw-bold">
+                                    {{ item.student.user.get_full_name }}
+                                    <div class="small text-muted fw-normal mt-1">{{ item.student.student_id }}</div>
+                                </td>
+                                <td class="fw-bold fs-6 {% if item.stats.overall_gpa >= 4 %}text-success{% elif item.stats.overall_gpa >= 3 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ item.stats.overall_gpa|floatformat:2 }}
+                                </td>
+                                <td>
+                                    <span class="badge {% if item.stats.attendance_percentage >= 75 %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ item.stats.attendance_percentage|floatformat:0 }}%
+                                    </span>
+                                </td>
+                                <td class="fw-bold text-danger">{{ item.stats.total_absent }}</td>
+                                
+                                {% for subj_perf in item.subjects %}
+                                    {% if subj_perf.rating %}
+                                        <td class="fw-bold fs-6">
+                                            <span class="rating-tooltip" title="Р1: {{ subj_perf.rating.r1_total|default:'0' }} | Р2: {{ subj_perf.rating.r2_total|default:'0' }} | Экз: {{ subj_perf.rating.exam_main|default:'0' }}">
+                                                {{ subj_perf.rating.final_score|floatformat:1 }}
+                                            </span>
+                                        </td>
+                                        <td class="fs-6 grade-{{ subj_perf.rating.letter_grade|slice:':1' }}">
+                                            {{ subj_perf.rating.letter_grade }}
+                                        </td>
+                                    {% else %}
+                                        <td class="text-muted"><small>-</small></td>
+                                        <td class="text-muted">-</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center small text-muted">
+                    <span><i class="bi bi-info-circle me-1"></i> Наведите курсор на итоговый балл, чтобы увидеть баллы за Р1, Р2 и Экзамен.</span>
+                    <span>
+                        <strong>A</strong> (90-100), <strong>B</strong> (80-89), <strong>C</strong> (70-79), <strong>D</strong> (60-69), <strong>E</strong> (50-59), <strong class="text-danger">F / FX</strong> (0-49)
+                    </span>
                 </div>
             </div>
         </div>

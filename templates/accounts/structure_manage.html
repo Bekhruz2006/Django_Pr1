@@ -86,10 +86,9 @@
                         {% if inst_data.faculties %}
                             {% for fac_data in inst_data.faculties %}
                             <div class="card border border-dark shadow-sm mb-3">
-                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom collapsed"
-                                     data-bs-toggle="collapse" data-bs-target="#collapseFac-{{ fac_data.obj.id }}" style="cursor: pointer;">
+                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
                                     
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center flex-grow-1 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFac-{{ fac_data.obj.id }}" style="cursor: pointer;">
                                         {% if user.is_superuser %}
                                             <span class="badge bg-dark me-2">ID: {{ fac_data.obj.id }}</span>
                                         {% endif %}
@@ -99,10 +98,10 @@
                                         <i class="bi bi-chevron-down ms-3 transition-icon text-muted"></i>
                                     </div>
                                     
-                                    <div class="d-flex align-items-center gap-3" onclick="event.stopPropagation();">
+                                    <div class="d-flex align-items-center gap-3">
                                         <small class="text-muted">{% trans "Декан:" %} <b>{{ fac_data.dean.user.get_full_name|default:"-" }}</b></small>
                                         <div class="btn-group btn-group-sm">
-                                            <button type="button" class="btn btn-warning text-dark fw-bold border-warning shadow-sm" onclick="openFacultyLoadModal({{ fac_data.obj.id }}, '{{ fac_data.obj.name|escapejs }}')" title="Сарбории факултет">
+                                            <button type="button" class="btn btn-warning text-dark fw-bold border-warning shadow-sm edit-faculty-load-btn" onclick="openFacultyLoadModal({{ fac_data.obj.id }}, '{{ fac_data.obj.name|escapejs }}')" title="Сарбории факултет">
                                                 <i class="bi bi-bar-chart-steps"></i> Сарборӣ
                                             </button>
                                             <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}" class="btn btn-outline-success">{% trans "+ Кафедра" %}</a>

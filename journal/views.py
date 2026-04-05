@@ -702,39 +702,44 @@ def department_report(request):
     return render(request, 'journal/department_report.html', context)
 
 @login_required
-@user_passes_test(is_dean)
+@user_passes_test(is_dean_or_admin)
 def group_detailed_report(request, group_id):
     group = get_object_or_404(Group, id=group_id)
-    students = Student.objects.filter(group=group).select_related('user')
+    students = Student.objects.filter(group=group, status='ACTIVE').select_related('user')
     subjects = Subject.objects.filter(journal_entries__student__group=group).distinct()
+    
+    ratings = SubjectRating.objects.filter(student__group=group)
+    rating_dict = {(r.student_id, r.subject_id): r for r in ratings}
+
     students_data = []
     
     for student in students:
-        stats, created = StudentStatistics.objects.get_or_create(student=student)
+        stats, _ = StudentStatistics.objects.get_or_create(student=student)
         subjects_performance = []
         
         for subject in subjects:
+            rating = rating_dict.get((student.id, subject.id))
+            
             entries = JournalEntry.objects.filter(student=student, subject=subject)
-            if entries.exists():
-                grades = entries.filter(grade__isnull=False).values_list('grade', flat=True)
-                avg_grade = sum(grades) / len(grades) if grades else 0
-                total_lessons = entries.count()
-                attended = entries.filter(attendance_status='PRESENT').count()
-                attendance_pct = (attended / total_lessons * 100) if total_lessons > 0 else 0
-                absent = total_lessons - attended
-                subjects_performance.append({
-                    'subject': subject, 'avg_grade': avg_grade,
-                    'attendance': attendance_pct, 'total_lessons': total_lessons,
-                    'absent': absent
-                })
+            total_lessons = entries.count()
+            attended = entries.filter(attendance_status='PRESENT').count()
+            attendance_pct = (attended / total_lessons * 100) if total_lessons > 0 else 0
+            
+            subjects_performance.append({
+                'subject': subject,
+                'rating': rating,
+                'attendance': attendance_pct,
+                'absent': total_lessons - attended
+            })
         
         students_data.append({
-            'student': student, 'stats': stats,
+            'student': student, 
+            'stats': stats,
             'subjects': subjects_performance,
-            'is_at_risk': stats.overall_gpa < 4.0 or stats.attendance_percentage < 60
+            'is_at_risk': stats.overall_gpa < 3.0 or stats.attendance_percentage < 60
         })
     
-    students_data.sort(key=lambda x: x['stats'].overall_gpa, reverse=True)
+    students_data.sort(key=lambda x: x['student'].user.last_name)
     
     return render(request, 'journal/group_detailed_report.html', {
         'group': group, 'students_data': students_data, 'subjects': subjects
