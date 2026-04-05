@@ -2476,3 +2476,112 @@ def admission_plan_delete(request, pk):
         'obj': plan,
         'title': _('Удалить план приёма'),
     })
+
+
+
+
+@login_required
+def api_faculty_load_summary(request, pk):
+    faculty = get_object_or_404(Faculty, pk=pk)
+    if not _check_structure_edit_permission(request.user, faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+    
+    departments = faculty.departments.prefetch_related('subjects', 'teachers').all()
+    data = []
+    
+    for dept in departments:
+        subjects = dept.subjects.filter(is_active=True)
+        
+        tot_lec = sum(s.lecture_hours for s in subjects)
+        tot_prac = sum(s.practice_hours + s.lab_hours for s in subjects)
+        tot_kmro = sum(s.control_hours for s in subjects)
+        tot_all = tot_lec + tot_prac + tot_kmro
+        
+        assigned_subs = subjects.filter(teacher__isnull=False)
+        ass_lec = sum(s.lecture_hours for s in assigned_subs)
+        ass_prac = sum(s.practice_hours + s.lab_hours for s in assigned_subs)
+        ass_kmro = sum(s.control_hours for s in assigned_subs)
+        ass_all = ass_lec + ass_prac + ass_kmro
+        
+        rem_lec = tot_lec - ass_lec
+        rem_prac = tot_prac - ass_prac
+        rem_kmro = tot_kmro - ass_kmro
+        rem_all = tot_all - ass_all
+        
+        data.append({
+            'id': dept.id,
+            'name': dept.name,
+            'wage_rate': dept.total_wage_rate or 0,
+            'hours_budget': dept.total_hours_budget or 0,
+            
+            'tot_all': tot_all, 'tot_lec': tot_lec, 'tot_prac': tot_prac, 'tot_kmro': tot_kmro,
+            'ass_all': ass_all, 'ass_lec': ass_lec, 'ass_prac': ass_prac, 'ass_kmro': ass_kmro,
+            'rem_all': rem_all, 'rem_lec': rem_lec, 'rem_prac': rem_prac, 'rem_kmro': rem_kmro,
+        })
+        
+    return JsonResponse({'success': True, 'departments': data})
+
+
+@login_required
+@require_POST
+def api_department_quick_update(request, pk):
+    dept = get_object_or_404(Department, pk=pk)
+    if not _check_structure_edit_permission(request.user, dept.faculty):
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+        
+    field = request.POST.get('field')
+    value = request.POST.get('value')
+    
+    try:
+        if field == 'wage':
+            dept.total_wage_rate = float(value.replace(',', '.')) if value else 0.0
+        elif field == 'hours':
+            dept.total_hours_budget = int(float(value.replace(',', '.'))) if value else 0
+        dept.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+@login_required
+@require_POST
+def api_quick_update(request):
+    if not request.user.is_management:
+        return JsonResponse({'success': False, 'error': _('Нет прав')}, status=403)
+        
+    model_name = request.POST.get('model')
+    obj_id = request.POST.get('id')
+    field = request.POST.get('field')
+    value = request.POST.get('value', '').strip()
+    
+    try:
+        if model_name == 'faculty':
+            obj = Faculty.objects.get(id=obj_id)
+            setattr(obj, field, value)
+            obj.save()
+            
+        elif model_name == 'department':
+            obj = Department.objects.get(id=obj_id)
+            if field == 'total_wage_rate':
+                value = float(value.replace(',', '.')) if value else 0.0
+            elif field == 'total_hours_budget':
+                value = int(float(value.replace(',', '.'))) if value else 0
+            setattr(obj, field, value)
+            obj.save()
+            
+        elif model_name == 'specialty':
+            obj = Specialty.objects.get(id=obj_id)
+            setattr(obj, field, value)
+            if field in ['name_ru', 'name_tj', 'name_en']:
+                obj.name = value  
+            obj.save()
+            
+        else:
+            return JsonResponse({'success': False, 'error': _('Неизвестная модель')})
+            
+        return JsonResponse({'success': True, 'value': value})
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("api_quick_update error")
+        return JsonResponse({'success': False, 'error': str(e)})

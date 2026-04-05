@@ -56,11 +56,12 @@
                         <tbody>
                             {% for group in groups %}
                             <tr>
-                                <td>
-                                    <strong>{{ group.name }}</strong>
                                 {% if user.is_superuser %}
                                 <td><span class="badge bg-dark">ID: {{ group.id }}</span></td>
                                 {% endif %}
+
+                                <td>
+                                    <strong>{{ group.name }}</strong>
                                 </td>
                                 <td><span class="badge bg-primary">{{ group.course }}</span></td>
                                 <td>{{ group.academic_year }}</td>

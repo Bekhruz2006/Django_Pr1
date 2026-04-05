@@ -7,20 +7,30 @@
 {% endblock %}
 
 {% block content %}
+<style>
+    [data-bs-toggle="collapse"][aria-expanded="true"] .transition-icon {
+        transform: rotate(180deg);
+    }
+    .transition-icon {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+</style>
+
 <div class="container-fluid px-4 py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="fw-bold text-dark mb-1">{% trans "Структура университета" %}</h3>
-            <p class="text-muted small mb-0">{% trans "Управление институтами, факультетами, кафедрами и специальностями" %}</p>
+            <h3 class="fw-bold text-dark mb-1">{% trans "Сохтори донишгоҳ (Структура)" %}</h3>
+            <p class="text-muted small mb-0">{% trans "Факултетҳо, кафедраҳо ва ихтисосҳо" %}</p>
         </div>
         {% if is_admin %}
         <div class="d-flex gap-2">
             <a href="{% url 'accounts:add_institute' %}" class="btn btn-success btn-sm shadow-sm">
-                <i class="bi bi-plus-lg"></i> {% trans "Институт" %}
+                <i class="bi bi-plus-lg"></i> {% trans "Донишкада (Институт)" %}
             </a>
             <a href="{% url 'accounts:add_faculty' %}" class="btn btn-primary btn-sm shadow-sm">
-                <i class="bi bi-plus-lg"></i> {% trans "Факультет" %}
+                <i class="bi bi-plus-lg"></i> {% trans "Факултет" %}
             </a>
         </div>
         {% endif %}
@@ -58,7 +68,7 @@
                         <span class="badge bg-light text-dark border">
                             {{ inst_data.faculties|length }} {% trans "факультетов" %}
                         </span>
-                        <div class="btn-group" role="group">
+                        <div class="btn-group" role="group" onclick="event.stopPropagation();">
                             <a href="{% url 'accounts:edit_institute' inst_data.obj.id %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Настройки' %}">
                                 <i class="bi bi-gear"></i>
                             </a>
@@ -66,7 +76,7 @@
                                 <i class="bi bi-trash"></i>
                             </a>
                         </div>
-                        <i class="bi bi-chevron-down text-muted"></i>
+                        <i class="bi bi-chevron-down text-muted transition-icon fs-5"></i>
                     </div>
                 </div>
 
@@ -76,18 +86,25 @@
                         {% if inst_data.faculties %}
                             {% for fac_data in inst_data.faculties %}
                             <div class="card border border-dark shadow-sm mb-3">
-                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom collapsed"
+                                     data-bs-toggle="collapse" data-bs-target="#collapseFac-{{ fac_data.obj.id }}" style="cursor: pointer;">
+                                    
                                     <div class="d-flex align-items-center">
                                         {% if user.is_superuser %}
                                             <span class="badge bg-dark me-2">ID: {{ fac_data.obj.id }}</span>
                                         {% endif %}
-                                        <i class="bi bi-diagram-2-fill text-success me-2"></i>
-                                        <span class="fw-bold">{{ fac_data.obj.name }}</span>
-                                        <span class="badge bg-light text-muted border ms-2" title="Код факультета">{{ fac_data.obj.code }}</span>
+                                        <i class="bi bi-diagram-2-fill text-success me-2 fs-5"></i>
+                                        <span class="fw-bold fs-5">{{ fac_data.obj.name }}</span>
+                                        <span class="badge bg-primary ms-3 fs-6">{{ fac_data.obj.short_name|default:fac_data.obj.code }}</span>
+                                        <i class="bi bi-chevron-down ms-3 transition-icon text-muted"></i>
                                     </div>
-                                    <div class="d-flex align-items-center gap-3">
+                                    
+                                    <div class="d-flex align-items-center gap-3" onclick="event.stopPropagation();">
                                         <small class="text-muted">{% trans "Декан:" %} <b>{{ fac_data.dean.user.get_full_name|default:"-" }}</b></small>
                                         <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-warning text-dark fw-bold border-warning shadow-sm" onclick="openFacultyLoadModal({{ fac_data.obj.id }}, '{{ fac_data.obj.name|escapejs }}')" title="Сарбории факултет">
+                                                <i class="bi bi-bar-chart-steps"></i> Сарборӣ
+                                            </button>
                                             <a href="{% url 'accounts:add_department' %}?faculty={{ fac_data.obj.id }}" class="btn btn-outline-success">{% trans "+ Кафедра" %}</a>
                                             <button type="button" class="btn btn-outline-secondary edit-faculty-btn" data-id="{{ fac_data.obj.id }}">
                                                 <i class="bi bi-pencil"></i>
@@ -97,90 +114,95 @@
                                     </div>
                                 </div>
 
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <!-- Строгая таблица с границами -->
-                                        <table class="table table-bordered table-hover mb-0 align-middle" style="font-size: 0.9rem;">
-                                            <thead class="table-dark small">
-                                                <tr>
-                                                    {% if user.is_superuser %}<th style="width: 50px;" class="text-center">ID</th>{% endif %}
-                                                    <th style="width: 25%;">{% trans "Номгуи Кафедраҳо (Кафедры)" %}</th>
-                                                    <th style="width: 15%;" class="text-center">{% trans "Омор (Статистика)" %}</th>
-                                                    <th style="width: 40%;">{% trans "Ихтисосҳо (Специальности)" %}</th>
-                                                    <th style="width: 15%;" class="text-center">{% trans "Амалҳо" %}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for dept_data in fac_data.departments %}
-                                                <tr>
-                                                    {% if user.is_superuser %}
-                                                    <td class="text-center fw-bold">{{ dept_data.obj.id }}</td>
-                                                    {% endif %}
-                                                    
-                                                    <td class="fw-medium">
-                                                        <div class="text-dark fw-bold mb-1">{{ dept_data.obj.name }}</div>
-                                                        <div class="small text-muted border-top pt-1 mt-1">
-                                                            <i class="bi bi-person me-1"></i> {% trans "Мудир:" %} {{ dept_data.head.user.get_full_name|default:"<span class='text-danger'>Таъин нашудааст</span>"|safe }}
-                                                        </div>
-                                                    </td>
-                                                    
-                                                    <td class="text-center">
-                                                        <div class="badge bg-warning text-dark w-100 mb-1 border" title="{% trans 'Кредитҳо' %}">{{ dept_data.stats.total_credits }} {% trans "кр." %}</div>
-                                                        <div class="badge bg-info text-dark w-100 mb-1 border" title="{% trans 'Воҳиди корӣ' %}">{{ dept_data.obj.total_wage_rate|default:"0" }} {% trans "ст." %}</div>
-                                                        <div class="badge bg-light text-dark w-100 border" title="{% trans 'Аъзоён' %}">{{ dept_data.stats.teachers }} {% trans "омузгор" %}</div>
-                                                    </td>
-                                                    
-                                                    <td class="p-0">
-                                                        <!-- Вложенная строгая таблица для специальностей -->
-                                                        <table class="table table-bordered mb-0 w-100 h-100" style="border-style: hidden;">
-                                                            <tbody>
-                                                                {% for spec in dept_data.specialties %}
-                                                                <tr>
-                                                                    {% if user.is_superuser %}
-                                                                    <td style="width:40px; border-top: 0; border-left: 0; border-bottom: 1px solid #dee2e6;" class="text-center fw-bold text-muted small">{{ spec.id }}</td>
-                                                                    {% endif %}
-                                                                    <td style="border-top: 0; border-left: 0; border-bottom: 1px solid #dee2e6;">
-                                                                        <div class="d-flex justify-content-between align-items-center">
-                                                                            <div>
-                                                                                <span class="fw-bold text-primary">{{ spec.code }}</span>
-                                                                                <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ spec.get_education_level_display }}</span>
-                                                                                <div class="fw-bold text-dark small mt-1">{{ spec.get_display_name }}</div>
-                                                                                <div class="text-muted fst-italic" style="font-size: 0.75rem;">{% trans "Ихтисос:" %} {{ spec.qualification }}</div>
-                                                                            </div>
-                                                                            <div class="d-flex flex-column gap-1 align-items-end">
-                                                                                <!-- Кнопка вызова модалки для групп -->
-                                                                                <button type="button" class="btn btn-sm btn-outline-success" onclick="openGroupModal({{ spec.id }}, '{{ spec.code }}')" title="{% trans 'Гӯруҳҳо (Группы)' %}">
-                                                                                    <i class="bi bi-collection"></i> Гӯруҳҳо
-                                                                                </button>
-                                                                                <div class="btn-group btn-group-sm">
-                                                                                    <button type="button" class="btn btn-light text-primary border edit-spec-btn" data-id="{{ spec.id }}" title="{% trans 'Таҳрир' %}"><i class="bi bi-pencil"></i></button>
-                                                                                    <button type="button" class="btn btn-light text-danger border" onclick="openAdmissionPlanModal({{ spec.id }}, '{{ spec.code }}', '{{ spec.name|escapejs }}')" title="{% trans 'Нақшаи қабул' %}"><i class="bi bi-clipboard-data"></i></button>
+                                <div id="collapseFac-{{ fac_data.obj.id }}" class="collapse">
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover mb-0 align-middle" style="font-size: 0.9rem;">
+                                                <thead class="table-light small fw-bold text-muted border-bottom">
+                                                    <tr>
+                                                        {% if user.is_superuser %}<th style="width: 50px;" class="text-center">ID</th>{% endif %}
+                                                        <th style="width: 25%;">{% trans "Номгуи Кафедраҳо (Кафедры)" %}</th>
+                                                        <th style="width: 15%;" class="text-center">{% trans "Омор (Статистика)" %}</th>
+                                                        <th style="width: 40%;">{% trans "Ихтисосҳо (Специальности)" %}</th>
+                                                        <th style="width: 15%;" class="text-center">{% trans "Амалҳо" %}</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for dept_data in fac_data.departments %}
+                                                    <tr>
+                                                        {% if user.is_superuser %}
+                                                        <td class="text-center fw-bold">{{ dept_data.obj.id }}</td>
+                                                        {% endif %}
+
+                                                        <td class="fw-medium">
+                                                            <div class="text-dark fw-bold mb-1 inline-edit" data-model="department" data-id="{{ dept_data.obj.id }}" data-field="name" title="Кликните для редактирования">{{ dept_data.obj.name }}</div>
+                                                            <div class="small text-muted border-top pt-1 mt-1">
+                                                                <i class="bi bi-person me-1"></i> {% trans "Мудир:" %} {{ dept_data.head.user.get_full_name|default:"<span class='text-danger'>Таъин нашудааст</span>"|safe }}
+                                                            </div>
+                                                        </td>
+
+                                                        <td class="text-center align-middle">
+                                                            <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                                                                <small class="text-muted fw-bold">Воҳид (Ставки):</small>
+                                                                <span class="badge bg-info text-dark fs-6 inline-edit" data-type="number" data-model="department" data-id="{{ dept_data.obj.id }}" data-field="total_wage_rate" title="Кликните для изменения">{{ dept_data.obj.total_wage_rate|default:"0" }}</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between align-items-center px-2">
+                                                                <small class="text-muted fw-bold">Буҷет (Часы):</small>
+                                                                <span class="badge bg-warning text-dark fs-6 inline-edit" data-type="number" data-model="department" data-id="{{ dept_data.obj.id }}" data-field="total_hours_budget" title="Кликните для изменения">{{ dept_data.obj.total_hours_budget|default:"0" }}</span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td class="p-0">
+                                                            <table class="table table-bordered mb-0 w-100 h-100" style="border-style: hidden;">
+                                                                <tbody>
+                                                                    {% for spec in dept_data.specialties %}
+                                                                    <tr>
+                                                                        {% if user.is_superuser %}
+                                                                        <td style="width:40px; border-top: 0; border-left: 0; border-bottom: 1px solid #dee2e6;" class="text-center fw-bold text-muted small">{{ spec.id }}</td>
+                                                                        {% endif %}
+                                                                        <td style="border-top: 0; border-left: 0; border-bottom: 1px solid #dee2e6;">
+                                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                                <div>
+                                                                                    <span class="fw-bold text-primary inline-edit" data-model="specialty" data-id="{{ spec.id }}" data-field="code" title="Изменить код">{{ spec.code }}</span>
+                                                                                    <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ spec.get_education_level_display }}</span>
+
+                                                                                    <div class="fw-bold text-dark small mt-1 inline-edit" data-model="specialty" data-id="{{ spec.id }}" data-field="name_ru" title="Изменить название">{{ spec.get_display_name }}</div>
+                                                                                </div>
+                                                                                <div class="d-flex flex-column gap-1 align-items-end">
+                                                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="openGroupModal({{ spec.id }}, '{{ spec.code }}')" title="{% trans 'Гӯруҳҳо (Группы)' %}">
+                                                                                        <i class="bi bi-collection"></i> Гӯруҳҳо
+                                                                                    </button>
+                                                                                    <div class="btn-group btn-group-sm">
+                                                                                        <button type="button" class="btn btn-light text-primary border edit-spec-btn" data-id="{{ spec.id }}" title="{% trans 'Таҳрир' %}"><i class="bi bi-pencil"></i></button>
+                                                                                        <button type="button" class="btn btn-light text-danger border" onclick="openAdmissionPlanModal({{ spec.id }}, '{{ spec.code }}', '{{ spec.name|escapejs }}', '{{ spec.get_education_level_display|escapejs }}')" title="{% trans 'Нақшаи қабул' %}"><i class="bi bi-clipboard-data"></i></button>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                                {% empty %}
-                                                                <tr><td class="text-center text-muted small py-3" style="border: none;">{% trans "Специальности отсутствуют" %}</td></tr>
-                                                                {% endfor %}
-                                                            </tbody>
-                                                        </table>
-                                                    </td>
-                                                    
-                                                    <td class="text-center bg-light">
-                                                        <div class="d-grid gap-2 p-1">
-                                                            <a href="{% url 'schedule:manage_subjects' %}?department={{ dept_data.obj.id }}" class="btn btn-sm btn-primary shadow-sm"><i class="bi bi-briefcase"></i> Сарборӣ</a>
-                                                            <a href="{% url 'accounts:user_management' %}?role=TEACHER&department={{ dept_data.obj.id }}" class="btn btn-sm btn-outline-info bg-white"><i class="bi bi-people"></i> Аъзоён</a>
-                                                            <div class="btn-group btn-group-sm w-100">
-                                                                <a href="{% url 'accounts:add_specialty' %}?department={{ dept_data.obj.id }}" class="btn btn-light text-success border"><i class="bi bi-plus"></i> Ихтисос</a>
-                                                                <button type="button" class="btn btn-light text-secondary border edit-dept-btn" data-id="{{ dept_data.obj.id }}"><i class="bi bi-gear"></i></button>
+                                                                        </td>
+                                                                    </tr>
+                                                                    {% empty %}
+                                                                    <tr><td class="text-center text-muted small py-3" style="border: none;">{% trans "Специальности отсутствуют" %}</td></tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </td>
+
+                                                        <td class="text-center bg-light">
+                                                            <div class="d-grid gap-2 p-1">
+                                                                <a href="{% url 'schedule:manage_subjects' %}?department={{ dept_data.obj.id }}" class="btn btn-sm btn-primary shadow-sm"><i class="bi bi-briefcase"></i> Сарборӣ</a>
+                                                                <a href="{% url 'journal:department_report' %}?department={{ dept_data.obj.id }}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm"><i class="bi bi-bar-chart-fill"></i> Ҳисоботи сессия</a>
+                                                                <a href="{% url 'accounts:user_management' %}?role=TEACHER&department={{ dept_data.obj.id }}" class="btn btn-sm btn-outline-info bg-white"><i class="bi bi-people"></i> Аъзоён</a>
+                                                                <div class="btn-group btn-group-sm w-100">
+                                                                    <a href="{% url 'accounts:add_specialty' %}?department={{ dept_data.obj.id }}" class="btn btn-light text-success border"><i class="bi bi-plus"></i> Ихтисос</a>
+                                                                    <button type="button" class="btn btn-light text-secondary border edit-dept-btn" data-id="{{ dept_data.obj.id }}"><i class="bi bi-gear"></i></button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -195,9 +217,7 @@
     {% endif %}
 </div>
 
-<!-- ================= МОДАЛЬНЫЕ ОКНА И AJAX ================= -->
-
-<!-- Modal: Список групп специальности -->
+<!-- Модалки (оставлены без изменений) -->
 <div class="modal fade" id="groupsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
@@ -206,9 +226,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="list-group list-group-flush" id="groupsModalList">
-                    <!-- Заполняется через JS -->
-                </div>
+                <div class="list-group list-group-flush" id="groupsModalList"></div>
                 <div class="p-3 bg-light text-center border-top">
                     <a href="{% url 'accounts:group_management' %}" class="btn btn-sm btn-primary w-100">Идоракунии ҳамаи гӯруҳҳо</a>
                 </div>
@@ -217,73 +235,83 @@
     </div>
 </div>
 
-<!-- Modal: Нақшаи қабул (План приема) -->
 <div class="modal fade" id="admissionPlanModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="bi bi-clipboard-data me-2"></i>{% trans "Нақшаи қабул (План приема)" %}</h5>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Нақшаи қабул (План приема)</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="admissionPlanForm" action="{% url 'accounts:admission_plan_create' %}" method="post">
                 {% csrf_token %}
-                <div class="modal-body bg-light">
-                    <div class="alert alert-danger bg-white border-danger mb-4">
-                        <strong class="d-block mb-1" id="ap_spec_code"></strong>
-                        <span id="ap_spec_name" class="text-muted small"></span>
+                <div class="modal-body bg-light p-4">
+                    <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                        <div class="bg-primary text-white rounded p-3 me-3 fw-bold fs-4" id="ap_spec_code"></div>
+                        <div>
+                            <h5 class="mb-1 text-dark fw-bold" id="ap_spec_name"></h5>
+                            <span class="badge bg-secondary" id="ap_spec_level"></span>
+                        </div>
                     </div>
+
                     <input type="hidden" name="specialty" id="ap_specialty_id">
-                    <div class="row g-3">
+
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">{% trans "Учебный год" %} <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="academic_year" placeholder="Напр: 2024-2025" required>
+                            <label class="form-label fw-bold text-muted small text-uppercase">Зинаи таҳсил (Ступень)</label>
+                            <input type="text" class="form-control bg-white" id="ap_spec_level_input" readonly>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">{% trans "Квота (Кол-во мест)" %} <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control text-primary fw-bold" name="target_quota" value="0" min="0" required>
+                            <label class="form-label fw-bold text-muted small text-uppercase">Учебный год <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="academic_year" placeholder="Напр: 2026-2027" required>
                         </div>
+
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">{% trans "Форма обучения" %} <span class="text-danger">*</span></label>
-                            <select name="study_form" class="form-select" required>
-                                <option value="FULL_TIME">Очная (Рӯзона)</option>
-                                <option value="PART_TIME">Заочная (Ғоибона)</option>
-                                <option value="DISTANCE">Дистанционная (Фосилавӣ)</option>
+                            <label class="form-label fw-bold text-muted small text-uppercase">Шакли таҳсил (Форма) <span class="text-danger">*</span></label>
+                            <select name="study_form" class="form-select border-primary" required>
+                                <option value="FULL_TIME">Рӯзона (Очная)</option>
+                                <option value="DISTANCE">Фосилавӣ (Дистанционная)</option>
+                                <option value="PART_TIME">Ғоибона (Заочная)</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">{% trans "Финансирование" %} <span class="text-danger">*</span></label>
-                            <select name="financing_type" class="form-select" required>
-                                <option value="BUDGET">Бюджет (Буҷавӣ)</option>
-                                <option value="CONTRACT">Контракт (Шартномавӣ)</option>
+                            <label class="form-label fw-bold text-muted small text-uppercase">Намуди таҳсил (Оплата) <span class="text-danger">*</span></label>
+                            <select name="financing_type" class="form-select border-success" required>
+                                <option value="CONTRACT">Шартнома (Контракт)</option>
+                                <option value="BUDGET">Бӯҷавӣ (Бюджет)</option>
                                 <option value="QUOTA">Квота</option>
+                                <option value="GRANT">Бурсия (Грант)</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">{% trans "Язык обучения" %} <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold text-muted small text-uppercase">Забони таҳсил (Язык) <span class="text-danger">*</span></label>
                             <select name="education_language" class="form-select" required>
                                 <option value="TJ">Тоҷикӣ</option>
                                 <option value="RU">Русский</option>
                                 <option value="EN">English</option>
                             </select>
                         </div>
-                        <div class="col-12 mt-3">
-                            <label class="form-label fw-bold small">{% trans "Стоимость для иностранных граждан" %}</label>
-                            <input type="number" step="0.01" class="form-control" name="foreign_tuition_fee" value="0">
-                            <div class="form-text">Оставьте 0, если не применимо. Указывается в долларах США.</div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-primary small text-uppercase"><i class="bi bi-people-fill me-1"></i> Миқдори довталаб (Квота) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-lg text-primary fw-bold" name="target_quota" value="0" min="0" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-muted small text-uppercase"><i class="bi bi-cash me-1"></i> Маблағи таҳсил (Для иностр. $) </label>
+                            <input type="number" step="0.01" class="form-control form-control-lg" name="foreign_tuition_fee" value="0">
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-white border-top-0">
                     <a href="{% url 'accounts:admission_plan_list' %}" class="btn btn-outline-secondary me-auto">{% trans "Открыть реестр планов" %}</a>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Отмена" %}</button>
-                    <button type="submit" class="btn btn-danger fw-bold"><i class="bi bi-save me-1"></i>{% trans "Сохранить квоту" %}</button>
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Бекор кардан (Отмена)</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4"><i class="bi bi-check-circle me-1"></i> Сабт кардан (Сохранить)</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal: Редактирование Факультета -->
 <div class="modal fade" id="ajaxFacultyModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -322,7 +350,6 @@
     </div>
 </div>
 
-<!-- Modal: Редактирование Кафедры -->
 <div class="modal fade" id="ajaxDeptModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -361,7 +388,6 @@
     </div>
 </div>
 
-<!-- Modal: Редактирование Специальности -->
 <div class="modal fade" id="ajaxSpecModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow">
@@ -373,7 +399,7 @@
                 <div class="modal-body bg-light">
                     <input type="hidden" id="spec_id" name="id">
                     <input type="hidden" id="spec_department" name="department">
-                    
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold small">{% trans "Шифр (Код)" %} <span class="text-danger">*</span></label>
@@ -426,9 +452,243 @@
     </div>
 </div>
 
-<!-- ================= СКРИПТЫ ================= -->
 <script>
-// Чтобы не перегружать сервер, мы встроили список групп прямо в HTML через JSON (создаем словарь в JS)
+const csrfToken = '{{ csrf_token }}';
+
+let facModal, deptModal, specModal;
+document.addEventListener("DOMContentLoaded", () => {
+    let fm = document.getElementById('ajaxFacultyModal');
+    let dm = document.getElementById('ajaxDeptModal');
+    let sm = document.getElementById('ajaxSpecModal');
+    if(fm) facModal = new bootstrap.Modal(fm);
+    if(dm) deptModal = new bootstrap.Modal(dm);
+    if(sm) specModal = new bootstrap.Modal(sm);
+});
+
+function clearErrors(form) {
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+}
+
+function applyErrors(form, errorsJson) {
+    const errors = JSON.parse(errorsJson);
+    for (const field in errors) {
+        const input = form.querySelector(`[name="${field}"]`);
+        if (input) {
+            input.classList.add('is-invalid');
+            const feedback = input.nextElementSibling;
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.textContent = errors[field][0].message;
+            }
+        }
+    }
+}
+
+document.addEventListener('click', async function(e) {
+    // --- Факультет ---
+    let facBtn = e.target.closest('.edit-faculty-btn');
+    if (facBtn) {
+        e.preventDefault(); e.stopPropagation();
+        const id = facBtn.dataset.id;
+        try {
+            const res = await fetch(`/accounts/api/faculty/${id}/detail/`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('fac_id').value = data.data.id;
+                document.getElementById('fac_name').value = data.data.name;
+                document.getElementById('fac_short_name').value = data.data.short_name;
+                document.getElementById('fac_code').value = data.data.code;
+                document.getElementById('fac_institute').value = data.data.institute;
+                clearErrors(document.getElementById('ajaxFacultyForm'));
+                if(facModal) facModal.show();
+            } else { alert(data.error); }
+        } catch (err) { alert('Ошибка сети'); }
+    }
+
+    let deptBtn = e.target.closest('.edit-dept-btn');
+    if (deptBtn) {
+        e.preventDefault(); e.stopPropagation();
+        const id = deptBtn.dataset.id;
+        try {
+            const res = await fetch(`/accounts/api/department/${id}/detail/`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('dept_id').value = data.data.id;
+                document.getElementById('dept_name').value = data.data.name;
+                document.getElementById('dept_wage').value = data.data.total_wage_rate;
+                document.getElementById('dept_hours').value = data.data.total_hours_budget;
+                document.getElementById('dept_faculty').value = data.data.faculty;
+                clearErrors(document.getElementById('ajaxDeptForm'));
+                if(deptModal) deptModal.show();
+            } else { alert(data.error); }
+        } catch (err) { alert('Ошибка сети'); }
+    }
+
+    let specBtn = e.target.closest('.edit-spec-btn');
+    if (specBtn) {
+        e.preventDefault(); e.stopPropagation();
+        const id = specBtn.dataset.id;
+        try {
+            const res = await fetch(`/accounts/api/specialty/${id}/detail/`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('spec_id').value = data.data.id;
+                document.getElementById('spec_code').value = data.data.code;
+                document.getElementById('spec_level').value = data.data.education_level;
+                document.getElementById('spec_qual').value = data.data.qualification;
+                document.getElementById('spec_name_tj').value = data.data.name_tj;
+                document.getElementById('spec_name_ru').value = data.data.name_ru || data.data.name;
+                document.getElementById('spec_name_en').value = data.data.name_en;
+                document.getElementById('spec_department').value = data.data.department;
+                clearErrors(document.getElementById('ajaxSpecForm'));
+                if(specModal) specModal.show();
+            } else { alert(data.error); }
+        } catch (err) { alert('Ошибка сети'); }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    let facForm = document.getElementById('ajaxFacultyForm');
+    if(facForm) {
+        facForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('fac_submit_btn');
+            btn.disabled = true;
+            clearErrors(this);
+            try {
+                const res = await fetch(`/accounts/api/faculty/${document.getElementById('fac_id').value}/update/`, {
+                    method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: new FormData(this)
+                });
+                const data = await res.json();
+                if (res.ok && data.success) window.location.reload();
+                else if (res.status === 422) applyErrors(this, data.errors);
+                else alert(data.error || 'Server error');
+            } catch (e) { alert('Network error'); }
+            finally { btn.disabled = false; }
+        });
+    }
+
+    let deptForm = document.getElementById('ajaxDeptForm');
+    if(deptForm) {
+        deptForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('dept_submit_btn');
+            btn.disabled = true;
+            clearErrors(this);
+            try {
+                const res = await fetch(`/accounts/api/department/${document.getElementById('dept_id').value}/update/`, {
+                    method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: new FormData(this)
+                });
+                const data = await res.json();
+                if (res.ok && data.success) window.location.reload();
+                else if (res.status === 422) applyErrors(this, data.errors);
+                else alert(data.error || 'Server error');
+            } catch (e) { alert('Network error'); }
+            finally { btn.disabled = false; }
+        });
+    }
+
+    let specForm = document.getElementById('ajaxSpecForm');
+    if(specForm) {
+        specForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('spec_submit_btn');
+            btn.disabled = true;
+            clearErrors(this);
+            const formData = new FormData(this);
+            formData.append('name', formData.get('name_ru') || formData.get('name_tj'));
+            try {
+                const res = await fetch(`/accounts/api/specialty/${document.getElementById('spec_id').value}/update/`, {
+                    method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.success) window.location.reload();
+                else if (res.status === 422) applyErrors(this, data.errors);
+                else alert(data.error || 'Server error');
+            } catch (e) { alert('Network error'); }
+            finally { btn.disabled = false; }
+        });
+    }
+
+    document.querySelectorAll('.inline-edit').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('mouseenter', () => el.style.opacity = '0.7');
+        el.addEventListener('mouseleave', () => el.style.opacity = '1');
+
+        el.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (this.querySelector('input')) return;
+
+            let currentVal = this.innerText.trim();
+            let inputType = this.dataset.type || 'text';
+
+            let input = document.createElement('input');
+            input.type = inputType;
+            if(inputType === 'number') input.step = 'any';
+            input.value = currentVal;
+            input.className = 'form-control form-control-sm shadow-sm border-primary fw-bold text-center animate-fade-in';
+            input.style.minWidth = '80px';
+            input.style.maxWidth = '100%';
+
+            this.innerHTML = '';
+            this.appendChild(input);
+            input.focus();
+            input.select();
+
+            input.addEventListener('blur', function() {
+                saveInlineEdit(el, input.value, currentVal);
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') el.innerHTML = currentVal;
+            });
+        });
+    });
+
+    function saveInlineEdit(el, newVal, oldVal) {
+        newVal = newVal.trim();
+        if (newVal === oldVal || newVal === '') {
+            el.innerHTML = oldVal;
+            return;
+        }
+
+        el.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status"></span>';
+
+        let fd = new FormData();
+        fd.append('model', el.dataset.model);
+        fd.append('id', el.dataset.id);
+        fd.append('field', el.dataset.field);
+        fd.append('value', newVal);
+
+        fetch('{% url "accounts:api_quick_update" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: fd
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                el.innerHTML = data.value;
+                const origBg = el.style.backgroundColor;
+                const origColor = el.style.color;
+                el.style.backgroundColor = '#dcfce7';
+                el.style.color = '#16a34a';
+                setTimeout(() => {
+                    el.style.backgroundColor = origBg;
+                    el.style.color = origColor;
+                }, 1000);
+            } else {
+                alert("Ошибка сохранения: " + data.error);
+                el.innerHTML = oldVal;
+            }
+        })
+        .catch(err => {
+            alert("Ошибка сети");
+            el.innerHTML = oldVal;
+        });
+    }
+});
+
 const groupsDict = {
     {% for inst in structure_data %}
         {% for fac in inst.faculties %}
@@ -449,7 +709,7 @@ function openGroupModal(specId, specCode) {
     document.getElementById('gm_spec_code').innerText = specCode;
     const list = document.getElementById('groupsModalList');
     list.innerHTML = '';
-    
+
     const groups = groupsDict[specId];
     if (groups && groups.length > 0) {
         groups.forEach(g => {
@@ -466,187 +726,21 @@ function openGroupModal(specId, specCode) {
     } else {
         list.innerHTML = '<div class="p-4 text-center text-muted">Группы пока не созданы</div>';
     }
-    
+
     new bootstrap.Modal(document.getElementById('groupsModal')).show();
 }
 
-function openAdmissionPlanModal(specialtyId, code, name) {
+function openAdmissionPlanModal(specialtyId, code, name, level) {
     document.getElementById('ap_specialty_id').value = specialtyId;
     document.getElementById('ap_spec_code').innerText = code;
     document.getElementById('ap_spec_name').innerText = name;
-    
+    document.getElementById('ap_spec_level').innerText = level;
+    document.getElementById('ap_spec_level_input').value = level;
+
     const currentYear = new Date().getFullYear();
     document.querySelector('input[name="academic_year"]').value = `${currentYear}-${currentYear + 1}`;
-    
+
     new bootstrap.Modal(document.getElementById('admissionPlanModal')).show();
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const csrfToken = '{{ csrf_token }}';
-
-    function clearErrors(form) {
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
-    }
-
-    function applyErrors(form, errorsJson) {
-        const errors = JSON.parse(errorsJson);
-        for (const field in errors) {
-            const input = form.querySelector(`[name="${field}"]`);
-            if (input) {
-                input.classList.add('is-invalid');
-                const feedback = input.nextElementSibling;
-                if (feedback && feedback.classList.contains('invalid-feedback')) {
-                    feedback.textContent = errors[field][0].message;
-                }
-            }
-        }
-    }
-
-    const facModal = new bootstrap.Modal(document.getElementById('ajaxFacultyModal'));
-    document.querySelectorAll('.edit-faculty-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
-            const id = this.dataset.id;
-            try {
-                const res = await fetch(`/accounts/api/faculty/${id}/detail/`);
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('fac_id').value = data.data.id;
-                    document.getElementById('fac_name').value = data.data.name;
-                    document.getElementById('fac_short_name').value = data.data.short_name;
-                    document.getElementById('fac_code').value = data.data.code;
-                    document.getElementById('fac_institute').value = data.data.institute;
-                    clearErrors(document.getElementById('ajaxFacultyForm'));
-                    facModal.show();
-                } else { alert(data.error); }
-            } catch (e) { alert('Network error'); }
-        });
-    });
-
-    document.getElementById('ajaxFacultyForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('fac_submit_btn');
-        btn.disabled = true;
-        clearErrors(this);
-        
-        const id = document.getElementById('fac_id').value;
-        const formData = new FormData(this);
-        
-        try {
-            const res = await fetch(`/accounts/api/faculty/${id}/update/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                window.location.reload();
-            } else if (res.status === 422) {
-                applyErrors(this, data.errors);
-            } else {
-                alert(data.error || 'Server error');
-            }
-        } catch (e) { alert('Network error'); }
-        finally { btn.disabled = false; }
-    });
-
-    const deptModal = new bootstrap.Modal(document.getElementById('ajaxDeptModal'));
-    document.querySelectorAll('.edit-dept-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
-            const id = this.dataset.id;
-            try {
-                const res = await fetch(`/accounts/api/department/${id}/detail/`);
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('dept_id').value = data.data.id;
-                    document.getElementById('dept_name').value = data.data.name;
-                    document.getElementById('dept_wage').value = data.data.total_wage_rate;
-                    document.getElementById('dept_hours').value = data.data.total_hours_budget;
-                    document.getElementById('dept_faculty').value = data.data.faculty;
-                    clearErrors(document.getElementById('ajaxDeptForm'));
-                    deptModal.show();
-                } else { alert(data.error); }
-            } catch (e) { alert('Network error'); }
-        });
-    });
-
-    document.getElementById('ajaxDeptForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('dept_submit_btn');
-        btn.disabled = true;
-        clearErrors(this);
-        
-        const id = document.getElementById('dept_id').value;
-        const formData = new FormData(this);
-        
-        try {
-            const res = await fetch(`/accounts/api/department/${id}/update/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                window.location.reload();
-            } else if (res.status === 422) {
-                applyErrors(this, data.errors);
-            } else {
-                alert(data.error || 'Server error');
-            }
-        } catch (e) { alert('Network error'); }
-        finally { btn.disabled = false; }
-    });
-
-    const specModal = new bootstrap.Modal(document.getElementById('ajaxSpecModal'));
-    document.querySelectorAll('.edit-spec-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
-            const id = this.dataset.id;
-            try {
-                const res = await fetch(`/accounts/api/specialty/${id}/detail/`);
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('spec_id').value = data.data.id;
-                    document.getElementById('spec_code').value = data.data.code;
-                    document.getElementById('spec_level').value = data.data.education_level;
-                    document.getElementById('spec_qual').value = data.data.qualification;
-                    document.getElementById('spec_name_tj').value = data.data.name_tj;
-                    document.getElementById('spec_name_ru').value = data.data.name_ru || data.data.name;
-                    document.getElementById('spec_name_en').value = data.data.name_en;
-                    document.getElementById('spec_department').value = data.data.department;
-                    clearErrors(document.getElementById('ajaxSpecForm'));
-                    specModal.show();
-                } else { alert(data.error); }
-            } catch (e) { alert('Network error'); }
-        });
-    });
-
-    document.getElementById('ajaxSpecForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('spec_submit_btn');
-        btn.disabled = true;
-        clearErrors(this);
-        
-        const formData = new FormData(this);
-        formData.append('name', formData.get('name_ru') || formData.get('name_tj'));
-        const id = document.getElementById('spec_id').value;
-        
-        try {
-            const res = await fetch(`/accounts/api/specialty/${id}/update/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                window.location.reload();
-            } else if (res.status === 422) {
-                applyErrors(this, data.errors);
-            } else {
-                alert(data.error || 'Server error');
-            }
-        } catch (e) { alert('Network error'); }
-        finally { btn.disabled = false; }
-    });
-});
 </script>
 {% endblock %}

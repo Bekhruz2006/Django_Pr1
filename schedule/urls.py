@@ -52,6 +52,7 @@ urlpatterns = [
     path('plans/discipline/<int:discipline_id>/delete/', views.delete_plan_discipline, name='delete_plan_discipline'),
     path('api/subject-template/create/', views.api_create_subject_template, name='api_create_subject_template'),
     path('reports/teacher-load/', views.teacher_load_report, name='teacher_load_report'),
+    path('reports/departments-load/', views.department_load_summary, name='department_load_summary'),
     path('subject/<int:subject_id>/materials/', views.subject_materials, name='subject_materials'),
     path('material/<int:material_id>/delete/', views.delete_material, name='delete_material'),
     path('plans/<int:plan_id>/activate/', views.activate_plan, name='activate_plan'),
@@ -71,6 +72,4 @@ urlpatterns = [
     path('api/calendar-mass-cancel/', views.mass_cancel_day, name='mass_cancel_day'),
     path('api/rup/parse/start/', views.rup_parse_start, name='rup_parse_start'),
     path('api/rup/parse/status/<uuid:task_id>/', views.rup_parse_status, name='rup_parse_status'),
-
-
 ]

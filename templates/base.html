@@ -513,10 +513,10 @@
             </a>
 
             <div class="d-flex align-items-center gap-2">
-                <div class="navbar-text text-white text-nowrap small me-1 d-flex align-items-center gap-2 px-2 py-1 rounded" style="background: rgba(255,255,255,0.12);">
+                <div class="navbar-text text-white text-nowrap small me-1 d-flex align-items-center gap-2 px-3 py-1 rounded border border-light border-opacity-25" style="background: rgba(255,255,255,0.05);">
                     <i class="bi bi-calendar3 d-md-none" title="{{ current_term }}"></i>
                     <span class="d-none d-md-inline" id="localized-date" data-raw-date="{{ current_date|date:'Y-m-d' }}"></span>
-                    <span class="d-none d-lg-inline border-start border-light border-opacity-25 ps-2 ms-1">{{ current_term }}</span>
+                    <span class="d-none d-lg-inline border-start border-light border-opacity-50 ps-2 ms-1">{{ current_term }}</span>
                 </div>
                 <div class="d-none d-md-flex me-2 position-relative" id="globalSearchContainer">
                     <div class="input-group input-group-sm" style="width: 280px; background: rgba(255, 255, 255, 0.15); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);">
@@ -651,6 +651,7 @@
                 <div class="sidebar-divider"></div>
                 <div class="sidebar-sub-label">{% trans "Управление кафедрой" %}</div>
                 <a class="sidebar-link" href="{% url 'schedule:manage_subjects' %}"><i class="bi bi-briefcase"></i>{% trans "Нагрузка кафедры" %}</a>
+                <a class="sidebar-link" href="{% url 'schedule:department_load_summary' %}"><i class="bi bi-table text-warning"></i><b>{% trans "Сводная нагрузка (Отчет)" %}</b></a>
                 <a class="sidebar-link" href="{% url 'schedule:import_department_load' %}"><i class="bi bi-file-earmark-excel"></i>{% trans "Импорт нагрузки" %}</a>
                 {% endif %}
                 <div class="sidebar-divider"></div>

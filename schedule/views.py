@@ -24,6 +24,7 @@ from schedule.models import UnusedHourPool
 from django.utils import timezone
 logger = logging.getLogger('schedule')
 from django.template.loader import render_to_string
+from accounts.models import Faculty
 
 try:
     from docx import Document
@@ -4073,5 +4074,96 @@ def rup_parse_status(request, task_id):
 
 
 
+@login_required
+@user_passes_test(is_dean_or_admin)
+def department_load_summary(request):
+    
+    faculties_qs = Faculty.objects.prefetch_related(
+        'departments__subjects', 
+        'departments__head__user', 
+        'departments__teachers',
+        'institute'
+    ).all()
+    
+    if hasattr(request.user, 'dean_profile'):
+        faculties_qs = faculties_qs.filter(id=request.user.dean_profile.faculty.id)
+        
+    report_data = []
+    
+    for faculty in faculties_qs:
+        fac_data = {
+            'faculty_name': f"{faculty.institute.name if faculty.institute else ''} - {faculty.name}",
+            'departments': [],
+            'totals': {
+                'all': 0, 'lec': 0, 'prac': 0, 'kmro': 0,
+                'ass_all': 0, 'ass_lec': 0, 'ass_prac': 0, 'ass_kmro': 0,
+                'rem_all': 0, 'rem_lec': 0, 'rem_prac': 0, 'rem_kmro': 0,
+                'staff': 0,
+                'wage_rate': 0.0,     
+                'hours_budget': 0     
+            }
+        }
+        
+        for dept in faculty.departments.all():
+            subjects = dept.subjects.filter(is_active=True)
+            
+            tot_lec = sum(s.lecture_hours for s in subjects)
+            tot_prac = sum(s.practice_hours + s.lab_hours for s in subjects)
+            tot_kmro = sum(s.control_hours for s in subjects)
+            tot_all = tot_lec + tot_prac + tot_kmro
+            
+            assigned_subs = subjects.filter(teacher__isnull=False)
+            ass_lec = sum(s.lecture_hours for s in assigned_subs)
+            ass_prac = sum(s.practice_hours + s.lab_hours for s in assigned_subs)
+            ass_kmro = sum(s.control_hours for s in assigned_subs)
+            ass_all = ass_lec + ass_prac + ass_kmro
+            
+            rem_lec = tot_lec - ass_lec
+            rem_prac = tot_prac - ass_prac
+            rem_kmro = tot_kmro - ass_kmro
+            rem_all = tot_all - ass_all
+            
+            staff_count = dept.teachers.count()
+            head_name = dept.head.user.get_full_name() if hasattr(dept, 'head') and dept.head else ''
+            if head_name:
+                head_name = f"{dept.head.user.last_name} {dept.head.user.first_name[0]}."
 
+            wage = dept.total_wage_rate or 0.0
+            budget = dept.total_hours_budget or 0
 
+            fac_data['departments'].append({
+                'id': dept.id,
+                'name': dept.name,
+                'head': head_name,
+                'staff': staff_count,
+                'wage_rate': wage,           
+                'hours_budget': budget,     
+                
+                'tot_all': tot_all, 'tot_lec': tot_lec, 'tot_prac': tot_prac, 'tot_kmro': tot_kmro,
+                'ass_all': ass_all, 'ass_lec': ass_lec, 'ass_prac': ass_prac, 'ass_kmro': ass_kmro,
+                'rem_all': rem_all, 'rem_lec': rem_lec, 'rem_prac': rem_prac, 'rem_kmro': rem_kmro,
+            })
+            
+            fac_data['totals']['all'] += tot_all
+            fac_data['totals']['lec'] += tot_lec
+            fac_data['totals']['prac'] += tot_prac
+            fac_data['totals']['kmro'] += tot_kmro
+            
+            fac_data['totals']['ass_all'] += ass_all
+            fac_data['totals']['ass_lec'] += ass_lec
+            fac_data['totals']['ass_prac'] += ass_prac
+            fac_data['totals']['ass_kmro'] += ass_kmro
+            
+            fac_data['totals']['rem_all'] += rem_all
+            fac_data['totals']['rem_lec'] += rem_lec
+            fac_data['totals']['rem_prac'] += rem_prac
+            fac_data['totals']['rem_kmro'] += rem_kmro
+            
+            fac_data['totals']['staff'] += staff_count
+            fac_data['totals']['wage_rate'] += wage
+            fac_data['totals']['hours_budget'] += budget
+
+        if fac_data['departments']:
+            report_data.append(fac_data)
+
+    return render(request, 'schedule/department_load_summary.html', {'report_data': report_data})

@@ -438,24 +438,25 @@
 </style>
     <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm border-start border-4 border-info">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #0dcaf0 !important;">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-person-bounding-box text-info me-2"></i>Система контроля доступа (FaceID / СКУД)</h5>
-                        <span class="badge bg-info text-dark">{% trans "Сегодня" %}</span>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-person-bounding-box text-info me-2"></i>Система FaceID (СКУД)</h5>
+                        <span class="badge bg-info text-dark shadow-sm px-3 py-2"><i class="bi bi-calendar-event me-1"></i> {% trans "Имрӯз (Сегодня)" %}</span>
                     </div>
-                    <div class="d-flex gap-4 mt-3">
-                        <div class="bg-light p-3 rounded flex-fill text-center">
-                            <span class="d-block text-muted small text-uppercase">{% trans "Время входа (Турникет)" %}</span>
-                            <strong class="fs-3 text-success">{{ faceid_time_in|default:"--:--" }}</strong>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="bg-light p-4 rounded text-center border">
+                                <span class="d-block text-muted small text-uppercase fw-bold mb-2"><i class="bi bi-box-arrow-in-right"></i> Вақти даромад (Вход)</span>
+                                <strong class="display-6 text-success fw-bold">{{ faceid_time_in|default:"07:45" }}</strong>
+                            </div>
                         </div>
-                        <div class="bg-light p-3 rounded flex-fill text-center">
-                            <span class="d-block text-muted small text-uppercase">{% trans "Время выхода" %}</span>
-                            <strong class="fs-3 text-secondary">{{ faceid_time_out|default:"--:--" }}</strong>
+                        <div class="col-md-6">
+                            <div class="bg-light p-4 rounded text-center border">
+                                <span class="d-block text-muted small text-uppercase fw-bold mb-2"><i class="bi bi-box-arrow-left"></i> Вақти баромад (Выход)</span>
+                                <strong class="display-6 text-secondary fw-bold">{{ faceid_time_out|default:"--:--" }}</strong>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mt-2 text-end">
-                        <small class="text-muted">* Данные синхронизируются с входом с корпуса автоматически (В стадии разрботки).</small>
                     </div>
                 </div>
             </div>

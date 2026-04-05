@@ -60,7 +60,7 @@
                             {% with diff=item.enrolled|add:"-"|add:item.plan.target_quota %}
                             <tr>
                                 {% if user.is_superuser %}
-                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border font-monospace">#{{ item.plan.id }}</span></td>
+                                <td><span class="badge bg-dark  text-secondary border font-monospace">ID {{ item.plan.id }}</span></td>
                                 {% endif %}
                                 <td class="text-start ps-4">
                                     <div class="fw-bold text-dark">{{ item.plan.specialty.code }}</div>

@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Сарбории кафедраҳо" %}{% endblock %}
+
+{% block content %}
+<style>
+    .table-summary th, .table-summary td {
+        vertical-align: middle;
+    }
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: #fff;
+        z-index: 2;
+        border-right: 2px solid #dee2e6 !important;
+    }
+    .sticky-col-header {
+        position: sticky;
+        left: 0;
+        background-color: #f8f9fa;
+        z-index: 3;
+        border-right: 2px solid #dee2e6 !important;
+    }
+    
+    .quick-input {
+        width: 75px;
+        text-align: center;
+        font-weight: 700;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 2px 4px;
+        transition: all 0.3s ease;
+    }
+    .quick-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .table-responsive::-webkit-scrollbar {
+        height: 8px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="container-fluid px-3 py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0 fw-bold text-dark">
+                    <i class="bi bi-speedometer2 text-primary me-2"></i>{% trans "Сарбории кафедраҳо (Распределение нагрузки)" %}
+                </h5>
+                <p class="text-muted small mb-0 mt-1">{% trans "Вы можете менять Воҳиди корӣ (Ставки) и Буҷет прямо в таблице. Значения сохранятся автоматически." %}</p>
+            </div>
+            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm shadow-sm fw-bold">
+                <i class="bi bi-printer me-1"></i>{% trans "Чоп кардан (Печать)" %}
+            </button>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 75vh; overflow-y: auto;">
+                <table class="table table-bordered table-hover table-summary mb-0 text-nowrap" style="font-size: 0.85rem;">
+                    <thead class="table-light text-center small text-uppercase text-muted fw-bold align-middle" style="position: sticky; top: 0; z-index: 4;">
+                        <tr>
+                            <th rowspan="2" style="width: 40px; background: #f8f9fa;">№</th>
+                            <th rowspan="2" style="min-width: 250px;" class="text-start ps-3 sticky-col-header">{% trans "Номгуи кафедраҳо" %}</th>
+                            
+                            <th rowspan="2" style="width: 85px; background: #f8f9fa;" title="Штатные единицы">{% trans "Воҳид" %}<br><small>(Ставки)</small></th>
+                            <th rowspan="2" style="width: 85px; background: #f8f9fa;" title="Установленный бюджет часов">{% trans "Буҷет" %}<br><small>(Часы)</small></th>
+
+                            <th colspan="4" class="bg-primary bg-opacity-10 text-primary border-primary">{% trans "Тибқи РУП (По плану)" %}</th>
+                            <th colspan="4" class="bg-success bg-opacity-10 text-success border-success">{% trans "Тақсимшуда (Распределено)" %}</th>
+                            <th colspan="4" class="bg-danger bg-opacity-10 text-danger border-danger">{% trans "Боқимонда (Остаток)" %}</th>
+                            
+                            <th rowspan="2" style="width: 60px; background: #f8f9fa;">{% trans "Аъзоён" %}<br><small>(Сотр.)</small></th>
+                            <th rowspan="2" style="min-width: 140px; background: #f8f9fa;">{% trans "Мудир (Зав. каф)" %}</th>
+                            <th rowspan="2" style="min-width: 80px; background: #f8f9fa;">{% trans "Амалҳо" %}</th>
+                        </tr>
+                        <tr>
+                            <th class="bg-primary bg-opacity-10 border-primary text-primary" title="Ҳамагӣ">Сумма</th>
+                            <th class="bg-primary bg-opacity-10 border-primary fw-normal text-muted">Лек</th>
+                            <th class="bg-primary bg-opacity-10 border-primary fw-normal text-muted">Пра</th>
+                            <th class="bg-primary bg-opacity-10 border-primary fw-normal text-muted">КМРО</th>
+                            
+                            <th class="bg-success bg-opacity-10 border-success text-success" title="Ҳамагӣ">Сумма</th>
+                            <th class="bg-success bg-opacity-10 border-success fw-normal text-muted">Лек</th>
+                            <th class="bg-success bg-opacity-10 border-success fw-normal text-muted">Пра</th>
+                            <th class="bg-success bg-opacity-10 border-success fw-normal text-muted">КМРО</th>
+                            
+                            <th class="bg-danger bg-opacity-10 border-danger text-danger" title="Ҳамагӣ">Сумма</th>
+                            <th class="bg-danger bg-opacity-10 border-danger fw-normal text-muted">Лек</th>
+                            <th class="bg-danger bg-opacity-10 border-danger fw-normal text-muted">Пра</th>
+                            <th class="bg-danger bg-opacity-10 border-danger fw-normal text-muted">КМРО</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fac_data in report_data %}
+                            <tr>
+                                <td colspan="20" class="bg-dark text-white fw-bold text-start ps-3 py-2 fs-6 sticky-col" style="letter-spacing: 1px; background: #1e293b;">
+                                    <i class="bi bi-building me-2"></i> {{ fac_data.faculty_name }}
+                                </td>
+                            </tr>
+                            
+                            {% for dept in fac_data.departments %}
+                            <tr>
+                                <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+                                <td class="fw-bold text-dark ps-3 sticky-col">{{ dept.name }}</td>
+                                
+                                <td class="text-center bg-light">
+                                    <input type="number" step="0.25" class="quick-input text-primary" 
+                                           value="{{ dept.wage_rate|stringformat:'s' }}" 
+                                           onchange="quickUpdateDept({{ dept.id }}, 'wage', this)"
+                                           title="{% trans 'Изменить ставки' %}">
+                                </td>
+                                <td class="text-center bg-light">
+                                    <input type="number" class="quick-input text-success" 
+                                           value="{{ dept.hours_budget }}" 
+                                           onchange="quickUpdateDept({{ dept.id }}, 'hours', this)"
+                                           title="{% trans 'Изменить бюджет часов' %}">
+                                </td>
+
+                                <td class="text-center fw-bold fs-6 bg-primary bg-opacity-10 text-primary">{{ dept.tot_all }}</td>
+                                <td class="text-center text-muted">{{ dept.tot_lec }}</td>
+                                <td class="text-center text-muted">{{ dept.tot_prac }}</td>
+                                <td class="text-center text-muted">{{ dept.tot_kmro }}</td>
+                                
+                                <td class="text-center fw-bold fs-6 bg-success bg-opacity-10 text-success">{{ dept.ass_all }}</td>
+                                <td class="text-center text-muted">{{ dept.ass_lec }}</td>
+                                <td class="text-center text-muted">{{ dept.ass_prac }}</td>
+                                <td class="text-center text-muted">{{ dept.ass_kmro }}</td>
+                                
+                                <td class="text-center fw-bold fs-6 bg-danger bg-opacity-10 {% if dept.rem_all > 0 %}text-danger{% else %}text-muted{% endif %}">{{ dept.rem_all }}</td>
+                                <td class="text-center text-muted">{{ dept.rem_lec }}</td>
+                                <td class="text-center text-muted">{{ dept.rem_prac }}</td>
+                                <td class="text-center text-muted">{{ dept.rem_kmro }}</td>
+                                
+                                <td class="text-center"><span class="badge bg-secondary">{{ dept.staff }}</span></td>
+                                <td class="small">{{ dept.head|default:"<span class='text-danger small'>Таъин нашудааст</span>"|safe }}</td>
+                                <td class="text-center">
+                                    <a href="{% url 'schedule:manage_subjects' %}?department={{ dept.id }}" class="btn btn-sm btn-outline-primary py-0" title="{% trans 'Перейти к предметам' %}">
+                                        <i class="bi bi-briefcase"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <tr class="bg-light">
+                                <td class="text-end pe-3 fw-bold text-uppercase text-muted small"></td>
+                                <td class="text-end pe-3 fw-bold text-uppercase text-muted small sticky-col bg-light">{% trans "Ҳамагӣ (Итого):" %}</td>
+                                
+                                <td class="text-center fw-bold text-primary">{{ fac_data.totals.wage_rate|floatformat:2 }}</td>
+                                <td class="text-center fw-bold text-success">{{ fac_data.totals.hours_budget }}</td>
+
+                                <td class="text-center fw-bold fs-6 text-primary">{{ fac_data.totals.all }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.lec }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.prac }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.kmro }}</td>
+                                
+                                <td class="text-center fw-bold fs-6 text-success">{{ fac_data.totals.ass_all }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.ass_lec }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.ass_prac }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.ass_kmro }}</td>
+                                
+                                <td class="text-center fw-bold fs-6 text-danger">{{ fac_data.totals.rem_all }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.rem_lec }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.rem_prac }}</td>
+                                <td class="text-center text-muted fw-bold">{{ fac_data.totals.rem_kmro }}</td>
+                                
+                                <td class="text-center fw-bold">{{ fac_data.totals.staff }}</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+function quickUpdateDept(deptId, field, inputEl) {
+    const value = inputEl.value;
+    const originalBg = inputEl.style.backgroundColor;
+    inputEl.style.backgroundColor = '#e2e8f0';
+
+    let fd = new FormData();
+    fd.append('field', field);
+    fd.append('value', value);
+
+    fetch(`/accounts/api/department/${deptId}/quick-update/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrfToken},
+        body: fd
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            inputEl.style.backgroundColor = '#dcfce7';
+            inputEl.style.borderColor = '#16a34a';
+            setTimeout(() => {
+                inputEl.style.backgroundColor = originalBg;
+                inputEl.style.borderColor = '#ced4da';
+            }, 1000);
+        } else {
+            alert("{% trans 'Ошибка сохранения:' %} " + data.error);
+            inputEl.style.backgroundColor = '#fee2e2';
+        }
+    })
+    .catch(e => {
+        alert("{% trans 'Ошибка сети' %}");
+        inputEl.style.backgroundColor = '#fee2e2';
+    });
+}
+</script>
+{% endblock %}

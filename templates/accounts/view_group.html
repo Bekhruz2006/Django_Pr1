@@ -36,7 +36,14 @@
                         <tbody>
                             {% for student in students %}
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    {% if user.is_superuser %}
+                                        <span class="badge bg-dark text-white ms-2 fs-6">ID: {{ student.user.id }}</span>
+                                    {% endif %}
+
+                                    {{ forloop.counter }}
+
+                                </td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         {% if student.user.photo %}
@@ -47,9 +54,6 @@
                                             </div>
                                         {% endif %}
                                         <span class="fw-bold">{{ student.user.get_full_name }}</span>
-                                        {% if user.is_superuser %}
-                                            <span class="badge bg-dark text-white ms-2 fs-6">ID: {{ student.user.id }}</span>
-                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>{{ student.student_id }}</td>

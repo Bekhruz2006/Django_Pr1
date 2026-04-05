@@ -101,11 +101,11 @@ class Department(models.Model):
 
 class Specialty(models.Model):
     EDUCATION_LEVEL_CHOICES = [
-        ('BACHELOR', _('Бакалавриат')),
-        ('MASTER', _('Магистратура')),
-        ('DOCTORAL', _('Докторантура')),
-        ('POSTGRAD', _('Аспирантура')),
+        ('BACHELOR', _('Бакалавр (Бакалавриат)')),
+        ('MASTER', _('Магистр (Магистратура)')),
         ('SECOND_HIGHER', _('Второе высшее')),
+        ('POSTGRAD', _('Аспирантура')),
+        ('DOCTORAL', _('Докторантура')),
     ]
 
     department = models.ForeignKey(
@@ -821,19 +821,14 @@ class Diploma(models.Model):
 
 
 class AdmissionPlan(models.Model):
-    """
-    План приёма студентов на специальность.
-    Количество фактически зачисленных считается ТОЛЬКО на лету (enrolled_count),
-    никакого денормализованного поля — исключаем рассинхронизацию.
-    """
     STUDY_FORM_CHOICES = [
         ('FULL_TIME', _('Очная')),
-        ('PART_TIME', _('Заочная')),
         ('DISTANCE', _('Дистанционная')),
+        ('PART_TIME', _('Заочная')),
     ]
     FINANCING_TYPE_CHOICES = [
-        ('BUDGET', _('Бюджет')),
         ('CONTRACT', _('Контракт')),
+        ('BUDGET', _('Бюджет')),
         ('QUOTA', _('Квота')),
         ('GRANT', _('Грант')),
     ]

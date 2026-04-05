@@ -413,8 +413,8 @@ def global_search(request):
     query = request.GET.get('q', '').strip()
     
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        if not query or len(query) < 2:
-            return JsonResponse({'results':[]})
+        if not query or len(query) < 1:
+            return JsonResponse({'results': []})
         
         user = request.user
         institute = None
@@ -444,7 +444,7 @@ def global_search(request):
 
         students_qs = Student.objects.select_related('user', 'group')
         teachers_qs = Teacher.objects.select_related('user', 'department')
-        groups_qs = Group.objects.all()
+        groups_qs = Group.objects.select_related('specialty')
         courses_qs = Course.objects.select_related('category')
         subjects_qs = Subject.objects.select_related('department')
         classrooms_qs = Classroom.objects.select_related('building')
@@ -462,48 +462,61 @@ def global_search(request):
             subjects_qs = subjects_qs.filter(department__faculty__institute=institute)
             classrooms_qs = classrooms_qs.filter(building__institute=institute)
 
-        results =[]
+        query_is_digit = query.isdigit()
+        search_id = int(query) if query_is_digit else None
 
-        students = students_qs.filter(
-            Q(user__first_name__icontains=query) | 
-            Q(user__last_name__icontains=query) | 
-            Q(student_id__icontains=query)
-        )[:5]
+        results = []
+
+        if query_is_digit:
+            students = students_qs.filter(Q(user__id=search_id) | Q(student_id__icontains=query))[:5]
+        else:
+            students = students_qs.filter(
+                Q(user__first_name__icontains=query) | 
+                Q(user__last_name__icontains=query) | 
+                Q(student_id__icontains=query)
+            )[:5]
         for s in students:
             results.append({
-                'title': s.user.get_full_name(),
+                'title': f"[ID: {s.user.id}] {s.user.get_full_name()}",
                 'subtitle': f"Студент | {s.group.name if s.group else 'Без группы'}",
                 'url': f"/accounts/profile/view/{s.user.id}/",
                 'icon': 'bi-mortarboard text-primary'
             })
 
-        teachers = teachers_qs.filter(
-            Q(user__first_name__icontains=query) | 
-            Q(user__last_name__icontains=query)
-        )[:5]
+        if query_is_digit:
+            teachers = teachers_qs.filter(user__id=search_id)[:5]
+        else:
+            teachers = teachers_qs.filter(
+                Q(user__first_name__icontains=query) | 
+                Q(user__last_name__icontains=query)
+            )[:5]
         for t in teachers:
             results.append({
-                'title': t.user.get_full_name(),
+                'title': f"[ID: {t.user.id}] {t.user.get_full_name()}",
                 'subtitle': f"Преподаватель | {t.department.name if t.department else ''}",
                 'url': f"/accounts/profile/view/{t.user.id}/",
                 'icon': 'bi-person-video3 text-success'
             })
 
-        groups = groups_qs.filter(name__icontains=query)[:5]
+        if query_is_digit:
+            groups = groups_qs.filter(id=search_id)[:5]
+        else:
+            groups = groups_qs.filter(name__icontains=query)[:5]
         for g in groups:
             results.append({
-                'title': g.name,
+                'title': f"[ID: {g.id}] {g.name}",
                 'subtitle': f"Группа | {g.course} курс",
                 'url': f"/accounts/groups/{g.id}/view/",
-                'icon': 'bi-people text-warning'
+                'icon': 'bi-collection text-warning'
             })
 
-        courses = courses_qs.filter(
-            Q(full_name__icontains=query) | Q(short_name__icontains=query)
-        )[:5]
+        if query_is_digit:
+            courses = courses_qs.filter(id=search_id)[:5]
+        else:
+            courses = courses_qs.filter(Q(full_name__icontains=query) | Q(short_name__icontains=query))[:5]
         for c in courses:
             results.append({
-                'title': c.short_name,
+                'title': f"[ID: {c.id}] {c.short_name}",
                 'subtitle': f"Курс (LMS) | {c.category.name}",
                 'url': f"/lms/courses/{c.id}/",
                 'icon': 'bi-laptop text-info'
